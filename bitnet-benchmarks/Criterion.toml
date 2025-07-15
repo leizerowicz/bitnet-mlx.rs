@@ -1,0 +1,17 @@
+[output]
+# Generate HTML reports
+html = { enable = true }
+
+[measurement]
+# Measurement time per sample
+measurement_time = 5
+# Warm-up time
+warm_up_time = 3
+# Number of samples
+sample_size = 100
+
+[plotting]
+# Enable plotting
+enable = true
+# Plot configuration
+summary_scale = "linear"

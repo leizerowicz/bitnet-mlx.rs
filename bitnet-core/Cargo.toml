@@ -1,0 +1,52 @@
+[package]
+name = "bitnet-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Core BitNet implementation with fundamental data structures and algorithms"
+keywords = ["bitnet", "quantization", "neural-networks", "core"]
+categories = ["science", "machine-learning"]
+
+[features]
+default = ["std"]
+std = []
+# Enable parallel processing
+parallel = ["dep:rayon"]
+# Enable tracing for debugging
+tracing = ["dep:tracing"]
+# Enable SIMD optimizations
+simd = ["candle-core/cuda"]
+# Enable Metal GPU support (macOS only)
+metal = ["candle-core/metal", "dep:metal-rs"]
+
+[dependencies]
+# Core tensor operations
+candle-core.workspace = true
+candle-nn = "0.8"
+
+# Serialization
+serde.workspace = true
+serde_json = "1.0"
+
+# Error handling
+anyhow.workspace = true
+thiserror.workspace = true
+
+# Utilities
+num-traits = "0.2"
+bytemuck = "1.0"
+half = "2.0"
+libc = "0.2"
+
+# Optional dependencies
+rayon = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+metal-rs = { version = "0.10", optional = true }
+
+[dev-dependencies]
+criterion.workspace = true
+proptest.workspace = true
+approx = "0.5"
+rand = "0.8"

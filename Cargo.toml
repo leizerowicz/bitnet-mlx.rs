@@ -1,0 +1,50 @@
+[workspace]
+resolver = "2"
+members = [
+    "bitnet-core",
+    "bitnet-quant",
+    "bitnet-metal",
+    "bitnet-inference",
+    "bitnet-training",
+    "bitnet-cli",
+    "bitnet-benchmarks"
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/bitnet-rust"
+homepage = "https://github.com/yourusername/bitnet-rust"
+documentation = "https://docs.rs/bitnet-rust"
+description = "Pure Rust implementation of BitNet for Apple Silicon"
+keywords = ["bitnet", "quantization", "neural-networks", "apple-silicon", "metal"]
+categories = ["science", "machine-learning"]
+
+[workspace.dependencies]
+# Core dependencies
+mlx-rs = "0.25"
+candle-core = { version = "0.8", features = ["metal", "accelerate"] }
+candle-nn = "0.8"
+candle-transformers = "0.8"
+metal-rs = "0.10"
+tokenizers = "0.15"
+serde = { version = "1.0", features = ["derive"] }
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Development dependencies
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+
+# Optional dependencies for features
+rayon = "1.7"
+tracing = "0.1"
+
+[profile.dev]
+lto = false
+
+[profile.release]
+lto = false

@@ -1,0 +1,54 @@
+[package]
+name = "bitnet-inference"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "High-performance inference engine for BitNet models"
+keywords = ["bitnet", "inference", "neural-networks", "text-generation"]
+categories = ["science", "machine-learning"]
+
+[features]
+default = ["std", "tokenizers"]
+std = []
+# Enable tokenization
+tokenizers = ["dep:tokenizers"]
+# Enable text generation utilities
+generation = ["dep:rand"]
+# Enable batch processing
+batching = ["dep:rayon"]
+# Enable streaming inference
+streaming = ["dep:tokio"]
+# Enable Metal acceleration
+metal = ["dep:bitnet-metal"]
+
+[dependencies]
+bitnet-core = { path = "../bitnet-core" }
+bitnet-quant = { path = "../bitnet-quant" }
+bitnet-metal = { path = "../bitnet-metal", optional = true }
+
+# Core dependencies
+candle-core.workspace = true
+serde.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+
+# Tokenization
+tokenizers = { workspace = true, optional = true }
+
+# Text generation
+rand = { version = "0.8", optional = true }
+
+# Performance
+rayon = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+
+# Utilities
+tracing = { workspace = true, optional = true }
+uuid = "1.0"
+
+[dev-dependencies]
+criterion.workspace = true
+proptest.workspace = true
+tokio = { workspace = true, features = ["test-util"] }

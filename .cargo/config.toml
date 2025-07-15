@@ -1,0 +1,8 @@
+[build]
+rustflags = ["-C", "embed-bitcode=no"]
+
+[profile.dev]
+lto = false
+
+[profile.release]
+lto = false

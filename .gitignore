@@ -1,0 +1,47 @@
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Benchmarks
+criterion/
+*.profraw
+
+# Documentation
+/docs/book/
+/target/doc/
+
+# Metal shaders (compiled)
+*.metallib
+*.air
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+
+# Logs
+*.log
+logs/
+
+# Model files
+*.safetensors
+*.gguf
+*.pt
+*.pth
+models/
+
+# Environment
+.env
+.env.local

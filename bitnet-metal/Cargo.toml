@@ -1,0 +1,56 @@
+[package]
+name = "bitnet-metal"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Metal GPU acceleration for BitNet on Apple Silicon"
+keywords = ["bitnet", "metal", "gpu", "apple-silicon", "acceleration"]
+categories = ["science", "machine-learning", "graphics"]
+
+[features]
+default = ["std"]
+std = []
+# Enable Metal Performance Shaders integration
+mps = ["dep:objc"]
+# Enable unified memory optimizations
+unified-memory = []
+# Enable Neural Engine integration (experimental)
+ane = []
+
+[dependencies]
+bitnet-core = { path = "../bitnet-core" }
+bitnet-quant = { path = "../bitnet-quant" }
+
+# Metal bindings
+metal-rs.workspace = true
+objc = { version = "0.2", optional = true }
+
+# Core dependencies
+candle-core.workspace = true
+serde.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+
+# Memory management
+libc = "0.2"
+mach = "0.3"
+
+# Optional Apple frameworks
+# core-ml = { version = "0.1", optional = true }  # Not available on crates.io
+
+[dev-dependencies]
+criterion.workspace = true
+proptest.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# macOS specific dependencies
+cocoa = "0.24"
+core-foundation = "0.9"
+core-graphics = "0.23"
+
+
+[build-dependencies]
+# For compiling Metal shaders
+cc = "1.0"

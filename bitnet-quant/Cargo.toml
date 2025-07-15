@@ -1,0 +1,48 @@
+[package]
+name = "bitnet-quant"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "1.58-bit quantization engine for BitNet neural networks"
+keywords = ["bitnet", "quantization", "compression", "neural-networks"]
+categories = ["science", "machine-learning", "compression"]
+
+[features]
+default = ["std"]
+std = []
+# Enable quantization-aware training
+qat = ["bitnet-core/tracing"]
+# Enable calibration utilities
+calibration = ["dep:rand"]
+# Enable advanced quantization methods
+advanced = ["dep:statrs"]
+
+[dependencies]
+bitnet-core = { path = "../bitnet-core" }
+
+# Core dependencies
+candle-core.workspace = true
+serde.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+
+# Quantization specific
+num-traits = "0.2"
+bytemuck = "1.0"
+half = "2.0"
+
+# Math utilities
+ndarray = "0.15"
+nalgebra = "0.32"
+
+# Optional dependencies
+rand = { version = "0.8", optional = true }
+statrs = { version = "0.16", optional = true }
+
+[dev-dependencies]
+criterion.workspace = true
+proptest.workspace = true
+approx = "0.5"
+rand = "0.8"

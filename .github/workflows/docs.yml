@@ -1,0 +1,39 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Install mdBook
+      run: |
+        cargo install mdbook
+        cargo install mdbook-mermaid
+        cargo install mdbook-toc
+        cargo install mdbook-linkcheck
+    
+    - name: Build API docs
+      run: cargo doc --workspace --no-deps
+    
+    - name: Build mdBook
+      run: |
+        cd docs
+        mdbook build
+    
+    - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs/book

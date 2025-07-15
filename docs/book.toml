@@ -1,0 +1,46 @@
+[book]
+authors = ["Wavegoodvybe2929"]
+language = "en"
+src = "src"
+title = "BitNet Rust Implementation"
+
+[preprocessor.toc]
+command = "mdbook-toc"
+renderer = ["html"]
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[preprocessor.linkcheck]
+command = "mdbook-linkcheck"
+
+[output.html]
+theme = "theme"
+default-theme = "navy"
+preferred-dark-theme = "navy"
+curly-quotes = true
+mathjax-support = true
+copy-fonts = true
+additional-css = ["theme/custom.css"]
+additional-js = ["theme/custom.js"]
+git-repository-url = "https://github.com/yourusername/bitnet-rust"
+edit-url-template = "https://github.com/yourusername/bitnet-rust/edit/main/docs/{path}"
+
+[output.html.playground]
+editable = true
+copyable = true
+copy-js = true
+line-numbers = true
+runnable = true
+
+[output.html.search]
+enable = true
+limit-results = 30
+teaser-word-count = 30
+use-boolean-and = true
+boost-title = 2
+boost-hierarchy = 1
+boost-paragraph = 1
+expand = true
+heading-split-level = 3
+copy-js = true

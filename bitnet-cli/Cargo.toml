@@ -1,0 +1,69 @@
+[package]
+name = "bitnet-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Command-line interface for BitNet model operations"
+keywords = ["bitnet", "cli", "neural-networks", "command-line"]
+categories = ["science", "machine-learning", "command-line-utilities"]
+
+[[bin]]
+name = "bitnet"
+path = "src/main.rs"
+
+[features]
+default = ["full"]
+# Enable all features
+full = ["inference", "training", "conversion", "benchmark"]
+# Enable inference commands
+inference = ["bitnet-inference/generation", "bitnet-inference/tokenizers"]
+# Enable training commands
+training = ["bitnet-training/qat", "bitnet-training/peft"]
+# Enable model conversion
+conversion = ["dep:safetensors"]
+# Enable benchmarking commands
+benchmark = ["bitnet-benchmarks"]
+# Enable Metal acceleration
+metal = ["bitnet-inference/metal", "bitnet-training/metal"]
+
+[dependencies]
+bitnet-core = { path = "../bitnet-core" }
+bitnet-quant = { path = "../bitnet-quant" }
+bitnet-inference = { path = "../bitnet-inference" }
+bitnet-training = { path = "../bitnet-training" }
+bitnet-benchmarks = { path = "../bitnet-benchmarks", optional = true }
+
+# CLI framework
+clap = { version = "4.0", features = ["derive", "env"] }
+clap_complete = "4.0"
+
+# Core dependencies
+serde.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+
+# File handling
+safetensors = { version = "0.4", optional = true }
+hf-hub = "0.3"
+
+# Utilities
+tracing = { workspace = true }
+tracing-subscriber = "0.3"
+indicatif = "0.17"
+console = "0.15"
+dialoguer = "0.11"
+
+# Async support
+tokio = { workspace = true, features = ["full"] }
+
+# Configuration
+config = "0.14"
+dirs = "5.0"
+
+[dev-dependencies]
+criterion.workspace = true
+assert_cmd = "2.0"
+predicates = "3.0"
+tempfile = "3.0"

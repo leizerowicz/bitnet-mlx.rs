@@ -1,0 +1,52 @@
+[package]
+name = "bitnet-benchmarks"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Comprehensive benchmarking suite for BitNet implementation"
+keywords = ["bitnet", "benchmarks", "performance", "neural-networks"]
+categories = ["science", "machine-learning", "development-tools"]
+
+[features]
+default = ["std"]
+std = []
+# Enable Metal benchmarks
+metal = ["bitnet-metal"]
+# Enable training benchmarks
+training = ["bitnet-training"]
+# Enable memory profiling
+memory = ["dep:tikv-jemallocator"]
+
+[dependencies]
+bitnet-core = { path = "../bitnet-core" }
+bitnet-quant = { path = "../bitnet-quant" }
+bitnet-inference = { path = "../bitnet-inference" }
+bitnet-metal = { path = "../bitnet-metal", optional = true }
+bitnet-training = { path = "../bitnet-training", optional = true }
+
+# Benchmarking framework
+criterion.workspace = true
+criterion-perf-events = "0.4"
+
+# Core dependencies
+candle-core.workspace = true
+serde.workspace = true
+anyhow.workspace = true
+
+# Test data generation
+rand = "0.8"
+rand_distr = "0.4"
+
+# Memory profiling
+tikv-jemallocator = { version = "0.5", optional = true }
+
+# System metrics
+sysinfo = "0.30"
+
+# Utilities
+tracing = { workspace = true }
+
+[dev-dependencies]
+proptest.workspace = true
