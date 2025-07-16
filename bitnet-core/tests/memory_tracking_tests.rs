@@ -3,6 +3,7 @@
 //! This test suite validates all aspects of the memory tracking utilities
 //! including performance overhead validation.
 
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use bitnet_core::memory::{
     HybridMemoryPool, MemoryPoolConfig, TrackingConfig, TrackingLevel,

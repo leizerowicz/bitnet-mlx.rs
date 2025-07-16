@@ -15,7 +15,7 @@ use crate::memory::handle::{PoolType, CpuMemoryMetadata};
 use crate::memory::handle::MetalMemoryMetadata;
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, warn, error};
+use tracing::{debug, info};
 
 /// CPU memory pool implementation
 ///

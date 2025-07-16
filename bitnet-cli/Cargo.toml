@@ -5,9 +5,11 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
 description = "Command-line interface for BitNet model operations"
 keywords = ["bitnet", "cli", "neural-networks", "command-line"]
-categories = ["science", "machine-learning", "command-line-utilities"]
+categories = ["science", "command-line-utilities"]
 
 [[bin]]
 name = "bitnet"
@@ -15,25 +17,25 @@ path = "src/main.rs"
 
 [features]
 default = ["full"]
-# Enable all features
-full = ["inference", "training", "conversion", "benchmark"]
-# Enable inference commands
-inference = ["bitnet-inference/generation", "bitnet-inference/tokenizers"]
-# Enable training commands
-training = ["bitnet-training/qat", "bitnet-training/peft"]
+# Enable all features (temporarily reduced due to dependency issues)
+full = ["conversion"]
+# Enable inference commands (temporarily disabled due to dependency issues)
+# inference = ["bitnet-inference/generation", "bitnet-inference/tokenizers"]
+# Enable training commands (temporarily disabled due to dependency issues)
+# training = ["bitnet-training/qat", "bitnet-training/peft"]
 # Enable model conversion
 conversion = ["dep:safetensors"]
-# Enable benchmarking commands
-benchmark = ["bitnet-benchmarks"]
-# Enable Metal acceleration
-metal = ["bitnet-inference/metal", "bitnet-training/metal"]
+# Enable benchmarking commands (temporarily disabled due to dependency issues)
+# benchmark = ["bitnet-benchmarks"]
+# Enable Metal acceleration (temporarily disabled due to dependency issues)
+# metal = ["bitnet-inference/metal", "bitnet-training/metal"]
 
 [dependencies]
-bitnet-core = { path = "../bitnet-core" }
-bitnet-quant = { path = "../bitnet-quant" }
-bitnet-inference = { path = "../bitnet-inference" }
-bitnet-training = { path = "../bitnet-training" }
-bitnet-benchmarks = { path = "../bitnet-benchmarks", optional = true }
+bitnet-core = { path = "../bitnet-core", version = "0.1.0" }
+bitnet-quant = { path = "../bitnet-quant", version = "0.1.0" }
+# bitnet-inference = { path = "../bitnet-inference", version = "0.1.0" }
+# bitnet-training = { path = "../bitnet-training", version = "0.1.0" }
+# bitnet-benchmarks = { path = "../bitnet-benchmarks", version = "0.1.0", optional = true }
 
 # CLI framework
 clap = { version = "4.0", features = ["derive", "env"] }

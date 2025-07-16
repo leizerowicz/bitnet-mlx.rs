@@ -5,9 +5,11 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
 description = "Training and fine-tuning utilities for BitNet models"
 keywords = ["bitnet", "training", "fine-tuning", "machine-learning"]
-categories = ["science", "machine-learning"]
+categories = ["science"]
 
 [features]
 default = ["std"]
@@ -20,14 +22,14 @@ distributed = ["dep:tokio"]
 peft = ["dep:rand"]
 # Enable dataset utilities
 datasets = ["dep:arrow"]
-# Enable Metal acceleration for training
-metal = ["dep:bitnet-metal"]
+# Enable Metal acceleration for training (temporarily disabled due to dependency issues)
+# metal = ["dep:bitnet-metal"]
 
 [dependencies]
-bitnet-core = { path = "../bitnet-core" }
-bitnet-quant = { path = "../bitnet-quant" }
-bitnet-inference = { path = "../bitnet-inference" }
-bitnet-metal = { path = "../bitnet-metal", optional = true }
+bitnet-core = { path = "../bitnet-core", version = "0.1.0" }
+bitnet-quant = { path = "../bitnet-quant", version = "0.1.0" }
+# bitnet-inference = { path = "../bitnet-inference", version = "0.1.0" }
+# bitnet-metal = { path = "../bitnet-metal", version = "0.1.0", optional = true }
 
 # Core dependencies
 candle-core.workspace = true

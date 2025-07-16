@@ -50,7 +50,6 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 
-use std::sync::{Arc, RwLock, Mutex};
 use std::time::{Duration, Instant, SystemTime};
 use std::collections::HashMap;
 use candle_core::Device;
@@ -58,7 +57,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, warn, error};
+use tracing::error;
 
 // Sub-modules
 pub mod tracker;

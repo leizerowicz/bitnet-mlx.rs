@@ -1,6 +1,7 @@
 # BitNet Rust Implementation
 
 [![Rust](https://img.shields.io/badge/rust-stable-brightgreen.svg)](https://www.rust-lang.org/)
+[![Crates.io](https://img.shields.io/crates/v/bitnet-core.svg)](https://crates.io/crates/bitnet-core)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](#building)
 
@@ -21,6 +22,7 @@ A high-performance Rust implementation of BitNet neural networks with advanced m
 | **Inference Engine** | ✅ Complete | 🔴 **Placeholder Only** | 🔴 Not Implemented |
 | **Training Infrastructure** | ✅ Complete | 🔴 **Placeholder Only** | 🔴 Not Implemented |
 | **CLI Tools** | ✅ Complete | 🔴 **Placeholder Only** | 🔴 Not Implemented |
+| **Benchmarking Framework** | ✅ Complete | 🔴 **Placeholder Only** | 🔴 Not Implemented |
 
 ### What Actually Works
 
@@ -37,15 +39,29 @@ This project contains a **sophisticated and production-ready memory management s
 
 The project is structured as a modular workspace with the following crates:
 
+## 📦 Crate Overview
+
+| Crate | Status | Description | Links |
+|-------|--------|-------------|-------|
+| [`bitnet-core`](bitnet-core/) | 🟢 **Production Ready** | Core memory management & device abstraction | [![Crates.io](https://img.shields.io/crates/v/bitnet-core.svg)](https://crates.io/crates/bitnet-core) [![docs.rs](https://docs.rs/bitnet-core/badge.svg)](https://docs.rs/bitnet-core) |
+| [`bitnet-quant`](bitnet-quant/) | 🔴 **Placeholder Only** | 1.58-bit quantization engine | [![Crates.io](https://img.shields.io/crates/v/bitnet-quant.svg)](https://crates.io/crates/bitnet-quant) [![docs.rs](https://docs.rs/bitnet-quant/badge.svg)](https://docs.rs/bitnet-quant) |
+| [`bitnet-inference`](bitnet-inference/) | 🔴 **Placeholder Only** | High-performance inference engine | [![Crates.io](https://img.shields.io/crates/v/bitnet-inference.svg)](https://crates.io/crates/bitnet-inference) [![docs.rs](https://docs.rs/bitnet-inference/badge.svg)](https://docs.rs/bitnet-inference) |
+| [`bitnet-training`](bitnet-training/) | 🔴 **Placeholder Only** | Training & fine-tuning infrastructure | [![Crates.io](https://img.shields.io/crates/v/bitnet-training.svg)](https://crates.io/crates/bitnet-training) [![docs.rs](https://docs.rs/bitnet-training/badge.svg)](https://docs.rs/bitnet-training) |
+| [`bitnet-metal`](bitnet-metal/) | 🔴 **Placeholder Only** | Metal GPU acceleration for Apple Silicon | [![Crates.io](https://img.shields.io/crates/v/bitnet-metal.svg)](https://crates.io/crates/bitnet-metal) [![docs.rs](https://docs.rs/bitnet-metal/badge.svg)](https://docs.rs/bitnet-metal) |
+| [`bitnet-cli`](bitnet-cli/) | 🔴 **Placeholder Only** | Command-line interface tools | [![Crates.io](https://img.shields.io/crates/v/bitnet-cli.svg)](https://crates.io/crates/bitnet-cli) [![docs.rs](https://docs.rs/bitnet-cli/badge.svg)](https://docs.rs/bitnet-cli) |
+| [`bitnet-benchmarks`](bitnet-benchmarks/) | 🔴 **Placeholder Only** | Performance benchmarking framework | [![Crates.io](https://img.shields.io/crates/v/bitnet-benchmarks.svg)](https://crates.io/crates/bitnet-benchmarks) [![docs.rs](https://docs.rs/bitnet-benchmarks/badge.svg)](https://docs.rs/bitnet-benchmarks) |
+
+> **Note**: These crates are currently at version 0.1.0 and may not yet be published to crates.io. The badges above will show the publication status once the crates are published.
+
 ```
 bitnet-rust/
 ├── bitnet-core/           # 🟢 Core memory management & device abstraction
-├── bitnet-quant/          # 🔴 Quantization engine (placeholder)
+├── bitnet-quant/          # 🔴 1.58-bit quantization engine (placeholder)
 ├── bitnet-inference/      # 🔴 Inference runtime (placeholder)
 ├── bitnet-training/       # 🔴 Training infrastructure (placeholder)
 ├── bitnet-metal/          # 🔴 Metal GPU acceleration (placeholder)
 ├── bitnet-cli/            # 🔴 Command-line tools (placeholder)
-└── bitnet-benchmarks/     # 🟡 Performance benchmarking framework
+└── bitnet-benchmarks/     # 🔴 Performance benchmarking framework (placeholder)
 ```
 
 ### Memory Management Architecture
@@ -103,9 +119,13 @@ HybridMemoryPool
    cargo test --workspace
    ```
 
-4. **Run benchmarks:**
+4. **Run available tests:**
    ```bash
-   cargo bench --package bitnet-benchmarks
+   # Run all tests (mainly bitnet-core)
+   cargo test --workspace
+   
+   # Note: Benchmarks are placeholder only
+   # cargo bench --package bitnet-benchmarks  # Not yet implemented
    ```
 
 ### Basic Usage
@@ -299,19 +319,19 @@ We welcome contributions! The memory management system provides a solid foundati
 ### Areas Needing Implementation
 
 1. **High Priority:**
-   - Quantization algorithms in [`bitnet-quant/`](bitnet-quant/)
-   - BitLinear layer implementations
-   - Basic inference engine
+   - **Quantization Engine** ([`bitnet-quant/`](bitnet-quant/)): 1.58-bit quantization algorithms, calibration utilities
+   - **Inference Engine** ([`bitnet-inference/`](bitnet-inference/)): Model loading, batch processing, text generation
+   - **Basic Operations**: BitLinear layer implementations and core neural network operations
 
 2. **Medium Priority:**
-   - Metal GPU compute shaders
-   - Training loop infrastructure
-   - Model serialization
+   - **Metal GPU Acceleration** ([`bitnet-metal/`](bitnet-metal/)): Metal compute shaders, GPU memory management
+   - **Training Infrastructure** ([`bitnet-training/`](bitnet-training/)): QAT, LoRA/QLoRA, distributed training
+   - **Benchmarking Framework** ([`bitnet-benchmarks/`](bitnet-benchmarks/)): Performance analysis and regression testing
 
 3. **Low Priority:**
-   - CLI tool implementations
-   - Python bindings
-   - Advanced optimizations
+   - **CLI Tools** ([`bitnet-cli/`](bitnet-cli/)): Command-line interface for model operations
+   - **Python Bindings**: PyTorch integration and NumPy compatibility
+   - **Advanced Optimizations**: SIMD acceleration, custom hardware support
 
 ### Development Guidelines
 
@@ -351,21 +371,23 @@ We welcome contributions! The memory management system provides a solid foundati
 
 ### Memory Management Benchmarks
 
-Run the memory management benchmarks:
+⚠️ **Note**: The benchmarking framework is currently a placeholder. Once implemented, you'll be able to run:
 
 ```bash
 cargo bench --package bitnet-benchmarks -- memory
 ```
 
-Example output:
+Expected output (when implemented):
 ```
 Memory Pool Allocation/small_blocks
                         time:   [48.2 ns 49.1 ns 50.3 ns]
-Memory Pool Allocation/large_blocks  
+Memory Pool Allocation/large_blocks
                         time:   [195 ns 201 ns 208 ns]
 Memory Pool Deallocation/small_blocks
                         time:   [28.9 ns 29.4 ns 30.1 ns]
 ```
+
+Currently available benchmarks are limited to the memory management system in [`bitnet-core`](bitnet-core/).
 
 ### System Requirements
 
@@ -393,8 +415,23 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Issues**: [GitHub Issues](https://github.com/your-org/bitnet-rust/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-org/bitnet-rust/discussions)
-- **Documentation**: [API Documentation](https://docs.rs/bitnet-core)
+- **Documentation**:
+  - [Core API Documentation](https://docs.rs/bitnet-core) (when published)
+  - [Local Documentation](docs/) - Built with `mdbook`
 
 ---
 
-**Note**: This project currently provides a robust foundation with sophisticated memory management capabilities. The core BitNet neural network functionality is planned for future implementation. The memory management system alone provides significant value for high-performance tensor operations and can serve as a foundation for other machine learning projects.
+**Note**: This project currently provides a robust foundation with sophisticated memory management capabilities implemented in [`bitnet-core`](bitnet-core/). All other crates ([`bitnet-quant`](bitnet-quant/), [`bitnet-inference`](bitnet-inference/), [`bitnet-training`](bitnet-training/), [`bitnet-metal`](bitnet-metal/), [`bitnet-cli`](bitnet-cli/), [`bitnet-benchmarks`](bitnet-benchmarks/)) are placeholder implementations awaiting development. The memory management system alone provides significant value for high-performance tensor operations and serves as a solid foundation for implementing the complete BitNet neural network functionality.
+
+## 🎯 Implementation Roadmap
+
+Based on the current state, the recommended implementation order is:
+
+1. **Phase 1**: [`bitnet-quant`](bitnet-quant/) - Implement 1.58-bit quantization algorithms
+2. **Phase 2**: [`bitnet-inference`](bitnet-inference/) - Build basic inference engine with model loading
+3. **Phase 3**: [`bitnet-metal`](bitnet-metal/) - Add Metal GPU acceleration for Apple Silicon
+4. **Phase 4**: [`bitnet-training`](bitnet-training/) - Implement QAT and PEFT training methods
+5. **Phase 5**: [`bitnet-benchmarks`](bitnet-benchmarks/) - Create comprehensive benchmarking suite
+6. **Phase 6**: [`bitnet-cli`](bitnet-cli/) - Build command-line interface tools
+
+Each crate contains detailed README files with comprehensive implementation plans and API designs.

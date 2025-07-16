@@ -5,27 +5,30 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
 description = "Metal GPU acceleration for BitNet on Apple Silicon"
 keywords = ["bitnet", "metal", "gpu", "apple-silicon", "acceleration"]
-categories = ["science", "machine-learning", "graphics"]
+categories = ["science", "graphics"]
 
 [features]
-default = ["std"]
+default = ["std", "mps", "unified-memory"]
 std = []
 # Enable Metal Performance Shaders integration
-mps = ["dep:objc"]
+mps = ["dep:objc", "dep:cocoa"]
 # Enable unified memory optimizations
 unified-memory = []
 # Enable Neural Engine integration (experimental)
-ane = []
+ane = ["dep:objc", "dep:cocoa"]
 
 [dependencies]
-bitnet-core = { path = "../bitnet-core" }
-bitnet-quant = { path = "../bitnet-quant" }
+bitnet-core = { path = "../bitnet-core", version = "0.1.0" }
+bitnet-quant = { path = "../bitnet-quant", version = "0.1.0" }
 
 # Metal bindings
-metal-rs.workspace = true
-objc = { version = "0.2", optional = true }
+metal.workspace = true
+objc = { workspace = true, optional = true }
+cocoa = { workspace = true, optional = true }
 
 # Core dependencies
 candle-core.workspace = true
@@ -44,11 +47,10 @@ mach = "0.3"
 criterion.workspace = true
 proptest.workspace = true
 
+# macOS-specific dependencies (now compatible with resolved cocoa versions)
 [target.'cfg(target_os = "macos")'.dependencies]
-# macOS specific dependencies
-cocoa = "0.24"
-core-foundation = "0.9"
-core-graphics = "0.23"
+core-foundation.workspace = true
+core-graphics.workspace = true
 
 
 [build-dependencies]

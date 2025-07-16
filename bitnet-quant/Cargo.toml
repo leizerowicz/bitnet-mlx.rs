@@ -7,7 +7,7 @@ license.workspace = true
 repository.workspace = true
 description = "1.58-bit quantization engine for BitNet neural networks"
 keywords = ["bitnet", "quantization", "compression", "neural-networks"]
-categories = ["science", "machine-learning", "compression"]
+categories = ["science", "compression"]
 
 [features]
 default = ["std"]
@@ -20,7 +20,7 @@ calibration = ["dep:rand"]
 advanced = ["dep:statrs"]
 
 [dependencies]
-bitnet-core = { path = "../bitnet-core" }
+bitnet-core = { path = "../bitnet-core", version = "0.1.0" }
 
 # Core dependencies
 candle-core.workspace = true

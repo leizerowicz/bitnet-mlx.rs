@@ -5,31 +5,31 @@
 //! cleanup capabilities.
 
 use std::sync::{Arc, RwLock, Mutex};
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant};
 use std::collections::HashMap;
 use std::thread;
 use candle_core::Device;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, warn, error};
+use tracing::{debug, info};
 
-use crate::memory::{HybridMemoryPool, MemoryMetrics, MemoryHandle};
+use crate::memory::{HybridMemoryPool, MemoryMetrics};
 use crate::memory::tracking::{MemoryTracker, MemoryPressureLevel, DetailedMemoryMetrics};
 use super::{
     CleanupError, CleanupResult, CleanupOperationId, CleanupOperation, GlobalCleanupStats
 };
 use super::config::{CleanupConfig, CleanupStrategyType};
 use super::strategies::{
-    CleanupStrategy, CleanupPriority, CleanupOperationResult,
+    CleanupStrategy, CleanupPriority,
     IdleCleanupStrategy, PressureCleanupStrategy, PeriodicCleanupStrategy,
     DeviceCleanupStrategy, GenerationalCleanupStrategy
 };
-use super::scheduler::{CleanupScheduler, CleanupId};
+use super::scheduler::CleanupScheduler;
 
 /// Result of a cleanup operation with detailed information
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CleanupResult {
+pub struct CleanupOperationResult {
     /// Number of bytes freed
     pub bytes_freed: u64,
     /// Number of allocations cleaned
@@ -46,7 +46,7 @@ pub struct CleanupResult {
     pub metadata: HashMap<String, String>,
 }
 
-impl CleanupResult {
+impl CleanupOperationResult {
     /// Creates a successful cleanup result
     pub fn success(
         bytes_freed: u64,
@@ -334,7 +334,7 @@ impl CleanupManager {
     }
 
     /// Performs immediate cleanup using the best available strategy
-    pub fn force_cleanup(&self) -> CleanupResult<CleanupResult> {
+    pub fn force_cleanup(&self) -> CleanupResult<CleanupOperationResult> {
         #[cfg(feature = "tracing")]
         debug!("Performing force cleanup");
 
@@ -349,7 +349,7 @@ impl CleanupManager {
     }
 
     /// Performs cleanup on a specific device
-    pub fn cleanup_device(&self, device: &Device) -> CleanupResult<CleanupResult> {
+    pub fn cleanup_device(&self, _device: &Device) -> CleanupResult<CleanupOperationResult> {
         #[cfg(feature = "tracing")]
         debug!("Performing device-specific cleanup for device: {:?}", device);
 
@@ -361,9 +361,9 @@ impl CleanupManager {
     pub fn cleanup_selective(
         &self,
         min_age: Option<Duration>,
-        min_size: Option<usize>,
-        device_filter: Option<&Device>,
-    ) -> CleanupResult<CleanupResult> {
+        _min_size: Option<usize>,
+        _device_filter: Option<&Device>,
+    ) -> CleanupResult<CleanupOperationResult> {
         #[cfg(feature = "tracing")]
         debug!("Performing selective cleanup with filters - age: {:?}, size: {:?}, device: {:?}", 
                min_age, min_size, device_filter);
@@ -503,7 +503,7 @@ impl CleanupManager {
     }
 
     /// Executes a specific cleanup strategy
-    fn execute_cleanup_strategy(&self, strategy_type: CleanupStrategyType) -> CleanupResult<CleanupResult> {
+    fn execute_cleanup_strategy(&self, strategy_type: CleanupStrategyType) -> CleanupResult<CleanupOperationResult> {
         let operation_id = self.generate_operation_id()?;
         let start_time = Instant::now();
 
@@ -550,7 +550,7 @@ impl CleanupManager {
                     duration,
                 );
 
-                let cleanup_result = CleanupResult::success(
+                let cleanup_result = CleanupOperationResult::success(
                     op_result.bytes_freed,
                     op_result.allocations_cleaned,
                     duration,
@@ -562,7 +562,7 @@ impl CleanupManager {
             }
             Err(e) => {
                 operation.complete_failure(e.to_string(), duration);
-                let cleanup_result = CleanupResult::failure(e.to_string(), duration, strategy_type);
+                let cleanup_result = CleanupOperationResult::failure(e.to_string(), duration, strategy_type);
                 self.record_operation_completion(operation_id, operation)?;
                 Ok(cleanup_result)
             }
@@ -660,7 +660,7 @@ impl SchedulerCleanupManager {
                 reason: "Failed to acquire strategies lock".to_string() 
             })?;
 
-        for (strategy_type, strategy) in strategies.iter() {
+        for (_strategy_type, strategy) in strategies.iter() {
             if strategy.should_cleanup(&metrics, None) {
                 let _ = strategy.cleanup(&self.pool, &self.config);
                 break; // Only run one strategy per automatic cleanup cycle
@@ -690,13 +690,13 @@ mod tests {
 
     #[test]
     fn test_cleanup_result() {
-        let result = CleanupResult::success(1024, 5, Duration::from_millis(100), CleanupStrategyType::Idle);
+        let result = CleanupOperationResult::success(1024, 5, Duration::from_millis(100), CleanupStrategyType::Idle);
         assert!(result.success);
         assert_eq!(result.bytes_freed, 1024);
         assert_eq!(result.allocations_cleaned, 5);
         assert_eq!(result.strategy_used, CleanupStrategyType::Idle);
 
-        let result = CleanupResult::failure("test error".to_string(), Duration::from_millis(50), CleanupStrategyType::Pressure);
+        let result = CleanupOperationResult::failure("test error".to_string(), Duration::from_millis(50), CleanupStrategyType::Pressure);
         assert!(!result.success);
         assert_eq!(result.error_message, Some("test error".to_string()));
         assert_eq!(result.strategy_used, CleanupStrategyType::Pressure);

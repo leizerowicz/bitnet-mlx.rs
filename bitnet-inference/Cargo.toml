@@ -5,9 +5,11 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
 description = "High-performance inference engine for BitNet models"
 keywords = ["bitnet", "inference", "neural-networks", "text-generation"]
-categories = ["science", "machine-learning"]
+categories = ["science"]
 
 [features]
 default = ["std", "tokenizers"]
@@ -20,13 +22,13 @@ generation = ["dep:rand"]
 batching = ["dep:rayon"]
 # Enable streaming inference
 streaming = ["dep:tokio"]
-# Enable Metal acceleration
-metal = ["dep:bitnet-metal"]
+# Enable Metal acceleration (temporarily disabled due to dependency issues)
+# metal = ["dep:bitnet-metal"]
 
 [dependencies]
-bitnet-core = { path = "../bitnet-core" }
-bitnet-quant = { path = "../bitnet-quant" }
-bitnet-metal = { path = "../bitnet-metal", optional = true }
+bitnet-core = { path = "../bitnet-core", version = "0.1.0" }
+bitnet-quant = { path = "../bitnet-quant", version = "0.1.0" }
+# bitnet-metal = { path = "../bitnet-metal", version = "0.1.0", optional = true }
 
 # Core dependencies
 candle-core.workspace = true

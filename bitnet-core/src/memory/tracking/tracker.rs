@@ -10,13 +10,13 @@ use candle_core::Device;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, warn, error};
+use tracing::{debug, info, error};
 
 use crate::memory::MemoryHandle;
 use super::{
-    TrackingError, TrackingResult, AllocationId, AllocationInfo, 
-    DeviceTrackingStats, GlobalTrackingStats,
-    config::{TrackingConfig, TrackingLevel},
+    TrackingError, TrackingResult, AllocationId, AllocationInfo,
+    GlobalTrackingStats,
+    config::TrackingConfig,
     pressure::{MemoryPressureDetector, MemoryPressureLevel, PressureCallback},
     timeline::{AllocationTimeline, AllocationEvent},
     patterns::{PatternAnalyzer, AllocationPattern},
@@ -249,7 +249,7 @@ impl MemoryTracker {
 
         // Update timeline if enabled
         if let Some(timeline) = &self.timeline {
-            if let Ok(mut timeline) = timeline.lock() {
+            if let Ok(timeline) = timeline.lock() {
                 let event = AllocationEvent::Allocation {
                     id: allocation_id,
                     size,
@@ -262,7 +262,7 @@ impl MemoryTracker {
 
         // Update pattern analyzer if enabled
         if let Some(analyzer) = &self.pattern_analyzer {
-            if let Ok(mut analyzer) = analyzer.lock() {
+            if let Ok(analyzer) = analyzer.lock() {
                 analyzer.record_allocation(allocation_info);
             }
         }
@@ -297,7 +297,7 @@ impl MemoryTracker {
     /// ```
     pub fn track_deallocation(&self, handle: &MemoryHandle) {
         let track_start = Instant::now();
-        let handle_id = handle.id();
+        let _handle_id = handle.id();
 
         #[cfg(feature = "tracing")]
         debug!("Tracking deallocation of handle {}", handle_id);
@@ -340,7 +340,7 @@ impl MemoryTracker {
 
             // Update timeline if enabled
             if let Some(timeline) = &self.timeline {
-                if let Ok(mut timeline) = timeline.lock() {
+                if let Ok(timeline) = timeline.lock() {
                     let event = AllocationEvent::Deallocation {
                         id: info.id,
                         size,
@@ -353,7 +353,7 @@ impl MemoryTracker {
 
             // Update pattern analyzer if enabled
             if let Some(analyzer) = &self.pattern_analyzer {
-                if let Ok(mut analyzer) = analyzer.lock() {
+                if let Ok(analyzer) = analyzer.lock() {
                     analyzer.record_deallocation(info);
                 }
             }

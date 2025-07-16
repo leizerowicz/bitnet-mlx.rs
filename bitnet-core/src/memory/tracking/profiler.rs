@@ -5,13 +5,13 @@
 
 use std::sync::{Arc, RwLock, Mutex};
 use std::time::{Duration, Instant, SystemTime};
-use std::collections::{HashMap, BTreeMap, VecDeque};
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, warn, error};
+use tracing::{debug, info};
 
-use super::{TrackingError, TrackingResult, AllocationId, AllocationInfo};
+use super::{TrackingResult, AllocationId, AllocationInfo};
 
 /// Memory profiler for debugging and leak detection
 pub struct MemoryProfiler {
@@ -742,7 +742,7 @@ impl MemoryProfiler {
         
         let detected_leaks = leaks.clone();
         let lifetime_stats = self.calculate_lifetime_statistics(&history);
-        let allocation_patterns = patterns.values().cloned().collect();
+        let allocation_patterns: Vec<AllocationPattern> = patterns.values().cloned().collect();
         let usage_trends = self.calculate_usage_trends(session_duration);
         let profiling_overhead = self.calculate_profiling_overhead(session_duration);
         let recommendations = self.generate_recommendations(&detected_leaks, &allocation_patterns);
@@ -754,7 +754,7 @@ impl MemoryProfiler {
             active_allocations,
             detected_leaks,
             lifetime_stats,
-            allocation_patterns,
+            allocation_patterns: allocation_patterns.to_vec(),
             usage_trends,
             profiling_overhead,
             recommendations,

@@ -32,7 +32,7 @@ use candle_core::Device;
 use thiserror::Error;
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 /// Errors that can occur during device operations
 #[derive(Error, Debug)]

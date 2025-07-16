@@ -3,16 +3,15 @@
 //! This module provides specialized cleanup operations for different device types,
 //! including CPU cache optimization and Metal GPU command buffer cleanup.
 
-use std::sync::{Arc, RwLock, Mutex};
-use std::time::{Duration, Instant};
+use std::sync::{Arc, RwLock};
+use std::time::{Duration, Instant, SystemTime};
 use std::collections::HashMap;
-use candle_core::Device;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, warn, error};
+use tracing::debug;
 
-use crate::memory::{HybridMemoryPool, MemoryMetrics};
+use crate::memory::HybridMemoryPool;
 use super::{CleanupError, CleanupResult};
 use super::config::{CpuCleanupConfig, MetalCleanupConfig};
 
@@ -141,7 +140,7 @@ pub struct DeviceCleanupStats {
     /// Average cleanup efficiency (bytes per millisecond)
     pub average_efficiency: f64,
     /// Last cleanup time
-    pub last_cleanup: Option<Instant>,
+    pub last_cleanup: Option<SystemTime>,
     /// Cache optimization statistics
     pub cache_optimizations: u64,
     /// Defragmentation operations
@@ -170,7 +169,7 @@ impl DeviceCleanupStats {
         self.total_bytes_freed += result.bytes_freed;
         self.total_allocations_cleaned += result.allocations_cleaned;
         self.total_cleanup_time += result.duration;
-        self.last_cleanup = Some(Instant::now());
+        self.last_cleanup = Some(SystemTime::now());
         
         // Update average efficiency
         let total_time_ms = self.total_cleanup_time.as_millis() as f64;
@@ -298,7 +297,7 @@ impl DeviceCleanupOps for CpuCleanup {
         "CPU".to_string()
     }
 
-    fn cleanup_device(&self, pool: &HybridMemoryPool) -> CleanupResult<DeviceCleanupResult> {
+    fn cleanup_device(&self, _pool: &HybridMemoryPool) -> CleanupResult<DeviceCleanupResult> {
         let start_time = Instant::now();
 
         #[cfg(feature = "tracing")]

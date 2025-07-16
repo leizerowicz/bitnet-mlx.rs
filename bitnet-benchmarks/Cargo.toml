@@ -5,30 +5,32 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
 description = "Comprehensive benchmarking suite for BitNet implementation"
 keywords = ["bitnet", "benchmarks", "performance", "neural-networks"]
-categories = ["science", "machine-learning", "development-tools"]
+categories = ["science", "development-tools"]
 
 [features]
 default = ["std"]
 std = []
-# Enable Metal benchmarks
-metal = ["bitnet-metal"]
-# Enable training benchmarks
-training = ["bitnet-training"]
+# Enable Metal benchmarks (temporarily disabled due to dependency issues)
+# metal = ["bitnet-metal"]
+# Enable training benchmarks (temporarily disabled due to dependency issues)
+# training = ["bitnet-training"]
 # Enable memory profiling
 memory = ["dep:tikv-jemallocator"]
 
 [dependencies]
-bitnet-core = { path = "../bitnet-core" }
-bitnet-quant = { path = "../bitnet-quant" }
-bitnet-inference = { path = "../bitnet-inference" }
-bitnet-metal = { path = "../bitnet-metal", optional = true }
-bitnet-training = { path = "../bitnet-training", optional = true }
+bitnet-core = { path = "../bitnet-core", version = "0.1.0" }
+bitnet-quant = { path = "../bitnet-quant", version = "0.1.0" }
+# bitnet-inference = { path = "../bitnet-inference", version = "0.1.0" }
+# bitnet-metal = { path = "../bitnet-metal", version = "0.1.0", optional = true }
+# bitnet-training = { path = "../bitnet-training", version = "0.1.0", optional = true }
 
 # Benchmarking framework
 criterion.workspace = true
-criterion-perf-events = "0.4"
+# criterion-perf-events = "0.4"  # Disabled due to macOS compatibility issues
 
 # Core dependencies
 candle-core.workspace = true

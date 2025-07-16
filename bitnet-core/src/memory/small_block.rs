@@ -12,7 +12,7 @@ use crate::memory::{MemoryError, MemoryResult, MemoryHandle};
 use crate::memory::handle::{PoolType, CpuMemoryMetadata};
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, warn, error};
+use tracing::debug;
 
 /// Size classes for small block allocation
 /// Each size class represents a fixed block size that can accommodate
@@ -110,7 +110,7 @@ struct Chunk {
 
 /// Statistics for the small block pool
 #[derive(Debug, Clone)]
-struct PoolStats {
+pub struct PoolStats {
     /// Total number of allocations
     allocations: u64,
     /// Total number of deallocations
@@ -133,7 +133,7 @@ impl SmallBlockPool {
     /// # Returns
     ///
     /// A Result containing the new pool or an error if creation fails
-    pub fn new(initial_size: usize, max_size: usize, device: &Device) -> MemoryResult<Self> {
+    pub fn new(_initial_size: usize, max_size: usize, device: &Device) -> MemoryResult<Self> {
         #[cfg(feature = "tracing")]
         debug!("Creating small block pool: initial_size={}, max_size={}, device={:?}", 
                initial_size, max_size, device);
@@ -203,7 +203,7 @@ impl SmallBlockPool {
 
         // Find appropriate size class
         let size_class = self.find_size_class(size, alignment)?;
-        let actual_size = SIZE_CLASSES[size_class];
+        let _actual_size = SIZE_CLASSES[size_class];
 
         #[cfg(feature = "tracing")]
         debug!("Allocating {} bytes (actual: {}) from size class {}", 

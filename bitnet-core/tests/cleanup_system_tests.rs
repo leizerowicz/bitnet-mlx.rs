@@ -221,6 +221,7 @@ fn test_metal_device_cleanup() {
 #[cfg(not(feature = "metal"))]
 #[test]
 fn test_metal_device_cleanup_stub() {
+    use bitnet_core::memory::MetalCleanup;
     let metal_cleanup = MetalCleanup::default();
     
     assert_eq!(metal_cleanup.device_type(), "Metal");

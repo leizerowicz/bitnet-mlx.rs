@@ -13,14 +13,14 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["BitNet Rust Contributors"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/yourusername/bitnet-rust"
-homepage = "https://github.com/yourusername/bitnet-rust"
+repository = "https://github.com/bitnet-rust/bitnet-rust"
+homepage = "https://github.com/bitnet-rust/bitnet-rust"
 documentation = "https://docs.rs/bitnet-rust"
 description = "Pure Rust implementation of BitNet for Apple Silicon"
 keywords = ["bitnet", "quantization", "neural-networks", "apple-silicon", "metal"]
-categories = ["science", "machine-learning"]
+categories = ["science"]
 
 [workspace.dependencies]
 # Core dependencies
@@ -28,11 +28,17 @@ mlx-rs = "0.25"
 candle-core = { version = "0.8", features = ["metal", "accelerate"] }
 candle-nn = "0.8"
 candle-transformers = "0.8"
-metal-rs = "0.10"
+metal = "0.32"
 tokenizers = "0.15"
 serde = { version = "1.0", features = ["derive"] }
 anyhow = "1.0"
 thiserror = "1.0"
+
+# Force compatible versions to avoid cocoa conflicts
+objc = "0.2"
+cocoa = "0.25"
+core-foundation = "0.10"
+core-graphics = "0.23"
 
 # Development dependencies
 criterion = { version = "0.5", features = ["html_reports"] }

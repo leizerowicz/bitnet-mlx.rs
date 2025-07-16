@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "tracing")]
 use tracing::{debug, info, warn};
 
-use super::{AllocationInfo, AllocationId};
+use super::AllocationInfo;
 
 /// Pattern analyzer for memory allocations
 pub struct PatternAnalyzer {

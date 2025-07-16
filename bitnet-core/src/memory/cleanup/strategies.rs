@@ -5,15 +5,15 @@
 //! used independently or in combination with others.
 
 use std::sync::{Arc, RwLock};
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant};
 use std::collections::HashMap;
-use candle_core::Device;
 use serde::{Deserialize, Serialize};
 
-use crate::memory::{HybridMemoryPool, MemoryMetrics, MemoryHandle};
-use crate::memory::tracking::{MemoryTracker, MemoryPressureLevel, DetailedMemoryMetrics};
-use super::{CleanupError, CleanupResult, CleanupOperationId, CleanupOperation};
-use super::config::{CleanupStrategyType, CleanupConfig};
+use crate::memory::{HybridMemoryPool, MemoryMetrics};
+use crate::memory::tracking::{MemoryPressureLevel, DetailedMemoryMetrics};
+use super::CleanupResult;
+use super::config::{CleanupConfig};
+pub use super::config::CleanupStrategyType;
 
 /// Priority levels for cleanup operations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -151,7 +151,7 @@ impl CleanupStrategy for IdleCleanupStrategy {
         metrics.current_allocated > 0 && metrics.allocation_count > metrics.deallocation_count
     }
 
-    fn cleanup(&self, pool: &HybridMemoryPool, config: &CleanupConfig) -> CleanupResult<CleanupOperationResult> {
+    fn cleanup(&self, pool: &HybridMemoryPool, _config: &CleanupConfig) -> CleanupResult<CleanupOperationResult> {
         let start_time = Instant::now();
         
         // Update last cleanup time
@@ -163,7 +163,7 @@ impl CleanupStrategy for IdleCleanupStrategy {
         // This is a simplified implementation - in practice, you'd implement
         // actual memory pool cleanup logic here
         
-        let metrics_before = pool.get_metrics();
+        let _metrics_before = pool.get_metrics();
         
         // Simulate some cleanup work (in real implementation, this would be actual cleanup)
         std::thread::sleep(Duration::from_millis(1));
@@ -274,7 +274,7 @@ impl CleanupStrategy for PressureCleanupStrategy {
         matches!(pressure_level, CleanupPriority::Normal | CleanupPriority::High | CleanupPriority::Critical)
     }
 
-    fn cleanup(&self, pool: &HybridMemoryPool, config: &CleanupConfig) -> CleanupResult<CleanupOperationResult> {
+    fn cleanup(&self, pool: &HybridMemoryPool, _config: &CleanupConfig) -> CleanupResult<CleanupOperationResult> {
         let start_time = Instant::now();
         
         // Update last cleanup time
@@ -368,7 +368,7 @@ impl CleanupStrategy for PeriodicCleanupStrategy {
         }
     }
 
-    fn cleanup(&self, pool: &HybridMemoryPool, config: &CleanupConfig) -> CleanupResult<CleanupOperationResult> {
+    fn cleanup(&self, _pool: &HybridMemoryPool, _config: &CleanupConfig) -> CleanupResult<CleanupOperationResult> {
         let start_time = Instant::now();
         
         // Update last cleanup time
@@ -449,7 +449,7 @@ impl CleanupStrategy for DeviceCleanupStrategy {
         }
     }
 
-    fn cleanup(&self, pool: &HybridMemoryPool, config: &CleanupConfig) -> CleanupResult<CleanupOperationResult> {
+    fn cleanup(&self, _pool: &HybridMemoryPool, _config: &CleanupConfig) -> CleanupResult<CleanupOperationResult> {
         let start_time = Instant::now();
         
         // Update last cleanup time for this device
@@ -551,7 +551,7 @@ impl CleanupStrategy for GenerationalCleanupStrategy {
         }
     }
 
-    fn cleanup(&self, pool: &HybridMemoryPool, config: &CleanupConfig) -> CleanupResult<CleanupOperationResult> {
+    fn cleanup(&self, _pool: &HybridMemoryPool, _config: &CleanupConfig) -> CleanupResult<CleanupOperationResult> {
         let start_time = Instant::now();
         
         // Update last cleanup time

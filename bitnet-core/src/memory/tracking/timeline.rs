@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "tracing")]
 use tracing::{debug, info, warn};
 
-use super::{AllocationId, TrackingResult, TrackingError};
+use super::AllocationId;
 
 /// Timeline tracker for allocation and deallocation events
 pub struct AllocationTimeline {
@@ -335,7 +335,7 @@ impl AllocationTimeline {
     /// ```
     pub fn query(&self, query: TimelineQuery) -> TimelineAnalysis {
         let events = self.events.lock().unwrap();
-        let stats = self.stats.lock().unwrap();
+        let _stats = self.stats.lock().unwrap();
 
         // Filter events based on query parameters
         let mut matching_entries = Vec::new();

@@ -24,9 +24,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     pool_config.enable_advanced_tracking = true;
     pool_config.tracking_config = Some(TrackingConfig {
         level: TrackingLevel::Detailed,
-        enable_pressure_detection: true,
-        enable_profiling: true,
-        enable_timeline: true,
+        enable_pressure_monitoring: true,
+        enable_performance_metrics: true,
+        enable_timeline_tracking: true,
         enable_pattern_analysis: true,
         ..Default::default()
     });

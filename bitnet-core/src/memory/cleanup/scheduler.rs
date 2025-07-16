@@ -11,7 +11,7 @@ use std::cmp::Ordering;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, warn, error};
+use tracing::{debug, info, warn};
 
 use super::{CleanupError, CleanupResult};
 use super::config::{CleanupStrategyType, SchedulerConfig};

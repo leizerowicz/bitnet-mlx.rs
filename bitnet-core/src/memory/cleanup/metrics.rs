@@ -9,7 +9,7 @@ use std::collections::{HashMap, VecDeque};
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 use super::{CleanupOperationId, CleanupOperation};
 use super::config::CleanupStrategyType;
@@ -830,8 +830,8 @@ mod tests {
         assert_eq!(metrics.device_metrics.len(), 2);
         
         for device in devices {
-            assert!(metrics.device_metrics.contains_key(*device));
-            let device_metrics = &metrics.device_metrics[*device];
+            assert!(metrics.device_metrics.contains_key(device));
+            let device_metrics = &metrics.device_metrics[device];
             assert_eq!(device_metrics.operations, 1);
             assert_eq!(device_metrics.bytes_freed, 1024);
         }

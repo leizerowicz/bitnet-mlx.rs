@@ -47,10 +47,8 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 
-use std::sync::{Arc, RwLock, Mutex};
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, SystemTime};
 use std::collections::HashMap;
-use candle_core::Device;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -66,15 +64,16 @@ pub mod metrics;
 pub mod device_cleanup;
 
 // Re-exports
-pub use manager::{CleanupManager, CleanupResult, CompactionResult};
+pub use manager::{CleanupManager, CleanupOperationResult, CompactionResult};
 pub use scheduler::{CleanupScheduler, CleanupId, ScheduledCleanup};
 pub use strategies::{
-    CleanupStrategy, CleanupStrategyType, CleanupPriority,
+    CleanupStrategy, CleanupPriority,
     IdleCleanupStrategy, PressureCleanupStrategy, PeriodicCleanupStrategy,
     DeviceCleanupStrategy, GenerationalCleanupStrategy
 };
+pub use config::CleanupStrategyType;
 pub use config::{CleanupConfig, CleanupPolicy, CleanupThresholds, CleanupFeatureFlags};
-pub use metrics::{CleanupMetrics, CleanupOperationMetrics, CleanupEfficiencyMetrics};
+pub use metrics::{CleanupMetrics, CleanupOperationMetrics, EfficiencyMetrics};
 pub use device_cleanup::{CpuCleanup, MetalCleanup, DeviceCleanupOps};
 
 /// Errors that can occur during cleanup operations

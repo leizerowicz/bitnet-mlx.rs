@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use thiserror::Error;
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, warn, error};
+use tracing::{debug, info, error};
 
 /// Errors that can occur during BitNet tensor operations
 #[derive(Error, Debug)]
@@ -183,7 +183,7 @@ impl BitNetTensor {
         shape: Vec<usize>,
         dtype: BitNetDType,
         name: Option<String>,
-        pool: &HybridMemoryPool,
+        _pool: &HybridMemoryPool,
     ) -> BitNetTensorResult<Self> {
         // Create registry if it doesn't exist
         let registry = Arc::new(RwLock::new(TensorRegistry::default()));
@@ -303,7 +303,7 @@ impl BitNetTensor {
         }
 
         // Get current metadata
-        let (shape, dtype, name) = {
+        let (shape, dtype, _name) = {
             let metadata = self.data.metadata.read()
                 .map_err(|_| BitNetTensorError::ConcurrentAccess {
                     reason: "Failed to acquire metadata read lock".to_string()
