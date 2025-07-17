@@ -117,8 +117,16 @@ impl BitNetTensor {
         // Allocate memory
         let memory_handle = pool.allocate(size_bytes, 16, device)?;
         
-        // Create tensor
-        Self::from_memory_handle(memory_handle, shape.to_vec(), dtype, None, pool)
+        // Create tensor and initialize with zeros
+        let tensor = Self::from_memory_handle(memory_handle, shape.to_vec(), dtype, None, pool)?;
+        
+        // Initialize memory with zeros
+        unsafe {
+            let ptr = tensor.data.memory_handle.as_ptr() as *mut u8;
+            std::ptr::write_bytes(ptr, 0, size_bytes);
+        }
+        
+        Ok(tensor)
     }
 
     /// Creates a new tensor filled with ones
@@ -140,8 +148,12 @@ impl BitNetTensor {
         // Create tensor and initialize with ones
         let tensor = Self::from_memory_handle(memory_handle, shape.to_vec(), dtype, None, pool)?;
         
-        // TODO: Initialize memory with ones based on dtype
-        // For now, just return the allocated tensor
+        // Initialize memory with ones based on dtype
+        unsafe {
+            let ptr = tensor.data.memory_handle.as_ptr() as *mut u8;
+            Self::initialize_ones(ptr, element_count, dtype);
+        }
+        
         Ok(tensor)
     }
 
@@ -172,8 +184,12 @@ impl BitNetTensor {
         // Create tensor
         let tensor = Self::from_memory_handle(memory_handle, shape.to_vec(), dtype, None, pool)?;
         
-        // TODO: Copy data to memory handle
-        // For now, just return the allocated tensor
+        // Copy data to memory handle
+        unsafe {
+            let ptr = tensor.data.memory_handle.as_ptr() as *mut f32;
+            std::ptr::copy_nonoverlapping(data.as_ptr(), ptr, data.len());
+        }
+        
         Ok(tensor)
     }
 
@@ -249,11 +265,19 @@ impl BitNetTensor {
         #[cfg(feature = "tracing")]
         debug!("Converting candle tensor: shape={:?}, dtype={:?} -> {}", shape, candle_dtype, dtype);
 
-        // For now, create a new tensor and copy data
-        // TODO: Implement zero-copy conversion where possible
-        let bitnet_tensor = Self::zeros(&shape, dtype, &device, pool)?;
-        
-        // TODO: Copy data from candle tensor to BitNet tensor
+        // Create a new tensor and copy data
+        let bitnet_tensor = match dtype {
+            BitNetDType::F32 => {
+                // For F32, we can copy data directly
+                let data_vec = tensor.flatten_all()?.to_vec1::<f32>()?;
+                Self::from_data(data_vec, &shape, &device, pool)?
+            }
+            _ => {
+                // For other types, create zeros for now
+                // TODO: Implement conversion for other data types
+                Self::zeros(&shape, dtype, &device, pool)?
+            }
+        };
         
         Ok(bitnet_tensor)
     }
@@ -272,9 +296,22 @@ impl BitNetTensor {
         #[cfg(feature = "tracing")]
         debug!("Converting to candle tensor: shape={:?}, dtype={}", shape, metadata.dtype);
 
-        // TODO: Implement actual data conversion
-        // For now, create a zeros tensor with the same shape and dtype
-        let tensor = Tensor::zeros(shape.as_slice(), candle_dtype, &device)?;
+        // Create tensor and copy data from BitNet tensor
+        let tensor = match metadata.dtype {
+            BitNetDType::F32 => {
+                // Direct copy for F32
+                let data_slice = unsafe {
+                    let ptr = self.data.memory_handle.as_ptr() as *const f32;
+                    std::slice::from_raw_parts(ptr, metadata.element_count)
+                };
+                Tensor::from_slice(data_slice, shape.as_slice(), &device)?
+            }
+            _ => {
+                // For other types, create zeros for now
+                // TODO: Implement conversion for other data types
+                Tensor::zeros(shape.as_slice(), candle_dtype, &device)?
+            }
+        };
         
         Ok(tensor)
     }
@@ -314,8 +351,16 @@ impl BitNetTensor {
         // Create new tensor on target device
         let new_tensor = Self::zeros(&shape, dtype, target_device, pool)?;
 
-        // TODO: Copy data from source to target device
-        // This would involve device-specific memory copy operations
+        // Copy data from source to target device
+        unsafe {
+            let src_ptr = self.data.memory_handle.as_ptr();
+            let dst_ptr = new_tensor.data.memory_handle.as_ptr() as *mut u8;
+            let size_bytes = self.size_bytes();
+            
+            // For now, use simple memory copy
+            // TODO: Implement device-specific optimized copy operations
+            std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, size_bytes);
+        }
 
         // Update migration status
         {
@@ -412,7 +457,13 @@ impl BitNetTensor {
         
         let new_tensor = Self::zeros(new_shape, dtype, &device, &pool)?;
         
-        // TODO: Copy data from current tensor to new tensor
+        // Copy data from current tensor to new tensor (reshape doesn't change data layout)
+        unsafe {
+            let src_ptr = self.data.memory_handle.as_ptr();
+            let dst_ptr = new_tensor.data.memory_handle.as_ptr() as *mut u8;
+            let size_bytes = self.size_bytes();
+            std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, size_bytes);
+        }
         
         Ok(new_tensor)
     }
@@ -427,9 +478,85 @@ impl BitNetTensor {
         let new_tensor = Self::zeros(&shape, dtype, &device, pool)?;
         new_tensor.set_name(name);
         
-        // TODO: Copy data from current tensor to new tensor
+        // Copy data from current tensor to new tensor
+        unsafe {
+            let src_ptr = self.data.memory_handle.as_ptr();
+            let dst_ptr = new_tensor.data.memory_handle.as_ptr() as *mut u8;
+            let size_bytes = self.size_bytes();
+            std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, size_bytes);
+        }
         
         Ok(new_tensor)
+    }
+
+    /// Helper method to initialize memory with ones based on data type
+    unsafe fn initialize_ones(ptr: *mut u8, element_count: usize, dtype: BitNetDType) {
+        match dtype {
+            BitNetDType::F32 => {
+                let f32_ptr = ptr as *mut f32;
+                for i in 0..element_count {
+                    *f32_ptr.add(i) = 1.0;
+                }
+            }
+            BitNetDType::F16 => {
+                let f16_ptr = ptr as *mut u16; // f16 represented as u16
+                let f16_one = 0x3C00u16; // IEEE 754 half precision 1.0
+                for i in 0..element_count {
+                    *f16_ptr.add(i) = f16_one;
+                }
+            }
+            BitNetDType::BF16 => {
+                let bf16_ptr = ptr as *mut u16; // bf16 represented as u16
+                let bf16_one = 0x3F80u16; // BFloat16 1.0
+                for i in 0..element_count {
+                    *bf16_ptr.add(i) = bf16_one;
+                }
+            }
+            BitNetDType::I8 => {
+                let i8_ptr = ptr as *mut i8;
+                for i in 0..element_count {
+                    *i8_ptr.add(i) = 1i8;
+                }
+            }
+            BitNetDType::I4 => {
+                // I4 is packed, 2 elements per byte
+                let byte_count = (element_count + 1) / 2;
+                for i in 0..byte_count {
+                    if i * 2 + 1 < element_count {
+                        // Two I4 values: 0x11 (both nibbles = 1)
+                        *ptr.add(i) = 0x11;
+                    } else {
+                        // Last byte with only one I4 value: 0x01
+                        *ptr.add(i) = 0x01;
+                    }
+                }
+            }
+            BitNetDType::I2 => {
+                // I2 is packed, 4 elements per byte
+                let byte_count = (element_count + 3) / 4;
+                for i in 0..byte_count {
+                    // Fill with 0x55 (01010101 binary, each 2-bit value = 1)
+                    *ptr.add(i) = 0x55;
+                }
+            }
+            BitNetDType::I1 => {
+                // I1 is packed, 8 elements per byte
+                let byte_count = (element_count + 7) / 8;
+                for i in 0..byte_count {
+                    // Fill with 0xFF (all bits set to 1)
+                    *ptr.add(i) = 0xFF;
+                }
+            }
+            BitNetDType::BitNet158 => {
+                // BitNet 1.58b uses 2 bits per element, values: -1, 0, 1
+                // We'll use value 1 (represented as 0b01)
+                let byte_count = (element_count + 3) / 4;
+                for i in 0..byte_count {
+                    // Fill with 0x55 (01010101 binary, each 2-bit value = 1)
+                    *ptr.add(i) = 0x55;
+                }
+            }
+        }
     }
 }
 

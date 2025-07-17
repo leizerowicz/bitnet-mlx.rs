@@ -7,10 +7,12 @@
 pub mod device;
 pub mod memory;
 pub mod tensor;
+pub mod metal;
 
 pub use device::*;
 pub use memory::*;
 pub use tensor::*;
+pub use metal::*;
 
 // Re-export commonly used types from candle
 pub use candle_core::{Device, DType, Result, Tensor};

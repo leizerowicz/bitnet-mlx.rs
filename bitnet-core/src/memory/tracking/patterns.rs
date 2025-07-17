@@ -975,7 +975,7 @@ mod tests {
         // Add similar-sized allocations
         for i in 0..5 {
             let allocation = AllocationInfo {
-                id: AllocationId::new(i),
+                id: crate::memory::tracking::AllocationId::new(i as u64),
                 size: 1024, // Same size
                 alignment: 16,
                 device_type: "CPU".to_string(),
@@ -1009,7 +1009,7 @@ mod tests {
         // Add many small allocations
         for i in 0..10 {
             let allocation = AllocationInfo {
-                id: AllocationId::new(i),
+                id: crate::memory::tracking::AllocationId::new(i as u64),
                 size: 64, // Small size
                 alignment: 8,
                 device_type: "CPU".to_string(),
@@ -1040,7 +1040,7 @@ mod tests {
         
         // Add old allocation (potential leak)
         let old_allocation = AllocationInfo {
-            id: AllocationId::new(1),
+            id: crate::memory::tracking::AllocationId::new(1),
             size: 1024 * 1024, // 1MB
             alignment: 16,
             device_type: "CPU".to_string(),
@@ -1068,7 +1068,7 @@ mod tests {
         // Add some allocations
         for i in 0..5 {
             let allocation = AllocationInfo {
-                id: AllocationId::new(i),
+                id: crate::memory::tracking::AllocationId::new(i as u64),
                 size: 1024,
                 alignment: 16,
                 device_type: "CPU".to_string(),
@@ -1096,7 +1096,7 @@ mod tests {
         // Add some allocations
         for i in 0..10 {
             let allocation = AllocationInfo {
-                id: AllocationId::new(i),
+                id: crate::memory::tracking::AllocationId::new(i as u64),
                 size: 1024,
                 alignment: 16,
                 device_type: "CPU".to_string(),

@@ -111,6 +111,7 @@ impl TensorTestEnvironment {
             active_tensors: metrics.active_allocations as usize,
             memory_usage: metrics.current_allocated,
             pressure_level: detailed_metrics
+                .as_ref()
                 .map(|m| m.pressure_level)
                 .unwrap_or(MemoryPressureLevel::None),
             device_usage: detailed_metrics

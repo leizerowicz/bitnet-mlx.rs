@@ -76,9 +76,9 @@ pub struct CpuMemoryMetadata {
 #[derive(Debug)]
 pub struct MetalMemoryMetadata {
     /// Metal buffer object
-    pub buffer: metal_rs::Buffer,
+    pub buffer: metal::Buffer,
     /// Storage mode of the Metal buffer
-    pub storage_mode: metal_rs::MTLStorageMode,
+    pub storage_mode: metal::MTLStorageMode,
     /// Whether the buffer uses unified memory
     pub unified_memory: bool,
 }

@@ -311,7 +311,7 @@ pub struct MetalMemoryPool {
     /// Metal device this pool is associated with
     device: Device,
     /// Metal device reference
-    metal_device: metal_rs::Device,
+    metal_device: metal::Device,
     /// Pool configuration
     config: MetalPoolConfig,
     /// Pool statistics
@@ -323,13 +323,13 @@ pub struct MetalMemoryPool {
 #[derive(Debug, Clone)]
 pub struct MetalPoolConfig {
     /// Default storage mode for allocations
-    pub default_storage_mode: metal_rs::MTLStorageMode,
+    pub default_storage_mode: metal::MTLStorageMode,
     /// Whether to use unified memory when available
     pub use_unified_memory: bool,
     /// Whether to enable Metal Performance Shaders optimizations
     pub enable_mps_optimizations: bool,
     /// Resource options for Metal buffers
-    pub resource_options: metal_rs::MTLResourceOptions,
+    pub resource_options: metal::MTLResourceOptions,
 }
 
 /// Statistics for Metal memory pool
@@ -356,10 +356,10 @@ pub struct MetalPoolStats {
 impl Default for MetalPoolConfig {
     fn default() -> Self {
         Self {
-            default_storage_mode: metal_rs::MTLStorageMode::Shared,
+            default_storage_mode: metal::MTLStorageMode::Shared,
             use_unified_memory: true,
             enable_mps_optimizations: false,
-            resource_options: metal_rs::MTLResourceOptions::StorageModeShared,
+            resource_options: metal::MTLResourceOptions::StorageModeShared,
         }
     }
 }
@@ -444,7 +444,7 @@ impl MetalMemoryPool {
 
         // Determine if this is unified memory
         let unified_memory = self.config.use_unified_memory && 
-            self.config.default_storage_mode == metal_rs::MTLStorageMode::Shared;
+            self.config.default_storage_mode == metal::MTLStorageMode::Shared;
 
         // Generate unique handle ID
         let handle_id = {
@@ -482,9 +482,9 @@ impl MetalMemoryPool {
         self.stats.bytes_allocated += size as u64;
 
         match self.config.default_storage_mode {
-            metal_rs::MTLStorageMode::Shared => self.stats.shared_memory_allocations += 1,
-            metal_rs::MTLStorageMode::Private => self.stats.private_memory_allocations += 1,
-            metal_rs::MTLStorageMode::Managed => {
+            metal::MTLStorageMode::Shared => self.stats.shared_memory_allocations += 1,
+            metal::MTLStorageMode::Private => self.stats.private_memory_allocations += 1,
+            metal::MTLStorageMode::Managed => {
                 // Managed mode can be considered unified for statistics
                 self.stats.unified_memory_allocations += 1;
             }
@@ -545,7 +545,7 @@ impl MetalMemoryPool {
     }
 
     /// Returns the Metal device reference
-    pub fn metal_device(&self) -> &metal_rs::Device {
+    pub fn metal_device(&self) -> &metal::Device {
         &self.metal_device
     }
 }

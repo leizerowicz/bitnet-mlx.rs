@@ -1,6 +1,6 @@
 [package]
 name = "bitnet-quant"
-version.workspace = true
+version = "0.1.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -20,7 +20,7 @@ calibration = ["dep:rand"]
 advanced = ["dep:statrs"]
 
 [dependencies]
-bitnet-core = { path = "../bitnet-core", version = "0.1.0" }
+bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.3.0" }
 
 # Core dependencies
 candle-core.workspace = true

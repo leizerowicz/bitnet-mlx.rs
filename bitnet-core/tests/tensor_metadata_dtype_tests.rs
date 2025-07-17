@@ -18,7 +18,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use std::thread;
 use std::collections::{HashMap, HashSet};
 
-use bitnet_core::memory::tensor::{BitNetDType, TensorMetadata, DeviceInfo};
+use bitnet_core::memory::tensor::{BitNetDType, TensorMetadata};
+use bitnet_core::memory::tensor::metadata::DeviceInfo;
 use bitnet_core::device::{get_cpu_device, auto_select_device, is_metal_available, get_metal_device};
 use candle_core::{Device, DType};
 use serde_json;
@@ -466,8 +467,7 @@ fn test_all_bitnet_dtypes_comprehensive() {
         
         // Test memory efficiency calculation
         let expected_efficiency = 32.0 / bits as f32;
-        assert_relative_eq!(efficiency, expected_efficiency, epsilon = 0.001,
-                           "Memory efficiency mismatch for {}", dtype);
+        assert_relative_eq!(efficiency, expected_efficiency, epsilon = 0.001);
     }
 }
 
@@ -544,8 +544,7 @@ fn test_dtype_memory_efficiency_calculations() {
             let f32_bytes = BitNetDType::F32.bytes_for_elements(count);
             let actual_efficiency = f32_bytes as f32 / bytes as f32;
             
-            assert_relative_eq!(efficiency, actual_efficiency, epsilon = 0.01,
-                               "Efficiency mismatch for {} with {} elements", dtype, count);
+            assert_relative_eq!(efficiency, actual_efficiency, epsilon = 0.01);
             
             // Verify memory savings for quantized types
             if dtype.is_quantized() {
@@ -705,8 +704,7 @@ fn test_metadata_accuracy_with_different_dtypes() {
             // Verify memory efficiency
             let efficiency = metadata.memory_efficiency();
             let expected_efficiency = dtype.memory_efficiency();
-            assert_relative_eq!(efficiency, expected_efficiency, epsilon = 0.001,
-                               "Memory efficiency mismatch for {} with shape {:?}", dtype, shape);
+            assert_relative_eq!(efficiency, expected_efficiency, epsilon = 0.001);
             
             // Verify tensor classification
             assert_eq!(metadata.is_scalar(), shape.is_empty());
@@ -771,7 +769,15 @@ fn test_device_compatibility_across_dtypes() {
             
             // Test device migration with different dtypes
             for target_device in &devices {
-                if target_device != device {
+                // Compare device types instead of direct comparison
+                let devices_different = match (device, target_device) {
+                    (Device::Cpu, Device::Cpu) => false,
+                    (Device::Metal(_), Device::Metal(_)) => false,
+                    (Device::Cuda(_), Device::Cuda(_)) => false,
+                    _ => true,
+                };
+                
+                if devices_different {
                     let mut migrated_metadata = metadata.clone();
                     migrated_metadata.update_device(target_device);
                     

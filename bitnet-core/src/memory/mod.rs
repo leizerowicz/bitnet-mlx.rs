@@ -322,17 +322,24 @@ impl HybridMemoryPool {
             self.allocate_large(size, alignment, &device_key, device)?
         };
 
-        // Update metrics
-        if self.config.enable_metrics {
-            if let Ok(mut metrics) = self.metrics.write() {
-                metrics.record_allocation(size);
-            }
-        }
-
-        // Register handle
+        // Batch operations under single lock to reduce contention
         let handle_id = handle.id();
-        if let Ok(mut registry) = self.handle_registry.write() {
-            registry.insert(handle_id, handle.clone());
+        
+        // Update metrics and register handle in single critical section
+        if self.config.enable_metrics {
+            // Try to acquire both locks together to reduce contention
+            let metrics_result = self.metrics.write();
+            let registry_result = self.handle_registry.write();
+            
+            if let (Ok(mut metrics), Ok(mut registry)) = (metrics_result, registry_result) {
+                metrics.record_allocation(size);
+                registry.insert(handle_id, handle.clone());
+            }
+        } else {
+            // Just register handle if metrics disabled
+            if let Ok(mut registry) = self.handle_registry.write() {
+                registry.insert(handle_id, handle.clone());
+            }
         }
 
         // Track allocation if advanced tracking is enabled
@@ -409,7 +416,7 @@ impl HybridMemoryPool {
             tracker.track_deallocation(&registered_handle);
         }
 
-        // Update metrics
+        // Update metrics in single operation
         if self.config.enable_metrics {
             if let Ok(mut metrics) = self.metrics.write() {
                 metrics.record_deallocation(size);

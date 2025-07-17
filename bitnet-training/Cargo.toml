@@ -1,6 +1,6 @@
 [package]
 name = "bitnet-training"
-version.workspace = true
+version = "0.1.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -26,8 +26,8 @@ datasets = ["dep:arrow"]
 # metal = ["dep:bitnet-metal"]
 
 [dependencies]
-bitnet-core = { path = "../bitnet-core", version = "0.1.0" }
-bitnet-quant = { path = "../bitnet-quant", version = "0.1.0" }
+bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.3.0" }
+bitnet-quant = { path = "../bitnet-quant", version = ">=0.1.0, <0.3.0" }
 # bitnet-inference = { path = "../bitnet-inference", version = "0.1.0" }
 # bitnet-metal = { path = "../bitnet-metal", version = "0.1.0", optional = true }
 
