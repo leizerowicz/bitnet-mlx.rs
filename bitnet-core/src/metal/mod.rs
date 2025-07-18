@@ -137,7 +137,10 @@
 #[cfg(all(target_os = "macos", feature = "metal"))]
 use metal;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
+
+#[cfg(all(target_os = "macos", feature = "metal"))]
+use anyhow::Context;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};

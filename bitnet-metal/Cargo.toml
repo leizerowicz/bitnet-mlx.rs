@@ -20,6 +20,12 @@ mps = ["dep:objc", "dep:cocoa"]
 unified-memory = []
 # Enable Neural Engine integration (experimental)
 ane = ["dep:objc", "dep:cocoa"]
+# Enable MLX integration for Apple Silicon
+mlx = ["dep:mlx-rs"]
+# Enable MLX-Metal interoperability
+mlx-metal = ["mlx", "mps"]
+# Enable full Apple Silicon optimization (Metal + MLX + ANE)
+apple-silicon = ["mps", "mlx", "ane", "unified-memory"]
 
 [dependencies]
 bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.3.0" }
@@ -29,6 +35,9 @@ bitnet-quant = { path = "../bitnet-quant", version = ">=0.1.0, <0.3.0" }
 metal = "0.27.0"
 objc = { workspace = true, optional = true }
 cocoa = { workspace = true, optional = true }
+
+# MLX integration
+mlx-rs = { workspace = true, optional = true }
 
 # Core dependencies
 candle-core.workspace = true

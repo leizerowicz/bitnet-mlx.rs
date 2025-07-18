@@ -24,6 +24,12 @@ peft = ["dep:rand"]
 datasets = ["dep:arrow"]
 # Enable Metal acceleration for training (temporarily disabled due to dependency issues)
 # metal = ["dep:bitnet-metal"]
+# Enable MLX acceleration for training
+mlx = ["dep:mlx-rs"]
+# Enable MLX-accelerated training with QAT
+mlx-training = ["mlx", "qat"]
+# Enable Apple Silicon optimizations for training
+apple-silicon = ["mlx", "peft"]
 
 [dependencies]
 bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.3.0" }
@@ -41,6 +47,9 @@ thiserror.workspace = true
 # Training utilities
 rand = { version = "0.8", optional = true }
 tokio = { workspace = true, optional = true }
+
+# MLX acceleration
+mlx-rs = { workspace = true, optional = true }
 
 # Dataset handling
 arrow = { version = "52.0", optional = true }

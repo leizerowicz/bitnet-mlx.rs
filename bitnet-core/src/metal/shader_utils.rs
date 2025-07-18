@@ -3,14 +3,20 @@
 //! This module provides high-level utilities for loading and using BitNet-specific Metal shaders.
 //! It includes pre-configured shader loading for BitLinear operations, quantization, and activation functions.
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, Once};
 
 #[cfg(all(target_os = "macos", feature = "metal"))]
+use anyhow::Context;
+
+#[cfg(all(target_os = "macos", feature = "metal"))]
 use metal;
 
-use super::shader_compiler::{ShaderLoader, ShaderCompilerConfig};
+use super::shader_compiler::ShaderLoader;
+
+#[cfg(all(target_os = "macos", feature = "metal"))]
+use super::shader_compiler::ShaderCompilerConfig;
 use super::MetalError;
 
 /// BitNet shader collection with pre-loaded compute pipelines

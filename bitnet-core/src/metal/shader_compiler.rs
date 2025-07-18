@@ -3,11 +3,16 @@
 //! This module provides comprehensive shader compilation and loading utilities for BitNet Metal operations.
 //! It includes automatic shader discovery, compilation, caching, and runtime loading capabilities.
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::collections::HashMap;
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+
+#[cfg(all(target_os = "macos", feature = "metal"))]
+use anyhow::Context;
+
+#[cfg(all(target_os = "macos", feature = "metal"))]
+use std::fs;
 
 #[cfg(all(target_os = "macos", feature = "metal"))]
 use metal;
@@ -601,7 +606,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "macos")]
+    #[cfg(all(target_os = "macos", feature = "metal"))]
     fn test_shader_compiler_creation() {
         use crate::metal::create_metal_device;
         
@@ -620,7 +625,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "macos")]
+    #[cfg(all(target_os = "macos", feature = "metal"))]
     fn test_shader_discovery() {
         use crate::metal::create_metal_device;
         

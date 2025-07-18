@@ -24,6 +24,12 @@ batching = ["dep:rayon"]
 streaming = ["dep:tokio"]
 # Enable Metal acceleration (temporarily disabled due to dependency issues)
 # metal = ["dep:bitnet-metal"]
+# Enable MLX acceleration for Apple Silicon
+mlx = ["dep:mlx-rs"]
+# Enable MLX-accelerated inference
+mlx-inference = ["mlx", "generation"]
+# Enable Apple Silicon optimizations (MLX + Metal when available)
+apple-silicon = ["mlx"]
 
 [dependencies]
 bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.3.0" }
@@ -45,6 +51,9 @@ rand = { version = "0.8", optional = true }
 # Performance
 rayon = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
+
+# MLX acceleration
+mlx-rs = { workspace = true, optional = true }
 
 # Utilities
 tracing = { workspace = true, optional = true }
