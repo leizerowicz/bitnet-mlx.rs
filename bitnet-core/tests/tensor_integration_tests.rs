@@ -247,6 +247,10 @@ fn test_end_to_end_tensor_lifecycle_workflow() {
     env.record_metrics();
     env.stop_cleanup_if_enabled();
     
+    // Clean up orphaned handles
+    let cleanup_count = env.pool.cleanup_orphaned_handles();
+    println!("Cleaned up {} orphaned memory handles", cleanup_count);
+    
     // Verify final state
     let final_metrics = env.pool.get_metrics();
     assert_eq!(final_metrics.active_allocations, 0);

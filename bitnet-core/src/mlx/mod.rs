@@ -10,13 +10,71 @@ use mlx_rs::{Array, Dtype as MlxDtype};
 use crate::memory::MemoryHandle;
 use anyhow::Result;
 
+#[cfg(feature = "mlx")]
+use candle_core::Tensor;
+
 pub mod device;
 pub mod tensor;
 pub mod operations;
+pub mod optimization;
+pub mod graph;
+
+// Performance comparison tools
+pub mod performance;
+pub mod memory_tracker;
+pub mod metrics;
+pub mod reports;
+pub mod profiler;
+pub mod device_comparison;
+pub mod regression_testing;
+
+// Re-export performance comparison types
+pub use performance::{
+    MlxPerformanceBenchmarker, BenchmarkConfig, PerformanceMetrics, MemoryUsage, ComparisonResult
+};
+pub use memory_tracker::{
+    MlxMemoryTracker, track_allocation, track_deallocation, MemoryEvent, MemoryEventType,
+    MemoryOptimization, OptimizationType, OptimizationPriority, ImplementationEffort
+};
+pub use metrics::{
+    MlxMetricsCollector, MetricsConfig, OperationContext, ExportFormat, MlxMetrics,
+    MemoryMetrics, SystemMetrics
+};
+pub use reports::PerformanceReportGenerator;
+pub use profiler::{MlxAdvancedProfiler, ProfilerConfig, ProfileOutputFormat};
+pub use device_comparison::{MlxDeviceComparison, DeviceComparisonConfig};
+pub use regression_testing::{MlxRegressionTester, RegressionTestConfig};
+
+#[cfg(test)]
+mod tests;
+
+#[cfg(test)]
+mod optimization_tests;
 
 pub use device::*;
 pub use tensor::*;
 pub use operations::*;
+
+// Re-export tensor types
+pub use tensor::MlxTensor;
+pub use operations::BitNetMlxOps;
+
+// Type aliases for compatibility (removed duplicates)
+pub use optimization::{
+    MlxMemoryOptimizer, MlxProfiler, MlxKernelFusion, MlxTensorCache,
+    MlxAutoTuner, MlxBatchOptimizer, MemoryStats
+};
+pub use graph::{
+    MlxComputationGraph, GraphBuilder, GraphNode, Operation,
+    ExecutionPlan, MemoryLayoutPlan, FusionOpportunity, FusionPattern
+};
+
+// Re-export the new MLX operation wrappers
+#[cfg(feature = "mlx")]
+pub use operations::{mlx_matmul, mlx_quantize, mlx_dequantize};
+
+#[cfg(not(feature = "mlx"))]
+pub use operations::{mlx_matmul, mlx_quantize, mlx_dequantize};
 
 /// MLX device wrapper for BitNet integration
 #[cfg(feature = "mlx")]
@@ -171,7 +229,131 @@ pub fn default_mlx_device() -> Result<BitNetMlxDevice> {
     }
 }
 
-// Stub implementations when MLX feature is not enabled
+/// MLX Array Utilities
+///
+/// These functions provide conversion utilities between MLX arrays and Candle tensors,
+/// enabling seamless interoperability between the two tensor frameworks.
+
+/// Create an MLX array from shape and data
+///
+/// # Arguments
+/// * `shape` - The shape of the array as a slice of i32 values
+/// * `data` - Vector of f32 values to populate the array
+///
+/// # Returns
+/// A Result containing the created MLX Array or an error
+///
+/// # Example
+/// ```
+/// use bitnet_core::mlx::create_mlx_array;
+///
+/// let shape = &[2, 3];
+/// let data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+/// let array = create_mlx_array(shape, data).unwrap();
+/// ```
+#[cfg(feature = "mlx")]
+pub fn create_mlx_array(shape: &[i32], data: Vec<f32>) -> Result<Array> {
+    // Validate that the data length matches the expected number of elements
+    let expected_elements: usize = shape.iter().map(|&x| x as usize).product();
+    if data.len() != expected_elements {
+        return Err(anyhow::anyhow!(
+            "Data length {} does not match expected elements {} for shape {:?}",
+            data.len(),
+            expected_elements,
+            shape
+        ));
+    }
+
+    // Create MLX array from the data and shape
+    let array = Array::from_slice(&data, shape);
+    Ok(array)
+}
+
+/// Convert an MLX array to a Candle tensor
+///
+/// # Arguments
+/// * `array` - Reference to the MLX array to convert
+///
+/// # Returns
+/// A Result containing the converted Candle Tensor or an error
+///
+/// # Example
+/// ```
+/// use bitnet_core::mlx::{create_mlx_array, mlx_to_candle_tensor};
+///
+/// let shape = &[2, 2];
+/// let data = vec![1.0, 2.0, 3.0, 4.0];
+/// let array = create_mlx_array(shape, data).unwrap();
+/// let tensor = mlx_to_candle_tensor(&array).unwrap();
+/// ```
+#[cfg(feature = "mlx")]
+pub fn mlx_to_candle_tensor(array: &Array) -> Result<Tensor> {
+    // Get the array data as a slice
+    let data = array.as_slice::<f32>();
+    
+    // Convert MLX shape (i32) to Candle shape (usize)
+    let shape: Vec<usize> = array.shape().iter().map(|&x| x as usize).collect();
+    
+    // Create Candle tensor from the data
+    let device = candle_core::Device::Cpu;
+    let tensor = Tensor::from_vec(data.to_vec(), shape, &device)?;
+    
+    Ok(tensor)
+}
+
+/// Convert a Candle tensor to an MLX array
+///
+/// # Arguments
+/// * `tensor` - Reference to the Candle tensor to convert
+///
+/// # Returns
+/// A Result containing the converted MLX Array or an error
+///
+/// # Example
+/// ```
+/// use bitnet_core::mlx::candle_to_mlx_array;
+/// use bitnet_core::tensor::create_tensor_f32;
+///
+/// let data = vec![1.0, 2.0, 3.0, 4.0];
+/// let tensor = create_tensor_f32(&[2, 2], data).unwrap();
+/// let array = candle_to_mlx_array(&tensor).unwrap();
+/// ```
+#[cfg(feature = "mlx")]
+pub fn candle_to_mlx_array(tensor: &Tensor) -> Result<Array> {
+    // First, ensure the tensor is on CPU and get its data
+    let cpu_tensor = tensor.to_device(&candle_core::Device::Cpu)?;
+    
+    // Convert tensor to f32 if it's not already
+    let f32_tensor = match cpu_tensor.dtype() {
+        candle_core::DType::F32 => cpu_tensor,
+        _ => cpu_tensor.to_dtype(candle_core::DType::F32)?,
+    };
+    
+    // Get the tensor data as Vec<f32>
+    let data = f32_tensor.flatten_all()?.to_vec1::<f32>()?;
+    
+    // Convert Candle shape (usize) to MLX shape (i32)
+    let shape: Vec<i32> = tensor.shape().dims().iter().map(|&x| x as i32).collect();
+    
+    // Create and return MLX array
+    create_mlx_array(&shape, data)
+}
+
+#[cfg(not(feature = "mlx"))]
+pub fn create_mlx_array(_shape: &[i32], _data: Vec<f32>) -> Result<()> {
+    anyhow::bail!("MLX support not compiled in")
+}
+
+#[cfg(not(feature = "mlx"))]
+pub fn mlx_to_candle_tensor(_array: &()) -> Result<()> {
+    anyhow::bail!("MLX support not compiled in")
+}
+
+#[cfg(not(feature = "mlx"))]
+pub fn candle_to_mlx_array(_tensor: &()) -> Result<()> {
+    anyhow::bail!("MLX support not compiled in")
+}
+
 #[cfg(not(feature = "mlx"))]
 pub fn is_mlx_available() -> bool {
     false

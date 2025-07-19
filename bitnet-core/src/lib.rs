@@ -5,6 +5,8 @@
 //! data structures.
 
 pub mod device;
+pub mod error;
+pub mod execution;
 pub mod memory;
 pub mod tensor;
 pub mod metal;
@@ -14,6 +16,8 @@ pub mod metal;
 pub mod mlx;
 
 pub use device::*;
+pub use error::*;
+pub use execution::*;
 pub use memory::*;
 pub use tensor::*;
 pub use metal::*;

@@ -1,6 +1,6 @@
 [package]
 name = "bitnet-benchmarks"
-version = "0.1.0"
+version = "0.1.1"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -10,6 +10,10 @@ documentation.workspace = true
 description = "Comprehensive benchmarking suite for BitNet implementation"
 keywords = ["bitnet", "benchmarks", "performance", "neural-networks"]
 categories = ["science", "development-tools"]
+
+[[bin]]
+name = "bitnet-benchmarks"
+path = "src/main.rs"
 
 [features]
 default = ["std"]
@@ -35,7 +39,10 @@ criterion.workspace = true
 # Core dependencies
 candle-core.workspace = true
 serde.workspace = true
+serde_json = "1.0"
 anyhow.workspace = true
+clap = { version = "4.0", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
 
 # Test data generation
 rand = "0.8"

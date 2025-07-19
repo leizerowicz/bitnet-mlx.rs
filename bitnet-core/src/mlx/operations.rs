@@ -122,6 +122,116 @@ impl BitNetMlxOps {
     }
 }
 
+/// MLX operation wrapper functions
+///
+/// These functions provide direct wrappers around MLX operations with
+/// proper error handling and Result types.
+
+/// Matrix multiplication wrapper for MLX arrays
+///
+/// # Arguments
+/// * `a` - First matrix as MLX Array reference
+/// * `b` - Second matrix as MLX Array reference
+///
+/// # Returns
+/// Result containing the matrix multiplication result or an error
+///
+/// # Example
+/// ```
+/// use bitnet_core::mlx::mlx_matmul;
+/// use mlx_rs::Array;
+///
+/// let a = Array::from_slice(&[1.0, 2.0, 3.0, 4.0], &[2, 2]);
+/// let b = Array::from_slice(&[5.0, 6.0, 7.0, 8.0], &[2, 2]);
+/// let result = mlx_matmul(&a, &b).unwrap();
+/// ```
+#[cfg(feature = "mlx")]
+pub fn mlx_matmul(a: &mlx_rs::Array, b: &mlx_rs::Array) -> Result<mlx_rs::Array> {
+    use mlx_rs::ops;
+    ops::matmul(a, b).map_err(|e| anyhow::anyhow!("MLX matmul failed: {}", e))
+}
+
+/// Quantization wrapper for MLX arrays
+///
+/// Quantizes the input array using the provided scale factor.
+/// This implements a simple linear quantization scheme.
+///
+/// # Arguments
+/// * `array` - Input array to quantize
+/// * `scale` - Scale factor for quantization
+///
+/// # Returns
+/// Result containing the quantized array or an error
+///
+/// # Example
+/// ```
+/// use bitnet_core::mlx::mlx_quantize;
+/// use mlx_rs::Array;
+///
+/// let array = Array::from_slice(&[1.0, 2.0, 3.0, 4.0], &[2, 2]);
+/// let quantized = mlx_quantize(&array, 0.5).unwrap();
+/// ```
+#[cfg(feature = "mlx")]
+pub fn mlx_quantize(array: &mlx_rs::Array, scale: f32) -> Result<mlx_rs::Array> {
+    use mlx_rs::ops;
+    
+    // Simple linear quantization: round(array / scale)
+    // First divide by scale
+    let scaled = ops::divide(array, &mlx_rs::Array::from_f32(scale))?;
+    
+    // Round to nearest integer (0 decimals)
+    let rounded = ops::round(&scaled, 0)?;
+    
+    Ok(rounded)
+}
+
+/// Dequantization wrapper for MLX arrays
+///
+/// Dequantizes the input array using the provided scale factor.
+/// This reverses the quantization process by multiplying by the scale.
+///
+/// # Arguments
+/// * `array` - Input quantized array to dequantize
+/// * `scale` - Scale factor used during quantization
+///
+/// # Returns
+/// Result containing the dequantized array or an error
+///
+/// # Example
+/// ```
+/// use bitnet_core::mlx::{mlx_quantize, mlx_dequantize};
+/// use mlx_rs::Array;
+///
+/// let array = Array::from_slice(&[1.0, 2.0, 3.0, 4.0], &[2, 2]);
+/// let quantized = mlx_quantize(&array, 0.5).unwrap();
+/// let dequantized = mlx_dequantize(&quantized, 0.5).unwrap();
+/// ```
+#[cfg(feature = "mlx")]
+pub fn mlx_dequantize(array: &mlx_rs::Array, scale: f32) -> Result<mlx_rs::Array> {
+    use mlx_rs::ops;
+    
+    // Dequantization: multiply by scale
+    let result = ops::multiply(array, &mlx_rs::Array::from_f32(scale))?;
+    
+    Ok(result)
+}
+
+// Stub implementations when MLX is not available
+#[cfg(not(feature = "mlx"))]
+pub fn mlx_matmul(_a: &(), _b: &()) -> Result<()> {
+    anyhow::bail!("MLX support not compiled in")
+}
+
+#[cfg(not(feature = "mlx"))]
+pub fn mlx_quantize(_array: &(), _scale: f32) -> Result<()> {
+    anyhow::bail!("MLX support not compiled in")
+}
+
+#[cfg(not(feature = "mlx"))]
+pub fn mlx_dequantize(_array: &(), _scale: f32) -> Result<()> {
+    anyhow::bail!("MLX support not compiled in")
+}
+
 // Stub implementations when MLX is not available
 #[cfg(not(feature = "mlx"))]
 pub struct BitNetMlxOps;

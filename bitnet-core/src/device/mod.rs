@@ -34,6 +34,14 @@ use thiserror::Error;
 #[cfg(feature = "tracing")]
 use tracing::{debug, info, warn};
 
+// Device comparison utilities
+pub mod comparison;
+pub use comparison::{
+    compare_devices, devices_equal, devices_compatible,
+    assert_devices_equal, assert_devices_not_equal, assert_devices_compatible,
+    DeviceComparisonResult, DeviceComparisonDetails, DeviceType, CapabilityMatch
+};
+
 /// Errors that can occur during device operations
 #[derive(Error, Debug)]
 pub enum DeviceError {

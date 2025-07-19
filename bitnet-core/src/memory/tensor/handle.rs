@@ -6,9 +6,11 @@
 use crate::memory::tensor::{BitNetDType, TensorMetadata};
 use crate::memory::{MemoryHandle, MemoryError};
 use candle_core::Device;
-use std::sync::{Arc, Weak, RwLock};
+use std::sync::{Arc, Weak, RwLock, Mutex};
+use std::collections::HashMap;
 use std::fmt;
 use thiserror::Error;
+use once_cell::sync::Lazy;
 
 /// Errors that can occur during tensor handle operations
 #[derive(Error, Debug)]
@@ -60,6 +62,114 @@ pub struct TensorHandle {
     created_at: std::time::Instant,
 }
 
+/// Global registry for tracking memory handles that need cleanup
+pub static MEMORY_CLEANUP_REGISTRY: Lazy<Mutex<HashMap<u64, MemoryHandle>>> = Lazy::new(|| {
+    Mutex::new(HashMap::new())
+});
+
+/// Global reference to the memory pool for automatic cleanup
+pub static GLOBAL_MEMORY_POOL: Lazy<Mutex<Option<std::sync::Weak<crate::memory::HybridMemoryPool>>>> = Lazy::new(|| {
+    Mutex::new(None)
+});
+
+/// Sets the global memory pool reference for automatic cleanup
+pub fn set_global_memory_pool(pool: std::sync::Weak<crate::memory::HybridMemoryPool>) {
+    if let Ok(mut global_pool) = GLOBAL_MEMORY_POOL.lock() {
+        *global_pool = Some(pool);
+    }
+}
+
+/// Register a memory handle for automatic cleanup
+pub fn register_memory_handle(tensor_id: u64, handle: MemoryHandle) {
+    if let Ok(mut registry) = MEMORY_CLEANUP_REGISTRY.lock() {
+        registry.insert(tensor_id, handle);
+    }
+}
+
+/// Unregister and return a memory handle, triggering automatic cleanup
+pub fn unregister_memory_handle(tensor_id: u64) -> Option<MemoryHandle> {
+    #[cfg(feature = "tracing")]
+    tracing::debug!("Unregistering memory handle for tensor {}", tensor_id);
+    
+    let handle = if let Ok(mut registry) = MEMORY_CLEANUP_REGISTRY.lock() {
+        let handle = registry.remove(&tensor_id);
+        #[cfg(feature = "tracing")]
+        if handle.is_some() {
+            tracing::debug!("Found and removed handle for tensor {} from cleanup registry", tensor_id);
+        } else {
+            tracing::warn!("No handle found in cleanup registry for tensor {}", tensor_id);
+        }
+        handle
+    } else {
+        #[cfg(feature = "tracing")]
+        tracing::error!("Failed to acquire cleanup registry lock for tensor {}", tensor_id);
+        None
+    };
+
+    // If we have a handle, try to deallocate it immediately
+    if let Some(ref handle) = handle {
+        #[cfg(feature = "tracing")]
+        tracing::debug!("Attempting immediate deallocation of handle {} for tensor {}", handle.id(), tensor_id);
+        
+        if let Ok(global_pool) = GLOBAL_MEMORY_POOL.lock() {
+            if let Some(ref pool_weak) = *global_pool {
+                if let Some(pool) = pool_weak.upgrade() {
+                    // Try to deallocate the handle immediately
+                    match pool.deallocate(handle.clone()) {
+                        Ok(()) => {
+                            #[cfg(feature = "tracing")]
+                            tracing::debug!("Successfully deallocated handle {} for tensor {} immediately", handle.id(), tensor_id);
+                        }
+                        Err(e) => {
+                            #[cfg(feature = "tracing")]
+                            tracing::warn!("Immediate deallocation failed for handle {} (tensor {}): {}. Triggering cleanup.", handle.id(), tensor_id, e);
+                            
+                            // If immediate deallocation fails, trigger cleanup
+                            let cleaned_up = pool.cleanup_orphaned_handles();
+                            if cleaned_up > 0 {
+                                #[cfg(feature = "tracing")]
+                                tracing::debug!("Automatically cleaned up {} orphaned memory handles", cleaned_up);
+                            } else {
+                                #[cfg(feature = "tracing")]
+                                tracing::warn!("No orphaned handles found during cleanup for tensor {}", tensor_id);
+                            }
+                        }
+                    }
+                } else {
+                    #[cfg(feature = "tracing")]
+                    tracing::warn!("Global memory pool weak reference could not be upgraded for tensor {}", tensor_id);
+                }
+            } else {
+                #[cfg(feature = "tracing")]
+                tracing::warn!("No global memory pool reference set for tensor {}", tensor_id);
+            }
+        } else {
+            #[cfg(feature = "tracing")]
+            tracing::error!("Failed to acquire global memory pool lock for tensor {}", tensor_id);
+        }
+    }
+
+    handle
+}
+
+/// Clears all global state - used for testing to prevent test interference
+pub fn clear_global_state() {
+    // Clear the memory cleanup registry
+    if let Ok(mut registry) = MEMORY_CLEANUP_REGISTRY.lock() {
+        let count = registry.len();
+        registry.clear();
+        #[cfg(feature = "tracing")]
+        tracing::debug!("Cleared {} handles from global cleanup registry", count);
+    }
+    
+    // Clear the global memory pool reference
+    if let Ok(mut global_pool) = GLOBAL_MEMORY_POOL.lock() {
+        *global_pool = None;
+        #[cfg(feature = "tracing")]
+        tracing::debug!("Cleared global memory pool reference");
+    }
+}
+
 /// Internal tensor data structure
 #[derive(Debug)]
 pub struct TensorData {
@@ -69,6 +179,46 @@ pub struct TensorData {
     pub metadata: RwLock<TensorMetadata>,
     /// Unique tensor ID
     pub tensor_id: u64,
+    /// Weak reference to the memory pool for cleanup (unused for now)
+    pub pool_ref: std::sync::Weak<crate::memory::HybridMemoryPool>,
+}
+
+impl Drop for TensorData {
+    fn drop(&mut self) {
+        #[cfg(feature = "tracing")]
+        tracing::debug!("TensorData {} being dropped - memory handle {} will be cleaned up by pool",
+                self.tensor_id, self.memory_handle.id());
+        
+        // Remove from cleanup registry and trigger automatic cleanup
+        if let Some(handle) = unregister_memory_handle(self.tensor_id) {
+            #[cfg(feature = "tracing")]
+            tracing::debug!("TensorData {} dropped and memory handle {} unregistered from cleanup registry",
+                    self.tensor_id, handle.id());
+        } else {
+            #[cfg(feature = "tracing")]
+            tracing::warn!("TensorData {} dropped but no handle found in cleanup registry (handle {})",
+                    self.tensor_id, self.memory_handle.id());
+        }
+        
+        // Try to use the pool reference for automatic cleanup
+        if let Some(pool) = self.pool_ref.upgrade() {
+            #[cfg(feature = "tracing")]
+            tracing::debug!("TensorData {} attempting additional cleanup via pool_ref", self.tensor_id);
+            
+            let cleaned_up = pool.cleanup_orphaned_handles();
+            if cleaned_up > 0 {
+                #[cfg(feature = "tracing")]
+                tracing::debug!("Automatically cleaned up {} orphaned memory handles via pool_ref for tensor {}",
+                        cleaned_up, self.tensor_id);
+            } else {
+                #[cfg(feature = "tracing")]
+                tracing::debug!("No additional orphaned handles found via pool_ref for tensor {}", self.tensor_id);
+            }
+        } else {
+            #[cfg(feature = "tracing")]
+            tracing::warn!("TensorData {} could not upgrade pool_ref for additional cleanup", self.tensor_id);
+        }
+    }
 }
 
 impl TensorHandle {
@@ -350,7 +500,7 @@ mod tests {
     use std::sync::Arc;
 
     fn create_test_tensor_data() -> Arc<TensorData> {
-        let pool = HybridMemoryPool::new().unwrap();
+        let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         let memory_handle = pool.allocate(64, 8, &device).unwrap();
         let metadata = TensorMetadata::new(
@@ -365,6 +515,7 @@ mod tests {
             memory_handle,
             metadata: RwLock::new(metadata),
             tensor_id: 1,
+            pool_ref: Arc::downgrade(&pool),
         })
     }
 

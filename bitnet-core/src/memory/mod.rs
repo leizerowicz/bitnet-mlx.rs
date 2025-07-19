@@ -61,6 +61,7 @@ pub mod metrics;
 pub mod tensor;
 pub mod tracking;
 pub mod cleanup;
+pub mod conversion;
 
 // Re-exports
 pub use handle::MemoryHandle;
@@ -69,6 +70,10 @@ pub use small_block::SmallBlockPool;
 pub use large_block::LargeBlockPool;
 pub use device_pool::CpuMemoryPool;
 pub use tensor::{BitNetTensor, BitNetDType, TensorHandle, TensorMetadata};
+pub use conversion::{
+    ConversionEngine, ConversionConfig, ConversionMetrics, ConversionStats, ConversionEvent,
+    ZeroCopyConverter, StreamingConverter, InPlaceConverter, BatchConverter, ConversionPipeline
+};
 pub use tracking::{
     MemoryTracker, DetailedMemoryMetrics, MemoryPressureDetector, MemoryPressureLevel,
     MemoryProfiler, ProfilingReport, LeakReport, AllocationTimeline, PatternAnalyzer,
@@ -322,27 +327,26 @@ impl HybridMemoryPool {
             self.allocate_large(size, alignment, &device_key, device)?
         };
 
-        // Batch operations under single lock to reduce contention
+        // Optimize critical section - batch all operations together
         let handle_id = handle.id();
         
-        // Update metrics and register handle in single critical section
-        if self.config.enable_metrics {
-            // Try to acquire both locks together to reduce contention
-            let metrics_result = self.metrics.write();
-            let registry_result = self.handle_registry.write();
+        // Single critical section for all registry and metrics updates
+        {
+            let mut registry = self.handle_registry.write()
+                .map_err(|_| MemoryError::InternalError {
+                    reason: "Failed to acquire handle registry lock".to_string()
+                })?;
+            registry.insert(handle_id, handle.clone());
             
-            if let (Ok(mut metrics), Ok(mut registry)) = (metrics_result, registry_result) {
-                metrics.record_allocation(size);
-                registry.insert(handle_id, handle.clone());
-            }
-        } else {
-            // Just register handle if metrics disabled
-            if let Ok(mut registry) = self.handle_registry.write() {
-                registry.insert(handle_id, handle.clone());
+            // Update metrics in same critical section if enabled
+            if self.config.enable_metrics {
+                if let Ok(mut metrics) = self.metrics.write() {
+                    metrics.record_allocation(size);
+                }
             }
         }
 
-        // Track allocation if advanced tracking is enabled
+        // Track allocation if advanced tracking is enabled (outside critical section)
         if let Some(ref tracker) = self.memory_tracker {
             tracker.track_allocation(&handle, size, device);
         }
@@ -377,37 +381,55 @@ impl HybridMemoryPool {
     /// ```
     pub fn deallocate(&self, handle: MemoryHandle) -> MemoryResult<()> {
         let handle_id = handle.id();
+        let size = handle.size();
 
         #[cfg(feature = "tracing")]
-        debug!("Deallocating memory with handle ID {}", handle_id);
+        debug!("Deallocating memory with handle ID {} (size: {} bytes)", handle_id, size);
 
         // Remove from registry
         let registered_handle = {
             let mut registry = self.handle_registry.write()
-                .map_err(|_| MemoryError::InternalError { 
-                    reason: "Failed to acquire handle registry lock".to_string() 
+                .map_err(|_| MemoryError::InternalError {
+                    reason: "Failed to acquire handle registry lock".to_string()
                 })?;
+            
+            let handle_found = registry.contains_key(&handle_id);
+            #[cfg(feature = "tracing")]
+            debug!("Handle {} found in registry: {}", handle_id, handle_found);
+            
             registry.remove(&handle_id)
         };
 
-        let registered_handle = registered_handle.ok_or_else(|| MemoryError::InvalidHandle {
-            reason: format!("Handle {} not found in registry", handle_id)
+        let registered_handle = registered_handle.ok_or_else(|| {
+            #[cfg(feature = "tracing")]
+            warn!("Handle {} not found in registry during deallocation", handle_id);
+            MemoryError::InvalidHandle {
+                reason: format!("Handle {} not found in registry", handle_id)
+            }
         })?;
 
         // Verify handle matches
         if registered_handle.id() != handle.id() {
+            #[cfg(feature = "tracing")]
+            error!("Handle ID mismatch during deallocation: expected {}, got {}", registered_handle.id(), handle.id());
             return Err(MemoryError::InvalidHandle {
                 reason: "Handle ID mismatch".to_string()
             });
         }
 
         let device_key = DeviceKey::from(&handle.device());
-        let size = handle.size();
+
+        #[cfg(feature = "tracing")]
+        debug!("Deallocating handle {} from device {:?} (size: {})", handle_id, device_key, size);
 
         // Deallocate based on size
         if size < self.config.small_block_threshold {
+            #[cfg(feature = "tracing")]
+            debug!("Using small block pool for handle {} deallocation", handle_id);
             self.deallocate_small(handle, &device_key)?;
         } else {
+            #[cfg(feature = "tracing")]
+            debug!("Using large block pool for handle {} deallocation", handle_id);
             self.deallocate_large(handle, &device_key)?;
         }
 
@@ -420,11 +442,13 @@ impl HybridMemoryPool {
         if self.config.enable_metrics {
             if let Ok(mut metrics) = self.metrics.write() {
                 metrics.record_deallocation(size);
+                #[cfg(feature = "tracing")]
+                debug!("Updated metrics for handle {} deallocation (size: {})", handle_id, size);
             }
         }
 
         #[cfg(feature = "tracing")]
-        debug!("Successfully deallocated memory with handle ID {}", handle_id);
+        debug!("Successfully deallocated memory with handle ID {} (size: {} bytes)", handle_id, size);
 
         Ok(())
     }
@@ -513,6 +537,84 @@ impl HybridMemoryPool {
         if let Some(ref tracker) = self.memory_tracker {
             tracker.register_pressure_callback(callback);
         }
+    }
+
+    /// Cleans up orphaned memory handles from the pool's handle registry
+    ///
+    /// This method finds memory handles in the pool's registry that are no longer
+    /// referenced by any tensors (not in the cleanup registry) and deallocates them.
+    ///
+    /// # Returns
+    ///
+    /// The number of handles that were cleaned up
+    pub fn cleanup_orphaned_handles(&self) -> usize {
+        use crate::memory::tensor::handle::MEMORY_CLEANUP_REGISTRY;
+        
+        let mut cleanup_count = 0;
+        
+        #[cfg(feature = "tracing")]
+        debug!("Starting cleanup of orphaned handles");
+        
+        // Get the current cleanup registry state
+        let active_tensor_handles = if let Ok(cleanup_registry) = MEMORY_CLEANUP_REGISTRY.lock() {
+            let active_handles = cleanup_registry.values().map(|handle| handle.id()).collect::<std::collections::HashSet<_>>();
+            #[cfg(feature = "tracing")]
+            debug!("Found {} active tensor handles in cleanup registry", active_handles.len());
+            active_handles
+        } else {
+            #[cfg(feature = "tracing")]
+            error!("Failed to acquire cleanup registry lock");
+            return 0;
+        };
+        
+        // Find handles in pool registry that are not in cleanup registry (orphaned)
+        let orphaned_handles = if let Ok(handle_registry) = self.handle_registry.read() {
+            let total_pool_handles = handle_registry.len();
+            let orphaned = handle_registry.iter()
+                .filter(|(_, handle)| !active_tensor_handles.contains(&handle.id()))
+                .map(|(_, handle)| handle.clone())
+                .collect::<Vec<_>>();
+            
+            #[cfg(feature = "tracing")]
+            debug!("Pool registry has {} total handles, {} are orphaned", total_pool_handles, orphaned.len());
+            
+            orphaned
+        } else {
+            #[cfg(feature = "tracing")]
+            error!("Failed to acquire handle registry lock");
+            return 0;
+        };
+        
+        #[cfg(feature = "tracing")]
+        if orphaned_handles.is_empty() {
+            debug!("No orphaned handles found to clean up");
+        } else {
+            debug!("Found {} orphaned handles to clean up", orphaned_handles.len());
+        }
+        
+        // Deallocate orphaned handles
+        for handle in orphaned_handles {
+            #[cfg(feature = "tracing")]
+            debug!("Cleaning up orphaned memory handle {} (size: {} bytes)", handle.id(), handle.size());
+            
+            // Attempt to deallocate the handle
+            match self.deallocate(handle.clone()) {
+                Ok(()) => {
+                    cleanup_count += 1;
+                    #[cfg(feature = "tracing")]
+                    debug!("Successfully cleaned up orphaned handle {}", handle.id());
+                }
+                Err(e) => {
+                    #[cfg(feature = "tracing")]
+                    warn!("Failed to deallocate orphaned handle {} (size: {}): {}", handle.id(), handle.size(), e);
+                }
+            }
+        }
+        
+        #[cfg(feature = "tracing")]
+        debug!("Cleanup completed: {} orphaned handles cleaned up", cleanup_count);
+        
+        cleanup_count
     }
 
     /// Resets all memory pools and metrics

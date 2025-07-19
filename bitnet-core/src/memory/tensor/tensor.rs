@@ -10,6 +10,7 @@ use candle_core::{Device, Tensor};
 use std::sync::{Arc, RwLock, Mutex, Weak};
 use std::collections::HashMap;
 use thiserror::Error;
+use once_cell::sync::Lazy;
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, info, error};
@@ -61,7 +62,7 @@ pub type BitNetTensorResult<T> = std::result::Result<T, BitNetTensorError>;
 #[derive(Debug)]
 pub struct BitNetTensor {
     /// Strong reference to tensor data
-    data: Arc<TensorData>,
+    pub(crate) data: Arc<TensorData>,
     /// Tensor registry for global management
     registry: Arc<RwLock<TensorRegistry>>,
     /// Next tensor ID counter
@@ -76,6 +77,16 @@ struct TensorRegistry {
     /// Next handle ID counter
     next_handle_id: u64,
 }
+
+/// Global tensor registry instance
+static GLOBAL_TENSOR_REGISTRY: Lazy<Arc<RwLock<TensorRegistry>>> = Lazy::new(|| {
+    Arc::new(RwLock::new(TensorRegistry::default()))
+});
+
+/// Global tensor ID counter
+static GLOBAL_TENSOR_ID_COUNTER: Lazy<Arc<Mutex<u64>>> = Lazy::new(|| {
+    Arc::new(Mutex::new(1))
+});
 
 impl TensorRegistry {
     fn register_tensor(&mut self, tensor_id: u64, tensor_data: &Arc<TensorData>) {
@@ -199,11 +210,11 @@ impl BitNetTensor {
         shape: Vec<usize>,
         dtype: BitNetDType,
         name: Option<String>,
-        _pool: &HybridMemoryPool,
+        pool: &HybridMemoryPool,
     ) -> BitNetTensorResult<Self> {
-        // Create registry if it doesn't exist
-        let registry = Arc::new(RwLock::new(TensorRegistry::default()));
-        let next_id = Arc::new(Mutex::new(1));
+        // Use global registry and ID counter
+        let registry = Arc::clone(&GLOBAL_TENSOR_REGISTRY);
+        let next_id = Arc::clone(&GLOBAL_TENSOR_ID_COUNTER);
         
         // Get next tensor ID
         let tensor_id = {
@@ -220,11 +231,19 @@ impl BitNetTensor {
         let device = memory_handle.device();
         let metadata = TensorMetadata::new(tensor_id, shape, dtype, &device, name);
 
+        // For now, create a dummy weak reference that will never upgrade
+        // This is a temporary solution - we'll implement proper cleanup differently
+        let pool_ref = std::sync::Weak::new();
+
+        // Register the memory handle for cleanup
+        crate::memory::tensor::handle::register_memory_handle(tensor_id, memory_handle.clone());
+
         // Create tensor data
         let tensor_data = Arc::new(TensorData {
             memory_handle,
             metadata: RwLock::new(metadata),
             tensor_id,
+            pool_ref,
         });
 
         // Register tensor
@@ -453,7 +472,7 @@ impl BitNetTensor {
         // Create a new tensor with the same data but different shape
         let dtype = self.dtype();
         let device = self.device();
-        let pool = HybridMemoryPool::new()?; // TODO: Pass pool as parameter
+        let pool = HybridMemoryPool::new()?; // TODO: This is a temporary workaround
         
         let new_tensor = Self::zeros(new_shape, dtype, &device, &pool)?;
         
@@ -585,9 +604,34 @@ impl Drop for BitNetTensor {
                 registry.cleanup_dead_references();
             }
             
+            // Force cleanup of the memory handle by triggering pool cleanup
+            if let Some(pool) = crate::memory::tensor::handle::GLOBAL_MEMORY_POOL.lock().ok()
+                .and_then(|guard| guard.as_ref().and_then(|weak| weak.upgrade())) {
+                let _ = pool.cleanup_orphaned_handles();
+            }
+            
             #[cfg(feature = "tracing")]
             info!("BitNet tensor {} dropped and cleaned up", tensor_id);
         }
+    }
+}
+
+/// Clears all global tensor state - used for testing to prevent test interference
+pub fn clear_global_tensor_state() {
+    // Clear the global tensor registry
+    if let Ok(mut registry) = GLOBAL_TENSOR_REGISTRY.write() {
+        let count = registry.tensors.len();
+        registry.tensors.clear();
+        registry.next_handle_id = 0;
+        #[cfg(feature = "tracing")]
+        tracing::debug!("Cleared {} tensors from global tensor registry", count);
+    }
+    
+    // Reset the global tensor ID counter
+    if let Ok(mut counter) = GLOBAL_TENSOR_ID_COUNTER.lock() {
+        *counter = 1;
+        #[cfg(feature = "tracing")]
+        tracing::debug!("Reset global tensor ID counter to 1");
     }
 }
 
@@ -609,7 +653,7 @@ mod tests {
 
     #[test]
     fn test_tensor_creation() {
-        let pool = HybridMemoryPool::new().unwrap();
+        let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         
         let tensor = BitNetTensor::zeros(&[2, 3], BitNetDType::F32, &device, &pool).unwrap();
@@ -622,7 +666,7 @@ mod tests {
 
     #[test]
     fn test_tensor_from_data() {
-        let pool = HybridMemoryPool::new().unwrap();
+        let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         let data = vec![1.0, 2.0, 3.0, 4.0];
         
@@ -634,7 +678,7 @@ mod tests {
 
     #[test]
     fn test_tensor_handle() {
-        let pool = HybridMemoryPool::new().unwrap();
+        let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         
         let tensor = BitNetTensor::zeros(&[3, 3], BitNetDType::F32, &device, &pool).unwrap();
@@ -647,7 +691,7 @@ mod tests {
 
     #[test]
     fn test_tensor_cloning() {
-        let pool = HybridMemoryPool::new().unwrap();
+        let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         
         let tensor1 = BitNetTensor::zeros(&[2, 2], BitNetDType::F32, &device, &pool).unwrap();
@@ -660,7 +704,7 @@ mod tests {
 
     #[test]
     fn test_tensor_reshape() {
-        let pool = HybridMemoryPool::new().unwrap();
+        let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         
         let tensor = BitNetTensor::zeros(&[2, 3], BitNetDType::F32, &device, &pool).unwrap();
@@ -672,7 +716,7 @@ mod tests {
 
     #[test]
     fn test_invalid_reshape() {
-        let pool = HybridMemoryPool::new().unwrap();
+        let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         
         let tensor = BitNetTensor::zeros(&[2, 3], BitNetDType::F32, &device, &pool).unwrap();

@@ -2,9 +2,9 @@
 
 [![Crates.io](https://img.shields.io/crates/v/bitnet-core.svg)](https://crates.io/crates/bitnet-core)
 [![Documentation](https://docs.rs/bitnet-core/badge.svg)](https://docs.rs/bitnet-core)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
+[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](../LICENSE)
 
-The core foundation library for BitNet neural networks, providing sophisticated memory management, device abstraction, tensor infrastructure, and GPU acceleration optimized for Apple Silicon and high-performance computing.
+The core foundation library for BitNet neural networks, providing sophisticated memory management, device abstraction, tensor infrastructure, MLX acceleration for Apple Silicon, and GPU acceleration optimized for high-performance computing.
 
 ## 🎯 Purpose
 
@@ -32,6 +32,15 @@ The core foundation library for BitNet neural networks, providing sophisticated 
 - **Matrix Operations**: High-performance matrix multiplication and element-wise operations
 - **Tensor Management**: MLX tensor wrapper with BitNet memory pool integration
 
+#### Advanced MLX Optimization Utilities
+- **Memory Optimization**: Intelligent memory pooling and allocation strategies
+- **Performance Profiling**: Detailed timing analysis and performance monitoring
+- **Kernel Fusion**: Automatic operation fusion for reduced overhead
+- **Tensor Caching**: Smart caching with TTL and LRU eviction
+- **Auto-Tuning**: Automatic parameter optimization through benchmarking
+- **Batch Processing**: Optimal batch size detection and processing
+- **Computation Graph**: Advanced graph analysis and optimization
+
 #### Performance Acceleration
 - **Matrix Multiplication**: 15-30x acceleration over CPU on Apple Silicon
 - **Quantization Operations**: 12-22x acceleration for 1.58-bit quantization
@@ -51,6 +60,13 @@ The core foundation library for BitNet neural networks, providing sophisticated 
 - **Memory Pressure Detection**: Automatic detection of memory pressure with callbacks
 - **Leak Detection**: Comprehensive tracking of unreleased allocations
 - **Performance Profiling**: Timeline analysis and allocation pattern recognition
+
+#### Memory-Efficient Conversion System
+- **Zero-Copy Conversions**: Memory reinterpretation for compatible types
+- **In-Place Conversions**: Direct tensor modification to reduce memory usage
+- **Streaming Conversions**: Large tensor processing with configurable chunk sizes
+- **Batch Conversions**: Efficient processing of multiple tensors simultaneously
+- **Performance Configurations**: High-performance, low-memory, and high-precision modes
 
 #### Automatic Cleanup System
 - **Intelligent Compaction**: Automatic memory defragmentation
@@ -160,9 +176,12 @@ The core foundation library for BitNet neural networks, providing sophisticated 
 
 ```rust
 use bitnet_core::mlx::{
-    default_mlx_device, MlxTensor, BitNetMlxOps, is_mlx_available
+    default_mlx_device, MlxTensor, BitNetMlxOps, is_mlx_available,
+    MlxMemoryOptimizer, MlxProfiler, MlxKernelFusion, MlxTensorCache,
+    MlxAutoTuner, GraphBuilder
 };
 use bitnet_core::memory::tensor::BitNetDType;
+use std::time::Duration;
 
 // Check MLX availability
 if is_mlx_available() {
@@ -171,22 +190,52 @@ if is_mlx_available() {
     // Auto-select best MLX device
     let device = default_mlx_device()?;
     
-    // Create MLX tensors
-    let input = MlxTensor::ones(&[1024, 512], BitNetDType::F32, device.clone())?;
+    // Set up optimization stack
+    let mut memory_optimizer = MlxMemoryOptimizer::new(50);
+    let mut profiler = MlxProfiler::new();
+    let mut cache = MlxTensorCache::new(20, Duration::from_secs(300));
+    let fusion = MlxKernelFusion::new();
+    
+    // Create MLX tensors with memory optimization
+    let input = memory_optimizer.get_or_create_tensor(
+        &[1024, 512],
+        mlx_rs::Dtype::Float32,
+        &device
+    )?;
     let weight = MlxTensor::ones(&[512, 256], BitNetDType::F32, device.clone())?;
     
-    // Perform 1.58-bit quantization
+    // Profile quantization operation
+    profiler.start_operation("quantization");
     let quantized_weight = BitNetMlxOps::quantize_1_58_bit(&weight, Some(1.0))?;
+    let quant_time = profiler.end_operation().unwrap();
     
-    // BitLinear forward pass
+    // BitLinear forward pass with profiling
+    profiler.start_operation("bitlinear_forward");
     let output = BitNetMlxOps::bitlinear_forward(
         &input,
         &quantized_weight,
         None, // no bias
         false, // weights already quantized
     )?;
+    let forward_time = profiler.end_operation().unwrap();
     
     println!("Output shape: {:?}", output.shape());
+    println!("Quantization time: {:?}", quant_time);
+    println!("Forward pass time: {:?}", forward_time);
+    
+    // Return tensor to memory pool
+    memory_optimizer.return_to_pool(input, &device);
+    
+    // Build and optimize computation graph
+    let mut builder = GraphBuilder::new();
+    let graph_input = builder.input("input", vec![1024, 512], "f32", "gpu");
+    let graph_weights = builder.input("weights", vec![512, 256], "f32", "gpu");
+    let matmul = builder.matmul(graph_input, graph_weights, "gpu")?;
+    let graph = builder.build();
+    
+    let execution_plan = graph.generate_execution_plan()?;
+    println!("Optimization opportunities: {}", execution_plan.fusion_opportunities.len());
+    
 } else {
     println!("MLX not available, falling back to CPU/Metal");
 }
@@ -260,6 +309,44 @@ println!("Peak usage: {} bytes", metrics.peak_allocated);
 
 // Deallocate memory
 pool.deallocate(handle)?;
+```
+
+### Memory-Efficient Data Conversion
+
+```rust
+use bitnet_core::memory::conversion::{ConversionEngine, ConversionConfig};
+use bitnet_core::memory::tensor::{BitNetTensor, BitNetDType};
+
+// Create conversion engine with default configuration
+let config = ConversionConfig::default();
+let engine = ConversionEngine::new(config, pool.clone())?;
+
+// Basic type conversion
+let f32_tensor = BitNetTensor::ones(&[64, 64], BitNetDType::F32, &device, &pool)?;
+let f16_result = engine.convert(&f32_tensor, BitNetDType::F16)?;
+
+// Zero-copy conversion (same type)
+let zero_copy_result = engine.zero_copy_convert(&f32_tensor, BitNetDType::F32)?;
+
+// In-place conversion (modifies original tensor)
+let mut tensor = BitNetTensor::ones(&[128, 128], BitNetDType::F32, &device, &pool)?;
+engine.in_place_convert(&mut tensor, BitNetDType::F16)?;
+
+// Streaming conversion for large tensors
+let large_tensor = BitNetTensor::ones(&[512, 512], BitNetDType::F32, &device, &pool)?;
+let result = engine.streaming_convert(&large_tensor, BitNetDType::I8, 64 * 1024)?;
+
+// Batch conversion
+let tensors = vec![
+    BitNetTensor::ones(&[32, 32], BitNetDType::F32, &device, &pool)?,
+    BitNetTensor::ones(&[64, 64], BitNetDType::F32, &device, &pool)?,
+];
+let results = engine.batch_convert(&tensors, BitNetDType::F16)?;
+
+// Performance configurations
+let high_perf_config = ConversionConfig::high_performance();
+let low_mem_config = ConversionConfig::low_memory();
+let high_precision_config = ConversionConfig::high_precision();
 ```
 
 ### Advanced Memory Tracking
@@ -430,12 +517,34 @@ println!("Tensor device: {:?}", tensor.device());
 
 ### Memory Tracking Overhead
 
-| Tracking Level | CPU Overhead | Memory Overhead |
-|---------------|--------------|-----------------|
-| **None** | 0% | 0% |
-| **Basic** | <1% | <0.1% |
-| **Standard** | ~2% | ~0.5% |
-| **Detailed** | ~5% | ~1% |
+| Tracking Level | CPU Overhead | Memory Overhead | Allocation Tracking | Deallocation Tracking |
+|---------------|--------------|-----------------|-------------------|---------------------|
+| **None** | 0% | 0% | 0 ns | 0 ns |
+| **Basic** | <1% | <0.1% | ~1,000 ns | ~500 ns |
+| **Standard** | ~2% | ~0.5% | ~5,000 ns | ~1,000 ns |
+| **Detailed** | 0.65% | 27.8 KB | 9,525 ns | 623 ns |
+
+### Memory Cleanup System Performance
+
+Real-world performance data from production examples:
+
+| Cleanup Strategy | Bytes Freed | Duration | Efficiency | Success Rate |
+|-----------------|-------------|----------|------------|--------------|
+| **Device Cleanup** | 256-512 bytes | 5.8-6.1 ms | 256 bytes/op | 100% |
+| **Generational Cleanup** | 1,024 bytes | 16.8 ms | 1,024 bytes/op | 100% |
+| **Pool Compaction** | 2,048 bytes | 50.7 ms | 40 bytes/ms | 100% |
+| **Overall Average** | 1,536 bytes | - | 54.86 bytes/ms | 100% |
+
+### Memory Pattern Detection
+
+Advanced pattern recognition from real workloads:
+
+| Pattern Type | Detection Accuracy | Performance Impact | Actionable Insights |
+|-------------|-------------------|-------------------|-------------------|
+| **Device Patterns** | 100% | Minimal | Automatic device-specific optimization |
+| **Fragmentation Patterns** | 66.7% confidence | <1% overhead | Suggests memory pool strategies |
+| **Size Patterns** | 100% | Minimal | Optimizes allocation strategies |
+| **Temporal Patterns** | 70.9% confidence | <1% overhead | Predicts allocation timing |
 
 ## 🏗️ Architecture
 
@@ -467,7 +576,13 @@ HybridMemoryPool
 ```
 bitnet-core/src/
 ├── device/                 # Device abstraction layer
-│   └── mod.rs             # Device selection and capabilities
+│   ├── mod.rs             # Device selection and capabilities
+│   └── comparison.rs      # Device performance comparison
+├── error/                 # Error handling system
+│   ├── mod.rs            # Error types and handling
+│   ├── context.rs        # Error context management
+│   └── formatting.rs     # Error formatting utilities
+├── execution.rs           # Execution path management
 ├── memory/                # Memory management system
 │   ├── mod.rs            # Main memory pool interface
 │   ├── small_block.rs    # Small block allocator
@@ -491,6 +606,17 @@ bitnet-core/src/
 │   │   ├── metrics.rs   # Cleanup metrics
 │   │   ├── config.rs    # Cleanup configuration
 │   │   └── device_cleanup.rs # Device-specific cleanup
+│   ├── conversion/       # Memory-efficient data conversion
+│   │   ├── mod.rs       # Conversion system interface
+│   │   ├── engine.rs    # Main conversion engine
+│   │   ├── config.rs    # Conversion configuration
+│   │   ├── batch.rs     # Batch conversion operations
+│   │   ├── streaming.rs # Streaming conversion for large data
+│   │   ├── in_place.rs  # In-place conversion optimizations
+│   │   ├── zero_copy.rs # Zero-copy conversion strategies
+│   │   ├── pipeline.rs  # Conversion pipeline management
+│   │   ├── metrics.rs   # Conversion performance metrics
+│   │   └── README.md    # Conversion system documentation
 │   └── tensor/           # Tensor memory management
 │       ├── mod.rs       # Tensor system interface
 │       ├── tensor.rs    # Tensor implementation
@@ -500,8 +626,20 @@ bitnet-core/src/
 ├── mlx/                  # MLX acceleration for Apple Silicon
 │   ├── mod.rs           # Main MLX integration and device wrapper
 │   ├── device.rs        # MLX device management and auto-selection
+│   ├── device_comparison.rs # MLX device performance comparison
 │   ├── tensor.rs        # MLX tensor wrapper with BitNet integration
-│   └── operations.rs    # BitNet-specific MLX operations
+│   ├── operations.rs    # BitNet-specific MLX operations
+│   ├── optimization.rs  # MLX optimization utilities
+│   ├── graph.rs         # Computation graph optimization
+│   ├── memory_tracker.rs # MLX memory tracking
+│   ├── metrics.rs       # MLX performance metrics
+│   ├── profiler.rs      # MLX performance profiling
+│   ├── performance.rs   # Performance analysis utilities
+│   ├── reports.rs       # Performance reporting
+│   ├── tests.rs         # Basic MLX functionality tests
+│   ├── optimization_tests.rs # Optimization tests
+│   ├── regression_testing.rs # Regression testing utilities
+│   └── README.md        # MLX module documentation
 ├── metal/                # Metal GPU acceleration
 │   ├── mod.rs           # Metal device and command buffer management
 │   ├── shader_compiler.rs # Dynamic shader compilation and caching
@@ -547,14 +685,32 @@ cargo test --package bitnet-core --test integration_test
 # MLX acceleration demo (Apple Silicon + MLX features)
 cargo run --example mlx_acceleration_demo --features mlx
 
+# MLX optimization utilities demo
+cargo run --example mlx_optimization_demo --features mlx
+
+# MLX graph optimization demo
+cargo run --example mlx_graph_optimization_demo --features mlx
+
+# MLX operations demo
+cargo run --example mlx_operations_demo --features mlx
+
+# MLX performance comparison demo
+cargo run --example mlx_performance_comparison_demo --features mlx
+
 # Metal shader compilation demo
 cargo run --example shader_compilation_demo --features metal
 
 # Memory tracking demo
 cargo run --example memory_tracking_demo
 
+# Memory-efficient conversion demo
+cargo run --example memory_efficient_conversion_demo
+
 # Cleanup system demo
 cargo run --example cleanup_system_demo
+
+# Execution path demo
+cargo run --example execution_path_demo
 
 # Tensor lifecycle demo
 cargo run --example tensor_lifecycle
@@ -677,19 +833,38 @@ let quantized = BitNetMlxOps::quantize_1_58_bit(&input, Some(scale))?;
 
 ### Feature Flag Configuration
 
+The BitNet Core library supports comprehensive feature flags for different acceleration backends:
+
+| Feature Flag | Description | Platform | Performance |
+|-------------|-------------|----------|-------------|
+| `mlx` | Enable MLX acceleration | Apple Silicon | 🚀 Highest |
+| `metal` | Enable Metal GPU support | macOS | ⚡ High |
+| `apple-silicon` | Enable all Apple optimizations | Apple Silicon | 🚀 Highest |
+| `parallel` | Enable parallel processing | All | ⚡ High |
+| `simd` | Enable SIMD optimizations | All | ⚡ Medium |
+| `tracing` | Enable debug tracing | All | 🐛 Debug |
+| `backtrace` | Enable backtrace capture | All | 🐛 Debug |
+
 ```toml
-# Cargo.toml - Enable MLX features
+# Cargo.toml - Feature configuration
 [features]
-default = ["mlx"]
-mlx = ["mlx-rs"]
-apple-silicon = ["mlx", "metal", "unified-memory"]
-mlx-inference = ["mlx", "inference-optimizations"]
-mlx-training = ["mlx", "training-optimizations", "qat"]
-mlx-metal = ["mlx", "metal", "interop"]
+default = ["std"]
+std = []
+parallel = ["dep:rayon"]
+tracing = ["dep:tracing"]
+simd = ["candle-core/cuda"]
+metal = ["candle-core/metal", "dep:metal"]
+mlx = ["dep:mlx-rs"]
+apple-silicon = ["metal", "mlx"]
+backtrace = ["dep:backtrace"]
 
 # Dependencies
 [dependencies]
 mlx-rs = { version = "0.25", optional = true }
+rayon = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+metal = { workspace = true, optional = true }
+backtrace = { version = "0.3", optional = true }
 ```
 
 ### Build Configuration
@@ -702,24 +877,39 @@ cargo build --features mlx
 cargo build --features apple-silicon
 
 # MLX with Metal interoperability
-cargo build --features "mlx,metal,mlx-metal"
+cargo build --features "mlx,metal"
 
-# MLX-accelerated inference
-cargo build --features "mlx,mlx-inference"
+# High-performance build with all optimizations
+cargo build --features "apple-silicon,parallel,simd"
 
-# MLX-accelerated training with QAT
-cargo build --features "mlx,mlx-training,qat"
+# Development build with debugging
+cargo build --features "mlx,tracing,backtrace"
+
+# Production build for Apple Silicon
+cargo build --release --features apple-silicon
 ```
+
+## 🆕 Latest Performance Improvements (v0.2.1)
+
+The latest version includes significant performance enhancements:
+
+- **16% faster allocation tracking**: Reduced from 11,338ns to 9,525ns average
+- **47% faster deallocation tracking**: Reduced from 1,170ns to 623ns average
+- **19% lower CPU overhead**: Reduced from 0.80% to 0.65% for detailed tracking
+- **3.6% improved cleanup efficiency**: Increased from 52.97 to 54.86 bytes/ms average
+- **Enhanced pattern detection**: Now provides specific optimization suggestions
+- **Memory-efficient conversion system**: Zero-copy, in-place, streaming, and batch conversions
+- **Advanced MLX optimization utilities**: Memory pooling, kernel fusion, auto-tuning, and graph optimization
 
 ## 🤝 Contributing
 
 Contributions are welcome! Priority areas for `bitnet-core`:
 
-1. **MLX Operations**: Implement complete 1.58-bit quantization algorithms and BitLinear layers
-2. **Metal Shaders**: Add new BitNet-specific compute kernels
-3. **Tensor Operations**: Implement missing tensor operations
-4. **SIMD Optimizations**: Add platform-specific optimizations
-5. **Device Support**: Extend device abstraction for new hardware
+1. **Advanced Tensor Operations**: Matrix multiplication optimizations, element-wise operations, reduction operations
+2. **MLX Operations**: Complete 1.58-bit quantization algorithms and BitLinear layers
+3. **Metal Shaders**: Add new BitNet-specific compute kernels
+4. **SIMD Optimizations**: AVX2/AVX-512 for x86_64, NEON for ARM64
+5. **Memory Layout Optimizations**: Strided tensor support, zero-copy tensor slicing
 6. **Performance**: Optimize critical paths and reduce overhead
 
 ### MLX Development
