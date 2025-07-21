@@ -2,10 +2,10 @@
 
 [![Rust](https://img.shields.io/badge/rust-stable-brightgreen.svg)](https://www.rust-lang.org/)
 [![Crates.io](https://img.shields.io/crates/v/bitnet-core.svg)](https://crates.io/crates/bitnet-core)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#-license)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](#building)
 
-A high-performance Rust implementation of BitNet neural networks with advanced memory management and device abstraction capabilities.
+A high-performance Rust implementation of BitNet neural networks with advanced memory management, device abstraction, MLX acceleration for Apple Silicon, and comprehensive infrastructure for quantized neural networks.
 
 ## 🚧 Project Status
 
@@ -130,15 +130,15 @@ The project is structured as a modular workspace with the following crates:
 
 | Crate | Status | Description | Links |
 |-------|--------|-------------|-------|
-| [`bitnet-core`](bitnet-core/) | 🟢 **Production Ready** (v0.2.1) | Core memory management, MLX acceleration & device abstraction | [![Crates.io](https://img.shields.io/crates/v/bitnet-core.svg)](https://crates.io/crates/bitnet-core) [![docs.rs](https://docs.rs/bitnet-core/badge.svg)](https://docs.rs/bitnet-core) |
+| [`bitnet-core`](bitnet-core/) | 🟢 **Production Ready** (v0.2.4) | Core memory management, MLX acceleration & device abstraction | [![Crates.io](https://img.shields.io/crates/v/bitnet-core.svg)](https://crates.io/crates/bitnet-core) [![docs.rs](https://docs.rs/bitnet-core/badge.svg)](https://docs.rs/bitnet-core) |
 | [`bitnet-quant`](bitnet-quant/) | 🔴 **Placeholder Only** | 1.58-bit quantization engine | [![Crates.io](https://img.shields.io/crates/v/bitnet-quant.svg)](https://crates.io/crates/bitnet-quant) [![docs.rs](https://docs.rs/bitnet-quant/badge.svg)](https://docs.rs/bitnet-quant) |
 | [`bitnet-inference`](bitnet-inference/) | 🔴 **Placeholder Only** | High-performance inference engine | [![Crates.io](https://img.shields.io/crates/v/bitnet-inference.svg)](https://crates.io/crates/bitnet-inference) [![docs.rs](https://docs.rs/bitnet-inference/badge.svg)](https://docs.rs/bitnet-inference) |
 | [`bitnet-training`](bitnet-training/) | 🔴 **Placeholder Only** | Training & fine-tuning infrastructure | [![Crates.io](https://img.shields.io/crates/v/bitnet-training.svg)](https://crates.io/crates/bitnet-training) [![docs.rs](https://docs.rs/bitnet-training/badge.svg)](https://docs.rs/bitnet-training) |
 | [`bitnet-metal`](bitnet-metal/) | 🔴 **Placeholder Only** | Metal GPU acceleration for Apple Silicon | [![Crates.io](https://img.shields.io/crates/v/bitnet-metal.svg)](https://crates.io/crates/bitnet-metal) [![docs.rs](https://docs.rs/bitnet-metal/badge.svg)](https://docs.rs/bitnet-metal) |
 | [`bitnet-cli`](bitnet-cli/) | 🔴 **Placeholder Only** | Command-line interface tools | [![Crates.io](https://img.shields.io/crates/v/bitnet-cli.svg)](https://crates.io/crates/bitnet-cli) [![docs.rs](https://docs.rs/bitnet-cli/badge.svg)](https://docs.rs/bitnet-cli) |
-| [`bitnet-benchmarks`](bitnet-benchmarks/) | 🟡 **Framework Ready** | Performance benchmarking & comparison framework | [![Crates.io](https://img.shields.io/crates/v/bitnet-benchmarks.svg)](https://crates.io/crates/bitnet-benchmarks) [![docs.rs](https://docs.rs/bitnet-benchmarks/badge.svg)](https://docs.rs/bitnet-benchmarks) |
+| [`bitnet-benchmarks`](bitnet-benchmarks/) | 🟡 **Framework Ready** (v0.1.3) | Performance benchmarking & comparison framework | [![Crates.io](https://img.shields.io/crates/v/bitnet-benchmarks.svg)](https://crates.io/crates/bitnet-benchmarks) [![docs.rs](https://docs.rs/bitnet-benchmarks/badge.svg)](https://docs.rs/bitnet-benchmarks) |
 
-> **Note**: These crates are currently at version 0.1.0 and may not yet be published to crates.io. The badges above will show the publication status once the crates are published.
+> **Note**: Most crates are currently at early versions and may not yet be published to crates.io. The badges above will show the publication status once the crates are published. Only `bitnet-core` (v0.2.4) and `bitnet-benchmarks` (v0.1.3) have active development.
 
 ```
 bitnet-rust/
@@ -222,7 +222,7 @@ HybridMemoryPool
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-org/bitnet-rust.git
+   git clone https://github.com/Wavegoodvybe2929/bitnet-rust.git
    cd bitnet-rust
    ```
 
@@ -579,11 +579,11 @@ The BitNet Rust implementation supports comprehensive feature flags for differen
 | `mlx` | Enable MLX acceleration | Apple Silicon | 🚀 Highest |
 | `metal` | Enable Metal GPU support | macOS | ⚡ High |
 | `apple-silicon` | Enable all Apple optimizations | Apple Silicon | 🚀 Highest |
-| `mlx-inference` | MLX-accelerated inference | Apple Silicon | 🚀 Optimized |
-| `mlx-training` | MLX-accelerated training | Apple Silicon | 🚀 Optimized |
-| `mlx-metal` | MLX-Metal interoperability | Apple Silicon | 🚀 Maximum |
 | `parallel` | Enable parallel processing | All | ⚡ High |
 | `simd` | Enable SIMD optimizations | All | ⚡ Medium |
+| `tokenizers` | Enable HuggingFace tokenizer support | All | 📝 Text Processing |
+| `tracing` | Enable debug tracing | All | 🐛 Debug |
+| `backtrace` | Enable backtrace capture | All | 🐛 Debug |
 
 **Usage Examples:**
 
@@ -591,20 +591,17 @@ The BitNet Rust implementation supports comprehensive feature flags for differen
 # Basic MLX support
 cargo build --features mlx
 
-# MLX with inference optimization
-cargo build --features "mlx,mlx-inference"
-
 # Full Apple Silicon optimization (includes MLX + Metal)
 cargo build --features apple-silicon
 
-# MLX + Metal interoperability
-cargo build --features "mlx,metal,mlx-metal"
-
 # High-performance build with all optimizations
-cargo build --features "apple-silicon,parallel,simd"
+cargo build --features "apple-silicon,parallel,simd,tokenizers"
 
 # Development build with debugging
-cargo build --features "mlx,tracing,backtrace"
+cargo build --features "mlx,tracing,backtrace,tokenizers"
+
+# Production build for Apple Silicon
+cargo build --release --features "apple-silicon,tokenizers"
 ```
 
 #### MLX Performance Characteristics
@@ -643,10 +640,10 @@ cargo build --features "mlx,tracing,backtrace"
 # Cargo.toml for maximum Apple Silicon performance
 [features]
 default = ["apple-silicon"]
-apple-silicon = ["mlx", "metal", "mlx-metal", "parallel"]
-production = ["apple-silicon", "mlx-inference", "simd"]
-development = ["mlx", "tracing", "backtrace"]
-benchmarking = ["apple-silicon", "mlx-metal", "parallel", "simd"]
+apple-silicon = ["mlx", "metal", "parallel"]
+production = ["apple-silicon", "simd", "tokenizers"]
+development = ["mlx", "tracing", "backtrace", "tokenizers"]
+benchmarking = ["apple-silicon", "parallel", "simd"]
 ```
 
 ## 📊 Performance Characteristics
@@ -752,7 +749,7 @@ Advanced pattern recognition from real workloads:
 
 2. **Clone and build:**
    ```bash
-   git clone https://github.com/your-org/bitnet-rust.git
+   git clone https://github.com/Wavegoodvybe2929/bitnet-rust.git
    cd bitnet-rust
    ./scripts/build.sh
    ```
@@ -1181,7 +1178,7 @@ cargo run --package bitnet-benchmarks -- compare
 
 ### Benchmarking Framework Status
 
-🟡 **Current Status**: The benchmarking framework ([`bitnet-benchmarks`](bitnet-benchmarks/)) has the infrastructure in place but quantization benchmarks are placeholder-only since the quantization module is not yet implemented.
+🟡 **Current Status**: The benchmarking framework ([`bitnet-benchmarks`](bitnet-benchmarks/)) v0.1.3 has comprehensive infrastructure in place with working Candle benchmarks, but quantization benchmarks are placeholder-only since the quantization module is not yet implemented.
 
 **Available Now:**
 - ✅ **Benchmarking Infrastructure**: Criterion-based framework ready for implementation
@@ -1279,35 +1276,63 @@ These examples provide immediate feedback on system performance and validate tha
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT OR Apache-2.0 License.
+
+```
+Licensed under either of
+
+ * Apache License, Version 2.0
+   ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license
+   ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+```
+
+## Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
 
 ## 🙏 Acknowledgments
 
 - **BitNet Paper**: [BitNet: Scaling 1-bit Transformers for Large Language Models](https://arxiv.org/abs/2310.11453)
-- **Candle Framework**: For tensor operations foundation
+- **Candle Framework**: [Candle](https://github.com/huggingface/candle) for cross-platform tensor operations
+- **MLX Framework**: [MLX](https://github.com/ml-explore/mlx) for Apple Silicon optimization
 - **Rust Community**: For excellent tooling and ecosystem
+- **HuggingFace**: For tokenizers and model ecosystem
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-org/bitnet-rust/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/bitnet-rust/discussions)
+- **Issues**: [GitHub Issues](https://github.com/Wavegoodvybe2929/bitnet-rust/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Wavegoodvybe2929/bitnet-rust/discussions)
 - **Documentation**:
   - [Core API Documentation](https://docs.rs/bitnet-core) (when published)
   - [Local Documentation](docs/) - Built with `mdbook`
 
 ---
 
-**Note**: This project currently provides a robust foundation with sophisticated memory management capabilities implemented in [`bitnet-core`](bitnet-core/). All other crates ([`bitnet-quant`](bitnet-quant/), [`bitnet-inference`](bitnet-inference/), [`bitnet-training`](bitnet-training/), [`bitnet-metal`](bitnet-metal/), [`bitnet-cli`](bitnet-cli/), [`bitnet-benchmarks`](bitnet-benchmarks/)) are placeholder implementations awaiting development. The memory management system alone provides significant value for high-performance tensor operations and serves as a solid foundation for implementing the complete BitNet neural network functionality.
+**Note**: This project currently provides a **robust and production-ready foundation** with sophisticated capabilities implemented in [`bitnet-core`](bitnet-core/) v0.2.4 and [`bitnet-benchmarks`](bitnet-benchmarks/) v0.1.3. The core includes advanced memory management, MLX acceleration for Apple Silicon, comprehensive tokenization, sequence processing, and Metal GPU support. Other crates ([`bitnet-quant`](bitnet-quant/), [`bitnet-inference`](bitnet-inference/), [`bitnet-training`](bitnet-training/), [`bitnet-metal`](bitnet-metal/), [`bitnet-cli`](bitnet-cli/)) are placeholder implementations awaiting development. The existing infrastructure provides significant value for high-performance tensor operations and serves as a solid foundation for implementing the complete BitNet neural network functionality.
 
 ## 🎯 Implementation Roadmap
 
 Based on the current state, the recommended implementation order is:
 
-1. **Phase 1**: [`bitnet-quant`](bitnet-quant/) - Implement 1.58-bit quantization algorithms
-2. **Phase 2**: [`bitnet-inference`](bitnet-inference/) - Build basic inference engine with model loading
-3. **Phase 3**: [`bitnet-metal`](bitnet-metal/) - Add Metal GPU acceleration for Apple Silicon
-4. **Phase 4**: [`bitnet-training`](bitnet-training/) - Implement QAT and PEFT training methods
-5. **Phase 5**: [`bitnet-benchmarks`](bitnet-benchmarks/) - Create comprehensive benchmarking suite
-6. **Phase 6**: [`bitnet-cli`](bitnet-cli/) - Build command-line interface tools
+### ✅ **Completed Infrastructure** (Production Ready)
+- **[`bitnet-core`](bitnet-core/)** v0.2.4 - Complete memory management, MLX acceleration, device abstraction, tokenization, and sequence processing
+- **[`bitnet-benchmarks`](bitnet-benchmarks/)** v0.1.3 - Comprehensive benchmarking framework with working Candle benchmarks
+
+### 🚧 **Next Priority Implementation**
+1. **Phase 1**: [`bitnet-quant`](bitnet-quant/) - Implement 1.58-bit quantization algorithms (High Priority)
+2. **Phase 2**: [`bitnet-inference`](bitnet-inference/) - Build basic inference engine with model loading (High Priority)
+3. **Phase 3**: [`bitnet-cli`](bitnet-cli/) - Build command-line interface tools (Medium Priority)
+
+### 🔮 **Future Development**
+4. **Phase 4**: [`bitnet-metal`](bitnet-metal/) - Enhanced Metal GPU acceleration (Low Priority - basic Metal support already in bitnet-core)
+5. **Phase 5**: [`bitnet-training`](bitnet-training/) - Implement QAT and PEFT training methods (Low Priority)
+
+### 📊 **Current Development Focus**
+The project currently has a **solid foundation** with production-ready memory management and comprehensive infrastructure. The next logical step is implementing the core BitNet quantization algorithms, followed by the inference engine to create a complete working system.
 
 Each crate contains detailed README files with comprehensive implementation plans and API designs.

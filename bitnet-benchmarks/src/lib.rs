@@ -5,10 +5,12 @@
 pub mod candle_ops;
 pub mod comparison;
 pub mod runner;
+pub mod visualization;
 
 pub use candle_ops::{CandleOps, CandlePerformanceUtils};
 pub use comparison::{ComparisonConfig, PerformanceComparator, PerformanceMeasurement, ComparisonResult};
 pub use runner::{BenchmarkRunner, run_cli};
+pub use visualization::{PerformanceVisualizer, PerformanceExporter, ChartConfig, ChartTheme};
 
 /// Placeholder function for basic functionality
 pub fn placeholder() {

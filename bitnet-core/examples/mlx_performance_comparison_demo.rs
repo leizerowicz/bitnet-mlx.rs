@@ -1,22 +1,36 @@
 //! MLX Performance Comparison Demo
-//! 
+//!
 //! This example demonstrates how to use the comprehensive MLX performance comparison tools
 //! to analyze, benchmark, and optimize MLX operations on Apple Silicon devices.
 
-use bitnet_core::mlx::{
-    BitNetMlxDevice,
-    MlxPerformanceBenchmarker, BenchmarkConfig, PerformanceMetrics, MemoryUsage, ComparisonResult,
-    MlxMemoryTracker, track_allocation, track_deallocation, MemoryEvent, MemoryEventType, MemoryOptimization, OptimizationType, OptimizationPriority, ImplementationEffort,
-    MlxMetricsCollector, MetricsConfig, OperationContext, ExportFormat, MlxMetrics, MemoryMetrics, SystemMetrics,
-    PerformanceReportGenerator,
-    MlxAdvancedProfiler, ProfilerConfig, ProfileOutputFormat,
-    MlxDeviceComparison, DeviceComparisonConfig,
-    MlxRegressionTester, RegressionTestConfig,
-};
-use anyhow::Result;
-use std::time::{Duration, SystemTime};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(feature = "mlx")]
+    {
+        run_mlx_demo()
+    }
+    
+    #[cfg(not(feature = "mlx"))]
+    {
+        run_stub_demo();
+        Ok(())
+    }
+}
 
-fn main() -> Result<()> {
+#[cfg(feature = "mlx")]
+fn run_mlx_demo() -> Result<(), Box<dyn std::error::Error>> {
+    use bitnet_core::mlx::{
+        BitNetMlxDevice,
+        MlxPerformanceBenchmarker, BenchmarkConfig, PerformanceMetrics, MemoryUsage, ComparisonResult,
+        MlxMemoryTracker, track_allocation, track_deallocation, MemoryEvent, MemoryEventType, MemoryOptimization, OptimizationType, OptimizationPriority, ImplementationEffort,
+        MlxMetricsCollector, MetricsConfig, OperationContext, ExportFormat, MlxMetrics, MemoryMetrics, SystemMetrics,
+        PerformanceReportGenerator,
+        MlxAdvancedProfiler, ProfilerConfig, ProfileOutputFormat,
+        MlxDeviceComparison, DeviceComparisonConfig,
+        MlxRegressionTester, RegressionTestConfig,
+    };
+    use anyhow::Result;
+    use std::time::{Duration, SystemTime};
+
     println!("🚀 MLX Performance Comparison Demo");
     println!("===================================\n");
 
@@ -45,8 +59,29 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+#[cfg(not(feature = "mlx"))]
+fn run_stub_demo() {
+    println!("🚀 MLX Performance Comparison Demo");
+    println!("===================================");
+    println!();
+    println!("MLX feature not enabled. Please run with --features mlx");
+    println!();
+    println!("This demo showcases:");
+    println!("• Basic performance benchmarking");
+    println!("• Memory tracking and analysis");
+    println!("• Comprehensive device comparison");
+    println!("• Advanced profiling capabilities");
+    println!("• Metrics collection and export");
+    println!("• Regression testing");
+    println!("• Performance report generation");
+    println!();
+    println!("To see these features in action, rebuild with:");
+    println!("cargo run --example mlx_performance_comparison_demo --features mlx");
+}
+
 /// Demonstrate basic performance benchmarking
-fn demo_basic_benchmarking() -> Result<()> {
+#[cfg(feature = "mlx")]
+fn demo_basic_benchmarking() -> Result<(), Box<dyn std::error::Error>> {
     println!("📊 1. Basic Performance Benchmarking");
     println!("------------------------------------");
 
@@ -102,7 +137,8 @@ fn demo_basic_benchmarking() -> Result<()> {
 }
 
 /// Demonstrate memory tracking and analysis
-fn demo_memory_tracking() -> Result<()> {
+#[cfg(feature = "mlx")]
+fn demo_memory_tracking() -> Result<(), Box<dyn std::error::Error>> {
     println!("🧠 2. Memory Tracking and Analysis");
     println!("----------------------------------");
 
@@ -157,7 +193,8 @@ fn demo_memory_tracking() -> Result<()> {
 }
 
 /// Demonstrate comprehensive device comparison
-fn demo_device_comparison() -> Result<()> {
+#[cfg(feature = "mlx")]
+fn demo_device_comparison() -> Result<(), Box<dyn std::error::Error>> {
     println!("⚖️  3. Comprehensive Device Comparison");
     println!("-------------------------------------");
 
@@ -218,7 +255,8 @@ fn demo_device_comparison() -> Result<()> {
 }
 
 /// Demonstrate advanced profiling capabilities
-fn demo_advanced_profiling() -> Result<()> {
+#[cfg(feature = "mlx")]
+fn demo_advanced_profiling() -> Result<(), Box<dyn std::error::Error>> {
     println!("🔍 4. Advanced Profiling");
     println!("------------------------");
 
@@ -298,7 +336,8 @@ fn demo_advanced_profiling() -> Result<()> {
 }
 
 /// Demonstrate metrics collection
-fn demo_metrics_collection() -> Result<()> {
+#[cfg(feature = "mlx")]
+fn demo_metrics_collection() -> Result<(), Box<dyn std::error::Error>> {
     println!("📈 5. Metrics Collection");
     println!("------------------------");
 
@@ -365,7 +404,8 @@ fn demo_metrics_collection() -> Result<()> {
 }
 
 /// Demonstrate regression testing
-fn demo_regression_testing() -> Result<()> {
+#[cfg(feature = "mlx")]
+fn demo_regression_testing() -> Result<(), Box<dyn std::error::Error>> {
     println!("🔄 6. Regression Testing");
     println!("------------------------");
 
@@ -445,7 +485,8 @@ fn demo_regression_testing() -> Result<()> {
 }
 
 /// Demonstrate report generation
-fn demo_report_generation() -> Result<()> {
+#[cfg(feature = "mlx")]
+fn demo_report_generation() -> Result<(), Box<dyn std::error::Error>> {
     println!("📋 7. Report Generation");
     println!("-----------------------");
 
@@ -507,6 +548,7 @@ fn demo_report_generation() -> Result<()> {
 
 // Helper functions to create sample data for demonstration
 
+#[cfg(feature = "mlx")]
 fn create_sample_metrics() -> Vec<MlxMetrics> {
 
     vec![
@@ -562,6 +604,7 @@ fn create_sample_metrics() -> Vec<MlxMetrics> {
     ]
 }
 
+#[cfg(feature = "mlx")]
 fn create_sample_comparisons() -> Vec<ComparisonResult> {
 
     vec![
@@ -604,6 +647,7 @@ fn create_sample_comparisons() -> Vec<ComparisonResult> {
     ]
 }
 
+#[cfg(feature = "mlx")]
 fn create_sample_memory_events() -> Vec<MemoryEvent> {
 
     vec![
@@ -619,6 +663,7 @@ fn create_sample_memory_events() -> Vec<MemoryEvent> {
     ]
 }
 
+#[cfg(feature = "mlx")]
 fn create_sample_optimizations() -> Vec<MemoryOptimization> {
 
     vec![

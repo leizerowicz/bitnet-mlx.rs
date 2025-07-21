@@ -4,7 +4,7 @@
 [![Documentation](https://docs.rs/bitnet-core/badge.svg)](https://docs.rs/bitnet-core)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](../LICENSE)
 
-The core foundation library for BitNet neural networks, providing sophisticated memory management, device abstraction, tensor infrastructure, MLX acceleration for Apple Silicon, and GPU acceleration optimized for high-performance computing.
+The core foundation library for BitNet neural networks, providing sophisticated memory management, device abstraction, tensor infrastructure, MLX acceleration for Apple Silicon, GPU acceleration, tokenization capabilities, and sequence processing optimized for high-performance computing.
 
 ## 🎯 Purpose
 
@@ -14,6 +14,8 @@ The core foundation library for BitNet neural networks, providing sophisticated 
 - **Device Abstraction**: Unified interface for CPU, Metal GPU, and future accelerators
 - **Metal GPU Acceleration**: Complete Metal compute pipeline with shader compilation
 - **Tensor Infrastructure**: Basic tensor operations and metadata management
+- **Tokenization System**: Comprehensive tokenizer support (HuggingFace, BPE, Simple)
+- **Sequence Processing**: Advanced sequence handling with batching, padding, and masking
 - **Performance Optimization**: Zero-copy operations and SIMD-friendly data structures
 
 ## ✅ What's Implemented
@@ -106,6 +108,46 @@ The core foundation library for BitNet neural networks, providing sophisticated 
 - **Synchronization**: Events, fences, and sync points for GPU operations
 - **Resource Tracking**: Automatic dependency management for GPU resources
 - **Error Handling**: Comprehensive error recovery and validation
+
+### 🟢 **Tokenization System** (Production Ready)
+
+#### Unified Tokenizer Interface
+- **Multi-Format Support**: HuggingFace, BPE, and Simple tokenizers
+- **Special Token Management**: Comprehensive special token handling ([CLS], [SEP], [PAD], etc.)
+- **Batch Processing**: Efficient batch encoding and decoding operations
+- **Unicode Support**: Full Unicode text processing capabilities
+
+#### Tokenizer Types
+- **HuggingFace Tokenizers**: Load tokenizers from HuggingFace Hub format
+- **BPE Tokenizers**: Byte Pair Encoding with vocabulary and merges files
+- **Simple Tokenizers**: Word-based tokenization for testing and basic use cases
+- **Feature Flag Support**: Conditional compilation with `tokenizers` feature
+
+#### Advanced Text Processing
+- **Round-trip Encoding**: Consistent encoding/decoding with validation
+- **Unknown Token Handling**: Graceful handling of out-of-vocabulary tokens
+- **Error Recovery**: Comprehensive error handling and validation
+- **Memory Efficiency**: Optimized for large vocabulary processing
+
+### 🟢 **Sequence Processing System** (Production Ready)
+
+#### Sequence Management
+- **Batch Processing**: Efficient batching of variable-length sequences
+- **Padding Strategies**: Multiple padding strategies (longest in batch, fixed length, max length)
+- **Sequence Masking**: Attention mask generation and management
+- **Length Validation**: Sequence length validation and truncation
+
+#### Advanced Sequence Operations
+- **Tokenizer Integration**: Seamless integration with tokenization system
+- **Statistics Tracking**: Sequence length and token distribution analysis
+- **Memory Optimization**: Efficient memory usage for large sequence batches
+- **Validation Framework**: Comprehensive sequence validation utilities
+
+#### Truncation and Padding
+- **Multiple Truncation Strategies**: Left, right, longest-first, and conditional truncation
+- **Flexible Padding Options**: Support for various padding strategies and configurations
+- **Memory-Efficient Processing**: Zero-copy operations where possible
+- **Batch Optimization**: Intelligent batching with automatic length management
 
 ### 🟡 **Tensor Infrastructure** (Basic Implementation)
 
@@ -239,6 +281,131 @@ if is_mlx_available() {
 } else {
     println!("MLX not available, falling back to CPU/Metal");
 }
+```
+
+### Tokenization System
+
+```rust
+use bitnet_core::tokenizer::{
+    create_simple_tokenizer, load_tokenizer, load_hf_tokenizer, create_bpe_tokenizer,
+    encode_text, decode_tokens, encode_batch, add_special_tokens, get_special_token_id
+};
+use std::collections::HashMap;
+
+// Create a simple tokenizer
+let mut vocab = HashMap::new();
+vocab.insert("hello".to_string(), 0);
+vocab.insert("world".to_string(), 1);
+vocab.insert("bitnet".to_string(), 2);
+vocab.insert("is".to_string(), 3);
+vocab.insert("awesome".to_string(), 4);
+vocab.insert("<unk>".to_string(), 5);
+
+let mut tokenizer = create_simple_tokenizer(vocab);
+
+// Add special tokens
+let special_tokens = vec![
+    ("[CLS]", 100),
+    ("[SEP]", 101),
+    ("[PAD]", 102),
+    ("[MASK]", 103),
+];
+add_special_tokens(&mut tokenizer, &special_tokens);
+
+// Basic text encoding
+let text = "hello world bitnet is awesome";
+let tokens = encode_text(&tokenizer, text)?;
+println!("Tokens: {:?}", tokens); // [0, 1, 2, 3, 4]
+
+// Token decoding
+let decoded = decode_tokens(&tokenizer, &tokens)?;
+println!("Decoded: {}", decoded); // "hello world bitnet is awesome"
+
+// Batch processing
+let texts = vec![
+    "hello world",
+    "bitnet is awesome",
+    "hello bitnet"
+];
+let batch_tokens = encode_batch(&tokenizer, &texts)?;
+println!("Batch tokens: {:?}", batch_tokens);
+
+// Special token retrieval
+let cls_id = get_special_token_id(&tokenizer, "[CLS]");
+println!("CLS token ID: {:?}", cls_id); // Some(100)
+
+// Load HuggingFace tokenizer (requires 'tokenizers' feature)
+#[cfg(feature = "tokenizers")]
+{
+    let hf_tokenizer = load_hf_tokenizer("path/to/tokenizer.json")?;
+    let tokens = encode_text(&hf_tokenizer, "Hello, world!")?;
+    println!("HF tokens: {:?}", tokens);
+}
+
+// Create BPE tokenizer
+let bpe_tokenizer = create_bpe_tokenizer(
+    "vocab.json",
+    "merges.txt"
+)?;
+let bpe_tokens = encode_text(&bpe_tokenizer, "hello world")?;
+println!("BPE tokens: {:?}", bpe_tokens);
+```
+
+### Sequence Processing
+
+```rust
+use bitnet_core::sequence::{
+    SequenceManager, PaddingStrategy, TruncationStrategy, SequenceConfig
+};
+use std::collections::HashMap;
+
+// Create sequence manager with configuration
+let mut seq_manager = SequenceManager::new()
+    .with_max_length(128)
+    .with_padding_strategy(PaddingStrategy::LongestInBatch)
+    .with_truncation_strategy(TruncationStrategy::TruncateRight)
+    .with_pad_token_id(0)
+    .with_statistics();
+
+// Process variable-length token sequences
+let sequences = vec![
+    vec![1, 2, 3, 4],           // "hello world"
+    vec![5, 6],                 // "test"
+    vec![1, 2, 3, 4, 5, 6, 7],  // "hello world test"
+];
+
+// Process batch with automatic padding
+let batch = seq_manager.process_batch(&sequences, Some(0))?;
+
+// Access processed sequences
+for (i, sequence) in batch.sequences().iter().enumerate() {
+    println!("Sequence {}: {:?}", i, sequence.tokens);
+    println!("  Original length: {}", sequence.original_length);
+    println!("  Current length: {}", sequence.current_length);
+    println!("  Was truncated: {}", sequence.was_truncated);
+    println!("  Was padded: {}", sequence.was_padded);
+    println!("  Attention mask: {:?}", sequence.attention_mask);
+}
+
+// Get processing summary
+let summary = seq_manager.create_processing_summary(&batch);
+println!("Processing Summary:");
+println!("  Total sequences: {}", summary.total_sequences);
+println!("  Average original length: {:.2}", summary.avg_original_length());
+println!("  Average final length: {:.2}", summary.avg_final_length());
+println!("  Truncation rate: {:.2}%", summary.truncation_rate() * 100.0);
+println!("  Padding rate: {:.2}%", summary.padding_rate() * 100.0);
+
+// Analyze batch statistics
+let batch_stats = seq_manager.analyze_batch_lengths(&sequences);
+println!("Batch Statistics:");
+println!("  Min length: {}", batch_stats.min_length);
+println!("  Max length: {}", batch_stats.max_length);
+println!("  Average length: {:.2}", batch_stats.average_length);
+
+// Estimate memory usage
+let memory_estimate = seq_manager.estimate_memory_usage(&sequences);
+println!("Estimated memory usage: {} bytes", memory_estimate);
 ```
 
 ### Metal GPU Acceleration
@@ -440,16 +607,15 @@ dispatch_quantization(
 ### Device Abstraction
 
 ```rust
-use bitnet_core::device::{auto_select_device, DeviceCapabilities};
+use bitnet_core::device::auto_select_device;
 
 // Automatic device selection
 let device = auto_select_device();
 println!("Selected device: {:?}", device);
 
-// Check device capabilities
-let caps = DeviceCapabilities::for_device(&device);
-println!("Supports Metal: {}", caps.supports_metal);
-println!("Memory bandwidth: {} GB/s", caps.memory_bandwidth_gbps);
+// Check device information
+let (cpu_available, metal_available) = bitnet_core::device::get_device_info();
+println!("CPU available: {}, Metal available: {}", cpu_available, metal_available);
 ```
 
 ### Basic Tensor Operations
@@ -649,8 +815,19 @@ bitnet-core/src/
 │       ├── bitlinear.metal # BitLinear layer operations
 │       ├── quantization.metal # Quantization kernels
 │       └── activation.metal # Activation functions
+├── sequence/             # Sequence processing system
+│   ├── batching.rs      # Sequence batching operations
+│   ├── manager.rs       # Sequence management utilities
+│   ├── masking.rs       # Attention mask generation
+│   ├── padding.rs       # Sequence padding strategies
+│   ├── statistics.rs    # Sequence analysis and statistics
+│   ├── tokenizer_integration.rs # Tokenizer integration
+│   ├── truncation.rs    # Sequence truncation utilities
+│   └── validation.rs    # Sequence validation framework
 ├── tensor/               # Basic tensor operations
 │   └── mod.rs           # Tensor operation interface
+├── tokenizer/            # Tokenization system
+│   └── mod.rs           # Unified tokenizer interface
 └── lib.rs               # Library root and re-exports
 ```
 
@@ -842,6 +1019,7 @@ The BitNet Core library supports comprehensive feature flags for different accel
 | `apple-silicon` | Enable all Apple optimizations | Apple Silicon | 🚀 Highest |
 | `parallel` | Enable parallel processing | All | ⚡ High |
 | `simd` | Enable SIMD optimizations | All | ⚡ Medium |
+| `tokenizers` | Enable HuggingFace tokenizer support | All | 📝 Text Processing |
 | `tracing` | Enable debug tracing | All | 🐛 Debug |
 | `backtrace` | Enable backtrace capture | All | 🐛 Debug |
 
@@ -856,6 +1034,7 @@ simd = ["candle-core/cuda"]
 metal = ["candle-core/metal", "dep:metal"]
 mlx = ["dep:mlx-rs"]
 apple-silicon = ["metal", "mlx"]
+tokenizers = ["dep:tokenizers"]
 backtrace = ["dep:backtrace"]
 
 # Dependencies
@@ -864,6 +1043,7 @@ mlx-rs = { version = "0.25", optional = true }
 rayon = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
 metal = { workspace = true, optional = true }
+tokenizers = { version = "0.15", optional = true }
 backtrace = { version = "0.3", optional = true }
 ```
 
@@ -879,17 +1059,20 @@ cargo build --features apple-silicon
 # MLX with Metal interoperability
 cargo build --features "mlx,metal"
 
+# Tokenizer support
+cargo build --features tokenizers
+
 # High-performance build with all optimizations
-cargo build --features "apple-silicon,parallel,simd"
+cargo build --features "apple-silicon,parallel,simd,tokenizers"
 
 # Development build with debugging
-cargo build --features "mlx,tracing,backtrace"
+cargo build --features "mlx,tracing,backtrace,tokenizers"
 
 # Production build for Apple Silicon
-cargo build --release --features apple-silicon
+cargo build --release --features "apple-silicon,tokenizers"
 ```
 
-## 🆕 Latest Performance Improvements (v0.2.1)
+## 🆕 Latest Performance Improvements (v0.2.3)
 
 The latest version includes significant performance enhancements:
 
@@ -908,9 +1091,11 @@ Contributions are welcome! Priority areas for `bitnet-core`:
 1. **Advanced Tensor Operations**: Matrix multiplication optimizations, element-wise operations, reduction operations
 2. **MLX Operations**: Complete 1.58-bit quantization algorithms and BitLinear layers
 3. **Metal Shaders**: Add new BitNet-specific compute kernels
-4. **SIMD Optimizations**: AVX2/AVX-512 for x86_64, NEON for ARM64
-5. **Memory Layout Optimizations**: Strided tensor support, zero-copy tensor slicing
-6. **Performance**: Optimize critical paths and reduce overhead
+4. **Advanced Sequence Features**: Sequence-to-sequence processing and attention mechanisms
+5. **Tokenizer Extensions**: Custom tokenizer implementations and optimization
+6. **SIMD Optimizations**: AVX2/AVX-512 for x86_64, NEON for ARM64
+7. **Memory Layout Optimizations**: Strided tensor support, zero-copy tensor slicing
+8. **Performance**: Optimize critical paths and reduce overhead
 
 ### MLX Development
 
@@ -918,7 +1103,7 @@ When contributing MLX operations:
 
 1. Add operations to [`src/mlx/operations.rs`](src/mlx/operations.rs)
 2. Update [`BitNetMlxOps`](src/mlx/operations.rs) implementation
-3. Add tensor management in [`tensor.rs`](src/mlx/tensor.rs)
+3. Add tensor management in [`src/mlx/tensor.rs`](src/mlx/tensor.rs)
 4. Include feature flag guards with `#[cfg(feature = "mlx")]`
 5. Add comprehensive tests and performance benchmarks
 6. Document operation parameters and usage

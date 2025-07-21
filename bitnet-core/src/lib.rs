@@ -8,8 +8,10 @@ pub mod device;
 pub mod error;
 pub mod execution;
 pub mod memory;
+pub mod sequence;
 pub mod tensor;
 pub mod metal;
+pub mod tokenizer;
 
 // MLX support (Apple Silicon only)
 #[cfg(feature = "mlx")]
@@ -19,8 +21,10 @@ pub use device::*;
 pub use error::*;
 pub use execution::*;
 pub use memory::*;
+pub use sequence::*;
 pub use tensor::*;
 pub use metal::*;
+pub use tokenizer::*;
 
 // MLX re-exports when feature is enabled
 #[cfg(feature = "mlx")]

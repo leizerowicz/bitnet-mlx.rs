@@ -1,6 +1,6 @@
 [package]
 name = "bitnet-core"
-version = "0.2.3"
+version = "0.2.4"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -26,6 +26,8 @@ mlx = ["dep:mlx-rs"]
 apple-silicon = ["metal", "mlx"]
 # Enable backtrace capture for debugging
 backtrace = ["dep:backtrace"]
+# Enable tokenizer support
+tokenizers = ["dep:tokenizers"]
 
 [dependencies]
 # Core tensor operations
@@ -55,6 +57,7 @@ tracing = { workspace = true, optional = true }
 metal = { workspace = true, optional = true }
 mlx-rs = { workspace = true, optional = true }
 backtrace = { version = "0.3", optional = true }
+tokenizers = { version = "0.15", optional = true }
 
 # macOS-specific dependencies
 [target.'cfg(target_os = "macos")'.dependencies]

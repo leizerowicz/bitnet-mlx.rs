@@ -1,6 +1,6 @@
 [package]
 name = "bitnet-benchmarks"
-version = "0.1.2"
+version = "0.1.3"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -24,6 +24,8 @@ std = []
 # training = ["bitnet-training"]
 # Enable memory profiling
 memory = ["dep:tikv-jemallocator"]
+# Enable MLX benchmarks
+mlx = ["bitnet-core/mlx"]
 
 [dependencies]
 bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.3.0" }
