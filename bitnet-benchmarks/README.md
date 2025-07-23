@@ -9,6 +9,8 @@ This advanced benchmarking suite provides:
 - **Comprehensive Performance Testing**: Matrix operations, quantization, BitLinear layers, activation functions, memory efficiency, and real-world workloads
 - **Energy Efficiency Analysis**: Power consumption monitoring, thermal efficiency, battery life impact assessment, and energy-aware scheduling
 - **Quantization Performance**: Detailed analysis of BitNet 1.58-bit, INT8, INT4, and FP16 quantization schemes with accuracy trade-offs
+- **SIMD Optimization**: Advanced SIMD weight unpacking with SSE2, AVX2, and NEON instruction set support
+- **Packing Strategies**: Multiple ternary weight packing algorithms with automatic strategy selection
 - **Regression Testing**: Automated performance degradation detection with statistical analysis and baseline management
 - **Rich Visualization**: Interactive HTML reports with SVG charts, detailed tables, and executive summaries
 - **Multiple Backend Support**: Candle (CPU/Metal) with MLX support (when available)
@@ -54,7 +56,24 @@ This advanced benchmarking suite provides:
 - **Memory Regression**: Dedicated memory usage regression detection across different scenarios
 - **Throughput & Latency**: Specialized regression testing for throughput and latency-critical operations
 
-#### 5. Rich Visualization and Reporting ([`src/visualization.rs`](src/visualization.rs))
+#### 5. SIMD Weight Unpacking Performance ([`benches/simd_unpacking_performance.rs`](benches/simd_unpacking_performance.rs))
+- **SIMD Optimization**: Performance comparison between SIMD-optimized and scalar weight unpacking implementations
+- **Multiple Packing Strategies**: BitPacked2Bit, Base3Packed, ByteAligned, and CompressedSparse strategy benchmarks
+- **Architecture Support**: SSE2, AVX2, and NEON SIMD instruction set comparisons
+- **Sparse Data Handling**: Specialized benchmarks for sparse weight matrices with different sparsity levels (50%, 70%, 90%)
+- **Memory Alignment**: Performance analysis across different memory alignment configurations (16, 32, 64 bytes)
+- **Convenience Functions**: Benchmarks for high-level unpacking APIs and integration with existing packers
+
+#### 6. Ternary Weight Packing Performance ([`benches/packing_performance.rs`](benches/packing_performance.rs))
+- **Comprehensive Packing Strategies**: Uncompressed, BitPacked2Bit, Base3Packed, ByteAligned, RunLengthEncoded, CompressedSparse, and Hybrid
+- **Compression Analysis**: Detailed compression ratio measurements across different data patterns (dense, sparse, RLE-friendly)
+- **Auto-Selection Performance**: Benchmarks for automatic strategy selection and optimal packing algorithms
+- **Sparsity Impact Analysis**: Performance evaluation across different sparsity levels (0% to 95%)
+- **Memory Access Patterns**: Sequential access and memory footprint efficiency benchmarks
+- **Hybrid Strategy Optimization**: Block-size optimization for hybrid packing approaches
+- **Bit Manipulation Operations**: Low-level bit packing/unpacking performance for 1-bit, 2-bit, and 4-bit operations
+
+#### 7. Rich Visualization and Reporting ([`src/visualization.rs`](src/visualization.rs))
 - **Interactive HTML Reports**: Comprehensive reports with embedded SVG charts, CSS styling, and responsive design
 - **Performance Charts**: SVG-based charts for throughput, speedup, memory usage, and efficiency metrics
 - **Executive Summaries**: High-level performance insights with key metrics and automated recommendations
@@ -64,13 +83,16 @@ This advanced benchmarking suite provides:
 
 ### Supported Operations
 
-- **Matrix Operations**: Matrix multiplication, addition, element-wise multiplication
-- **Quantization**: 1.58-bit quantization/dequantization (BitNet-specific)
-- **BitLinear Layers**: Complete BitLinear forward pass with quantized weights
-- **Memory Operations**: Tensor creation (zeros, ones, random)
-- **Activation Functions**: ReLU, GELU, Softmax
-- **Tensor Manipulation**: Reshape, transpose, concatenation, splitting
-- **Neural Network Layers**: Layer normalization, convolution, embedding
+- **Matrix Operations**: Matrix multiplication, addition, element-wise multiplication, batch matrix multiplication
+- **Quantization**: 1.58-bit quantization/dequantization (BitNet-specific), INT8, INT4, FP16 quantization schemes
+- **BitLinear Layers**: Complete BitLinear forward pass with quantized weights and bias support
+- **Memory Operations**: Tensor creation (zeros, ones, random), memory-efficient tensor operations
+- **Activation Functions**: ReLU, GELU, Softmax, SiLU, Swish, Tanh with performance optimization
+- **Tensor Manipulation**: Reshape, transpose, concatenation, splitting, gather, scatter operations
+- **Neural Network Layers**: Layer normalization, 1D convolution, embedding lookup, pooling operations
+- **SIMD Operations**: Optimized weight unpacking with SSE2, AVX2, and NEON instruction sets
+- **Packing Strategies**: Multiple ternary weight packing algorithms (BitPacked2Bit, Base3Packed, ByteAligned, RunLengthEncoded, CompressedSparse, Hybrid)
+- **Auto-Selection**: Intelligent algorithm selection based on data characteristics and hardware capabilities
 
 ### Backend Comparison
 
@@ -80,11 +102,15 @@ This advanced benchmarking suite provides:
 
 ### Performance Metrics
 
-- **Execution Time**: Average time per operation
-- **Throughput**: Operations per second
-- **Memory Usage**: Estimated memory consumption
-- **Speedup Ratios**: Relative performance between backends
-- **Recommendations**: Automated suggestions for optimal backend selection
+- **Execution Time**: Average time per operation with statistical confidence intervals
+- **Throughput**: Operations per second with variance analysis
+- **Memory Usage**: Estimated memory consumption and memory bandwidth efficiency
+- **Speedup Ratios**: Relative performance between backends with detailed comparisons
+- **Energy Efficiency**: Power consumption, thermal efficiency, and battery life impact
+- **Compression Ratios**: Memory reduction achieved by different packing strategies
+- **SIMD Performance**: Speedup achieved through vectorized operations
+- **Regression Detection**: Automated performance degradation alerts with severity classification
+- **Recommendations**: Automated suggestions for optimal backend and strategy selection
 
 ## Installation
 
@@ -180,6 +206,8 @@ cargo bench comprehensive_performance_comparison  # Core performance testing
 cargo bench energy_efficiency_comparison         # Power and thermal analysis
 cargo bench quantization_performance            # Quantization scheme analysis
 cargo bench regression_performance_tests        # Automated regression detection
+cargo bench simd_unpacking_performance          # SIMD weight unpacking optimization
+cargo bench packing_performance                 # Ternary weight packing strategies
 
 # Run with specific features
 cargo bench --features memory                   # Enable memory profiling
@@ -193,6 +221,12 @@ cargo run --release -- energy-analysis --duration 60s --output energy_report.jso
 
 # Run regression testing with baseline comparison
 cargo run --release -- regression-check --baseline baseline.json --threshold 0.05
+
+# Run SIMD unpacking benchmarks with detailed analysis
+cargo bench simd_unpacking_performance -- --verbose
+
+# Run packing strategy comparison across different data patterns
+cargo bench packing_performance -- --save-baseline
 ```
 
 ### Advanced Benchmark Configuration
@@ -332,6 +366,42 @@ Create comprehensive JSON configuration files for different testing scenarios:
   "granularity_tests": ["per_tensor", "per_channel"],
   "accuracy_analysis": true,
   "memory_reduction_analysis": true
+}
+```
+
+#### SIMD Optimization Configuration
+```json
+{
+  "simd_config": {
+    "instruction_sets": ["sse2", "avx2", "neon"],
+    "test_scalar_fallback": true,
+    "memory_alignments": [16, 32, 64],
+    "data_sizes": [1000, 10000, 100000],
+    "sparsity_levels": [0.5, 0.7, 0.9],
+    "enable_convenience_functions": true
+  }
+}
+```
+
+#### Packing Strategy Configuration
+```json
+{
+  "packing_config": {
+    "strategies": [
+      "Uncompressed",
+      "BitPacked2Bit",
+      "Base3Packed",
+      "ByteAligned",
+      "RunLengthEncoded",
+      "CompressedSparse",
+      "Hybrid"
+    ],
+    "test_patterns": ["dense", "sparse_50", "sparse_90", "rle_friendly"],
+    "auto_selection": true,
+    "compression_analysis": true,
+    "hybrid_block_sizes": [16, 32, 64, 128],
+    "bit_manipulation_tests": [1, 2, 4]
+  }
 }
 ```
 
@@ -793,10 +863,16 @@ cargo test --features memory
 cargo bench --all-features
 
 # Run specific benchmark suites
-cargo bench comprehensive_performance_comparison
-cargo bench energy_efficiency_comparison
-cargo bench quantization_performance
-cargo bench regression_performance_tests
+cargo bench comprehensive_performance_comparison  # Core performance testing
+cargo bench energy_efficiency_comparison         # Power and thermal analysis
+cargo bench quantization_performance            # Quantization scheme analysis
+cargo bench regression_performance_tests        # Automated regression detection
+cargo bench simd_unpacking_performance          # SIMD optimization benchmarks
+cargo bench packing_performance                 # Ternary weight packing strategies
+
+# Run benchmarks with specific configurations
+cargo bench simd_unpacking_performance -- --save-baseline
+cargo bench packing_performance -- --verbose
 ```
 
 ### Adding New Benchmark Suites
@@ -831,6 +907,8 @@ bitnet-benchmarks/
 │   ├── energy_efficiency_comparison.rs         # Energy and thermal analysis
 │   ├── quantization_performance.rs             # Quantization scheme testing
 │   ├── regression_performance_tests.rs         # Automated regression detection
+│   ├── simd_unpacking_performance.rs           # SIMD weight unpacking optimization
+│   ├── packing_performance.rs                  # Ternary weight packing strategies
 │   ├── mlx_vs_candle.rs                       # Legacy comparison benchmarks
 │   └── quantization.rs                        # Legacy quantization benchmarks
 ├── tests/

@@ -1,6 +1,6 @@
 [package]
 name = "bitnet-quant"
-version = "0.1.1"
+version = "0.1.2"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -46,3 +46,7 @@ criterion.workspace = true
 proptest.workspace = true
 approx = "0.5"
 rand = "0.8"
+
+[[example]]
+name = "round_clip_demo"
+path = "../examples/round_clip_demo.rs"
