@@ -1,0 +1,17 @@
+operation,backend,device,tensor_size,data_type,execution_time_ms,throughput,memory_usage,success
+matmul,candle,cpu,128x128,f32,0,2858.64,65536,true
+matmul,candle,metal,128x128,f32,0,531067.45,65536,true
+matmul,candle,cpu,128x128,f16,0,2802.69,65536,true
+matmul,candle,metal,128x128,f16,0,481927.71,65536,true
+matmul,candle,cpu,512x512,f32,5,192.37,1048576,true
+matmul,candle,metal,512x512,f32,0,558347.29,1048576,true
+matmul,candle,cpu,512x512,f16,5,194.27,1048576,true
+matmul,candle,metal,512x512,f16,0,566251.42,1048576,true
+add,candle,cpu,128x128,f32,0,3224.00,65536,true
+add,candle,metal,128x128,f32,0,563380.28,65536,true
+add,candle,cpu,128x128,f16,0,3240.18,65536,true
+add,candle,metal,128x128,f16,0,603136.31,65536,true
+add,candle,cpu,512x512,f32,5,195.17,1048576,true
+add,candle,metal,512x512,f32,0,548245.61,1048576,true
+add,candle,cpu,512x512,f16,4,202.05,1048576,true
+add,candle,metal,512x512,f16,0,597014.93,1048576,true

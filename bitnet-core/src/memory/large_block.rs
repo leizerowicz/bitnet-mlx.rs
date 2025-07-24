@@ -44,6 +44,7 @@ const BUDDY_LEVELS: usize = 11; // 64KB to 64MB = 10 levels + 1
 /// 2. **Splitting**: Split larger blocks recursively until appropriate size
 /// 3. **Deallocation**: Return block to free list and attempt coalescing
 /// 4. **Coalescing**: Merge adjacent free blocks of the same size
+#[derive(Debug)]
 pub struct LargeBlockPool {
     /// Free lists for each buddy level
     free_lists: Vec<Vec<Block>>,
@@ -73,6 +74,7 @@ struct Block {
 }
 
 /// An arena of memory from which blocks are allocated
+#[derive(Debug)]
 struct Arena {
     /// Pointer to the arena memory
     ptr: NonNull<u8>,

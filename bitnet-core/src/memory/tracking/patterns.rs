@@ -14,6 +14,7 @@ use tracing::{debug, info, warn};
 use super::AllocationInfo;
 
 /// Pattern analyzer for memory allocations
+#[derive(Debug)]
 pub struct PatternAnalyzer {
     /// Detected allocation patterns
     patterns: Arc<Mutex<HashMap<String, AllocationPattern>>>,

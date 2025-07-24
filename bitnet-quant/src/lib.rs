@@ -73,6 +73,34 @@ pub use quantization::corruption_detection::{
     RecoveryAction, RecoveryPlan, StrategyValidator,
 };
 
+pub use quantization::config::{
+    QuantizationConfig as EnhancedQuantizationConfig,
+    WeightQuantizationConfig as EnhancedWeightQuantizationConfig,
+    ActivationQuantizationConfig as EnhancedActivationQuantizationConfig,
+    AttentionQuantizationConfig, PackingConfig as EnhancedPackingConfig, SimdConfig,
+    ConfigValidationError, QuantizationConfigBuilder, WeightQuantizationConfigBuilder,
+};
+
+pub use quantization::schemes::{
+    ConfigurableQuantizationScheme, QuantizationSchemeConfig, QuantizationSchemeFactory,
+    QuantizedTensor, SchemeParameters, OneBitParams, OneFiveEightBitParams, MultiBitParams,
+    BinaryThresholdMethod, ThresholdConfig, OptimizationConfig,
+};
+
+pub use quantization::precision_control::{
+    PrecisionController, PrecisionControlConfig, PrecisionBounds, DynamicAdjustmentConfig,
+    PrecisionMonitoringConfig, PrecisionValidationConfig, PerformanceThresholds,
+    AdjustmentStrategy, PrecisionMetric, AlertThresholds, PrecisionState, MetricsHistory,
+    PrecisionAdjustment, AdjustmentReason, PerformanceImpact, PerformanceSummary,
+    create_precision_controller, create_conservative_precision_controller,
+    create_aggressive_precision_controller,
+};
+
+pub use quantization::enhanced_config::{
+    EnhancedQuantizationConfigBuilder, EnhancedQuantizationConfiguration,
+    ConfigurationPreset, create_enhanced_config, create_custom_enhanced_config,
+};
+
 /// Prelude module for convenient imports
 pub mod prelude {
     pub use crate::quantization::{
@@ -107,6 +135,27 @@ pub mod prelude {
     pub use crate::quantization::corruption_detection::{
         CorruptionDetector, CorruptionReport, CorruptionType, CorruptionSeverity,
         RecoveryAction, RecoveryPlan,
+    };
+    
+    pub use crate::quantization::config::{
+        QuantizationConfig as EnhancedQuantizationConfig,
+        WeightQuantizationConfig as EnhancedWeightQuantizationConfig,
+        ActivationQuantizationConfig as EnhancedActivationQuantizationConfig,
+        AttentionQuantizationConfig, PackingConfig as EnhancedPackingConfig, SimdConfig,
+        ConfigValidationError, QuantizationConfigBuilder, WeightQuantizationConfigBuilder,
+    };
+    
+    pub use crate::quantization::schemes::{
+        ConfigurableQuantizationScheme, QuantizationSchemeConfig, QuantizationSchemeFactory,
+        QuantizedTensor, SchemeParameters, OneBitParams, OneFiveEightBitParams, MultiBitParams,
+        BinaryThresholdMethod, ThresholdConfig, OptimizationConfig,
+    };
+    
+    pub use crate::quantization::precision_control::{
+        PrecisionController, PrecisionControlConfig, PrecisionBounds, DynamicAdjustmentConfig,
+        AdjustmentStrategy, PrecisionMetric, PrecisionState, PerformanceSummary,
+        create_precision_controller, create_conservative_precision_controller,
+        create_aggressive_precision_controller,
     };
 }
 

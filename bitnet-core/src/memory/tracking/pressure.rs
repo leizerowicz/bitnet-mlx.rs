@@ -602,6 +602,21 @@ impl MemoryPressureDetector {
 unsafe impl Send for MemoryPressureDetector {}
 unsafe impl Sync for MemoryPressureDetector {}
 
+// Manual Debug implementation since PressureCallback doesn't implement Debug
+impl std::fmt::Debug for MemoryPressureDetector {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MemoryPressureDetector")
+            .field("thresholds", &self.thresholds)
+            .field("current_level", &self.current_level)
+            .field("callbacks", &format!("{} callbacks", self.callbacks.lock().map(|c| c.len()).unwrap_or(0)))
+            .field("event_history", &self.event_history)
+            .field("last_notification", &self.last_notification)
+            .field("usage_history", &self.usage_history)
+            .field("system_memory", &self.system_memory)
+            .finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

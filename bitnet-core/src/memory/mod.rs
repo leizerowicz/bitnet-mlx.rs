@@ -168,6 +168,7 @@ impl Default for MemoryPoolConfig {
 
 /// Main hybrid memory pool that manages both small and large allocations
 /// across different device types (CPU and Metal GPU)
+#[derive(Debug)]
 pub struct HybridMemoryPool {
     /// Configuration for the memory pool
     config: MemoryPoolConfig,

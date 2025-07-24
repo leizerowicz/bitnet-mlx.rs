@@ -42,6 +42,45 @@ impl Default for ActivationQuantizationConfig {
     }
 }
 
+impl ActivationQuantizationConfig {
+    /// Create a BitNet-specific activation quantization configuration
+    pub fn bitnet() -> Self {
+        Self {
+            base: QuantizationConfig {
+                precision: QuantizationPrecision::OneFiveFiveBit,
+                strategy: QuantizationStrategy::Dynamic,
+                per_channel: false,
+                clip_threshold: None,
+                qat_enabled: false,
+                calibration_size: None,
+            },
+            moving_average_window: 100,
+            outlier_percentile: 99.9,
+            per_token: false,
+            calibration_warmup: 50,
+            ema_decay: 0.99,
+            quantize_attention: true,
+        }
+    }
+
+    /// Validate the activation quantization configuration
+    pub fn validate(&self) -> QuantizationResult<()> {
+        if self.moving_average_window == 0 {
+            return Err(QuantizationError::ConfigurationError("Moving average window cannot be zero".to_string()));
+        }
+
+        if self.outlier_percentile <= 0.0 || self.outlier_percentile > 100.0 {
+            return Err(QuantizationError::ConfigurationError("Outlier percentile must be in range (0, 100]".to_string()));
+        }
+
+        if self.ema_decay < 0.0 || self.ema_decay > 1.0 {
+            return Err(QuantizationError::ConfigurationError("EMA decay must be in range [0, 1]".to_string()));
+        }
+
+        Ok(())
+    }
+}
+
 /// Quantized activation representation
 #[derive(Debug, Clone)]
 pub struct QuantizedActivation {
@@ -101,6 +140,18 @@ impl QuantizedActivation {
             QuantizationPrecision::FourBit => 4.0,
             QuantizationPrecision::EightBit => 8.0,
         }
+    }
+
+    /// Get the memory footprint of the quantized activation
+    pub fn memory_footprint(&self) -> usize {
+        let values_size = self.values.elem_count() * self.quantized_dtype.size_in_bytes();
+        let scales_size = self.scales.elem_count() * self.scales.dtype().size_in_bytes();
+        let zero_points_size = self.zero_points
+            .as_ref()
+            .map(|zp| zp.elem_count() * zp.dtype().size_in_bytes())
+            .unwrap_or(0);
+        
+        values_size + scales_size + zero_points_size
     }
 }
 
@@ -385,9 +436,12 @@ impl CalibrationQuantizer for DynamicActivationQuantizer {
 }
 
 /// Factory function to create activation quantizers
-pub fn create_activation_quantizer(config: ActivationQuantizationConfig) -> Box<dyn ActivationQuantizer> {
+pub fn create_activation_quantizer(config: ActivationQuantizationConfig) -> QuantizationResult<Box<dyn ActivationQuantizer>> {
+    // Validate configuration first
+    config.validate()?;
+    
     let device = Device::Cpu; // Default to CPU, can be configured
-    Box::new(DynamicActivationQuantizer::new(config, device))
+    Ok(Box::new(DynamicActivationQuantizer::new(config, device)))
 }
 
 /// Essential BitNet function: Quantize activations using absolute maximum scaling

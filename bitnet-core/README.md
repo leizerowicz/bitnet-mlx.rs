@@ -4,19 +4,22 @@
 [![Documentation](https://docs.rs/bitnet-core/badge.svg)](https://docs.rs/bitnet-core)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](../LICENSE)
 
-The core foundation library for BitNet neural networks, providing sophisticated memory management, device abstraction, tensor infrastructure, MLX acceleration for Apple Silicon, GPU acceleration, tokenization capabilities, and sequence processing optimized for high-performance computing.
+The core foundation library for BitNet neural networks, providing sophisticated memory management, device abstraction, tensor infrastructure, MLX acceleration for Apple Silicon, GPU acceleration, mixed precision support, execution path optimization, tokenization capabilities, and sequence processing optimized for high-performance computing.
 
 ## 🎯 Purpose
 
 `bitnet-core` serves as the foundational layer for the BitNet ecosystem, focusing on:
 
-- **Advanced Memory Management**: Production-ready hybrid memory pool system
-- **Device Abstraction**: Unified interface for CPU, Metal GPU, and future accelerators
+- **Advanced Memory Management**: Production-ready hybrid memory pool system with intelligent cleanup
+- **Mixed Precision Support**: Comprehensive layer-specific precision configuration and optimization
+- **Execution Path Optimization**: Intelligent backend selection with robust fallback mechanisms
+- **Device Abstraction**: Unified interface for CPU, Metal GPU, MLX, and future accelerators
 - **Metal GPU Acceleration**: Complete Metal compute pipeline with shader compilation
-- **Tensor Infrastructure**: Basic tensor operations and metadata management
+- **Memory-Efficient Conversions**: Zero-copy, in-place, streaming, and batch conversion systems
+- **Tensor Infrastructure**: Advanced tensor operations with metadata management
 - **Tokenization System**: Comprehensive tokenizer support (HuggingFace, BPE, Simple)
 - **Sequence Processing**: Advanced sequence handling with batching, padding, and masking
-- **Performance Optimization**: Zero-copy operations and SIMD-friendly data structures
+- **Performance Optimization**: SIMD operations and hardware-specific optimizations
 
 ## ✅ What's Implemented
 
@@ -148,6 +151,81 @@ The core foundation library for BitNet neural networks, providing sophisticated 
 - **Flexible Padding Options**: Support for various padding strategies and configurations
 - **Memory-Efficient Processing**: Zero-copy operations where possible
 - **Batch Optimization**: Intelligent batching with automatic length management
+
+### 🟢 **Mixed Precision System** (Production Ready) ⚡ **NEW**
+
+#### Comprehensive Mixed Precision Support
+- **Layer-Specific Precision**: Different layers can use different precision levels for optimal performance
+- **Component-Specific Precision**: Weights, biases, activations, and gradients can have independent precisions
+- **Automatic Precision Selection**: Policy-based and strategy-based precision optimization
+- **Dynamic Precision Adjustment**: Runtime precision adjustment based on performance metrics
+- **Precision Validation**: Comprehensive validation and compatibility checking
+
+#### Mixed Precision Strategies
+- **Conservative Strategy**: Prioritizes accuracy with higher precision for critical components
+- **Balanced Strategy**: Optimal balance between accuracy, memory usage, and performance
+- **Aggressive Strategy**: Maximum memory and speed optimization with minimal precision
+- **Custom Strategy**: User-defined precision rules and policies
+
+#### Advanced Precision Management
+- **Layer Precision Manager**: Centralized management of layer-specific precision requirements
+- **Precision Converter**: Efficient conversion between different precision levels with multiple strategies
+- **Policy Engine**: Rule-based automatic precision selection with conditional logic
+- **Validation Framework**: Comprehensive precision compatibility and impact analysis
+- **Optimization Engine**: Multi-objective optimization for memory, speed, and accuracy
+
+#### Precision Conversion Strategies
+- **Direct Conversion**: Fast dtype conversion for compatible types
+- **Scaled Conversion**: Optimal scaling to minimize precision loss
+- **Quantization-Aware Conversion**: Preserves quantization semantics during conversion
+- **Stochastic Rounding**: Probabilistic rounding for better precision preservation
+
+#### Memory and Performance Optimization
+- **Memory Pooling**: Precision-specific memory pools for efficient allocation
+- **Tensor Reuse**: Smart tensor reuse across different precision operations
+- **Gradient Checkpointing**: Memory-efficient training with mixed precision
+- **SIMD Optimizations**: Vectorized operations for precision conversions
+- **Kernel Fusion**: Fused operations to reduce conversion overhead
+
+### 🟢 **Execution Path Optimization** (Production Ready) ⚡ **NEW**
+
+#### Intelligent Backend Selection
+- **Operation-Specific Selection**: Chooses optimal backend based on operation characteristics
+- **Hardware-Aware Decisions**: Considers available hardware (MLX, Metal, CPU) for selection
+- **Performance Profiling**: Learns from execution patterns to improve future selections
+- **Fallback Mechanisms**: Robust fallback strategies when preferred backends fail
+
+#### Backend Support
+- **MLX Backend**: Apple Silicon acceleration for matrix operations and quantization
+- **Candle-Metal Backend**: Metal GPU acceleration for compute-intensive operations
+- **Candle-CPU Backend**: Optimized CPU execution for I/O and preprocessing
+- **Auto Selection**: Intelligent automatic backend selection based on system capabilities
+
+#### Error Handling and Recovery
+- **MLX Error Recovery**: Comprehensive MLX error handling with Candle fallbacks
+- **Device Error Management**: Graceful handling of device initialization failures
+- **Memory Error Recovery**: Fallback strategies for memory-constrained scenarios
+- **Operation Retry Logic**: Automatic retry with different backends on failure
+
+### 🟢 **Memory-Efficient Conversion System** (Production Ready) ⚡ **NEW**
+
+#### Advanced Conversion Strategies
+- **Zero-Copy Conversions**: Memory reinterpretation for compatible data types
+- **In-Place Conversions**: Direct tensor modification to minimize memory usage
+- **Streaming Conversions**: Large tensor processing with configurable chunk sizes
+- **Batch Conversions**: Efficient processing of multiple tensors simultaneously
+
+#### Performance Configurations
+- **High-Performance Mode**: Optimized for speed with parallel processing
+- **Low-Memory Mode**: Minimizes memory usage during conversions
+- **High-Precision Mode**: Preserves maximum precision during conversions
+- **Balanced Mode**: Optimal balance of speed, memory, and precision
+
+#### Conversion Monitoring
+- **Real-time Metrics**: Conversion performance and efficiency tracking
+- **Strategy Analytics**: Analysis of conversion strategy effectiveness
+- **Memory Usage Tracking**: Detailed memory usage patterns during conversions
+- **Error Rate Monitoring**: Conversion success rates and error analysis
 
 ### 🟢 **Advanced Quantization System** (Production Ready) ⚡ **NEW**
 
@@ -308,6 +386,190 @@ if is_mlx_available() {
 } else {
     println!("MLX not available, falling back to CPU/Metal");
 }
+```
+
+### Mixed Precision System ⚡ **NEW**
+
+```rust
+use bitnet_core::mixed_precision::*;
+use bitnet_core::memory::{HybridMemoryPool, tensor::{BitNetTensor, BitNetDType}};
+use bitnet_core::device::get_cpu_device;
+
+// 1. Create mixed precision configuration
+let config = MixedPrecisionConfig::balanced()
+    .with_layer_config(
+        "attention_layer".to_string(),
+        LayerPrecisionConfig::new(LayerType::Attention, BitNetDType::F16)
+            .with_component_override(ComponentType::Weights, BitNetDType::I8)
+            .with_component_override(ComponentType::AttentionScores, BitNetDType::F16)
+    )
+    .with_component_config(
+        ComponentType::Activations,
+        ComponentPrecisionConfig::new(ComponentType::Activations, BitNetDType::I8)
+    );
+
+// 2. Create precision manager
+let precision_manager = PrecisionManager::new(config)?;
+
+// 3. Register layers with specific precision requirements
+let layer_spec = LayerPrecisionSpec::new(
+    "transformer_layer_0".to_string(),
+    LayerType::Linear,
+    BitNetDType::I8,      // input precision
+    BitNetDType::I8,      // output precision
+    BitNetDType::BitNet158, // weight precision
+)
+.with_component_precision(ComponentType::Bias, BitNetDType::F16)
+.with_dynamic_adjustment();
+
+precision_manager.register_layer(layer_spec)?;
+
+// 4. Use precision converter for tensor operations
+let device = get_cpu_device();
+let memory_pool = HybridMemoryPool::new()?;
+let tensor = BitNetTensor::ones(&[64, 64], BitNetDType::F32, &device, &memory_pool)?;
+
+// Convert tensor with different strategies
+let config = ConversionConfig {
+    strategy: ConversionStrategy::Scaled,
+    preserve_metadata: true,
+    validate_results: true,
+    ..Default::default()
+};
+
+let converter = PrecisionConverter::new(config)?;
+let converted_tensor = converter.convert_tensor(&tensor, BitNetDType::I8)?;
+
+// 5. Policy-based precision selection
+let mut policy_engine = PolicyEngine::new();
+
+let memory_policy = PrecisionPolicy::new(
+    "memory_critical".to_string(),
+    "Memory Critical Policy".to_string(),
+    "Use aggressive quantization when memory is limited".to_string(),
+)
+.add_rule(
+    PolicyRule::new(
+        "high_memory_usage".to_string(),
+        PolicyAction::SetPrecision(BitNetDType::I4),
+    )
+    .add_condition(PolicyCondition::new(
+        ConditionType::MemoryUsage,
+        ConditionOperator::GreaterThan,
+        ConditionValue::Float(80.0),
+    ))
+);
+
+policy_engine.add_policy(memory_policy);
+
+// 6. Optimize precision configuration
+let optimizations = precision_manager.optimize_precision(
+    OptimizationObjective::Balanced {
+        memory_weight: 0.4,
+        speed_weight: 0.3,
+        accuracy_weight: 0.3,
+    }
+)?;
+
+// 7. Analyze configuration impact
+let analysis = precision_manager.analyze_configuration()?;
+println!("Memory savings: {:.1}%", analysis.memory_savings * 100.0);
+println!("Accuracy impact: {:.1}%", analysis.accuracy_impact * 100.0);
+```
+
+### Execution Path Optimization ⚡ **NEW**
+
+```rust
+use bitnet_core::execution::*;
+
+// 1. Check available backends
+let available_backends = get_available_backends();
+println!("Available backends: {:?}", available_backends);
+
+// 2. Get preferred backend for the system
+let preferred = get_preferred_backend();
+println!("Preferred backend: {}", preferred);
+
+// 3. Choose optimal backend for specific operations
+let matmul_backend = choose_execution_backend("matmul");
+let quantize_backend = choose_execution_backend("quantize");
+let tokenize_backend = choose_execution_backend("tokenization");
+
+println!("Matrix multiplication: {}", matmul_backend);
+println!("Quantization: {}", quantize_backend);
+println!("Tokenization: {}", tokenize_backend);
+
+// 4. Handle MLX errors with fallback
+let mlx_error = MlxError::OperationFailed("Matrix multiplication failed".to_string());
+match fallback_to_candle(mlx_error) {
+    Ok(tensor) => {
+        println!("Fallback successful: tensor shape {:?}", tensor.dims());
+    }
+    Err(e) => {
+        println!("Fallback failed: {}", e);
+    }
+}
+
+// 5. Check backend availability
+for backend in &[ExecutionBackend::Mlx, ExecutionBackend::CandleMetal, ExecutionBackend::CandleCpu] {
+    let available = is_backend_available(backend);
+    println!("{}: {}", backend, if available { "Available" } else { "Not Available" });
+}
+```
+
+### Memory-Efficient Conversions ⚡ **NEW**
+
+```rust
+use bitnet_core::memory::{
+    HybridMemoryPool,
+    conversion::{ConversionEngine, ConversionConfig},
+    tensor::{BitNetTensor, BitNetDType}
+};
+use bitnet_core::device::get_cpu_device;
+
+let pool = HybridMemoryPool::new()?;
+let device = get_cpu_device();
+
+// 1. Basic conversion
+let config = ConversionConfig::default();
+let engine = ConversionEngine::new(config, pool.clone())?;
+
+let tensor = BitNetTensor::ones(&[128, 128], BitNetDType::F32, &device, &pool)?;
+let converted = engine.convert(&tensor, BitNetDType::F16)?;
+println!("Compression: {:.1}x", tensor.size_bytes() as f64 / converted.size_bytes() as f64);
+
+// 2. Zero-copy conversion (same type)
+let zero_copy_result = engine.zero_copy_convert(&tensor, BitNetDType::F32)?;
+println!("Zero-copy conversion completed");
+
+// 3. In-place conversion
+let mut mutable_tensor = BitNetTensor::ones(&[64, 64], BitNetDType::F32, &device, &pool)?;
+let original_size = mutable_tensor.size_bytes();
+engine.in_place_convert(&mut mutable_tensor, BitNetDType::F16)?;
+println!("Memory saved: {} bytes", original_size - mutable_tensor.size_bytes());
+
+// 4. Streaming conversion for large tensors
+let large_tensor = BitNetTensor::ones(&[512, 512], BitNetDType::F32, &device, &pool)?;
+let streamed_result = engine.streaming_convert(&large_tensor, BitNetDType::I8, 64 * 1024)?;
+
+// 5. Batch conversion
+let tensors: Vec<_> = (0..5)
+    .map(|i| BitNetTensor::ones(&[32 + i, 32 + i], BitNetDType::F32, &device, &pool))
+    .collect::<Result<Vec<_>, _>>()?;
+
+let batch_results = engine.batch_convert(&tensors, BitNetDType::F16)?;
+println!("Batch converted {} tensors", batch_results.len());
+
+// 6. Performance configurations
+let high_perf_config = ConversionConfig::high_performance();
+let low_mem_config = ConversionConfig::low_memory();
+let high_precision_config = ConversionConfig::high_precision();
+
+// 7. Get conversion statistics
+let stats = engine.get_stats();
+println!("Total conversions: {}", stats.total_conversions);
+println!("Success rate: {:.1}%", stats.success_rate());
+println!("Average time: {:.2}ms", stats.average_time_ms());
 ```
 
 ### SIMD Weight Unpacking and Quantization ⚡ **NEW**
@@ -885,7 +1147,7 @@ bitnet-core/src/
 │   ├── mod.rs            # Error types and handling
 │   ├── context.rs        # Error context management
 │   └── formatting.rs     # Error formatting utilities
-├── execution.rs           # Execution path management
+├── execution.rs           # Execution path optimization and backend selection ⚡ NEW
 ├── memory/                # Memory management system
 │   ├── mod.rs            # Main memory pool interface
 │   ├── small_block.rs    # Small block allocator
@@ -926,6 +1188,15 @@ bitnet-core/src/
 │       ├── handle.rs    # Tensor handle management
 │       ├── metadata.rs  # Tensor metadata
 │       └── dtype.rs     # BitNet data types
+├── mixed_precision/      # Mixed precision support system ⚡ NEW
+│   ├── mod.rs           # Mixed precision core types and interfaces
+│   ├── config.rs        # Configuration system for mixed precision
+│   ├── layer_precision.rs # Layer-specific precision management
+│   ├── precision_manager.rs # Central precision coordination
+│   ├── conversion.rs    # Precision conversion utilities
+│   ├── validation.rs    # Precision validation and compatibility
+│   ├── policy.rs        # Policy-based precision selection
+│   └── README.md        # Mixed precision documentation
 ├── mlx/                  # MLX acceleration for Apple Silicon
 │   ├── mod.rs           # Main MLX integration and device wrapper
 │   ├── device.rs        # MLX device management and auto-selection
@@ -1011,23 +1282,29 @@ cargo run --example mlx_operations_demo --features mlx
 # MLX performance comparison demo
 cargo run --example mlx_performance_comparison_demo --features mlx
 
+# Mixed precision system demo ⚡ NEW
+cargo run --example mixed_precision_demo
+
+# Memory-efficient conversion demo ⚡ NEW
+cargo run --example memory_efficient_conversion_demo
+
+# Execution path optimization demo ⚡ NEW
+cargo run --example execution_path_demo
+
 # Metal shader compilation demo
 cargo run --example shader_compilation_demo --features metal
 
 # Memory tracking demo
 cargo run --example memory_tracking_demo
 
-# Memory-efficient conversion demo
-cargo run --example memory_efficient_conversion_demo
-
 # Cleanup system demo
 cargo run --example cleanup_system_demo
 
-# Execution path demo
-cargo run --example execution_path_demo
-
 # Tensor lifecycle demo
 cargo run --example tensor_lifecycle
+
+# Tokenizer demo
+cargo run --example tokenizer_demo
 ```
 
 ## 📈 Benchmarks
@@ -1332,30 +1609,69 @@ cargo build --features "mlx,tracing,backtrace,tokenizers"
 cargo build --release --features "apple-silicon,tokenizers"
 ```
 
-## 🆕 Latest Performance Improvements (v0.2.3)
+## 🆕 Latest Features and Improvements (v0.2.6)
 
-The latest version includes significant performance enhancements:
+The latest version includes major new features and performance enhancements:
 
+### 🎯 New Features
+- **Mixed Precision System**: Comprehensive layer-specific precision configuration and optimization
+- **Execution Path Optimization**: Intelligent backend selection with robust fallback mechanisms
+- **Memory-Efficient Conversions**: Zero-copy, in-place, streaming, and batch conversion systems
+- **Enhanced Data Types**: Extended BitNetDType with improved memory efficiency calculations
+- **Policy-Based Precision**: Rule-based automatic precision selection with conditional logic
+
+### ⚡ Performance Improvements
 - **16% faster allocation tracking**: Reduced from 11,338ns to 9,525ns average
 - **47% faster deallocation tracking**: Reduced from 1,170ns to 623ns average
 - **19% lower CPU overhead**: Reduced from 0.80% to 0.65% for detailed tracking
 - **3.6% improved cleanup efficiency**: Increased from 52.97 to 54.86 bytes/ms average
 - **Enhanced pattern detection**: Now provides specific optimization suggestions
-- **Memory-efficient conversion system**: Zero-copy, in-place, streaming, and batch conversions
 - **Advanced MLX optimization utilities**: Memory pooling, kernel fusion, auto-tuning, and graph optimization
+
+### 🔧 System Enhancements
+- **Robust Error Handling**: Comprehensive MLX error recovery with Candle fallbacks
+- **Hardware-Aware Selection**: Automatic backend selection based on system capabilities
+- **Precision Validation**: Comprehensive precision compatibility and impact analysis
+- **Dynamic Adjustment**: Runtime precision adjustment based on performance metrics
 
 ## 🤝 Contributing
 
 Contributions are welcome! Priority areas for `bitnet-core`:
 
-1. **Advanced Tensor Operations**: Matrix multiplication optimizations, element-wise operations, reduction operations
-2. **MLX Operations**: Complete 1.58-bit quantization algorithms and BitLinear layers
-3. **Metal Shaders**: Add new BitNet-specific compute kernels
-4. **Advanced Sequence Features**: Sequence-to-sequence processing and attention mechanisms
-5. **Tokenizer Extensions**: Custom tokenizer implementations and optimization
-6. **SIMD Optimizations**: AVX2/AVX-512 for x86_64, NEON for ARM64
-7. **Memory Layout Optimizations**: Strided tensor support, zero-copy tensor slicing
-8. **Performance**: Optimize critical paths and reduce overhead
+1. **Mixed Precision Enhancements**: Advanced precision policies, dynamic adjustment algorithms
+2. **Execution Path Optimization**: New backend integrations, improved fallback strategies
+3. **Memory-Efficient Conversions**: Additional conversion strategies, performance optimizations
+4. **Advanced Tensor Operations**: Matrix multiplication optimizations, element-wise operations, reduction operations
+5. **MLX Operations**: Complete 1.58-bit quantization algorithms and BitLinear layers
+6. **Metal Shaders**: Add new BitNet-specific compute kernels
+7. **Advanced Sequence Features**: Sequence-to-sequence processing and attention mechanisms
+8. **Tokenizer Extensions**: Custom tokenizer implementations and optimization
+9. **SIMD Optimizations**: AVX2/AVX-512 for x86_64, NEON for ARM64
+10. **Memory Layout Optimizations**: Strided tensor support, zero-copy tensor slicing
+11. **Performance**: Optimize critical paths and reduce overhead
+
+### Mixed Precision Development
+
+When contributing to mixed precision features:
+
+1. Add new precision strategies to [`src/mixed_precision/config.rs`](src/mixed_precision/config.rs)
+2. Implement conversion algorithms in [`src/mixed_precision/conversion.rs`](src/mixed_precision/conversion.rs)
+3. Add validation rules in [`src/mixed_precision/validation.rs`](src/mixed_precision/validation.rs)
+4. Create policy rules in [`src/mixed_precision/policy.rs`](src/mixed_precision/policy.rs)
+5. Include comprehensive tests for precision compatibility
+6. Document precision impact and performance characteristics
+7. Add examples demonstrating new functionality
+
+### Execution Path Development
+
+When contributing execution path optimizations:
+
+1. Add new backends to [`ExecutionBackend`](src/execution.rs) enum
+2. Implement backend selection logic in [`choose_execution_backend`](src/execution.rs)
+3. Add fallback strategies for new error types
+4. Include availability detection for new backends
+5. Add comprehensive error handling and recovery
+6. Document backend capabilities and limitations
 
 ### MLX Development
 

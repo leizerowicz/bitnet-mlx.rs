@@ -14,6 +14,7 @@ use tracing::{debug, info, warn};
 use super::AllocationId;
 
 /// Timeline tracker for allocation and deallocation events
+#[derive(Debug)]
 pub struct AllocationTimeline {
     /// Maximum number of events to keep in timeline
     max_entries: usize,

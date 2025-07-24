@@ -9,6 +9,11 @@ pub mod utils;
 pub mod packing;
 pub mod simd_unpacking;
 pub mod corruption_detection;
+pub mod config;
+pub mod mixed_precision;
+pub mod schemes;
+pub mod precision_control;
+pub mod enhanced_config;
 
 use candle_core::{Tensor, Result as CandleResult, DType};
 use serde::{Deserialize, Serialize};
@@ -33,6 +38,34 @@ pub use simd_unpacking::{
 pub use corruption_detection::{
     CorruptionDetector, CorruptionReport, CorruptionType, CorruptionSeverity,
     RecoveryAction, RecoveryPlan, StrategyValidator
+};
+
+pub use config::{
+    QuantizationConfig as EnhancedQuantizationConfig,
+    WeightQuantizationConfig as EnhancedWeightQuantizationConfig,
+    ActivationQuantizationConfig as EnhancedActivationQuantizationConfig,
+    AttentionQuantizationConfig, PackingConfig as EnhancedPackingConfig, SimdConfig,
+    ConfigValidationError, QuantizationConfigBuilder, WeightQuantizationConfigBuilder
+};
+
+pub use schemes::{
+    ConfigurableQuantizationScheme, QuantizationSchemeConfig, QuantizationSchemeFactory,
+    QuantizedTensor, SchemeParameters, OneBitParams, OneFiveEightBitParams, MultiBitParams,
+    BinaryThresholdMethod, ThresholdConfig, OptimizationConfig
+};
+
+pub use precision_control::{
+    PrecisionController, PrecisionControlConfig, PrecisionBounds, DynamicAdjustmentConfig,
+    PrecisionMonitoringConfig, PrecisionValidationConfig, PerformanceThresholds,
+    AdjustmentStrategy, PrecisionMetric, AlertThresholds, PrecisionState, MetricsHistory,
+    PrecisionAdjustment, AdjustmentReason, PerformanceImpact, PerformanceSummary,
+    create_precision_controller, create_conservative_precision_controller,
+    create_aggressive_precision_controller
+};
+
+pub use enhanced_config::{
+    EnhancedQuantizationConfigBuilder, EnhancedQuantizationConfiguration,
+    ConfigurationPreset, create_enhanced_config, create_custom_enhanced_config
 };
 
 /// Core quantization precision for BitNet models
@@ -183,12 +216,12 @@ pub struct QuantizerFactory;
 
 impl QuantizerFactory {
     /// Create a weight quantizer with the given configuration
-    pub fn create_weight_quantizer(config: WeightQuantizationConfig) -> Box<dyn WeightQuantizer> {
+    pub fn create_weight_quantizer(config: WeightQuantizationConfig) -> QuantizationResult<Box<dyn WeightQuantizer>> {
         weights::create_weight_quantizer(config)
     }
     
     /// Create an activation quantizer with the given configuration
-    pub fn create_activation_quantizer(config: ActivationQuantizationConfig) -> Box<dyn ActivationQuantizer> {
+    pub fn create_activation_quantizer(config: ActivationQuantizationConfig) -> QuantizationResult<Box<dyn ActivationQuantizer>> {
         activations::create_activation_quantizer(config)
     }
 }

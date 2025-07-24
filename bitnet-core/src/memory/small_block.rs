@@ -69,6 +69,7 @@ const BLOCKS_PER_CHUNK: &[usize] = &[
 /// - **Chunk Allocation**: Memory is allocated in chunks containing multiple blocks
 /// - **Alignment**: All allocations are properly aligned
 /// - **Thread Safety**: Uses internal locking for thread-safe operations
+#[derive(Debug)]
 pub struct SmallBlockPool {
     /// Free lists for each size class
     free_lists: Vec<FreeList>,
@@ -85,6 +86,7 @@ pub struct SmallBlockPool {
 }
 
 /// Free list for a specific size class
+#[derive(Debug)]
 struct FreeList {
     /// Size of blocks in this free list
     block_size: usize,
@@ -99,6 +101,7 @@ struct FreeList {
 }
 
 /// A chunk of memory containing multiple blocks of the same size
+#[derive(Debug)]
 struct Chunk {
     /// Pointer to the chunk memory
     ptr: NonNull<u8>,

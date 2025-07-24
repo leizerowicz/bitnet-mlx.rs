@@ -29,6 +29,12 @@ pub enum QuantizationError {
     #[error("Configuration error: {0}")]
     ConfigError(String),
     
+    #[error("Configuration error: {0}")]
+    ConfigurationError(String),
+    
+    #[error("Conversion error: {0}")]
+    ConversionError(String),
+    
     #[error("Numerical error: {0}")]
     NumericalError(String),
     

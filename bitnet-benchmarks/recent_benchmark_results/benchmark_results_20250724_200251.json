@@ -1,0 +1,391 @@
+{
+  "config": {
+    "data_types": [
+      "f32",
+      "f16"
+    ],
+    "devices": [
+      "cpu",
+      "metal",
+      "mlx"
+    ],
+    "measurement_iterations": 5,
+    "operations": [
+      "matmul",
+      "add"
+    ],
+    "tensor_sizes": [
+      [
+        128,
+        128
+      ],
+      [
+        512,
+        512
+      ]
+    ],
+    "timeout": {
+      "nanos": 0,
+      "secs": 30
+    },
+    "warmup_iterations": 2
+  },
+  "measurements": [
+    {
+      "backend": "candle",
+      "data_type": "f32",
+      "device": "cpu",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 349817,
+        "secs": 0
+      },
+      "memory_usage": 65536,
+      "operation": "matmul",
+      "success": true,
+      "tensor_size": [
+        128,
+        128
+      ],
+      "throughput": 2858.637516187035,
+      "timestamp": {
+        "nanos_since_epoch": 859928000,
+        "secs_since_epoch": 1753387369
+      }
+    },
+    {
+      "backend": "candle",
+      "data_type": "f32",
+      "device": "metal",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 1883,
+        "secs": 0
+      },
+      "memory_usage": 65536,
+      "operation": "matmul",
+      "success": true,
+      "tensor_size": [
+        128,
+        128
+      ],
+      "throughput": 531067.4455655868,
+      "timestamp": {
+        "nanos_since_epoch": 787391000,
+        "secs_since_epoch": 1753387370
+      }
+    },
+    {
+      "backend": "candle",
+      "data_type": "f16",
+      "device": "cpu",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 356800,
+        "secs": 0
+      },
+      "memory_usage": 65536,
+      "operation": "matmul",
+      "success": true,
+      "tensor_size": [
+        128,
+        128
+      ],
+      "throughput": 2802.6905829596412,
+      "timestamp": {
+        "nanos_since_epoch": 789837000,
+        "secs_since_epoch": 1753387370
+      }
+    },
+    {
+      "backend": "candle",
+      "data_type": "f16",
+      "device": "metal",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 2075,
+        "secs": 0
+      },
+      "memory_usage": 65536,
+      "operation": "matmul",
+      "success": true,
+      "tensor_size": [
+        128,
+        128
+      ],
+      "throughput": 481927.7108433735,
+      "timestamp": {
+        "nanos_since_epoch": 790961000,
+        "secs_since_epoch": 1753387370
+      }
+    },
+    {
+      "backend": "candle",
+      "data_type": "f32",
+      "device": "cpu",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 5198225,
+        "secs": 0
+      },
+      "memory_usage": 1048576,
+      "operation": "matmul",
+      "success": true,
+      "tensor_size": [
+        512,
+        512
+      ],
+      "throughput": 192.373358213621,
+      "timestamp": {
+        "nanos_since_epoch": 827536000,
+        "secs_since_epoch": 1753387370
+      }
+    },
+    {
+      "backend": "candle",
+      "data_type": "f32",
+      "device": "metal",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 1791,
+        "secs": 0
+      },
+      "memory_usage": 1048576,
+      "operation": "matmul",
+      "success": true,
+      "tensor_size": [
+        512,
+        512
+      ],
+      "throughput": 558347.2920156337,
+      "timestamp": {
+        "nanos_since_epoch": 828643000,
+        "secs_since_epoch": 1753387370
+      }
+    },
+    {
+      "backend": "candle",
+      "data_type": "f16",
+      "device": "cpu",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 5147566,
+        "secs": 0
+      },
+      "memory_usage": 1048576,
+      "operation": "matmul",
+      "success": true,
+      "tensor_size": [
+        512,
+        512
+      ],
+      "throughput": 194.2665718127752,
+      "timestamp": {
+        "nanos_since_epoch": 864817000,
+        "secs_since_epoch": 1753387370
+      }
+    },
+    {
+      "backend": "candle",
+      "data_type": "f16",
+      "device": "metal",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 1766,
+        "secs": 0
+      },
+      "memory_usage": 1048576,
+      "operation": "matmul",
+      "success": true,
+      "tensor_size": [
+        512,
+        512
+      ],
+      "throughput": 566251.415628539,
+      "timestamp": {
+        "nanos_since_epoch": 866028000,
+        "secs_since_epoch": 1753387370
+      }
+    },
+    {
+      "backend": "candle",
+      "data_type": "f32",
+      "device": "cpu",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 310174,
+        "secs": 0
+      },
+      "memory_usage": 65536,
+      "operation": "add",
+      "success": true,
+      "tensor_size": [
+        128,
+        128
+      ],
+      "throughput": 3223.9968533790716,
+      "timestamp": {
+        "nanos_since_epoch": 868305000,
+        "secs_since_epoch": 1753387370
+      }
+    },
+    {
+      "backend": "candle",
+      "data_type": "f32",
+      "device": "metal",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 1775,
+        "secs": 0
+      },
+      "memory_usage": 65536,
+      "operation": "add",
+      "success": true,
+      "tensor_size": [
+        128,
+        128
+      ],
+      "throughput": 563380.2816901408,
+      "timestamp": {
+        "nanos_since_epoch": 968587000,
+        "secs_since_epoch": 1753387370
+      }
+    },
+    {
+      "backend": "candle",
+      "data_type": "f16",
+      "device": "cpu",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 308625,
+        "secs": 0
+      },
+      "memory_usage": 65536,
+      "operation": "add",
+      "success": true,
+      "tensor_size": [
+        128,
+        128
+      ],
+      "throughput": 3240.178209801539,
+      "timestamp": {
+        "nanos_since_epoch": 970844000,
+        "secs_since_epoch": 1753387370
+      }
+    },
+    {
+      "backend": "candle",
+      "data_type": "f16",
+      "device": "metal",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 1658,
+        "secs": 0
+      },
+      "memory_usage": 65536,
+      "operation": "add",
+      "success": true,
+      "tensor_size": [
+        128,
+        128
+      ],
+      "throughput": 603136.3088057901,
+      "timestamp": {
+        "nanos_since_epoch": 971658000,
+        "secs_since_epoch": 1753387370
+      }
+    },
+    {
+      "backend": "candle",
+      "data_type": "f32",
+      "device": "cpu",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 5123841,
+        "secs": 0
+      },
+      "memory_usage": 1048576,
+      "operation": "add",
+      "success": true,
+      "tensor_size": [
+        512,
+        512
+      ],
+      "throughput": 195.16608731613647,
+      "timestamp": {
+        "nanos_since_epoch": 7351000,
+        "secs_since_epoch": 1753387371
+      }
+    },
+    {
+      "backend": "candle",
+      "data_type": "f32",
+      "device": "metal",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 1824,
+        "secs": 0
+      },
+      "memory_usage": 1048576,
+      "operation": "add",
+      "success": true,
+      "tensor_size": [
+        512,
+        512
+      ],
+      "throughput": 548245.6140350878,
+      "timestamp": {
+        "nanos_since_epoch": 8405000,
+        "secs_since_epoch": 1753387371
+      }
+    },
+    {
+      "backend": "candle",
+      "data_type": "f16",
+      "device": "cpu",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 4949266,
+        "secs": 0
+      },
+      "memory_usage": 1048576,
+      "operation": "add",
+      "success": true,
+      "tensor_size": [
+        512,
+        512
+      ],
+      "throughput": 202.05016258976585,
+      "timestamp": {
+        "nanos_since_epoch": 43689000,
+        "secs_since_epoch": 1753387371
+      }
+    },
+    {
+      "backend": "candle",
+      "data_type": "f16",
+      "device": "metal",
+      "error_message": null,
+      "execution_time": {
+        "nanos": 1675,
+        "secs": 0
+      },
+      "memory_usage": 1048576,
+      "operation": "add",
+      "success": true,
+      "tensor_size": [
+        512,
+        512
+      ],
+      "throughput": 597014.9253731343,
+      "timestamp": {
+        "nanos_since_epoch": 44612000,
+        "secs_since_epoch": 1753387371
+      }
+    }
+  ],
+  "timestamp": {
+    "nanos_since_epoch": 44678000,
+    "secs_since_epoch": 1753387371
+  }
+}

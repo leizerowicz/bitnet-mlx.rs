@@ -23,6 +23,7 @@ use super::{
 };
 
 /// Main memory tracker that provides real-time monitoring and detailed metrics
+#[derive(Debug)]
 pub struct MemoryTracker {
     /// Tracking configuration
     config: TrackingConfig,
@@ -100,6 +101,7 @@ pub struct TrackingOverhead {
 }
 
 /// Internal performance tracker
+#[derive(Debug)]
 struct PerformanceTracker {
     allocation_times: Vec<Duration>,
     deallocation_times: Vec<Duration>,

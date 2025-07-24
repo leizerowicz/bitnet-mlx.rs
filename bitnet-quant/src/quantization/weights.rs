@@ -87,6 +87,58 @@ impl Default for WeightQuantizationConfig {
     }
 }
 
+impl WeightQuantizationConfig {
+    /// Create a BitNet-specific weight quantization configuration
+    pub fn bitnet() -> Self {
+        Self {
+            base: QuantizationConfig {
+                precision: QuantizationPrecision::OneFiveFiveBit,
+                strategy: QuantizationStrategy::Static,
+                per_channel: false,
+                clip_threshold: None,
+                qat_enabled: false,
+                calibration_size: None,
+            },
+            group_size: None,
+            normalize_weights: true,
+            outlier_threshold: 3.0,
+            learnable_scales: false,
+            block_size: None,
+            ternary_method: TernaryMethod::MeanThreshold,
+            custom_threshold_factor: Some(0.7),
+            packing_config: TernaryPackingConfig::default(),
+        }
+    }
+
+    /// Validate the weight quantization configuration
+    pub fn validate(&self) -> QuantizationResult<()> {
+        // Validate base configuration
+        if let Some(group_size) = self.group_size {
+            if group_size == 0 {
+                return Err(QuantizationError::ConfigurationError("Group size cannot be zero".to_string()));
+            }
+        }
+
+        if let Some(block_size) = self.block_size {
+            if block_size == 0 {
+                return Err(QuantizationError::ConfigurationError("Block size cannot be zero".to_string()));
+            }
+        }
+
+        if self.outlier_threshold < 0.0 {
+            return Err(QuantizationError::ConfigurationError("Outlier threshold cannot be negative".to_string()));
+        }
+
+        if let Some(factor) = self.custom_threshold_factor {
+            if factor <= 0.0 || factor > 2.0 {
+                return Err(QuantizationError::ConfigurationError("Custom threshold factor must be in range (0, 2]".to_string()));
+            }
+        }
+
+        Ok(())
+    }
+}
+
 /// Quantized weight representation
 #[derive(Debug, Clone)]
 pub struct QuantizedWeight {
@@ -598,13 +650,16 @@ impl WeightQuantizer for BitNetWeightQuantizer {
 }
 
 /// Factory function to create weight quantizers
-pub fn create_weight_quantizer(config: WeightQuantizationConfig) -> Box<dyn WeightQuantizer> {
+pub fn create_weight_quantizer(config: WeightQuantizationConfig) -> QuantizationResult<Box<dyn WeightQuantizer>> {
+    // Validate configuration first
+    config.validate()?;
+    
     let device = Device::Cpu; // Default to CPU, can be configured
-    Box::new(BitNetWeightQuantizer::new(config, device))
+    Ok(Box::new(BitNetWeightQuantizer::new(config, device)))
 }
 
 /// Create a ternary weight quantizer with specific method
-pub fn create_ternary_quantizer(method: TernaryMethod, custom_threshold: Option<f32>) -> Box<dyn WeightQuantizer> {
+pub fn create_ternary_quantizer(method: TernaryMethod, custom_threshold: Option<f32>) -> QuantizationResult<Box<dyn WeightQuantizer>> {
     let mut config = WeightQuantizationConfig::default();
     config.ternary_method = method;
     config.custom_threshold_factor = custom_threshold;
@@ -870,7 +925,7 @@ mod tests {
 
     #[test]
     fn test_create_ternary_quantizer() {
-        let quantizer = create_ternary_quantizer(TernaryMethod::OptimalThreshold, Some(0.6));
+        let quantizer = create_ternary_quantizer(TernaryMethod::OptimalThreshold, Some(0.6)).unwrap();
         assert_eq!(quantizer.config().ternary_method, TernaryMethod::OptimalThreshold);
         assert_eq!(quantizer.config().custom_threshold_factor, Some(0.6));
     }
