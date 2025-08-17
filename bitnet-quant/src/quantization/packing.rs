@@ -4,7 +4,7 @@
 //! {-1, 0, +1} to minimize memory usage and optimize access patterns.
 
 use super::utils::{QuantizationError, BitUtils};
-use candle_core::{Tensor, Result as CandleResult, DType, Device, Shape};
+use candle_core::{Tensor, Device, Shape};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

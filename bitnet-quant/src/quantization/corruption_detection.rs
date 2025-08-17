@@ -4,7 +4,7 @@
 //! for packed ternary weight data, including integrity validation, checksum
 //! verification, and recovery mechanisms.
 
-use super::packing::{PackedTernaryWeights, TernaryPackingStrategy, PackingMetadata};
+use super::packing::{PackedTernaryWeights, TernaryPackingStrategy};
 use super::utils::QuantizationError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

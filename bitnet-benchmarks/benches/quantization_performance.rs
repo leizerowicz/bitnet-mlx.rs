@@ -4,7 +4,7 @@
 //! quantization schemes used in BitNet implementations.
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use candle_core::{Tensor, Device, DType};
+use candle_core::{Tensor, Device};
 use std::time::Duration;
 use serde::{Serialize, Deserialize};
 

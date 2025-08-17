@@ -3,9 +3,8 @@
 //! This module provides common utilities, error types, and helper functions
 //! used throughout the quantization system.
 
-use candle_core::{Tensor, Result as CandleResult, DType, Device, Shape};
+use candle_core::{Tensor, DType, Device, Shape};
 use serde::{Deserialize, Serialize};
-use std::fmt;
 use thiserror::Error;
 
 /// Errors that can occur during quantization operations

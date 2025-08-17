@@ -4,24 +4,22 @@
 //! capabilities with the existing quantization configuration system.
 
 use super::{
-    QuantizationPrecision, QuantizationStrategy, QuantizationConfig,
-    weights::{WeightQuantizationConfig, TernaryMethod},
-    activations::ActivationQuantizationConfig,
+    QuantizationPrecision, QuantizationStrategy,
+    weights::TernaryMethod,
     config::{
         QuantizationConfig as EnhancedQuantizationConfig,
         WeightQuantizationConfig as EnhancedWeightQuantizationConfig,
         ActivationQuantizationConfig as EnhancedActivationQuantizationConfig,
-        PackingConfig, SimdConfig, ConfigValidationError,
+        PackingConfig,
     },
     precision_control::{
         PrecisionControlConfig, PrecisionBounds, DynamicAdjustmentConfig,
         PrecisionMonitoringConfig, PrecisionValidationConfig, PerformanceThresholds,
-        AdjustmentStrategy, PrecisionMetric, AlertThresholds,
+        AdjustmentStrategy,
     },
     QuantizationResult, QuantizationError,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Enhanced quantization configuration builder with precision control
 #[derive(Debug, Default)]

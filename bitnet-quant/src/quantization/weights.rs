@@ -4,11 +4,10 @@
 //! focusing on the 1.58-bit quantization scheme used in BitNet.
 
 use super::{Quantizer, QuantizationConfig, QuantizationStats, QuantizationResult, QuantizationPrecision, QuantizationStrategy};
-use crate::quantization::utils::{QuantizationError, ScalingFactor};
-use crate::quantization::packing::{TernaryPackingStrategy, TernaryPackingConfig, PackedTernaryWeights, TernaryPackerFactory, packing_utils};
-use candle_core::{Tensor, Result as CandleResult, DType, Device, Shape};
+use crate::quantization::utils::QuantizationError;
+use crate::quantization::packing::{TernaryPackingConfig, PackedTernaryWeights, TernaryPackerFactory, packing_utils};
+use candle_core::{Tensor, DType, Device, Shape};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Ternary quantization methods for different use cases
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -584,10 +583,17 @@ impl WeightQuantizer for BitNetWeightQuantizer {
     }
 
     fn normalize_before_quantize(&self, weights: &Tensor) -> QuantizationResult<Tensor> {
-        // Layer normalization or other normalization schemes
-        let mean = weights.mean_keepdim(weights.rank() - 1)?;
-        let variance = weights.var_keepdim(weights.rank() - 1)?;
-        let normalized = weights.sub(&mean)?.div(&(variance.sqrt()? + 1e-8)?)?;
+        // Global normalization to avoid shape issues
+        let mean_scalar = weights.mean_all()?.to_scalar::<f32>()?;
+        let mean_tensor = Tensor::new(mean_scalar, weights.device())?.broadcast_as(weights.shape())?;
+        
+        // Compute variance manually
+        let diff = weights.sub(&mean_tensor)?;
+        let var_scalar = diff.sqr()?.mean_all()?.to_scalar::<f32>()?;
+        let std_scalar = (var_scalar + 1e-8f32).sqrt();
+        let std_tensor = Tensor::new(std_scalar, weights.device())?.broadcast_as(weights.shape())?;
+        
+        let normalized = weights.sub(&mean_tensor)?.div(&std_tensor)?;
         Ok(normalized)
     }
 

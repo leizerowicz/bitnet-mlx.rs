@@ -3,7 +3,7 @@
 //! This module provides validation utilities for mixed precision configurations,
 //! ensuring compatibility and correctness of precision settings.
 
-use super::{LayerType, ComponentType, MixedPrecisionError, MixedPrecisionResult};
+use super::{LayerType, MixedPrecisionError, MixedPrecisionResult};
 use super::layer_precision::LayerPrecisionSpec;
 use crate::memory::tensor::BitNetDType;
 use serde::{Deserialize, Serialize};

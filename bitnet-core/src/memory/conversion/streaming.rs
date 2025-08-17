@@ -8,11 +8,10 @@ use crate::memory::conversion::{
     config::StreamingConfig
 };
 use crate::memory::tensor::{BitNetTensor, BitNetDType};
-use crate::memory::{HybridMemoryPool, MemoryHandle};
-use candle_core::Device;
-use std::sync::{Arc, Mutex};
+use crate::memory::HybridMemoryPool;
+use std::sync::Arc;
 use std::thread;
-use crossbeam_channel::{bounded, Receiver, Sender};
+use crossbeam_channel::bounded;
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, info, warn};

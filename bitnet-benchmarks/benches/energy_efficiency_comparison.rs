@@ -4,7 +4,7 @@
 //! between different devices and operations for BitNet implementations.
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use candle_core::{Tensor, Device, DType};
+use candle_core::{Tensor, Device};
 use std::time::{Duration, Instant};
 use serde::{Serialize, Deserialize};
 

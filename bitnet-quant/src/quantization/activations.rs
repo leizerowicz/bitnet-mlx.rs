@@ -4,8 +4,8 @@
 //! including dynamic quantization and calibration-based approaches.
 
 use super::{Quantizer, QuantizationConfig, QuantizationStats, QuantizationResult, QuantizationPrecision, QuantizationStrategy, CalibrationQuantizer};
-use crate::quantization::utils::{QuantizationError, ScalingFactor};
-use candle_core::{Tensor, Result as CandleResult, DType, Device, Shape};
+use crate::quantization::utils::QuantizationError;
+use candle_core::{Tensor, DType, Device, Shape};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 

@@ -5,12 +5,11 @@
 
 use crate::memory::conversion::{
     ConversionResult, ConversionError, ConversionContext, Converter, ConversionStrategy,
-    ZeroCopyConverter, StreamingConverter, InPlaceConverter, BatchConverter,
+    ZeroCopyConverter, StreamingConverter, InPlaceConverter,
     config::ConversionConfig
 };
 use crate::memory::tensor::{BitNetTensor, BitNetDType};
-use crate::memory::{HybridMemoryPool, MemoryHandle};
-use candle_core::Device;
+use crate::memory::HybridMemoryPool;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex, RwLock};
 

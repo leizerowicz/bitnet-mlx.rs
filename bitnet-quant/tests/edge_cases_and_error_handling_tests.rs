@@ -11,12 +11,11 @@
 
 use bitnet_quant::quantization::*;
 use bitnet_quant::quantization::{
-    weights::*, activations::*, mixed_precision::*, precision_control::*,
-    packing::*, simd_unpacking::*, corruption_detection::*,
+    weights::*, activations::*, mixed_precision::*,
+    packing::*,
 };
 use candle_core::{Tensor, Device, DType, Shape};
 use std::time::Duration;
-use std::collections::HashMap;
 
 /// Test boundary values and extreme inputs
 #[cfg(test)]

@@ -36,11 +36,18 @@
 //! - [`quantization::utils`]: Utilities and helper functions
 
 pub mod quantization;
+pub mod bitlinear;
+pub mod simd;
 
 // Re-export commonly used items for convenience
 pub use quantization::{
     QuantizationPrecision, QuantizationStrategy, QuantizationConfig,
     QuantizationStats, QuantizationResult, Quantizer, QuantizerFactory,
+};
+
+pub use bitlinear::{
+    BitLinear, BitLinearConfig, BitLinearForward, BitLinearError, BitLinearResult,
+    QuantizedWeightCache, CacheEntry, CacheConfig,
 };
 
 pub use quantization::weights::{

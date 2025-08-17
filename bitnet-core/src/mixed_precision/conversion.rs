@@ -6,7 +6,7 @@
 use super::{MixedPrecisionError, MixedPrecisionResult};
 use crate::memory::tensor::{BitNetDType, BitNetTensor};
 use crate::memory::HybridMemoryPool;
-use candle_core::{Tensor, Device, DType};
+use candle_core::Tensor;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -207,7 +207,7 @@ impl PrecisionConverter {
             })?;
 
         // Create new BitNet tensor
-        let mut converted_tensor = BitNetTensor::from_candle(converted_candle, &self.memory_pool)
+        let converted_tensor = BitNetTensor::from_candle(converted_candle, &self.memory_pool)
             .map_err(|e| MixedPrecisionError::ConversionError {
                 from: tensor.dtype(),
                 to: target_precision,

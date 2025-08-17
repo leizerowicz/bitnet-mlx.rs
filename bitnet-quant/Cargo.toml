@@ -1,6 +1,6 @@
 [package]
 name = "bitnet-quant"
-version = "0.2.2"
+version = "0.2.3"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -18,6 +18,32 @@ qat = ["bitnet-core/tracing"]
 calibration = ["dep:rand"]
 # Enable advanced quantization methods
 advanced = ["dep:statrs"]
+# Enable tracing support
+tracing = ["dep:tracing"]
+# Enable SIMD optimizations
+simd = []
+# Enable AVX2 optimizations (x86/x86_64)
+avx2 = ["simd"]
+# Enable AVX-512 optimizations (x86/x86_64)
+avx512 = ["simd", "avx2"]
+# Enable NEON optimizations (ARM/AArch64)
+neon = ["simd"]
+# Enable SVE optimizations (ARM/AArch64)
+sve = ["simd", "neon"]
+# Enable all SIMD optimizations
+simd-all = ["simd", "avx2", "avx512", "neon", "sve"]
+# Enable memory optimization features
+memory-optimization = ["simd"]
+# Enable phase 2 features (BitLinear layer)
+phase-2 = ["simd", "memory-optimization"]
+# Enable bitlinear integration features
+bitlinear-integration = ["phase-2"]
+# Enable complete bitlinear features
+bitlinear-complete = ["bitlinear-integration", "simd-all"]
+# Enable thread safety tests
+thread-safety-tests = []
+# Enable memory profiling features
+memory-profiling = ["tracing"]
 
 [dependencies]
 bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.3.0" }
@@ -40,6 +66,7 @@ nalgebra = "0.32"
 # Optional dependencies
 rand = { version = "0.8", optional = true }
 statrs = { version = "0.16", optional = true }
+tracing = { workspace = true, optional = true }
 
 [dev-dependencies]
 criterion.workspace = true

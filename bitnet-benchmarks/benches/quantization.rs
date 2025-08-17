@@ -1,7 +1,6 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{criterion_group, criterion_main, Criterion};
 // Note: quantization module is not yet implemented in bitnet-core
 // use bitnet_core::quantization::*;
-use candle_core::{Tensor, Device};
 
 // TODO: Implement quantization benchmarks once the quantization module is available
 fn bench_quantization(_c: &mut Criterion) {

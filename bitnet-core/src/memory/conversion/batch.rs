@@ -4,14 +4,14 @@
 //! optimizing memory usage and processing through grouping and parallel execution.
 
 use crate::memory::conversion::{
-    ConversionResult, ConversionError, ConversionContext, Converter, ConversionStrategy,
+    ConversionResult, ConversionError, ConversionContext, Converter,
     config::BatchConfig, ZeroCopyConverter, StreamingConverter, InPlaceConverter
 };
 use crate::memory::tensor::{BitNetTensor, BitNetDType};
 use crate::memory::HybridMemoryPool;
 use candle_core::Device;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 use crossbeam_channel::bounded;
 

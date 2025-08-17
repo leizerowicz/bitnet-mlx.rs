@@ -9,12 +9,11 @@ use super::{
     truncation::{truncate_sequence, TruncationOptions},
     masking::create_attention_mask,
     batching::{SequenceBatch, BatchProcessor},
-    validation::{validate_sequence_length, SequenceValidator},
+    validation::SequenceValidator,
     statistics::{SequenceStats, analyze_sequence_lengths},
     ProcessedSequence, SequenceError, SequenceResult,
 };
 use anyhow::Result;
-use std::collections::HashMap;
 
 /// Main sequence manager for processing variable-length sequences
 #[derive(Debug, Clone)]

@@ -4,16 +4,15 @@
 //! managing precision policies, conversions, and optimization across the entire model.
 
 use super::{
-    LayerType, ComponentType, MixedPrecisionStrategy, MixedPrecisionError, MixedPrecisionResult,
-    config::{MixedPrecisionConfig, LayerPrecisionConfig, ComponentPrecisionConfig},
+    ComponentType, MixedPrecisionError, MixedPrecisionResult,
+    config::MixedPrecisionConfig,
     layer_precision::{LayerPrecisionManager, LayerPrecisionSpec},
     conversion::{PrecisionConverter, ConversionConfig, ConversionStrategy},
-    validation::{PrecisionValidator, ValidationRule},
-    policy::{PrecisionPolicy, PolicyEngine},
+    validation::PrecisionValidator,
+    policy::PolicyEngine,
 };
 use crate::memory::tensor::{BitNetDType, BitNetTensor};
 use crate::memory::HybridMemoryPool;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, Mutex};
 

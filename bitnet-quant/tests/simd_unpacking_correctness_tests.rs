@@ -10,7 +10,6 @@
 
 use bitnet_quant::quantization::simd_unpacking::*;
 use bitnet_quant::quantization::packing::*;
-use bitnet_quant::quantization::utils::QuantizationError;
 
 /// Test SIMD capability detection
 #[cfg(test)]

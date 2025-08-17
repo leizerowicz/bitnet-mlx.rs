@@ -4,8 +4,8 @@
 //! to operate with different precision levels while maintaining compatibility.
 
 use super::{LayerType, ComponentType, MixedPrecisionError, MixedPrecisionResult};
-use super::config::{LayerPrecisionConfig, ComponentPrecisionConfig};
-use crate::memory::tensor::{BitNetDType, BitNetTensor};
+use super::config::LayerPrecisionConfig;
+use crate::memory::tensor::BitNetDType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};

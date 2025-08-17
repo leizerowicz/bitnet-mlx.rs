@@ -4,11 +4,7 @@
 //! in BitNet for efficiently storing ternary weights.
 
 use bitnet_quant::quantization::packing::{
-    TernaryPackingStrategy, TernaryPackingConfig, TernaryPackerFactory,
-    PackingSavingsEstimate, packing_utils,
-};
-use bitnet_quant::quantization::weights::{
-    WeightQuantizationConfig, absmean_quantize_weights,
+    TernaryPackingStrategy, TernaryPackingConfig, TernaryPackerFactory, packing_utils,
 };
 use candle_core::{Tensor, Device};
 use std::collections::HashMap;

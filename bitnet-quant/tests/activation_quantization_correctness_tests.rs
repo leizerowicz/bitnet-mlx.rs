@@ -5,10 +5,9 @@
 //! BitNet-specific activation quantization algorithms.
 
 use bitnet_quant::quantization::activations::*;
-use bitnet_quant::quantization::{QuantizationPrecision, QuantizationConfig, QuantizationStrategy, QuantizationStats, Quantizer, CalibrationQuantizer};
-use bitnet_quant::quantization::utils::QuantizationError;
+use bitnet_quant::quantization::{QuantizationPrecision, QuantizationStrategy, Quantizer, CalibrationQuantizer};
 use candle_core::{Device, Tensor, DType, Shape};
-use approx::{assert_relative_eq, assert_abs_diff_eq};
+use approx::assert_abs_diff_eq;
 
 /// Test helper to create activation tensors with specific characteristics
 fn create_activation_tensor(device: &Device, pattern: &str, shape: &[usize]) -> Tensor {
@@ -43,7 +42,7 @@ fn create_activation_tensor(device: &Device, pattern: &str, shape: &[usize]) -> 
         }
         "sparse_activations" => {
             (0..total_elements).map(|i| {
-                if i % 5 == 0 { (i as f32 * 0.1) } else { 0.0 }
+                if i % 5 == 0 { i as f32 * 0.1 } else { 0.0 }
             }).collect()
         }
         "outlier_activations" => {

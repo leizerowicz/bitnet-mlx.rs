@@ -4,7 +4,6 @@
 //! between MLX (Apple Silicon optimized) and Candle (cross-platform) backends.
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use bitnet_core::tensor::{create_tensor_f32, zeros, ones};
 use candle_core::{Tensor, Device, DType};
 use std::time::Duration;
 

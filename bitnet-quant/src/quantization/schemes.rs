@@ -7,9 +7,9 @@ use super::{
     Quantizer, QuantizationConfig, QuantizationStats, QuantizationResult, 
     QuantizationPrecision, QuantizationStrategy
 };
-use crate::quantization::utils::{QuantizationError, ScalingFactor};
-use crate::quantization::weights::{WeightQuantizationConfig, QuantizedWeight, TernaryMethod};
-use candle_core::{Tensor, Result as CandleResult, DType, Device, Shape};
+use crate::quantization::utils::QuantizationError;
+use crate::quantization::weights::TernaryMethod;
+use candle_core::{Tensor, DType, Device, Shape};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 

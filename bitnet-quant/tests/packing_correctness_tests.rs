@@ -4,13 +4,11 @@
 //! corruption detection, integrity verification, validation, and edge cases.
 
 use bitnet_quant::quantization::packing::{
-    TernaryPackingStrategy, TernaryPackingConfig, TernaryPackerFactory,
-    UncompressedPacker, BitPacked2BitPacker, Base3PackedPacker,
+    TernaryPackingStrategy, TernaryPackingConfig, TernaryPackerFactory, BitPacked2BitPacker, Base3PackedPacker,
     ByteAlignedPacker, RunLengthEncodedPacker, CompressedSparsePacker,
-    HybridPacker, TernaryPacker, packing_utils, PackingMetadata,
+    HybridPacker, TernaryPacker, packing_utils,
 };
-use bitnet_quant::quantization::utils::QuantizationError;
-use candle_core::{Device, Tensor, DType, Shape};
+use candle_core::{Device, Tensor, Shape};
 use approx::assert_abs_diff_eq;
 
 /// Test helper to create test weights with specific patterns

@@ -12,7 +12,7 @@ use crate::memory::conversion::{
 use crate::memory::tensor::{BitNetTensor, BitNetDType};
 use crate::memory::HybridMemoryPool;
 use candle_core::Device;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::Instant;
 
 #[cfg(feature = "tracing")]

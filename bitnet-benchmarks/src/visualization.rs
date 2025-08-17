@@ -7,7 +7,6 @@ use crate::comparison::{PerformanceMeasurement, ComparisonResult};
 use anyhow::Result;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-use std::time::Duration;
 
 /// Chart configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -674,7 +673,7 @@ impl PerformanceExporter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::SystemTime;
+    use std::time::{SystemTime, Duration};
 
     #[test]
     fn test_chart_config_default() {

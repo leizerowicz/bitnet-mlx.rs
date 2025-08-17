@@ -4,7 +4,6 @@
 //! reports, severity levels, and structured output for debugging and logging.
 
 use std::fmt;
-use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use super::{BitNetError, BitNetErrorKind, ErrorContext};
 
@@ -137,7 +136,7 @@ impl ErrorReport {
         let timestamp_human = format_timestamp(timestamp);
         
         let (category, suggestions, technical_details) = match &error.kind() {
-            BitNetErrorKind::Device { device_type, .. } => {
+            BitNetErrorKind::Device {  .. } => {
                 let suggestions = vec![
                     "Check device availability and drivers".to_string(),
                     "Verify device compatibility".to_string(),
@@ -174,7 +173,7 @@ impl ErrorReport {
                 };
                 ("Memory".to_string(), suggestions, technical_details)
             }
-            BitNetErrorKind::Tensor { shape, dtype, .. } => {
+            BitNetErrorKind::Tensor {   .. } => {
                 let suggestions = vec![
                     "Verify tensor dimensions and data types".to_string(),
                     "Check input data compatibility".to_string(),

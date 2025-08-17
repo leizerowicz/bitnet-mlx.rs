@@ -12,7 +12,6 @@ pub mod policy;
 
 use crate::memory::tensor::BitNetDType;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use thiserror::Error;
 
 /// Errors that can occur during mixed precision operations

@@ -4,7 +4,7 @@
 //! for both 1-bit and 1.58-bit quantization with various configuration options.
 
 use bitnet_quant::prelude::*;
-use candle_core::{Device, Tensor, DType};
+use candle_core::{Device, Tensor};
 use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

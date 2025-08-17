@@ -3,10 +3,8 @@
 //! This module provides enhanced error handling with detailed context,
 //! better error formatting, and improved debugging information.
 
-use std::collections::HashMap;
 use std::fmt;
 use std::time::{SystemTime, UNIX_EPOCH};
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 pub mod context;

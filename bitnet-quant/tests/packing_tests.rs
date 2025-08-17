@@ -6,7 +6,6 @@ use bitnet_quant::quantization::packing::{
     ByteAlignedPacker, RunLengthEncodedPacker, CompressedSparsePacker,
     HybridPacker, TernaryPacker, packing_utils,
 };
-use bitnet_quant::quantization::utils::QuantizationError;
 
 #[test]
 fn test_uncompressed_packer_basic() {

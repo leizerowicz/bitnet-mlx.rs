@@ -6,7 +6,6 @@
 use super::{
     SequenceConfig,
     manager::SequenceManager,
-    batching::SequenceBatch,
     ProcessedSequence, SequenceResult,
 };
 use crate::tokenizer::{Tokenizer, encode_text, encode_batch, decode_tokens};

@@ -8,8 +8,8 @@ use crate::memory::tensor::BitNetDType;
 use candle_core::Device;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock, Mutex};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::sync::{Arc, RwLock};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, info, warn};

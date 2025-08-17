@@ -4,7 +4,7 @@
 //! and continuous performance monitoring for BitNet operations.
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use candle_core::{Tensor, Device, DType};
+use candle_core::{Tensor, Device};
 use std::time::{Duration, Instant};
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};

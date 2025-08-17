@@ -4,7 +4,6 @@
 //! MLX vs Candle performance benchmarks with detailed metrics and reporting.
 
 use std::fs;
-use std::path::Path;
 use std::time::Instant;
 use clap::{Parser, Subcommand};
 use serde_json;
@@ -402,6 +401,7 @@ pub fn run_cli() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
 
     #[test]
     fn test_benchmark_runner_creation() {

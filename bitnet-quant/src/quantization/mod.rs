@@ -15,7 +15,6 @@ pub mod schemes;
 pub mod precision_control;
 pub mod enhanced_config;
 
-use candle_core::{Tensor, Result as CandleResult, DType};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 

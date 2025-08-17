@@ -4,13 +4,10 @@
 //! including dynamic precision adjustment, precision bounds validation, and precision monitoring.
 
 use super::{
-    QuantizationPrecision, QuantizationStrategy, QuantizationConfig, QuantizationStats,
+    QuantizationPrecision, QuantizationStats,
     QuantizationResult, QuantizationError,
-    weights::{WeightQuantizationConfig, TernaryMethod},
-    activations::ActivationQuantizationConfig,
-    utils::QuantizationUtils,
 };
-use candle_core::{Tensor, Device, DType};
+use candle_core::Device;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};

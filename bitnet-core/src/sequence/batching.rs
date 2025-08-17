@@ -4,14 +4,11 @@
 //! sequences with dynamic padding and memory optimization.
 
 use super::{
-    SequenceConfig, PaddingStrategy,
-    padding::{pad_sequences_to_length, PaddingStats},
-    masking::{create_batch_attention_masks, AttentionMaskType},
-    statistics::SequenceStats,
-    ProcessedSequence, SequenceError, SequenceResult,
+    SequenceConfig,
+    padding::pad_sequences_to_length,
+    ProcessedSequence, SequenceResult,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// A batch of processed sequences with uniform length
 #[derive(Debug, Clone, Serialize, Deserialize)]

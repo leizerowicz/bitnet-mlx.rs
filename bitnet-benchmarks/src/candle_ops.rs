@@ -4,7 +4,6 @@
 //! that can be compared against MLX equivalents.
 
 use candle_core::{Tensor, Device, DType, Result};
-use anyhow::anyhow;
 
 /// Candle-based operations for BitNet benchmarking
 pub struct CandleOps;
@@ -76,12 +75,12 @@ impl CandleOps {
 
     /// Element-wise addition
     pub fn add(a: &Tensor, b: &Tensor) -> Result<Tensor> {
-        (a + b)
+        a + b
     }
 
     /// Element-wise multiplication
     pub fn multiply(a: &Tensor, b: &Tensor) -> Result<Tensor> {
-        (a * b)
+        a * b
     }
 
     /// Create causal mask for attention

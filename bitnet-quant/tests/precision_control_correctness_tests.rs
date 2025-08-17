@@ -9,10 +9,9 @@
 //! - Recovery mechanisms and stability control
 
 use bitnet_quant::quantization::precision_control::*;
-use bitnet_quant::quantization::{QuantizationPrecision, QuantizationStats, QuantizationError};
+use bitnet_quant::quantization::{QuantizationPrecision, QuantizationStats};
 use candle_core::Device;
 use std::time::Duration;
-use std::collections::HashMap;
 
 /// Helper functions for tests
 fn create_test_controller() -> PrecisionController {

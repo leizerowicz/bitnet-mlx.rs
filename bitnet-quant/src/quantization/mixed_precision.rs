@@ -4,19 +4,18 @@
 //! providing seamless precision-aware quantization operations.
 
 use super::{
-    QuantizationPrecision, QuantizationStrategy, QuantizationConfig, QuantizationStats,
+    QuantizationPrecision, QuantizationStats,
     QuantizationResult, Quantizer, QuantizationError,
-    weights::{WeightQuantizer, WeightQuantizationConfig, QuantizedWeight, TernaryMethod},
+    weights::{WeightQuantizer, WeightQuantizationConfig, QuantizedWeight},
     activations::{ActivationQuantizer, ActivationQuantizationConfig, QuantizedActivation},
 };
 use bitnet_core::mixed_precision::{
-    MixedPrecisionConfig, LayerPrecisionConfig, ComponentPrecisionConfig,
-    LayerType, ComponentType, MixedPrecisionStrategy, MixedPrecisionError,
+    MixedPrecisionConfig, ComponentType, MixedPrecisionStrategy,
     PrecisionManager, LayerPrecisionSpec, PrecisionConverter,
     conversion::ConversionConfig,
 };
 use bitnet_core::memory::tensor::{BitNetDType, BitNetTensor};
-use candle_core::{Tensor, Device};
+use candle_core::Device;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
