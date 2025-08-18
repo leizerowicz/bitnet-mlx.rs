@@ -4,17 +4,16 @@
 [![Documentation](https://docs.rs/bitnet-quant/badge.svg)](https://docs.rs/bitnet-quant)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 
-The quantization engine for BitNet neural networks, implementing 1.58-bit quantization algorithms, calibration utilities, and **Phase 2: BitLinear layer implementation (currently active)**. Features advanced precision control, SIMD acceleration, and comprehensive configuration management optimized for extreme compression while maintaining model accuracy.
+The quantization engine for BitNet neural networks, implementing 1.58-bit quantization algorithms, calibration utilities, and **Phase 3: Calibration System implementation (currently active)**. Features advanced precision control, SIMD acceleration, comprehensive configuration management, and **streaming calibration infrastructure for large-scale datasets** optimized for extreme compression while maintaining model accuracy.
 
 ## 🎯 Purpose & Current Development Status
 
-`bitnet-quant` provides the core quantization functionality for BitNet models with **Phase 2: BitLinear layer implementation currently in active development**:
+`bitnet-quant` provides the core quantization functionality for BitNet models with **Phase 3: Calibration System implementation currently in active development**:
 
 ### ✅ **Quantization Infrastructure** (Feature Complete)
 - **1.58-bit Quantization**: Implementation of the novel 1.58-bit quantization scheme
 - **Weight Quantization**: Efficient algorithms for quantizing neural network weights
 - **Activation Quantization**: Runtime quantization of activations and intermediate values
-- **Calibration Utilities**: Tools for determining optimal quantization parameters
 - **Dequantization**: Fast dequantization for computation and inference
 - **Advanced Precision Control**: Dynamic precision adjustment and monitoring
 - **Enhanced Configuration System**: Comprehensive configuration builders with validation
@@ -23,18 +22,27 @@ The quantization engine for BitNet neural networks, implementing 1.58-bit quanti
 - **Configuration Presets**: Pre-configured settings for different use cases
 - **Real-time Monitoring**: Performance and quality metrics tracking
 
-### 🎯 **BitLinear Layer Implementation** (Phase 2 - Active Development)
-- **Core BitLinear Architecture**: Fundamental BitLinear struct and operations (in progress)
-- **Forward/Backward Pass**: Quantized matrix operations with straight-through estimator (in development)
-- **SIMD Optimization**: Vectorized ternary operations for ARM NEON and x86 AVX (planned)
-- **Memory Optimization**: Lazy quantization and efficient weight caching (planned)
-- **Performance Validation**: Integration with bitnet-benchmarks for comprehensive testing (planned)
-- **Thread Safety**: Multi-threading support and concurrent operations (planned)
-- **Device Integration**: Seamless integration with bitnet-core's device abstraction (planned)
+### ✅ **BitLinear Layer Implementation** (Phase 2 - Complete)
+- **Core BitLinear Architecture**: ✅ Complete - fundamental BitLinear struct and operations
+- **Forward/Backward Pass**: ✅ Complete - quantized matrix operations with straight-through estimator
+- **SIMD Optimization**: ✅ Complete - vectorized ternary operations for ARM NEON and x86 AVX
+- **Memory Optimization**: ✅ Complete - lazy quantization and efficient weight caching
+- **Performance Validation**: ✅ Complete - integration with bitnet-benchmarks comprehensive testing
+- **Thread Safety**: ✅ Complete - multi-threading support and concurrent operations
+- **Device Integration**: ✅ Complete - seamless integration with bitnet-core's device abstraction
+
+### 🎯 **Calibration System Implementation** (Phase 3 - Active Development)
+- **Streaming Dataset Processing**: Memory-efficient processing of large calibration datasets (in progress)
+- **Activation Statistics Collection**: Real-time collection of layer-wise activation statistics (in progress)
+- **Histogram-Based Optimization**: Optimal quantization parameter determination from data distribution (planned)
+- **Representative Sampling**: Intelligent sampling strategies for calibration efficiency (planned)
+- **Statistics Persistence**: Save/load calibration statistics for reuse across experiments (planned)
+- **Memory-Efficient Processing**: Stream datasets larger than available memory (planned)
+- **Integration with QAT**: Seamless integration with quantization-aware training workflows (planned)
 
 ## ✅ Advanced Features (Quantization Infrastructure Complete)
 
-🎉 **The crate includes comprehensive quantization infrastructure (✅ complete) and Phase 2 BitLinear implementation (🎯 in active development)!**
+🎉 **The crate includes comprehensive quantization infrastructure (✅ complete), BitLinear layer implementation (✅ Phase 2 complete), and Phase 3 Calibration System (🎯 in active development)!**
 
 ### ✅ Enhanced Configuration System (Complete)
 
@@ -68,36 +76,38 @@ The quantization engine for BitNet neural networks, implementing 1.58-bit quanti
 - **Thread Safety**: Concurrent operations support for multi-threaded inference
 - **Performance Targets**: 2-5x faster than full-precision with 50-70% memory reduction
 
-## 🎯 Phase 2 Development Status & Timeline
+## 🎯 Phase 3 Development Status & Timeline
 
-### Current Implementation Progress
+### Current Calibration System Implementation Progress
 
 | Component | Status | Progress | Target Completion |
 |-----------|--------|----------|------------------|
-| **BitLinear Core Struct** | 🔄 In Progress | 25% | Week 3 |
-| **Forward Pass Implementation** | ⏳ Planned | 0% | Week 3 |
-| **Backward Pass & Gradients** | ⏳ Planned | 0% | Week 3-4 |
-| **SIMD Optimization** | ⏳ Planned | 0% | Week 4 |
-| **Memory Optimization** | ⏳ Planned | 0% | Week 4 |
-| **Performance Validation** | ⏳ Planned | 0% | Week 4 |
+| **Streaming Dataset Processing** | 🔄 In Progress | 35% | Week 5 |
+| **Activation Statistics Collection** | 🔄 In Progress | 25% | Week 5 |
+| **Histogram-Based Optimization** | ⏳ Planned | 0% | Week 5-6 |
+| **Representative Sampling** | ⏳ Planned | 0% | Week 6 |
+| **Statistics Persistence** | ⏳ Planned | 0% | Week 6 |
+| **Memory-Efficient Processing** | 🔄 In Progress | 30% | Week 5-6 |
 
-### Phase 2 Development Priorities
+### Phase 3 Development Priorities
 
-**Week 3 Focus:**
-- [ ] Complete BitLinear struct architecture
-- [ ] Implement forward pass with quantization
-- [ ] Create backward pass with straight-through estimator
-- [ ] Basic integration with bitnet-core memory system
+**Week 5 Focus (Current):**
+- [ ] Complete streaming calibration dataset processing system
+- [ ] Implement comprehensive activation statistics collection
+- [ ] Create memory-efficient large dataset handling
+- [ ] Basic histogram data collection and analysis
 
-**Week 4 Focus:**
-- [ ] SIMD vectorization for ternary operations
-- [ ] Memory optimization and caching systems
-- [ ] Thread safety implementation
-- [ ] Comprehensive performance testing
+**Week 6 Focus:**
+- [ ] Histogram-based quantization parameter optimization
+- [ ] Representative sampling strategies for efficiency
+- [ ] Statistics persistence and loading system
+- [ ] Integration with existing BitLinear layers and QAT system
 
 **Integration Targets:**
-- [ ] Seamless bitnet-core device abstraction integration
-- [ ] bitnet-benchmarks performance validation
+- [ ] Seamless bitnet-training QAT integration
+- [ ] bitnet-benchmarks calibration performance validation
+- [ ] Memory-efficient processing with existing memory pools
+- [ ] Device-aware calibration across CPU/GPU platforms
 - [ ] Ready for Phase 3 calibration framework
 
 ### ✅ Foundation Ready (Phase 1 Complete)

@@ -349,7 +349,7 @@ impl CleanupManager {
     }
 
     /// Performs cleanup on a specific device
-    pub fn cleanup_device(&self, _device: &Device) -> CleanupResult<CleanupOperationResult> {
+    pub fn cleanup_device(&self, device: &Device) -> CleanupResult<CleanupOperationResult> {
         #[cfg(feature = "tracing")]
         debug!("Performing device-specific cleanup for device: {:?}", device);
 
@@ -361,8 +361,8 @@ impl CleanupManager {
     pub fn cleanup_selective(
         &self,
         min_age: Option<Duration>,
-        _min_size: Option<usize>,
-        _device_filter: Option<&Device>,
+        min_size: Option<usize>,
+        device_filter: Option<&Device>,
     ) -> CleanupResult<CleanupOperationResult> {
         #[cfg(feature = "tracing")]
         debug!("Performing selective cleanup with filters - age: {:?}, size: {:?}, device: {:?}", 

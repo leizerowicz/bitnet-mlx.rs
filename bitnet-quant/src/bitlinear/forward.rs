@@ -62,16 +62,16 @@ impl BitLinearForward for BitLinear {
         
         if input_dims.is_empty() {
             return Err(BitLinearError::ShapeMismatch {
-                expected: Shape::from_dims(&[1, self.config().in_features]),
-                actual: input_shape.clone(),
+                expected: vec![1, self.config().in_features],
+                actual: input_shape.dims().to_vec(),
             });
         }
         
         let last_dim = input_dims[input_dims.len() - 1];
         if last_dim != self.config().in_features {
             return Err(BitLinearError::ShapeMismatch {
-                expected: Shape::from_dims(&[input_dims[0], self.config().in_features]),
-                actual: input_shape.clone(),
+                expected: vec![input_dims[0], self.config().in_features],
+                actual: input_shape.dims().to_vec(),
             });
         }
         
@@ -184,8 +184,8 @@ impl BitLinear {
                 .map_err(|e| BitLinearError::DeviceError(format!("Failed to reshape output back to 3D: {}", e)))?
         } else {
             return Err(BitLinearError::ShapeMismatch {
-                expected: candle_core::Shape::from_dims(&[1, self.config().in_features]),
-                actual: input_shape.clone(),
+                expected: vec![1, self.config().in_features],
+                actual: input_shape.dims().to_vec(),
             });
         };
 
@@ -240,16 +240,16 @@ impl BitLinear {
         
         if input_dims.len() < 2 {
             return Err(BitLinearError::ShapeMismatch {
-                expected: Shape::from_dims(&[1, 1, self.config().in_features]),
-                actual: input_shape.clone(),
+                expected: vec![1, 1, self.config().in_features],
+                actual: input_shape.dims().to_vec(),
             });
         }
         
         let last_dim = input_dims[input_dims.len() - 1];
         if last_dim != self.config().in_features {
             return Err(BitLinearError::ShapeMismatch {
-                expected: Shape::from_dims(&[input_dims[0], input_dims[1], self.config().in_features]),
-                actual: input_shape.clone(),
+                expected: vec![input_dims[0], input_dims[1], self.config().in_features],
+                actual: input_shape.dims().to_vec(),
             });
         }
         

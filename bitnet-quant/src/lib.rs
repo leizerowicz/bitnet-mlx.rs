@@ -38,6 +38,7 @@
 pub mod quantization;
 pub mod bitlinear;
 pub mod simd;
+pub mod calibration;
 
 // Re-export commonly used items for convenience
 pub use quantization::{

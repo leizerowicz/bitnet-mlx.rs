@@ -3,7 +3,7 @@
 //! This module provides the core BitLinear struct that implements a linear layer
 //! using 1.58-bit quantized weights while maintaining full-precision weights for training.
 
-use candle_core::{Device, DType, Shape, Tensor};
+use candle_core::{Device, Shape, Tensor};
 use bitnet_core::device::auto_select_device;
 use bitnet_core::memory::{HybridMemoryPool, MemoryResult};
 use crate::quantization::{
@@ -12,41 +12,11 @@ use crate::quantization::{
 };
 use crate::quantization::weights::BitNetWeightQuantizer;
 use crate::bitlinear::cache::{QuantizedWeightCache, CacheEntry};
+use crate::bitlinear::error::{BitLinearError, BitLinearResult};
+use crate::bitlinear::memory::{MemoryOptimizationConfig, AccessPattern, BitLinearMemoryOptimizer};
 use std::sync::{Arc, RwLock, Mutex};
-use thiserror::Error;
 
-/// Errors specific to BitLinear operations
-#[derive(Error, Debug)]
-pub enum BitLinearError {
-    /// Device operation failed
-    #[error("Device operation failed: {0}")]
-    DeviceError(String),
-    
-    /// Memory allocation failed
-    #[error("Memory allocation failed: {0}")]
-    MemoryError(String),
-    
-    /// Quantization failed
-    #[error("Quantization failed: {0}")]
-    QuantizationError(String),
-    
-    /// Shape mismatch in operations
-    #[error("Shape mismatch: expected {expected:?}, got {actual:?}")]
-    ShapeMismatch { expected: Shape, actual: Shape },
-    
-    /// Cache operation failed
-    #[error("Cache operation failed: {0}")]
-    CacheError(String),
-    
-    /// Configuration error
-    #[error("Configuration error: {0}")]
-    ConfigError(String),
-}
-
-/// Result type for BitLinear operations
-pub type BitLinearResult<T> = std::result::Result<T, BitLinearError>;
-
-/// Configuration for BitLinear layer
+/// Configuration for BitLinear layer with memory optimization support
 #[derive(Debug, Clone)]
 pub struct BitLinearConfig {
     /// Input features dimension
@@ -65,6 +35,14 @@ pub struct BitLinearConfig {
     pub memory_pool_size: Option<usize>,
     /// Device preference (None = auto-select)
     pub device: Option<Device>,
+    /// Memory optimization configuration
+    pub memory_optimization: MemoryOptimizationConfig,
+    /// Enable memory optimizations
+    pub enable_memory_optimization: bool,
+    /// Preferred memory access pattern
+    pub preferred_access_pattern: AccessPattern,
+    /// Enable cache-friendly tensor operations
+    pub enable_cache_friendly_ops: bool,
 }
 
 impl Default for BitLinearConfig {
@@ -74,21 +52,25 @@ impl Default for BitLinearConfig {
             out_features: 512,
             use_bias: false, // BitNet standard is bias-free
             weight_quantization: WeightQuantizationConfig {
-            base: QuantizationConfig {
-                precision: QuantizationPrecision::OneFiveFiveBit,
-                strategy: QuantizationStrategy::Static,
-                per_channel: false,
-                clip_threshold: None,
-                qat_enabled: false,
-                calibration_size: None,
+                base: QuantizationConfig {
+                    precision: QuantizationPrecision::OneFiveFiveBit,
+                    strategy: QuantizationStrategy::Static,
+                    per_channel: false,
+                    clip_threshold: None,
+                    qat_enabled: false,
+                    calibration_size: None,
+                },
+                ternary_method: TernaryMethod::MeanThreshold,
+                ..Default::default()
             },
-            ternary_method: TernaryMethod::MeanThreshold,
-            ..Default::default()
-        },
             enable_caching: true,
             cache_size_limit: Some(128), // Reasonable default
             memory_pool_size: Some(64 * 1024 * 1024), // 64MB default
             device: None, // Auto-select device
+            memory_optimization: MemoryOptimizationConfig::default(),
+            enable_memory_optimization: true,
+            preferred_access_pattern: AccessPattern::Sequential,
+            enable_cache_friendly_ops: true,
         }
     }
 }
@@ -117,6 +99,9 @@ pub struct BitLinear {
     /// Memory pool for tensor allocations
     memory_pool: Arc<HybridMemoryPool>,
     
+    /// Memory optimizer for advanced memory management
+    memory_optimizer: Option<Arc<Mutex<BitLinearMemoryOptimizer>>>,
+    
     /// Target device
     device: Device,
     
@@ -126,65 +111,57 @@ pub struct BitLinear {
 
 impl BitLinear {
     /// Create a new BitLinear layer with the given configuration
-    /// 
-    /// # Arguments
-    /// 
-    /// * `config` - BitLinear layer configuration
-    /// * `layer_name` - Optional name for the layer (for debugging/caching)
-    /// 
-    /// # Examples
-    /// 
-    /// ```rust
-    /// use bitnet_quant::bitlinear::{BitLinear, BitLinearConfig};
-    /// 
-    /// let config = BitLinearConfig {
-    ///     in_features: 768,
-    ///     out_features: 3072,
-    ///     ..Default::default()
-    /// };
-    /// 
-    /// let layer = BitLinear::new(config, "ffn_up".to_string())?;
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
-    /// ```
-    pub fn new(config: BitLinearConfig, layer_name: String) -> BitLinearResult<Self> {
-        // Auto-select device if not specified
-        let device = config.device.clone().unwrap_or_else(auto_select_device);
+    pub fn new(config: BitLinearConfig, layer_name: String) -> Result<Self, BitLinearError> {
+        // Select device (auto-select if none specified)
+        let device = if let Some(dev) = &config.device {
+            dev.clone()
+        } else {
+            Device::Cpu // Default fallback
+        };
         
-        // Create memory pool
-        let memory_pool = HybridMemoryPool::new()
-            .map_err(|e| BitLinearError::MemoryError(format!("Failed to create memory pool: {}", e)))?;
-        let memory_pool = Arc::new(memory_pool);
-        
-        // Initialize full-precision weights with Xavier initialization
-        let weight_shape = Shape::from_dims(&[config.out_features, config.in_features]);
-        let weights = Self::initialize_weights(&weight_shape, &device)?;
+        // Initialize full-precision weights
+        let weight_shape: Shape = (config.out_features, config.in_features).into();
+        let weights = Tensor::randn(0.0, 0.02, weight_shape, &device)?;
         let weights = Arc::new(RwLock::new(weights));
         
-        // Initialize bias if enabled (rare in BitNet)
+        // Initialize bias if enabled
         let bias = if config.use_bias {
-            let bias_shape = Shape::from_dims(&[config.out_features]);
-            let bias_tensor = Tensor::zeros(&bias_shape, DType::F32, &device)
-                .map_err(|e| BitLinearError::DeviceError(format!("Failed to create bias tensor: {}", e)))?;
+            let bias_shape: Shape = (config.out_features,).into();
+            let bias_tensor = Tensor::zeros(bias_shape, candle_core::DType::F32, &device)?;
             Some(Arc::new(RwLock::new(bias_tensor)))
         } else {
             None
         };
         
-        // Create weight quantizer
-        let quantizer = crate::quantization::weights::create_weight_quantizer(config.weight_quantization.clone())
-            .map_err(|e| BitLinearError::QuantizationError(format!("Failed to create quantizer: {}", e)))?;
-        let quantizer = Arc::new(Mutex::new(quantizer));
+        // Initialize quantizer
+        let quantizer = Arc::new(Mutex::new(Box::new(BitNetWeightQuantizer::new(
+            config.weight_quantization.clone(),
+            device.clone()
+        )) as Box<dyn WeightQuantizer>));
         
-        // Create quantized weight cache if enabled
+        // Initialize cache if enabled
         let cache = if config.enable_caching {
             let cache_config = crate::bitlinear::cache::CacheConfig {
                 max_entries: config.cache_size_limit.unwrap_or(128),
                 enable_lru_eviction: true,
                 enable_size_tracking: true,
             };
-            let cache = QuantizedWeightCache::new(cache_config)
-                .map_err(|e| BitLinearError::CacheError(format!("Failed to create cache: {}", e)))?;
-            Some(Arc::new(Mutex::new(cache)))
+            let cache_instance = QuantizedWeightCache::new(cache_config)?;
+            Some(Arc::new(Mutex::new(cache_instance)))
+        } else {
+            None
+        };
+        
+        // Initialize memory pool
+        let memory_pool = Arc::new(HybridMemoryPool::new()?);
+        
+        // Initialize memory optimizer if enabled
+        let memory_optimizer = if config.enable_memory_optimization {
+            Some(Arc::new(Mutex::new(BitLinearMemoryOptimizer::new(
+                config.memory_optimization.clone(),
+                memory_pool.clone(),
+                &device
+            )?)))
         } else {
             None
         };
@@ -196,6 +173,7 @@ impl BitLinear {
             quantizer,
             cache,
             memory_pool,
+            memory_optimizer,
             device,
             layer_name,
         })
@@ -259,7 +237,7 @@ impl BitLinear {
         // Try cache first if enabled
         if let Some(ref cache) = self.cache {
             let mut cache_guard = cache.lock()
-                .map_err(|_| BitLinearError::CacheError("Failed to acquire cache lock".to_string()))?;
+                .map_err(|_| BitLinearError::cache_lock_error("cache"))?;
             
             // Check if we have a valid cached entry
             if let Some(entry) = cache_guard.get(&self.layer_name) {
@@ -292,13 +270,16 @@ impl BitLinear {
         // Update cache if enabled
         if let Some(ref cache) = self.cache {
             let mut cache_guard = cache.lock()
-                .map_err(|_| BitLinearError::CacheError("Failed to acquire cache lock".to_string()))?;
+                .map_err(|_| BitLinearError::cache_lock_error("cache"))?;
             
             let cache_entry = CacheEntry::new(
                 quantized.clone(),
                 &weights_guard,
                 self.layer_name.clone(),
-            ).map_err(|e| BitLinearError::CacheError(format!("Failed to create cache entry: {}", e)))?;
+            ).map_err(|e| {
+                let cache_err = crate::bitlinear::cache::CacheError::TensorError(format!("Failed to create cache entry: {}", e));
+                BitLinearError::CacheError(cache_err)
+            })?;
             
             cache_guard.insert(self.layer_name.clone(), cache_entry);
         }
@@ -313,10 +294,10 @@ impl BitLinear {
         // Validate shape
         let expected_shape = Shape::from_dims(&[self.config.out_features, self.config.in_features]);
         if new_weights.shape() != &expected_shape {
-            return Err(BitLinearError::ShapeMismatch {
-                expected: expected_shape,
-                actual: new_weights.shape().clone(),
-            });
+            return Err(BitLinearError::shape_mismatch(
+                expected_shape.dims().to_vec(), 
+                new_weights.shape().dims().to_vec(),
+            ));
         }
         
         // Update weights
@@ -329,7 +310,7 @@ impl BitLinear {
         // Invalidate cache if enabled
         if let Some(ref cache) = self.cache {
             let mut cache_guard = cache.lock()
-                .map_err(|_| BitLinearError::CacheError("Failed to acquire cache lock".to_string()))?;
+                .map_err(|_| BitLinearError::cache_lock_error("cache"))?;
             cache_guard.invalidate(&self.layer_name);
         }
         
@@ -341,10 +322,10 @@ impl BitLinear {
         if let Some(ref bias) = self.bias {
             let expected_shape = Shape::from_dims(&[self.config.out_features]);
             if new_bias.shape() != &expected_shape {
-                return Err(BitLinearError::ShapeMismatch {
-                    expected: expected_shape,
-                    actual: new_bias.shape().clone(),
-                });
+                return Err(BitLinearError::shape_mismatch(
+                    expected_shape.dims().to_vec(),
+                    new_bias.shape().dims().to_vec(),
+                ));
             }
             
             let mut bias_guard = bias.write()
@@ -363,7 +344,7 @@ impl BitLinear {
     pub fn clear_cache(&self) -> BitLinearResult<()> {
         if let Some(ref cache) = self.cache {
             let mut cache_guard = cache.lock()
-                .map_err(|_| BitLinearError::CacheError("Failed to acquire cache lock".to_string()))?;
+                .map_err(|_| BitLinearError::cache_lock_error("cache"))?;
             cache_guard.clear();
         }
         Ok(())

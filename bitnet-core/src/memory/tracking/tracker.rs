@@ -299,7 +299,7 @@ impl MemoryTracker {
     /// ```
     pub fn track_deallocation(&self, handle: &MemoryHandle) {
         let track_start = Instant::now();
-        let _handle_id = handle.id();
+        let handle_id = handle.id();
 
         #[cfg(feature = "tracing")]
         debug!("Tracking deallocation of handle {}", handle_id);

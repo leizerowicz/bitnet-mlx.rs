@@ -1,6 +1,6 @@
 [package]
 name = "bitnet-quant"
-version = "0.2.3"
+version = "0.2.4"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -10,12 +10,12 @@ keywords = ["bitnet", "quantization", "compression", "neural-networks"]
 categories = ["science", "compression"]
 
 [features]
-default = ["std"]
+default = ["std", "calibration"]
 std = []
 # Enable quantization-aware training
 qat = ["bitnet-core/tracing"]
 # Enable calibration utilities
-calibration = ["dep:rand"]
+calibration = ["dep:rand", "dep:chrono", "dep:serde_json", "dep:bincode", "dep:rmp-serde", "dep:md5", "dep:num_cpus", "dep:flate2", "dep:tempfile"]
 # Enable advanced quantization methods
 advanced = ["dep:statrs"]
 # Enable tracing support
@@ -67,6 +67,16 @@ nalgebra = "0.32"
 rand = { version = "0.8", optional = true }
 statrs = { version = "0.16", optional = true }
 tracing = { workspace = true, optional = true }
+
+# Calibration specific dependencies (required for the calibration feature)
+chrono = { version = "0.4", features = ["serde"], optional = true }
+serde_json = { version = "1.0", optional = true }
+bincode = { version = "1.3", optional = true }
+rmp-serde = { version = "1.0", optional = true }
+md5 = { version = "0.7", optional = true }
+num_cpus = { version = "1.0", optional = true }
+flate2 = { version = "1.0", optional = true }
+tempfile = { version = "3.0", optional = true }
 
 [dev-dependencies]
 criterion.workspace = true

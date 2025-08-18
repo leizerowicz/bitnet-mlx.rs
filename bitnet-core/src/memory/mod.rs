@@ -261,7 +261,7 @@ impl HybridMemoryPool {
             
             match tracking::MemoryTracker::new(tracking_config) {
                 Ok(tracker) => Some(Arc::new(tracker)),
-                Err(_e) => {
+                Err(e) => {
                     #[cfg(feature = "tracing")]
                     warn!("Failed to create memory tracker: {}", e);
                     None

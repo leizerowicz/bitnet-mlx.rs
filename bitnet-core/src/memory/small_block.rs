@@ -136,7 +136,7 @@ impl SmallBlockPool {
     /// # Returns
     ///
     /// A Result containing the new pool or an error if creation fails
-    pub fn new(_initial_size: usize, max_size: usize, device: &Device) -> MemoryResult<Self> {
+    pub fn new(initial_size: usize, max_size: usize, device: &Device) -> MemoryResult<Self> {
         #[cfg(feature = "tracing")]
         debug!("Creating small block pool: initial_size={}, max_size={}, device={:?}", 
                initial_size, max_size, device);
@@ -206,7 +206,7 @@ impl SmallBlockPool {
 
         // Find appropriate size class
         let size_class = self.find_size_class(size, alignment)?;
-        let _actual_size = SIZE_CLASSES[size_class];
+        let actual_size = SIZE_CLASSES[size_class];
 
         #[cfg(feature = "tracing")]
         debug!("Allocating {} bytes (actual: {}) from size class {}", 

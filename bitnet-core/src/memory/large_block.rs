@@ -128,7 +128,7 @@ impl LargeBlockPool {
     /// # Returns
     ///
     /// A Result containing the new pool or an error if creation fails
-    pub fn new(_initial_size: usize, max_size: usize, device: &Device) -> MemoryResult<Self> {
+    pub fn new(initial_size: usize, max_size: usize, device: &Device) -> MemoryResult<Self> {
         #[cfg(feature = "tracing")]
         debug!("Creating large block pool: initial_size={}, max_size={}, device={:?}", 
                initial_size, max_size, device);
