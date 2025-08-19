@@ -1,400 +1,478 @@
-# Claude Code Configuration for BitNet-Rust Project
+# Claude Code Configuration for BitNet-Rust Project - Tensor Implementation Focus
 
-## 🧠 PROJECT OVERVIEW: BitNet-Rust Neural Network Framework
+## 🧠 PROJECT OVERVIEW: BitNet-Rust Neural Network Framework with Complete Tensor Operations
 
 **Repository:** `github.com/Wavegoodvybe2929/bitnet-rust`
 
 **Project Status:** A high-performance Rust implementation of BitNet neural networks with advanced memory management, device abstraction, MLX acceleration for Apple Silicon, and comprehensive infrastructure for quantized neural networks
 
-**Current Implementation Phase:** ✅ Phase 2.0 Complete → 🎯 **Phase 3: Calibration and QAT Infrastructure (Weeks 5-6) - CRITICAL PATH**
+**Current Implementation Phase:** ✅ Phases 1-3 Foundation Complete → 🎯 **Phase 4: Complete Tensor Operations Infrastructure - CRITICAL PATH**
 
-**Core Strength:** Production-ready BitLinear layer implementation with SIMD optimizations, sophisticated memory management system, and validated quantization core
+**Core Strength:** Production-ready memory management, advanced MLX acceleration (up to 3,059x speedup), comprehensive device abstraction, and sophisticated quantization foundations
 
-## 🚨 CRITICAL: BITNET-SPECIFIC EXECUTION PATTERNS
+## 🚨 CRITICAL: TENSOR-FOCUSED EXECUTION PATTERNS
 
-**MANDATORY RULE:** All BitNet Rust operations must leverage the existing memory management foundation, workspace structure, and completed BitLinear layer implementation.
+**MANDATORY RULE:** All tensor operations must leverage the existing production-ready memory management foundation, MLX acceleration infrastructure, and advanced device abstraction while completing the missing tensor functionality.
 
-## 🔴 MANDATORY CONCURRENT PATTERNS FOR BITNET-RUST
+## 🔴 MANDATORY CONCURRENT PATTERNS FOR TENSOR IMPLEMENTATION
 
-- **Memory Pool Operations:** ALWAYS use HybridMemoryPool for all allocations
+- **Memory Pool Operations:** ALWAYS use HybridMemoryPool for all tensor allocations
 - **Device Abstraction:** ALWAYS leverage auto_select_device() for optimal device selection  
-- **Workspace Commands:** ALWAYS batch operations across the modular workspace structure
-- **BitLinear Integration:** ALWAYS utilize completed Phase 2 BitLinear layer implementation
-- **Calibration Dataset Management:** ALWAYS implement streaming and memory-efficient processing
-- **QAT Optimization:** ALWAYS integrate straight-through estimators with existing infrastructure
+- **MLX Acceleration:** ALWAYS utilize MLX framework for Apple Silicon tensor operations
+- **Metal GPU Integration:** ALWAYS use Metal compute shaders for GPU tensor operations
+- **Quantization Integration:** ALWAYS integrate with existing quantization infrastructure
+- **Zero-Copy Operations:** ALWAYS prefer zero-copy tensor operations where possible
 
-### ⚡ BITNET-RUST GOLDEN RULE (UPDATED FOR PHASE 3)
-> "1 MESSAGE = COMPLETE CALIBRATION & QAT SYSTEM WITH PRODUCTION-READY TRAINING INFRASTRUCTURE"
+### ⚡ TENSOR-IMPLEMENTATION GOLDEN RULE (PHASE 4)
+> "1 MESSAGE = COMPLETE PRODUCTION-READY TENSOR OPERATIONS WITH FULL BITNET INTEGRATION"
 
-### Examples of CORRECT Phase 3 BitNet-Rust concurrent execution:
+### Examples of CORRECT Phase 4 Tensor Implementation concurrent execution:
 
 ```rust
-// ✅ CORRECT: Complete Calibration & QAT implementation building on BitLinear foundation
+// ✅ CORRECT: Complete Tensor Operations implementation leveraging existing foundation
 [Single Message]:
-  - TodoWrite { todos: [15+ todos focusing on calibration and QAT as critical path] }
-  - Task("Calibration Architect: Build streaming calibration dataset system...")
-  - Task("QAT Engineer: Implement straight-through estimator with autograd...")
-  - Task("Statistics Collector: Implement activation statistics and histogram tracking...")
-  - Task("Training Infrastructure Specialist: Create QAT loss functions and optimizers...")
-  - Bash("cd bitnet-rust && cargo build --workspace --release --features calibration,qat")
-  - Write("bitnet-quant/src/calibration/*", completeCalibrationSystem)
-  - Write("bitnet-training/src/qat/*", quantizationAwareTrainingSystem)
-  - Write("examples/calibration_workflow.rs", calibrationDemo)
-  - Bash("cd bitnet-rust && cargo test --package bitnet-quant calibration --features phase-3")
-  - Bash("cd bitnet-rust && cargo test --package bitnet-training qat --features phase-3")
+  - TodoWrite { todos: [20+ todos focusing on tensor operations as critical path] }
+  - Task("Tensor Architect: Build complete BitNetTensor with shape management...")
+  - Task("Operations Engineer: Implement core tensor operations (add, mul, matmul)...")
+  - Task("Quantization Engineer: Integrate tensor operations with quantization...")
+  - Task("MLX Integration Specialist: Optimize tensor operations with MLX acceleration...")
+  - Task("Memory Engineer: Implement tensor-specific memory management...")
+  - Task("SIMD Engineer: Add SIMD optimizations for tensor operations...")
+  - Bash("cd bitnet-rust && cargo build --workspace --release --features tensor-complete")
+  - Write("bitnet-core/src/tensor/core.rs", completeTensorImplementation)
+  - Write("bitnet-core/src/tensor/operations.rs", tensorOperationsCore)
+  - Write("bitnet-core/src/tensor/shape.rs", tensorShapeManagement)
+  - Write("bitnet-core/src/tensor/dtype.rs", dataTypeSystem)
+  - Write("bitnet-quant/src/tensor_integration.rs", quantizedTensorOps)
+  - Write("examples/tensor_operations_demo.rs", comprehensiveTensorDemo)
+  - Bash("cd bitnet-rust && cargo test --package bitnet-core tensor --features tensor-complete")
+  - Bash("cd bitnet-rust && cargo bench --package bitnet-benchmarks tensor_operations")
 ```
 
-## 🎯 BITNET-RUST WORKSPACE ARCHITECTURE
+## 🎯 BITNET-RUST WORKSPACE ARCHITECTURE (UPDATED FOR TENSOR FOCUS)
 
-### 🦀 Current Implementation Status (UPDATED FOR PHASE 3)
+### 🦀 Current Implementation Status (UPDATED FOR PHASE 4)
 
 | Component | Status | Priority | Integration Level |
 |-----------|--------|----------|-------------------|
-| **bitnet-core** | 🟢 Production Ready | ✅ Foundation Complete | Core memory, MLX acceleration & device abstraction |
-| **bitnet-quant** | 🟢 BitLinear Complete | ✅ Phase 2 Complete | BitLinear layer with SIMD optimizations ready |
-| **bitnet-training** | 🟡 Phase 3 Active | 🎯 **CURRENT PRIORITY** | QAT infrastructure implementation in progress |
-| **bitnet-benchmarks** | 🟢 Production Ready | ✅ Testing Complete | Ready for calibration and QAT performance testing |
-| **bitnet-inference** | 🔴 Dependent on Phase 3 | High Priority Next | Awaiting calibration integration |
-| **bitnet-metal** | 🔴 Placeholder | Medium Priority | Enhanced Metal GPU (basic already in core) |
+| **bitnet-core** | 🟢 Memory & Device Ready | ✅ Foundation Complete | Memory, MLX & device abstraction production-ready |
+| **bitnet-core/tensor** | 🔴 **PHASE 4 FOCUS** | 🎯 **IMMEDIATE PRIORITY** | Complete tensor operations implementation needed |
+| **bitnet-quant** | 🟡 Foundation Ready | 🎯 **TENSOR INTEGRATION** | Quantization ready for tensor integration |
+| **bitnet-benchmarks** | 🟢 Production Ready | ✅ Testing Infrastructure | Ready for tensor performance benchmarking |
+| **bitnet-inference** | 🔴 Dependent on Tensors | High Priority Next | Awaiting tensor operations completion |
+| **bitnet-training** | 🔴 Dependent on Tensors | High Priority Next | Awaiting tensor operations completion |
+| **bitnet-metal** | 🟡 Basic Integration | Medium Priority | Basic Metal support exists, enhancement pending |
 | **bitnet-cli** | 🔴 Placeholder | Low Priority | Command-line tools needed |
-| **docs/** | 📚 Available | Documentation | Comprehensive guides available |
 
-### 🏗️ Agent Specialization for Phase 3 Calibration & QAT Implementation
+### 🗃️ Agent Specialization for Phase 4 Tensor Implementation
 
-**Primary Phase 3 Agent Types:**
-- **Calibration Architect** - 🎯 **PRIMARY FOCUS** - Streaming calibration dataset system
-- **QAT Engineer** - Straight-through estimator and autograd integration
-- **Statistics Collector** - Activation statistics, histograms, and error analysis
-- **Training Infrastructure Specialist** - QAT loss functions, optimizers, and scheduling
-- **Error Analysis Engineer** - Quantization metrics and mitigation strategies
+**Primary Phase 4 Agent Types:**
+- **Tensor Architect** - 🎯 **PRIMARY FOCUS** - Core BitNetTensor struct and lifecycle management
+- **Operations Engineer** - Mathematical tensor operations (arithmetic, linear algebra)
+- **Shape Management Engineer** - Broadcasting, reshaping, indexing, and slicing
+- **Memory Integration Specialist** - Tensor-specific memory pool integration
+- **MLX Acceleration Engineer** - Apple Silicon tensor operation optimization
+- **Quantization Integration Engineer** - Integration with existing quantization systems
 
 **Supporting Specialist Types:**
-- **Dataset Streaming Engineer** - Memory-efficient large dataset processing
-- **Autograd Integration Specialist** - Custom autograd functions for candle-core
-- **Performance Validation Engineer** - Integration testing and benchmarking
-- **Progressive Quantization Engineer** - Layer-wise quantization scheduling
-- **Knowledge Distillation Specialist** - Teacher-student training implementations
+- **SIMD Optimization Engineer** - Cross-platform SIMD tensor operations
+- **Metal Compute Engineer** - GPU tensor operation acceleration
+- **Data Type Engineer** - Comprehensive data type system for tensors
+- **Gradient Engine Engineer** - Automatic differentiation infrastructure
+- **Broadcasting Engineer** - Advanced broadcasting and tensor alignment
+- **Serialization Engineer** - Tensor serialization and persistence
 
-## 🎯 PHASE 3: CALIBRATION AND QAT INFRASTRUCTURE (CURRENT FOCUS)
+## 🎯 PHASE 4: COMPLETE TENSOR OPERATIONS IMPLEMENTATION (CURRENT FOCUS)
 
-### ⚡ 3.1 Calibration System Implementation (IMMEDIATE PRIORITY)
+### ⚡ 4.1 Core Tensor Infrastructure (IMMEDIATE PRIORITY)
 
-**CalibrationDataset Implementation:**
+**BitNetTensor Core Implementation:**
 
 ```rust
-// Phase 3.1: Core Calibration System
+// Phase 4.1: Core Tensor System
 [BatchTool]:
-  - Write("bitnet-quant/src/calibration/mod.rs", calibrationModuleRoot)
-  - Write("bitnet-quant/src/calibration/dataset.rs", calibrationDatasetCore)
-  - Write("bitnet-quant/src/calibration/statistics.rs", activationStatisticsCollector)
-  - Write("bitnet-quant/src/calibration/streaming.rs", streamingDatasetProcessor)
-  - Write("bitnet-quant/src/calibration/sampling.rs", representativeSamplingStrategies)
-  - Write("bitnet-quant/src/calibration/histogram.rs", histogramDataCollection)
-  - Write("bitnet-quant/src/calibration/persistence.rs", statisticsSaveLoad)
-  - Write("bitnet-quant/src/calibration/config.rs", calibrationConfiguration)
-  - Write("tests/calibration/dataset_tests.rs", calibrationDatasetTests)
-  - Write("tests/calibration/statistics_tests.rs", statisticsCollectionTests)
-  - Write("tests/calibration/streaming_tests.rs", streamingProcessingTests)
-  - Bash("cargo test --package bitnet-quant calibration::dataset --features phase-3")
-  - Bash("cargo clippy --package bitnet-quant --features calibration -- -D warnings")
+  - Write("bitnet-core/src/tensor/mod.rs", tensorModuleCore)
+  - Write("bitnet-core/src/tensor/core.rs", bitNetTensorStruct)
+  - Write("bitnet-core/src/tensor/shape.rs", shapeManagementSystem)
+  - Write("bitnet-core/src/tensor/dtype.rs", dataTypeSystem)
+  - Write("bitnet-core/src/tensor/storage.rs", tensorStorageBackend)
+  - Write("bitnet-core/src/tensor/lifecycle.rs", tensorLifecycleManagement)
+  - Write("bitnet-core/src/tensor/memory_integration.rs", memoryPoolIntegration)
+  - Write("bitnet-core/src/tensor/device_integration.rs", deviceAbstractionIntegration)
+  - Write("tests/tensor/core_tests.rs", coreTensorTests)
+  - Write("tests/tensor/shape_tests.rs", shapeManagementTests)
+  - Write("tests/tensor/dtype_tests.rs", dataTypeSystemTests)
+  - Bash("cargo test --package bitnet-core tensor::core --features tensor-core")
+  - Bash("cargo clippy --package bitnet-core --features tensor-core -- -D warnings")
 ```
 
-**Core Calibration Features:**
-- Stream large datasets without memory overflow
-- Collect min/max activation values per layer
-- Build histograms for optimal quantization parameters
-- Representative sampling strategies for efficiency
-- Integration with existing BitLinear layers
-- Save/load calibration statistics for reuse
+**Core Tensor Features:**
+- Complete BitNetTensor struct with shape, dtype, and device tracking
+- Integration with existing HybridMemoryPool for efficient memory management
+- Device-aware tensor creation and management
+- Thread-safe tensor operations with fine-grained locking
+- Zero-copy tensor views and slicing operations
+- Comprehensive error handling and validation
 
-**CalibrationDataset Structure:**
+**BitNetTensor Structure:**
 ```rust
-struct CalibrationDataset {
-    samples: Vec<Tensor>,
-    batch_size: usize,
-    max_samples: usize,
-    streaming: bool,
-    memory_limit: usize,
+pub struct BitNetTensor {
+    data: Arc<TensorStorage>,
+    shape: TensorShape,
+    dtype: BitNetDType,
     device: Device,
+    memory_pool: Arc<HybridMemoryPool>,
+    memory_handle: MemoryHandle,
+    requires_grad: bool,
+    grad: Option<Arc<BitNetTensor>>,
 }
 ```
 
-### ⚡ 3.2 Quantization-Aware Training (QAT) System (HIGH PRIORITY)
+### ⚡ 4.2 Mathematical Operations System (HIGH PRIORITY)
 
 ```rust
-// Phase 3.2: QAT Infrastructure Implementation
+// Phase 4.2: Mathematical Operations Implementation
 [BatchTool]:
-  - Write("bitnet-training/src/qat/mod.rs", qatModuleRoot)
-  - Write("bitnet-training/src/qat/straight_through.rs", straightThroughEstimatorCore)
-  - Write("bitnet-training/src/qat/autograd.rs", customAutogradFunctions)
-  - Write("bitnet-training/src/qat/loss.rs", qatLossFunctions)
-  - Write("bitnet-training/src/qat/optimizer.rs", quantizationAwareOptimizers)
-  - Write("bitnet-training/src/qat/regularization.rs", quantizationRegularizationTerms)
-  - Write("bitnet-training/src/qat/distillation.rs", knowledgeDistillationLoss)
-  - Write("bitnet-training/src/qat/progressive.rs", progressiveQuantizationScheduling)
-  - Write("bitnet-training/src/qat/state_tracking.rs", quantizationStateTracking)
-  - Write("tests/qat/straight_through_tests.rs", steValidationTests)
-  - Write("tests/qat/autograd_tests.rs", autogradIntegrationTests)
-  - Write("tests/qat/loss_tests.rs", qatLossFunctionTests)
-  - Write("tests/qat/optimizer_tests.rs", quantizationOptimizerTests)
-  - Write("benches/qat/straight_through_bench.rs", stePerformanceBenchmarks)
-  - Write("benches/qat/training_bench.rs", qatTrainingBenchmarks)
-  - Bash("cargo test --package bitnet-training qat::straight_through --features phase-3")
-  - Bash("cargo test --package bitnet-training qat::autograd --features phase-3")
-  - Bash("cargo bench --package bitnet-training qat::straight_through")
+  - Write("bitnet-core/src/tensor/ops/mod.rs", operationsModuleCore)
+  - Write("bitnet-core/src/tensor/ops/arithmetic.rs", arithmeticOperations)
+  - Write("bitnet-core/src/tensor/ops/linear_algebra.rs", linearAlgebraOps)
+  - Write("bitnet-core/src/tensor/ops/reduction.rs", reductionOperations)
+  - Write("bitnet-core/src/tensor/ops/comparison.rs", comparisonOperations)
+  - Write("bitnet-core/src/tensor/ops/activation.rs", activationFunctions)
+  - Write("bitnet-core/src/tensor/ops/broadcasting.rs", broadcastingSystem)
+  - Write("bitnet-core/src/tensor/ops/indexing.rs", indexingAndSlicing)
+  - Write("bitnet-core/src/tensor/ops/reshape.rs", reshapeOperations)
+  - Write("tests/tensor/ops/arithmetic_tests.rs", arithmeticOperationsTests)
+  - Write("tests/tensor/ops/linear_algebra_tests.rs", linearAlgebraTests)
+  - Write("tests/tensor/ops/reduction_tests.rs", reductionOperationsTests)
+  - Write("tests/tensor/ops/broadcasting_tests.rs", broadcastingTests)
+  - Write("benches/tensor/ops/arithmetic_bench.rs", arithmeticPerformanceBenchmarks)
+  - Write("benches/tensor/ops/linear_algebra_bench.rs", linearAlgebraPerformanceBenchmarks)
+  - Bash("cargo test --package bitnet-core tensor::ops::arithmetic --features tensor-ops")
+  - Bash("cargo test --package bitnet-core tensor::ops::linear_algebra --features tensor-ops")
+  - Bash("cargo bench --package bitnet-core tensor_ops")
 ```
 
-**Straight-Through Estimator Features:**
-- Forward pass: quantize weights and activations normally
-- Backward pass: pass gradients through unchanged (STE)
-- Custom autograd functions for candle-core integration
-- Different STE variants (clipped, soft, learnable)
-- Integration with existing BitLinear layer implementation
-- Gradient scaling and normalization for stability
+**Mathematical Operations Features:**
+- Complete arithmetic operations (+, -, *, /, %, pow)
+- Advanced linear algebra (matmul, dot, cross, SVD, QR, Cholesky)
+- Reduction operations (sum, mean, std, var, min, max)
+- Broadcasting system compatible with NumPy/PyTorch semantics
+- Activation functions (ReLU, GELU, Sigmoid, Tanh, Softmax)
+- Comparison and logical operations
+- Advanced indexing and tensor slicing
+- In-place and out-of-place operation variants
 
-**QAT Training Infrastructure:**
-- Quantization-aware loss functions
-- Regularization terms for better quantization
-- Knowledge distillation for teacher-student training
-- Progressive quantization scheduling
-- Quantization-specific optimizers (Adam/AdamW adaptations)
-- Training state tracking and checkpointing
+**Core Operations Implementation:**
+- Matrix multiplication with SIMD optimization
+- Element-wise operations with broadcasting
+- Memory-efficient reduction operations
+- Zero-copy tensor views where possible
+- Integration with existing MLX and Metal acceleration
+- Comprehensive error checking and type validation
 
-### ⚡ 3.3 Error Analysis and Quantization Metrics (CRITICAL PATH)
+### ⚡ 4.3 MLX and Metal Acceleration Integration (CRITICAL PATH)
 
 ```rust
-// Phase 3.3: Error Analysis and Metrics System
+// Phase 4.3: Acceleration Integration System
 [BatchTool]:
-  - Write("bitnet-quant/src/metrics/mod.rs", quantizationMetricsModule)
-  - Write("bitnet-quant/src/metrics/error_analysis.rs", errorAnalysisCore)
-  - Write("bitnet-quant/src/metrics/mse.rs", meanSquaredErrorMetrics)
-  - Write("bitnet-quant/src/metrics/sqnr.rs", signalQuantizationNoiseRatio)
-  - Write("bitnet-quant/src/metrics/cosine_similarity.rs", cosineSimilarityMetrics)
-  - Write("bitnet-quant/src/metrics/layer_wise.rs", layerWiseErrorAnalysis)
-  - Write("bitnet-quant/src/metrics/visualization.rs", errorVisualizationTools)
-  - Write("bitnet-quant/src/metrics/mitigation.rs", errorMitigationStrategies)
-  - Write("bitnet-quant/src/metrics/reporting.rs", metricsReportingSystem)
-  - Write("tests/metrics/error_analysis_tests.rs", errorAnalysisValidation)
-  - Write("tests/metrics/layer_wise_tests.rs", layerWiseAnalysisTests)
-  - Write("examples/metrics/error_analysis_demo.rs", errorAnalysisDemo)
-  - Write("benches/metrics/analysis_bench.rs", metricsPerformanceBenchmarks)
-  - Bash("cargo test --package bitnet-quant metrics::error_analysis --features phase-3")
-  - Bash("cargo test --package bitnet-quant metrics::layer_wise --features phase-3")
-  - Bash("cargo bench --package bitnet-quant metrics --features analysis")
+  - Write("bitnet-core/src/tensor/acceleration/mod.rs", accelerationModuleCore)
+  - Write("bitnet-core/src/tensor/acceleration/mlx.rs", mlxTensorAcceleration)
+  - Write("bitnet-core/src/tensor/acceleration/metal.rs", metalTensorAcceleration)
+  - Write("bitnet-core/src/tensor/acceleration/simd.rs", simdTensorOptimization)
+  - Write("bitnet-core/src/tensor/acceleration/dispatch.rs", accelerationDispatchSystem)
+  - Write("bitnet-core/src/tensor/acceleration/kernels.rs", customKernelImplementations)
+  - Write("bitnet-core/src/tensor/acceleration/memory_mapping.rs", acceleratedMemoryMapping)
+  - Write("bitnet-core/src/tensor/acceleration/auto_select.rs", automaticAccelerationSelection)
+  - Write("tests/tensor/acceleration/mlx_tests.rs", mlxAccelerationTests)
+  - Write("tests/tensor/acceleration/metal_tests.rs", metalAccelerationTests)
+  - Write("tests/tensor/acceleration/simd_tests.rs", simdOptimizationTests)
+  - Write("tests/tensor/acceleration/dispatch_tests.rs", accelerationDispatchTests)
+  - Write("benches/tensor/acceleration/mlx_bench.rs", mlxPerformanceBenchmarks)
+  - Write("benches/tensor/acceleration/metal_bench.rs", metalPerformanceBenchmarks)
+  - Write("benches/tensor/acceleration/simd_bench.rs", simdPerformanceBenchmarks)
+  - Bash("cargo test --package bitnet-core tensor::acceleration::mlx --features mlx,tensor-complete")
+  - Bash("cargo test --package bitnet-core tensor::acceleration::metal --features metal,tensor-complete")
+  - Bash("cargo bench --package bitnet-core tensor_acceleration --features apple-silicon,tensor-complete")
 ```
 
-**Quantization Metrics Implementation:**
-- Mean Squared Error (MSE) between original and quantized
-- Signal-to-Quantization-Noise Ratio (SQNR) calculations
-- Cosine similarity metrics for output comparison
-- Layer-wise error analysis and reporting
-- Error visualization tools for debugging
-- Automated error mitigation strategies
+**Acceleration Integration Features:**
+- Seamless MLX tensor operation integration for Apple Silicon
+- Metal compute shader integration for GPU tensor operations
+- Cross-platform SIMD optimization (AVX2, NEON, SSE)
+- Automatic acceleration backend selection based on operation characteristics
+- Memory-efficient GPU-CPU data transfer
+- Custom kernel implementations for BitNet-specific operations
+- Performance profiling and optimization recommendations
 
-**Error Analysis Features:**
-- Real-time error tracking during training
-- Layer sensitivity analysis for mixed-precision decisions
-- Quantization parameter optimization based on error metrics
-- Integration with calibration system for optimal parameters
-- Memory-efficient error computation using existing pools
+**MLX Tensor Integration:**
+- Direct integration with existing MLX acceleration infrastructure
+- Zero-copy MLX tensor creation from BitNetTensor
+- MLX-optimized matrix operations with 15-40x speedup
+- Unified memory architecture leverage on Apple Silicon
+- MLX graph optimization for complex tensor operations
+- Automatic fallback to Metal/CPU when MLX unavailable
 
-### ⚡ 3.4 Integration and Production Readiness (COMPLETION PHASE)
+### ⚡ 4.4 Quantization and BitNet Integration (COMPLETION PHASE)
 
 ```rust
-// Phase 3.4: Integration Testing and Production Features
+// Phase 4.4: Quantization Integration and BitNet-Specific Operations
 [BatchTool]:
-  - Write("bitnet-training/src/integration/mod.rs", trainingIntegrationModule)
-  - Write("bitnet-training/src/integration/bitlinear.rs", bitLinearQATIntegration)
-  - Write("bitnet-training/src/integration/memory.rs", memoryEfficientQATTraining)
-  - Write("bitnet-training/src/integration/device.rs", deviceAwareQATTraining)
-  - Write("bitnet-training/src/integration/checkpointing.rs", qatCheckpointingSystem)
-  - Write("examples/qat/basic_training.rs", basicQATTrainingExample)
-  - Write("examples/qat/progressive_quantization.rs", progressiveQuantizationDemo)
-  - Write("examples/qat/knowledge_distillation.rs", knowledgeDistillationExample)
-  - Write("examples/qat/calibration_to_training.rs", calibrationToTrainingPipeline)
-  - Write("examples/qat/error_monitoring.rs", errorMonitoringExample)
-  - Write("tests/integration/qat_integration_tests.rs", comprehensiveQATIntegrationTests)
-  - Write("tests/integration/calibration_integration_tests.rs", calibrationIntegrationTests)
-  - Write("tests/integration/memory_integration_tests.rs", memoryEfficientQATTests)
-  - Write("benches/integration/qat_training_bench.rs", qatTrainingPerformanceBenchmarks)
-  - Write("docs/qat_guide.md", qatTrainingGuide)
-  - Write("docs/calibration_guide.md", calibrationWorkflowGuide)
-  - Bash("cargo test --workspace --features qat-integration,calibration-integration")
-  - Bash("cargo bench --workspace --features qat-complete,calibration-complete")
-  - Bash("cargo run --example qat/progressive_quantization --features full-qat")
-  - Bash("cargo doc --workspace --open --no-deps --features phase-3-complete")
+  - Write("bitnet-quant/src/tensor_integration/mod.rs", quantizationTensorIntegration)
+  - Write("bitnet-quant/src/tensor_integration/bitnet_ops.rs", bitNetSpecificTensorOps)
+  - Write("bitnet-quant/src/tensor_integration/quantized_tensor.rs", quantizedTensorImplementation)
+  - Write("bitnet-quant/src/tensor_integration/bitlinear_tensor.rs", bitLinearTensorOperations)
+  - Write("bitnet-quant/src/tensor_integration/calibration_tensor.rs", calibrationTensorSupport)
+  - Write("bitnet-quant/src/tensor_integration/qat_tensor.rs", qatTensorOperations)
+  - Write("bitnet-quant/src/tensor_integration/precision_tensor.rs", mixedPrecisionTensorSupport)
+  - Write("examples/tensor/bitnet_operations_demo.rs", bitNetTensorOperationsDemo)
+  - Write("examples/tensor/quantized_tensor_demo.rs", quantizedTensorOperationsDemo)
+  - Write("examples/tensor/bitlinear_demo.rs", bitLinearTensorDemo)
+  - Write("examples/tensor/mixed_precision_demo.rs", mixedPrecisionTensorDemo)
+  - Write("tests/tensor_integration/bitnet_ops_tests.rs", bitNetTensorOperationsTests)
+  - Write("tests/tensor_integration/quantized_tensor_tests.rs", quantizedTensorTests)
+  - Write("tests/tensor_integration/bitlinear_tests.rs", bitLinearTensorTests)
+  - Write("benches/tensor_integration/bitnet_ops_bench.rs", bitNetTensorPerformanceBenchmarks)
+  - Write("benches/tensor_integration/quantized_ops_bench.rs", quantizedTensorPerformanceBenchmarks)
+  - Bash("cargo test --package bitnet-quant tensor_integration::bitnet_ops --features tensor-integration")
+  - Bash("cargo test --package bitnet-quant tensor_integration::quantized_tensor --features tensor-integration")
+  - Bash("cargo bench --package bitnet-quant tensor_integration --features tensor-integration")
+  - Bash("cargo run --example tensor/bitnet_operations_demo --features tensor-complete,bitnet-integration")
 ```
 
-**Integration Features:**
-- Seamless BitLinear layer integration with QAT
-- Memory-efficient training with existing memory pools
-- Device-aware training across CPU/GPU platforms
-- Comprehensive checkpointing and resume functionality
-- Production-ready error handling and recovery
+**BitNet-Specific Tensor Integration:**
+- 1.58-bit quantized tensor operations
+- BitLinear layer tensor operations with quantization
+- Ternary weight tensor representations
+- Calibration dataset tensor processing
+- QAT-aware tensor operations with straight-through estimation
+- Mixed precision tensor operations
+- BitNet-optimized activation functions
 
-## 🚀 PHASE 3 SUCCESS CRITERIA
+**Quantized Tensor Features:**
+- Seamless integration with existing quantization infrastructure
+- Memory-efficient quantized tensor storage
+- Dequantization on-demand for compatibility
+- Quantization-aware tensor operations
+- Scale and zero-point management
+- Error analysis and validation tools
 
-### 🔬 Technical Targets for Phase 3
+### ⚡ 4.5 Integration Testing and Production Readiness (FINAL PHASE)
 
-**Calibration System Functionality:**
-- ✅ Stream datasets larger than available memory
-- ✅ Collect comprehensive activation statistics
-- ✅ Generate optimal quantization parameters
-- ✅ Save/load calibration statistics efficiently
-- ✅ Representative sampling for calibration efficiency
+```rust
+// Phase 4.5: Integration Testing and Production Validation
+[BatchTool]:
+  - Write("bitnet-core/src/tensor/integration/mod.rs", tensorIntegrationModule)
+  - Write("bitnet-core/src/tensor/integration/memory_pool.rs", memoryPoolTensorIntegration)
+  - Write("bitnet-core/src/tensor/integration/device_abstraction.rs", deviceAbstractionTensorIntegration)
+  - Write("bitnet-core/src/tensor/integration/mlx_integration.rs", mlxTensorIntegration)
+  - Write("bitnet-core/src/tensor/integration/metal_integration.rs", metalTensorIntegration)
+  - Write("examples/tensor/comprehensive_tensor_demo.rs", comprehensiveTensorDemo)
+  - Write("examples/tensor/performance_comparison_demo.rs", tensorPerformanceComparisonDemo)
+  - Write("examples/tensor/memory_efficiency_demo.rs", tensorMemoryEfficiencyDemo)
+  - Write("examples/tensor/acceleration_comparison_demo.rs", accelerationComparisonDemo)
+  - Write("examples/tensor/production_workflow_demo.rs", productionTensorWorkflowDemo)
+  - Write("tests/integration/tensor_integration_tests.rs", comprehensiveTensorIntegrationTests)
+  - Write("tests/integration/memory_tensor_integration_tests.rs", memoryPoolTensorIntegrationTests)
+  - Write("tests/integration/device_tensor_integration_tests.rs", deviceAbstractionTensorIntegrationTests)
+  - Write("tests/integration/acceleration_tensor_integration_tests.rs", accelerationTensorIntegrationTests)
+  - Write("benches/integration/tensor_comprehensive_bench.rs", comprehensiveTensorPerformanceBenchmarks)
+  - Write("docs/tensor_implementation_guide.md", tensorImplementationGuide)
+  - Write("docs/tensor_performance_guide.md", tensorPerformanceOptimizationGuide)
+  - Bash("cargo test --workspace --features tensor-complete,integration-tests")
+  - Bash("cargo bench --workspace --features tensor-complete,comprehensive-benchmarks")
+  - Bash("cargo run --example tensor/comprehensive_tensor_demo --features tensor-complete,all-accelerations")
+  - Bash("cargo doc --workspace --open --no-deps --features tensor-complete")
+```
 
-**QAT Training System:**
-- ✅ Straight-through estimator with gradient flow
-- ✅ Custom autograd functions for candle-core
-- ✅ Quantization-aware loss functions
-- ✅ Progressive quantization scheduling
-- ✅ Knowledge distillation integration
+**Integration and Production Features:**
+- Comprehensive tensor integration with all existing systems
+- Memory-efficient tensor operations leveraging existing pools
+- Device-aware tensor operations across CPU/GPU platforms
+- Production-ready error handling and recovery mechanisms
+- Performance benchmarking and optimization validation
+- Comprehensive documentation and usage examples
 
-**Error Analysis & Metrics:**
-- ✅ Comprehensive quantization error metrics
-- ✅ Layer-wise sensitivity analysis
-- ✅ Real-time error monitoring during training
-- ✅ Automated error mitigation strategies
-- ✅ Visualization tools for debugging
+## 🚀 PHASE 4 SUCCESS CRITERIA
 
-### 📊 Phase 3 Performance Targets
+### 🔬 Technical Targets for Phase 4
 
-**Calibration Performance:**
-- Dataset Processing: Handle 10GB+ datasets with <2GB memory
-- Statistics Collection: <1% overhead on forward passes
-- Parameter Optimization: 95%+ optimal quantization parameters
-- Storage Efficiency: <10MB calibration statistics per model
-- Streaming Throughput: Match or exceed batch processing speed
+**Core Tensor Functionality:**
+- ✅ Complete BitNetTensor implementation with shape and dtype management
+- ✅ Comprehensive mathematical operations (arithmetic, linear algebra, reduction)
+- ✅ Advanced broadcasting system compatible with NumPy/PyTorch
+- ✅ Memory-efficient tensor storage and lifecycle management
+- ✅ Thread-safe tensor operations with performance optimization
 
-**QAT Training Performance:**
-- Training Overhead: <20% slowdown vs full-precision training
-- Memory Efficiency: 60-70% memory reduction during training
-- Convergence: Maintain model quality within 2% of full-precision
-- Gradient Flow: Stable gradients through quantization layers
-- Checkpointing: <5% overhead for state preservation
+**Acceleration Integration:**
+- ✅ MLX acceleration integration with up to 40x speedup on Apple Silicon
+- ✅ Metal compute shader integration for GPU tensor operations
+- ✅ Cross-platform SIMD optimization for CPU tensor operations
+- ✅ Automatic acceleration backend selection and fallback mechanisms
+- ✅ Zero-copy operations and memory-efficient GPU-CPU transfers
 
-**Error Analysis Performance:**
-- Metrics Computation: <5% overhead during training
-- Layer Analysis: Complete sensitivity analysis in <1 minute
-- Visualization: Real-time error plotting capabilities
-- Mitigation: Automatic parameter adjustment based on error thresholds
-- Reporting: Comprehensive error reports in <10 seconds
+**Quantization and BitNet Integration:**
+- ✅ Seamless integration with existing quantization infrastructure
+- ✅ BitNet-specific tensor operations (1.58-bit quantization)
+- ✅ BitLinear layer tensor operations with quantization support
+- ✅ Mixed precision tensor operations and management
+- ✅ Production-ready quantized tensor arithmetic
 
-### 📊 Phase 3 Completion Gates
+### 📊 Phase 4 Performance Targets
+
+**Tensor Operation Performance:**
+- Matrix Multiplication: 15-40x speedup with MLX on Apple Silicon
+- Element-wise Operations: 5-15x speedup with SIMD optimization
+- Memory Allocation: <100ns tensor creation with existing memory pools
+- Broadcasting Operations: Zero-copy where possible, minimal memory overhead
+- Device Transfer: <1ms GPU-CPU transfer for typical tensor sizes
+
+**Memory Efficiency:**
+- Tensor Storage: <5% memory overhead for tensor metadata
+- Zero-Copy Operations: 80% of tensor operations should be zero-copy
+- Memory Pool Integration: 95% successful tensor allocations from pools
+- Fragmentation: <10% memory fragmentation during typical workloads
+- Cleanup Efficiency: Automatic tensor cleanup with 100% success rate
+
+**Integration Performance:**
+- API Compatibility: 100% compatibility with existing bitnet-core APIs
+- Error Handling: Comprehensive error recovery without memory leaks
+- Thread Safety: All tensor operations thread-safe with minimal contention
+- Device Abstraction: Seamless operation across CPU/Metal/MLX devices
+- Quantization Integration: <10% performance overhead for quantized operations
+
+### 📊 Phase 4 Completion Gates
 
 **Functional Completeness:**
-- [ ] Calibration dataset handles streaming large datasets correctly
-- [ ] QAT training maintains gradient flow through quantization
-- [ ] Straight-through estimator integrates with autograd system
-- [ ] Error analysis provides actionable quantization insights
-- [ ] Progressive quantization schedules optimize training
+- [ ] Complete BitNetTensor struct with full lifecycle management
+- [ ] All mathematical operations implemented and tested
+- [ ] Broadcasting system fully compatible with NumPy/PyTorch semantics
+- [ ] MLX and Metal acceleration fully integrated and optimized
+- [ ] Quantization integration provides BitNet-specific operations
 
 **Performance Validation:**
-- [ ] Calibration system processes large datasets efficiently
-- [ ] QAT training shows minimal performance overhead
-- [ ] Error metrics provide accurate quantization quality assessment
-- [ ] Memory usage stays within production constraints
-- [ ] Integration tests with BitLinear layers succeed
+- [ ] Tensor operations achieve target performance benchmarks
+- [ ] Memory efficiency meets production requirements
+- [ ] Acceleration integration provides expected speedups
+- [ ] Integration tests pass with all existing systems
+- [ ] No performance regression in existing functionality
 
 **Production Readiness:**
-- [ ] Error handling covers all edge cases and recovery
-- [ ] API design follows established patterns from previous phases
-- [ ] Documentation includes comprehensive usage examples
-- [ ] Checkpointing and resume functionality works reliably
-- [ ] Ready for Phase 4 model architecture integration
+- [ ] Comprehensive error handling and recovery mechanisms
+- [ ] Thread-safe operations with performance optimization
+- [ ] Complete API documentation and usage examples
+- [ ] Ready for inference and training engine implementation
+- [ ] Benchmark suite validates all performance claims
 
-## 🔄 PHASE 3 TO PHASE 4 TRANSITION
+## 🔄 PHASE 4 TO PHASE 5 TRANSITION
 
-### 🎯 Phase 4 Prerequisites from Phase 3
+### 🎯 Phase 5 Prerequisites from Phase 4
 
-**Required Phase 3 Completions:**
-- ✅ Stable calibration dataset processing system
-- ✅ Production-ready QAT training infrastructure  
-- ✅ Validated straight-through estimator implementation
-- ✅ Comprehensive error analysis and metrics system
-- ✅ Integration-ready with model architecture support
+**Required Phase 4 Completions:**
+- ✅ Production-ready BitNetTensor with complete mathematical operations
+- ✅ Fully integrated MLX and Metal acceleration for tensor operations
+- ✅ Comprehensive quantization integration with BitNet-specific operations
+- ✅ Memory-efficient tensor management leveraging existing infrastructure
+- ✅ Performance-validated tensor operations with benchmarking
 
-**Phase 4 Integration Points:**
-- Transformer architecture quantization using QAT system
-- Model conversion utilities leveraging calibration infrastructure
-- Architecture-specific implementations with error monitoring
-- Progressive quantization for different model components
-- Performance validation using established metrics system
+**Phase 5 Integration Points:**
+- Inference engine implementation using complete tensor operations
+- Training infrastructure leveraging tensor automatic differentiation
+- Model architecture implementations with tensor building blocks
+- Distributed computing using tensor communication primitives
+- CLI and Python bindings exposing complete tensor functionality
 
-## 🎯 PROJECT-SPECIFIC COMMANDS FOR PHASE 3
+## 🎯 PROJECT-SPECIFIC COMMANDS FOR PHASE 4
 
-### 🚀 Phase 3 Development Commands
+### 🚀 Phase 4 Development Commands
 
 ```bash
-# Phase 3 focused build
-cargo build --workspace --features calibration,qat,error-analysis --release
+# Phase 4 focused build
+cargo build --workspace --features tensor-complete,mlx,metal --release
 
-# Phase 3 comprehensive testing  
-cargo test --package bitnet-quant calibration --features phase-3
-cargo test --package bitnet-training qat --features phase-3
+# Phase 4 comprehensive testing  
+cargo test --package bitnet-core tensor --features tensor-complete
+cargo test --package bitnet-quant tensor_integration --features tensor-integration
 
-# QAT training performance validation
-cargo bench --package bitnet-training qat --features straight-through
+# Tensor operations performance validation
+cargo bench --package bitnet-core tensor_ops --features tensor-complete
 
-# Calibration system validation
-cargo test --package bitnet-quant calibration --features streaming
+# MLX tensor acceleration validation
+cargo bench --package bitnet-core tensor_acceleration --features mlx,tensor-complete
 
-# Integration validation across components
-cargo test --workspace --features qat-integration,calibration-integration
+# Integration validation across all components
+cargo test --workspace --features tensor-complete,integration-tests
 
-# Documentation generation for Phase 3
-cargo doc --workspace --open --no-deps --features phase-3-complete
+# Documentation generation for Phase 4
+cargo doc --workspace --open --no-deps --features tensor-complete
 
-# Error analysis and metrics testing
-cargo test --package bitnet-quant metrics --features error-analysis
+# Comprehensive tensor demonstration
+cargo run --example tensor/comprehensive_tensor_demo --features tensor-complete,all-accelerations
 
-# Memory efficiency validation with QAT
-cargo run --example qat/memory_efficient_training --features memory-profiling
+# Performance comparison validation
+cargo run --example tensor/performance_comparison_demo --features tensor-complete,benchmarking
 ```
 
-### ⚡ Phase 3 Development Workflow Pattern
+### ⚡ Phase 4 Development Workflow Pattern
 
 ```rust
-// Phase 3 standard development workflow
+// Phase 4 standard development workflow
 [BatchTool]:
-  - Bash("git checkout -b feature/phase-3-calibration-qat")
+  - Bash("git checkout -b feature/phase-4-tensor-operations")
   - Bash("cargo update --workspace") 
-  - Bash("cargo build --workspace --features calibration,qat,error-analysis --release")
-  - Bash("cargo test --package bitnet-quant calibration --features phase-3-validation")
-  - Bash("cargo test --package bitnet-training qat --features phase-3-validation")
-  - Bash("cargo clippy --workspace --features calibration,qat -- -D warnings")
-  - Bash("cargo bench --workspace --features qat,calibration")
-  - Write("PHASE_3_COMPLETION.md", phase3CompletionReport)
+  - Bash("cargo build --workspace --features tensor-complete,mlx,metal --release")
+  - Bash("cargo test --package bitnet-core tensor --features tensor-complete-validation")
+  - Bash("cargo test --package bitnet-quant tensor_integration --features tensor-integration-validation")
+  - Bash("cargo clippy --workspace --features tensor-complete -- -D warnings")
+  - Bash("cargo bench --workspace --features tensor-complete,comprehensive-benchmarks")
+  - Write("PHASE_4_COMPLETION.md", phase4CompletionReport)
   - Bash("git add .")
-  - Bash("git commit -m 'feat: complete Phase 3 Calibration and QAT infrastructure with error analysis'")
-  - Bash("git push origin feature/phase-3-calibration-qat")
+  - Bash("git commit -m 'feat: complete Phase 4 Tensor Operations with MLX/Metal acceleration and quantization integration'")
+  - Bash("git push origin feature/phase-4-tensor-operations")
 ```
 
-### 📋 Phase 3 Daily Development Todos
+### 📋 Phase 4 Development Todos
 
-**Week 1 (Days 1-7): Calibration System**
-- [ ] Implement streaming calibration dataset processing
-- [ ] Create activation statistics collection system
-- [ ] Build histogram-based quantization parameter optimization
-- [ ] Implement calibration statistics persistence and loading
-- [ ] Create representative sampling strategies for efficiency
-- [ ] Integrate with existing memory pool and device abstraction
-- [ ] Validate with comprehensive test suite and benchmarks
+**Week 1 (Days 1-7): Core Tensor Infrastructure**
+- [ ] Implement complete BitNetTensor struct with shape and dtype management
+- [ ] Create tensor storage backend with memory pool integration
+- [ ] Build tensor lifecycle management and device abstraction integration
+- [ ] Implement basic tensor creation, cloning, and destruction
+- [ ] Add tensor metadata management and validation systems
+- [ ] Create comprehensive tensor error handling and recovery
+- [ ] Validate with tensor core functionality test suite
 
-**Week 2 (Days 8-14): QAT Infrastructure**
-- [ ] Implement straight-through estimator with gradient flow
-- [ ] Create custom autograd functions for candle-core
-- [ ] Build quantization-aware loss functions and regularization
-- [ ] Implement progressive quantization scheduling system
-- [ ] Create knowledge distillation training infrastructure
-- [ ] Add quantization-specific optimizer adaptations
-- [ ] Build comprehensive error analysis and metrics system
+**Week 2 (Days 8-14): Mathematical Operations System**
+- [ ] Implement arithmetic operations with broadcasting support
+- [ ] Create linear algebra operations (matmul, dot, SVD, QR)
+- [ ] Build reduction operations (sum, mean, min, max, std)
+- [ ] Add activation functions and comparison operations
+- [ ] Implement indexing, slicing, and reshaping operations
+- [ ] Create in-place and out-of-place operation variants
+- [ ] Add SIMD optimization for cross-platform performance
 
-**Integration & Production (Days 15-16):**
-- [ ] Complete integration testing with BitLinear layers
-- [ ] Validate memory-efficient QAT training workflows
-- [ ] Create production-ready examples and documentation
-- [ ] Perform comprehensive performance benchmarking
-- [ ] Prepare for Phase 4 model architecture integration
+**Week 3 (Days 15-21): Acceleration Integration**
+- [ ] Integrate MLX acceleration for Apple Silicon tensor operations
+- [ ] Add Metal compute shader support for GPU tensor operations
+- [ ] Implement automatic acceleration backend selection
+- [ ] Create zero-copy tensor operations where possible
+- [ ] Add performance profiling and optimization recommendations
+- [ ] Build custom kernels for BitNet-specific operations
+- [ ] Validate acceleration with comprehensive benchmarking
 
-This updated configuration focuses on Phase 3: Calibration and QAT Infrastructure as the current priority, building on the completed Phase 2 BitLinear implementation while preparing for seamless transition to Phase 4 model architecture support.
+**Week 4 (Days 22-28): Quantization and BitNet Integration**
+- [ ] Integrate tensor operations with existing quantization infrastructure
+- [ ] Implement BitNet-specific tensor operations (1.58-bit quantization)
+- [ ] Add BitLinear layer tensor operation support
+- [ ] Create mixed precision tensor management system
+- [ ] Build QAT-aware tensor operations with straight-through estimation
+- [ ] Add calibration dataset tensor processing support
+- [ ] Validate with comprehensive BitNet tensor integration tests
+
+**Final Integration (Days 29-30):**
+- [ ] Complete integration testing with all existing systems
+- [ ] Validate performance benchmarks and optimization targets
+- [ ] Create comprehensive documentation and usage examples
+- [ ] Prepare for Phase 5 inference and training engine implementation
+
+This updated configuration focuses on Phase 4: Complete Tensor Operations Implementation as the critical path, building on the existing production-ready memory management and acceleration infrastructure while providing the foundation for inference and training engines.

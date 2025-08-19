@@ -39,6 +39,7 @@ pub mod quantization;
 pub mod bitlinear;
 pub mod simd;
 pub mod calibration;
+pub mod metrics;
 
 // Re-export commonly used items for convenience
 pub use quantization::{
@@ -109,6 +110,12 @@ pub use quantization::enhanced_config::{
     ConfigurationPreset, create_enhanced_config, create_custom_enhanced_config,
 };
 
+pub use metrics::{
+    QuantizationMetrics, LayerErrorAnalysis, ErrorThresholds, MitigationStrategy,
+    MetricsConfig, ExportFormat, MetricsCalculator, MetricsExporter,
+    safe_divide, tensor_to_vec, calculate_percentile,
+};
+
 /// Prelude module for convenient imports
 pub mod prelude {
     pub use crate::quantization::{
@@ -164,6 +171,11 @@ pub mod prelude {
         AdjustmentStrategy, PrecisionMetric, PrecisionState, PerformanceSummary,
         create_precision_controller, create_conservative_precision_controller,
         create_aggressive_precision_controller,
+    };
+
+    pub use crate::metrics::{
+        QuantizationMetrics, LayerErrorAnalysis, ErrorThresholds, MitigationStrategy,
+        MetricsConfig, ExportFormat, MetricsCalculator, MetricsExporter,
     };
 }
 

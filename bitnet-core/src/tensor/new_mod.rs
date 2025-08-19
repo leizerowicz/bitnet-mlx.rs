@@ -67,17 +67,6 @@ pub use legacy::{
     transpose as legacy_transpose,
 };
 
-// Direct exports of legacy functions for backward compatibility (these are the main exports)
-pub use legacy::{
-    create_tensor_f32,
-    create_tensor_i8,
-    get_shape,
-    reshape,
-    transpose,
-    zeros,  // Legacy zeros returns candle Tensor
-    ones,   // Legacy ones returns candle Tensor
-};
-
 // Convenience functions that wrap the new BitNetTensor API
 use crate::memory::MemoryResult;
 
@@ -95,20 +84,20 @@ use crate::memory::MemoryResult;
 /// # Examples
 ///
 /// ```rust
-/// use bitnet_core::tensor::{zeros_bitnet, BitNetDType};
+/// use bitnet_core::tensor::{zeros, BitNetDType};
 /// 
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// let tensor = zeros_bitnet(&[2, 3], BitNetDType::F32)?;
+/// let tensor = zeros(&[2, 3], BitNetDType::F32)?;
 /// assert_eq!(tensor.shape().dims(), &[2, 3]);
 /// # Ok(())
 /// # }
 /// ```
-pub fn zeros_bitnet(shape: &[usize], dtype: BitNetDType) -> MemoryResult<BitNetTensor> {
+pub fn zeros(shape: &[usize], dtype: BitNetDType) -> MemoryResult<BitNetTensor> {
     BitNetTensor::zeros(shape, dtype, None)
 }
 
 /// Creates a tensor filled with ones using the new BitNetTensor API
-pub fn ones_bitnet(shape: &[usize], dtype: BitNetDType) -> MemoryResult<BitNetTensor> {
+pub fn ones(shape: &[usize], dtype: BitNetDType) -> MemoryResult<BitNetTensor> {
     BitNetTensor::ones(shape, dtype, None)
 }
 
@@ -129,7 +118,7 @@ mod tests {
     #[test]
     fn test_tensor_module_integration() {
         // Test that we can create tensors using the convenience functions
-        let tensor = zeros_bitnet(&[2, 3], BitNetDType::F32).unwrap();
+        let tensor = zeros(&[2, 3], BitNetDType::F32).unwrap();
         assert_eq!(tensor.shape().dims(), &[2, 3]);
         assert_eq!(tensor.dtype(), BitNetDType::F32);
     }
