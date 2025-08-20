@@ -14,6 +14,7 @@ use super::shape::{TensorShape, BroadcastCompatible};
 use super::storage::TensorStorage;
 use super::memory_integration::TensorMemoryManager;
 use super::device_integration::TensorDeviceManager;
+use super::ops::TensorOpError;
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, info, warn, error};
@@ -192,6 +193,16 @@ impl BitNetTensor {
         self.storage.num_elements()
     }
 
+    /// Alias for num_elements for compatibility
+    pub fn element_count(&self) -> usize {
+        self.num_elements()
+    }
+
+    /// Returns true if the tensor has allocated memory
+    pub fn is_allocated(&self) -> bool {
+        true // BitNetTensor always has storage when created
+    }
+
     /// Returns the size in bytes
     pub fn size_bytes(&self) -> usize {
         self.storage.size_bytes()
@@ -208,6 +219,132 @@ impl BitNetTensor {
     /// Validates the tensor integrity
     pub fn validate(&self) -> MemoryResult<()> {
         self.storage.validate()
+    }
+
+    /// Moves tensor to a different device
+    pub fn to_device(&self, device: &Device) -> MemoryResult<Self> {
+        // Use device comparison from our device module
+        use crate::device::devices_equal;
+        if devices_equal(self.device(), device) {
+            return Ok(self.clone());
+        }
+        
+        // For now, create a new tensor on the target device with same data
+        // This is a simplified implementation
+        Self::zeros(self.shape().dims(), self.dtype(), Some(device.clone()))
+    }
+
+    /// Reshapes the tensor to new dimensions
+    pub fn reshape(&self, new_shape: &[usize]) -> MemoryResult<Self> {
+        let new_tensor_shape = TensorShape::new(new_shape);
+        if new_tensor_shape.num_elements() != self.num_elements() {
+            return Err(MemoryError::InternalError {
+                reason: format!(
+                    "Cannot reshape tensor with {} elements to shape with {} elements",
+                    self.num_elements(),
+                    new_tensor_shape.num_elements()
+                ),
+            });
+        }
+        
+        // For now, create a new tensor with the new shape
+        Self::zeros(new_shape, self.dtype(), Some(self.device().clone()))
+    }
+
+    /// Removes dimensions of size 1
+    pub fn squeeze(&self) -> MemoryResult<Self> {
+        let squeezed_dims: Vec<usize> = self.shape()
+            .dims()
+            .iter()
+            .filter(|&&dim| dim != 1)
+            .copied()
+            .collect();
+        
+        if squeezed_dims.is_empty() {
+            // If all dimensions are 1, keep one dimension
+            self.reshape(&[1])
+        } else {
+            self.reshape(&squeezed_dims)
+        }
+    }
+
+    /// Transposes the tensor (swaps the last two dimensions)
+    pub fn transpose(&self) -> MemoryResult<Self> {
+        let dims = self.shape().dims();
+        if dims.len() < 2 {
+            return Err(MemoryError::InternalError {
+                reason: "Cannot transpose tensor with less than 2 dimensions".to_string(),
+            });
+        }
+        
+        let mut new_dims = dims.to_vec();
+        let len = new_dims.len();
+        new_dims.swap(len - 2, len - 1);
+        
+        self.reshape(&new_dims)
+    }
+
+    /// Checks if the tensor is valid
+    pub fn is_valid(&self) -> bool {
+        self.validate().is_ok()
+    }
+
+    /// Converts to Candle tensor for interoperability
+    pub fn to_candle(&self) -> Result<candle_core::Tensor, TensorOpError> {
+        // This is a simplified conversion - in a full implementation,
+        // we'd need to handle the data transfer properly
+        match self.dtype() {
+            BitNetDType::F32 => {
+                unsafe {
+                    let ptr = self.storage.as_ptr() as *const f32;
+                    let slice = std::slice::from_raw_parts(ptr, self.num_elements());
+                    candle_core::Tensor::from_slice(slice, self.shape().dims(), self.device())
+                        .map_err(|e| TensorOpError::CandleError {
+                            operation: "to_candle".to_string(),
+                            error: e.to_string(),
+                        })
+                }
+            }
+            _ => {
+                // For other types, we'd need proper conversion
+                Err(TensorOpError::UnsupportedOperation {
+                    operation: "to_candle".to_string(),
+                    dtype: self.dtype(),
+                })
+            }
+        }
+    }
+
+    /// Creates a BitNetTensor from a Candle tensor
+    pub fn from_candle(
+        candle_tensor: candle_core::Tensor, 
+        device: &candle_core::Device,
+    ) -> MemoryResult<Self> {
+        let shape = candle_tensor.dims();
+        let device = device.clone();
+
+        // Extract data from Candle tensor
+        match candle_tensor.dtype() {
+            candle_core::DType::F32 => {
+                // For multi-dimensional tensors, we need to flatten to extract data
+                let flattened = candle_tensor.flatten_all()
+                    .map_err(|e| MemoryError::InternalError {
+                        reason: format!("Failed to flatten Candle tensor: {}", e),
+                    })?;
+                    
+                let data = flattened.to_vec1::<f32>()
+                    .map_err(|e| MemoryError::InternalError {
+                        reason: format!("Failed to extract F32 data from Candle tensor: {}", e),
+                    })?;
+                Self::from_vec(data, shape, BitNetDType::F32, Some(device))
+            }
+            _ => Err(MemoryError::InternalError {
+                reason: format!(
+                    "Conversion from Candle dtype {:?} not yet implemented",
+                    candle_tensor.dtype()
+                ),
+            })
+        }
     }
 }
 

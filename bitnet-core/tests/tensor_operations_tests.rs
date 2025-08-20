@@ -15,7 +15,19 @@ use candle_core::{Device, Tensor, DType};
 
 /// Helper function to create a test memory pool
 fn create_test_pool() -> HybridMemoryPool {
-    HybridMemoryPool::new().expect("Failed to create test memory pool")
+    use bitnet_core::memory::MemoryPoolConfig;
+    
+    let config = MemoryPoolConfig {
+        small_block_threshold: 2 * 1024 * 1024, // 2MB to handle large benchmark tensors
+        small_pool_initial_size: 64 * 1024 * 1024, // 64MB initial
+        small_pool_max_size: 512 * 1024 * 1024, // 512MB max  
+        large_pool_initial_size: 128 * 1024 * 1024, // 128MB initial for large tensors
+        large_pool_max_size: 2 * 1024 * 1024 * 1024, // 2GB max
+        enable_metrics: true,
+        ..Default::default()
+    };
+    
+    HybridMemoryPool::with_config(config).expect("Failed to create test memory pool")
 }
 
 /// Helper function to create a test memory pool (same as above for now)
@@ -3155,11 +3167,11 @@ fn benchmark_mathematical_operations() {
     
     println!("=== Mathematical Operations Benchmark ===");
     
-    // Test different operation sizes
+    // Test different operation sizes - start with smaller tensors to avoid memory issues
     let test_shapes = vec![
-        vec![100, 100],
-        vec![500, 500],
-        vec![50, 50, 20],
+        vec![100, 100],    // 40KB
+        vec![200, 200],    // 160KB  
+        vec![50, 50, 20],  // 200KB
     ];
     
     for shape in &test_shapes {

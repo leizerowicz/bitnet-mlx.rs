@@ -49,6 +49,8 @@ pub enum BitNetDType {
     // BitNet-specific quantized types
     /// 1.58-bit quantized type (ternary: -1, 0, +1)
     BitNet158,
+    /// 1.1-bit quantized type
+    BitNet11,
     /// 1-bit quantized type (binary: -1, +1)
     BitNet1,
     /// 4-bit quantized integer
@@ -90,11 +92,27 @@ impl BitNetDType {
             BitNetDType::U64 => Some(8),
             BitNetDType::Bool => Some(1),
             BitNetDType::BitNet158 => Some(1), // Packed ternary representation
+            BitNetDType::BitNet11 => Some(1),  // Packed 1.1-bit representation
             BitNetDType::BitNet1 => Some(1),   // Packed binary representation (8 bits per byte)
             BitNetDType::Int4 => Some(1),      // Packed 4-bit representation (2 values per byte)
             BitNetDType::QInt8 => Some(1),     // Quantized 8-bit
             BitNetDType::QInt4 => Some(1),     // Packed quantized 4-bit
         }
+    }
+
+    /// Alias for size_bytes() for compatibility
+    pub fn size(self) -> Option<usize> {
+        self.size_bytes()
+    }
+
+    /// Returns true if this is a valid data type
+    pub fn is_valid(self) -> bool {
+        true // All enum variants are valid by definition
+    }
+
+    /// Returns true if this type can be used for numeric operations
+    pub fn is_numeric(self) -> bool {
+        !matches!(self, BitNetDType::Bool)
     }
 
     /// Returns true if this is a floating point type
@@ -145,7 +163,7 @@ impl BitNetDType {
         matches!(self,
             BitNetDType::F32 | BitNetDType::F16 | BitNetDType::BF16 |
             BitNetDType::I8 | BitNetDType::I16 | BitNetDType::I32 | BitNetDType::I64 |
-            BitNetDType::BitNet158 | BitNetDType::BitNet1 | BitNetDType::Int4 |
+            BitNetDType::BitNet158 | BitNetDType::BitNet11 | BitNetDType::BitNet1 | BitNetDType::Int4 |
             BitNetDType::QInt8 | BitNetDType::QInt4
         )
     }
@@ -162,7 +180,7 @@ impl BitNetDType {
     /// ```
     pub fn is_quantized(self) -> bool {
         matches!(self,
-            BitNetDType::BitNet158 | BitNetDType::BitNet1 |
+            BitNetDType::BitNet158 | BitNetDType::BitNet11 | BitNetDType::BitNet1 |
             BitNetDType::Int4 | BitNetDType::QInt8 | BitNetDType::QInt4
         )
     }
@@ -179,7 +197,7 @@ impl BitNetDType {
     /// ```
     pub fn is_packed(self) -> bool {
         matches!(self,
-            BitNetDType::BitNet158 | BitNetDType::BitNet1 |
+            BitNetDType::BitNet158 | BitNetDType::BitNet11 | BitNetDType::BitNet1 |
             BitNetDType::Int4 | BitNetDType::QInt4
         )
     }
@@ -209,6 +227,7 @@ impl BitNetDType {
             BitNetDType::U64 => "u64",
             BitNetDType::Bool => "bool",
             BitNetDType::BitNet158 => "bitnet1.58",
+            BitNetDType::BitNet11 => "bitnet1.1",
             BitNetDType::BitNet1 => "bitnet1",
             BitNetDType::Int4 => "int4",
             BitNetDType::QInt8 => "qint8",
@@ -242,6 +261,7 @@ impl BitNetDType {
             BitNetDType::U64,
             BitNetDType::Bool,
             BitNetDType::BitNet158,
+            BitNetDType::BitNet11,
             BitNetDType::BitNet1,
             BitNetDType::Int4,
             BitNetDType::QInt8,
@@ -263,6 +283,7 @@ impl BitNetDType {
     pub fn quantized_types() -> &'static [BitNetDType] {
         &[
             BitNetDType::BitNet158,
+            BitNetDType::BitNet11,
             BitNetDType::BitNet1,
             BitNetDType::Int4,
             BitNetDType::QInt8,
@@ -390,6 +411,7 @@ impl BitNetDType {
             BitNetDType::U64 => Some((0.0, 18446744073709551615.0)),
             BitNetDType::Bool => Some((0.0, 1.0)),
             BitNetDType::BitNet158 => Some((-1.0, 1.0)),
+            BitNetDType::BitNet11 => Some((-1.0, 1.0)),
             BitNetDType::BitNet1 => Some((-1.0, 1.0)),
             BitNetDType::Int4 => Some((-8.0, 7.0)),
             BitNetDType::QInt8 => Some((-128.0, 127.0)),
@@ -547,6 +569,7 @@ impl DataTypeUtils {
             
             // BitNet quantized types promote to the most general
             (BitNet158, _) | (_, BitNet158) => BitNet158,
+            (BitNet11, _) | (_, BitNet11) => BitNet11,
             (BitNet1, _) | (_, BitNet1) => BitNet1,
             
             // Default fallback

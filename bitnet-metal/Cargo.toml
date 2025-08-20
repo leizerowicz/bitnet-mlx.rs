@@ -28,7 +28,7 @@ mlx-metal = ["mlx", "mps"]
 apple-silicon = ["mps", "mlx", "ane", "unified-memory"]
 
 [dependencies]
-bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.3.0" }
+bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.4.0" }
 bitnet-quant = { path = "../bitnet-quant", version = ">=0.1.0, <0.3.0" }
 
 # Metal bindings

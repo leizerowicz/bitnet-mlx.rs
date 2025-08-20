@@ -45,6 +45,9 @@ pub mod device_integration;
 pub mod storage;
 pub mod core;
 
+// Operations module
+pub mod ops;
+
 // Legacy compatibility for backward compatibility
 pub mod legacy;
 
@@ -53,8 +56,12 @@ pub use dtype::BitNetDType;
 pub use shape::{TensorShape, BroadcastCompatible};
 pub use storage::TensorStorage;
 pub use core::{BitNetTensor, TensorMemoryStats};
-pub use memory_integration::TensorMemoryManager;
+pub use memory_integration::{TensorMemoryManager, set_global_memory_pool, get_global_memory_pool, clear_global_memory_pool};
 pub use device_integration::TensorDeviceManager;
+
+// Operations exports
+pub use ops::arithmetic::*;
+pub use ops::broadcasting::*;
 
 // Legacy function re-exports for backward compatibility
 pub use legacy::{

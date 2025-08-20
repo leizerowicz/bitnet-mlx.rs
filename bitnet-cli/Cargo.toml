@@ -31,7 +31,7 @@ conversion = ["dep:safetensors"]
 # metal = ["bitnet-inference/metal", "bitnet-training/metal"]
 
 [dependencies]
-bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.3.0" }
+bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.4.0" }
 bitnet-quant = { path = "../bitnet-quant", version = ">=0.1.0, <0.3.0" }
 # bitnet-inference = { path = "../bitnet-inference", version = "0.1.0" }
 # bitnet-training = { path = "../bitnet-training", version = "0.1.0" }

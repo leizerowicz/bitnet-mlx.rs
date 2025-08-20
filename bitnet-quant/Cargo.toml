@@ -46,7 +46,7 @@ thread-safety-tests = []
 memory-profiling = ["tracing"]
 
 [dependencies]
-bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.3.0" }
+bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.4.0" }
 
 # Core dependencies
 candle-core.workspace = true

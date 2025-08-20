@@ -388,7 +388,7 @@ impl TensorStorage {
             // Smaller types
             BitNetDType::I8 | BitNetDType::U8 | BitNetDType::Bool => 4,
             // BitNet quantized types - align to byte boundaries but allow SIMD
-            BitNetDType::BitNet158 | BitNetDType::BitNet1 | 
+            BitNetDType::BitNet158 | BitNetDType::BitNet11 | BitNetDType::BitNet1 | 
             BitNetDType::Int4 | BitNetDType::QInt8 | BitNetDType::QInt4 => 8,
         }
     }
