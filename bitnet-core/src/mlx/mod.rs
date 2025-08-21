@@ -45,6 +45,11 @@ pub use profiler::{MlxAdvancedProfiler, ProfilerConfig, ProfileOutputFormat};
 pub use device_comparison::{MlxDeviceComparison, DeviceComparisonConfig};
 pub use regression_testing::{MlxRegressionTester, RegressionTestConfig};
 
+// Re-export key MLX types
+pub use device::BitNetMlxDevice;
+pub use tensor::MlxTensor;
+pub use operations::BitNetMlxOps;
+
 #[cfg(test)]
 mod tests;
 
@@ -54,10 +59,6 @@ mod optimization_tests;
 pub use device::*;
 pub use tensor::*;
 pub use operations::*;
-
-// Re-export tensor types
-pub use tensor::MlxTensor;
-pub use operations::BitNetMlxOps;
 
 // Type aliases for compatibility (removed duplicates)
 pub use optimization::{
@@ -76,53 +77,25 @@ pub use operations::{mlx_matmul, mlx_quantize, mlx_dequantize};
 #[cfg(not(feature = "mlx"))]
 pub use operations::{mlx_matmul, mlx_quantize, mlx_dequantize};
 
-/// MLX device wrapper for BitNet integration
-#[cfg(feature = "mlx")]
-#[derive(Debug, Clone)]
-pub struct BitNetMlxDevice {
-    device_type: String,
-}
+#[cfg(test)]
+mod tests;
 
-#[cfg(feature = "mlx")]
-impl BitNetMlxDevice {
-    /// Create a new MLX device for CPU
-    pub fn cpu() -> Self {
-        Self {
-            device_type: "cpu".to_string(),
-        }
-    }
-
-    /// Create a new MLX device for GPU (Apple Silicon)
-    pub fn gpu() -> Self {
-        Self {
-            device_type: "gpu".to_string(),
-        }
-    }
-
-    /// Get the device type as string
-    pub fn device_type(&self) -> &str {
-        &self.device_type
-    }
-
-    /// Check if this device supports unified memory
-    pub fn supports_unified_memory(&self) -> bool {
-        self.device_type == "gpu"
-    }
-}
+// Re-export the main device type from device module
+// (removed duplicate import)
 
 /// MLX tensor wrapper for BitNet operations
 #[cfg(feature = "mlx")]
 #[derive(Debug)]
 pub struct BitNetMlxTensor {
     array: Array,
-    device: BitNetMlxDevice,
+    device: device::BitNetMlxDevice,
     memory_handle: Option<MemoryHandle>,
 }
 
 #[cfg(feature = "mlx")]
 impl BitNetMlxTensor {
     /// Create a new MLX tensor from an array
-    pub fn new(array: Array, device: BitNetMlxDevice) -> Self {
+    pub fn new(array: Array, device: device::BitNetMlxDevice) -> Self {
         Self {
             array,
             device,
@@ -223,9 +196,9 @@ pub fn is_mlx_available() -> bool {
 pub fn default_mlx_device() -> Result<BitNetMlxDevice> {
     if is_mlx_available() {
         // Try GPU first, fall back to CPU
-        Ok(BitNetMlxDevice::gpu())
+        BitNetMlxDevice::gpu()
     } else {
-        Ok(BitNetMlxDevice::cpu())
+        BitNetMlxDevice::cpu()
     }
 }
 

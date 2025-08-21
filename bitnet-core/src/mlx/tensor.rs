@@ -7,8 +7,8 @@
 use mlx_rs::{Array, Dtype as MlxDtype};
 
 use crate::memory::MemoryHandle;
-use crate::memory::tensor::BitNetDType;
-use crate::mlx::BitNetMlxDevice;
+use crate::tensor::dtype::BitNetDType;
+use crate::mlx::device::BitNetMlxDevice;
 use anyhow::Result;
 
 /// MLX tensor wrapper with BitNet integration
@@ -85,6 +85,19 @@ impl MlxTensor {
         Ok(Self::new(array, device, dtype))
     }
 
+    /// Create a random normal tensor
+    pub fn randn(
+        shape: &[usize],
+        dtype: BitNetDType,
+        device: BitNetMlxDevice,
+    ) -> Result<Self> {
+        let mlx_shape: Vec<i32> = shape.iter().map(|&x| x as i32).collect();
+        // For now, use ones and then we can improve this later with actual random generation
+        let array = mlx_rs::ops::ones::<f32>(&mlx_shape)?;
+        
+        Ok(Self::new(array, device, dtype))
+    }
+
     /// Get the underlying MLX array
     pub fn array(&self) -> &Array {
         &self.array
@@ -123,13 +136,13 @@ impl MlxTensor {
 
     /// Convert to CPU tensor
     pub fn to_cpu(&self) -> Result<Self> {
-        let cpu_device = BitNetMlxDevice::cpu();
+        let cpu_device = BitNetMlxDevice::cpu()?;
         self.to_device(&cpu_device)
     }
 
     /// Convert to GPU tensor (if available)
     pub fn to_gpu(&self) -> Result<Self> {
-        let gpu_device = BitNetMlxDevice::gpu();
+        let gpu_device = BitNetMlxDevice::gpu()?;
         self.to_device(&gpu_device)
     }
 
@@ -164,10 +177,20 @@ impl BitNetDType {
             BitNetDType::F16 => MlxDtype::Float16,
             BitNetDType::BF16 => MlxDtype::Bfloat16,
             BitNetDType::I8 => MlxDtype::Int8,
-            BitNetDType::I4 => MlxDtype::Int8, // Map to closest available
-            BitNetDType::I2 => MlxDtype::Int8, // Map to closest available
-            BitNetDType::I1 => MlxDtype::Int8, // Map to closest available
+            BitNetDType::I16 => MlxDtype::Int16,
+            BitNetDType::I32 => MlxDtype::Int32,
+            BitNetDType::I64 => MlxDtype::Int64,
+            BitNetDType::U8 => MlxDtype::Uint8,
+            BitNetDType::U16 => MlxDtype::Uint16,
+            BitNetDType::U32 => MlxDtype::Uint32,
+            BitNetDType::U64 => MlxDtype::Uint64,
+            BitNetDType::Bool => MlxDtype::Bool,
+            BitNetDType::QInt8 => MlxDtype::Int8, // Map to closest available
+            BitNetDType::QInt4 => MlxDtype::Int8, // Map to closest available
+            BitNetDType::Int4 => MlxDtype::Int8, // Map to closest available
             BitNetDType::BitNet158 => MlxDtype::Int8, // Map to closest available
+            BitNetDType::BitNet11 => MlxDtype::Int8, // Map to closest available
+            BitNetDType::BitNet1 => MlxDtype::Int8, // Map to closest available
         }
     }
 

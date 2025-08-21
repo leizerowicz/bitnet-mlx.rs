@@ -346,6 +346,40 @@ impl TensorStorage {
         Ok(())
     }
 
+    /// Returns the size in bytes (alias for size_bytes)
+    pub fn size_in_bytes(&self) -> usize {
+        self.total_size
+    }
+    
+    /// Get raw data pointer for zero-copy operations
+    pub fn raw_data_ptr(&self) -> Option<*const u8> {
+        unsafe {
+            Some(self.memory_handle.as_ptr() as *const u8)
+        }
+    }
+    
+    /// Get tensor data as a slice of the specified type
+    pub fn data_as_slice<T: Clone + 'static>(&self) -> MemoryResult<Vec<T>> {
+        // This is a simplified implementation - in practice this would need
+        // proper type checking and conversion based on the stored dtype
+        unsafe {
+            let byte_slice = self.as_slice();
+            // For now, just handle f32 type
+            if std::any::TypeId::of::<T>() == std::any::TypeId::of::<f32>() 
+                && self.dtype == BitNetDType::F32 {
+                let float_ptr = byte_slice.as_ptr() as *const f32;
+                let float_slice = slice::from_raw_parts(float_ptr, self.num_elements());
+                let vec: Vec<f32> = float_slice.to_vec();
+                // Safety: We know T is f32 from the type check above
+                Ok(std::mem::transmute::<Vec<f32>, Vec<T>>(vec))
+            } else {
+                Err(MemoryError::InternalError {
+                    reason: format!("Type conversion from {:?} to requested type not implemented", self.dtype),
+                })
+            }
+        }
+    }
+
     /// Validates storage integrity
     pub fn validate(&self) -> MemoryResult<()> {
         // Validate memory handle
@@ -376,6 +410,11 @@ impl TensorStorage {
         }
 
         Ok(())
+    }
+
+    /// Checks if the storage is valid
+    pub fn is_valid(&self) -> bool {
+        self.validate().is_ok()
     }
 
     /// Calculates appropriate memory alignment for a data type

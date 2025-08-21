@@ -223,7 +223,7 @@ fn bench_comprehensive_quantization(c: &mut Criterion) {
 
 /// BitLinear layer benchmarks
 fn bench_comprehensive_bitlinear(c: &mut Criterion) {
-    let config = ComprehensiveBenchmarkConfig::default();
+    let _config = ComprehensiveBenchmarkConfig::default();
     let mut group = c.benchmark_group("comprehensive_bitlinear");
     
     group.warm_up_time(Duration::from_secs(3));
@@ -521,8 +521,8 @@ fn bench_real_world_workloads(c: &mut Criterion) {
         
         bencher.iter(|| {
             // Token embeddings
-            let input_ids = Tensor::zeros((batch_size, seq_len), DType::U32, &device).unwrap();
-            let embedding_weight = Tensor::randn(0f32, 1f32, (vocab_size, hidden_dim), &device).unwrap();
+            let _input_ids = Tensor::zeros((batch_size, seq_len), DType::U32, &device).unwrap();
+            let _embedding_weight = Tensor::randn(0f32, 1f32, (vocab_size, hidden_dim), &device).unwrap();
             
             // Simulate embedding lookup (simplified)
             let embeddings = Tensor::randn(0f32, 1f32, (batch_size, seq_len, hidden_dim), &device).unwrap();

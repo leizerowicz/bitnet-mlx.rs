@@ -248,8 +248,8 @@ impl MlxPerformanceBenchmarker {
     pub fn compare_devices(&mut self, operation: &str) -> Result<Vec<ComparisonResult>> {
         let mut comparisons = Vec::new();
         
-        let cpu_device = BitNetMlxDevice::cpu();
-        let gpu_device = BitNetMlxDevice::gpu();
+        let cpu_device = BitNetMlxDevice::cpu()?;
+        let gpu_device = BitNetMlxDevice::gpu()?;
         
         // Benchmark on CPU
         let cpu_metrics = match operation {
@@ -334,7 +334,7 @@ impl MlxPerformanceBenchmarker {
 
     /// Helper function to create test tensors
     fn create_test_tensor(&self, shape: &[usize], device: &BitNetMlxDevice) -> Result<MlxTensor> {
-        use crate::memory::tensor::BitNetDType;
+        use crate::tensor::dtype::BitNetDType;
         MlxTensor::zeros(shape, BitNetDType::F32, device.clone())
     }
 

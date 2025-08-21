@@ -261,9 +261,9 @@ impl PerformanceComparator {
         tensor_size: (usize, usize),
         data_type: &str,
     ) -> anyhow::Result<PerformanceMeasurement> {
-        use bitnet_core::memory::tensor::BitNetDType;
+        use bitnet_core::tensor::BitNetDType;
         
-        let device = BitNetMlxDevice::default();
+        let device = BitNetMlxDevice::default()?;
         let dtype = match data_type {
             "f32" => BitNetDType::F32,
             "f16" => BitNetDType::F16,
@@ -361,7 +361,7 @@ impl PerformanceComparator {
         operation: &str,
         tensor_size: (usize, usize),
         device: &BitNetMlxDevice,
-        dtype: bitnet_core::memory::tensor::BitNetDType,
+        dtype: bitnet_core::tensor::BitNetDType,
     ) -> anyhow::Result<Option<MlxTensor>> {
         let (rows, cols) = tensor_size;
         
@@ -420,9 +420,9 @@ impl PerformanceComparator {
     fn estimate_mlx_tensor_memory(&self, tensor: &MlxTensor) -> usize {
         let element_count: usize = tensor.shape().iter().product();
         let dtype_size = match tensor.dtype() {
-            bitnet_core::memory::tensor::BitNetDType::F32 => 4,
-            bitnet_core::memory::tensor::BitNetDType::F16 => 2,
-            bitnet_core::memory::tensor::BitNetDType::I8 => 1,
+            bitnet_core::tensor::BitNetDType::F32 => 4,
+            bitnet_core::tensor::BitNetDType::F16 => 2,
+            bitnet_core::tensor::BitNetDType::I8 => 1,
             _ => 4,
         };
         element_count * dtype_size

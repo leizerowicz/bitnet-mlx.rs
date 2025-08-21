@@ -666,8 +666,8 @@ impl MlxDeviceComparison {
     /// Helper methods
     fn create_device(&self, device_name: &str) -> Result<BitNetMlxDevice> {
         match device_name {
-            "cpu" => Ok(BitNetMlxDevice::cpu()),
-            "gpu" => Ok(BitNetMlxDevice::gpu()),
+            "cpu" => BitNetMlxDevice::cpu(),
+            "gpu" => BitNetMlxDevice::gpu(),
             _ => Err(anyhow::anyhow!("Unknown device: {}", device_name)),
         }
     }

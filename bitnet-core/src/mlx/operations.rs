@@ -6,7 +6,8 @@
 #[cfg(feature = "mlx")]
 use mlx_rs::ops;
 
-use crate::mlx::{MlxTensor, BitNetMlxDevice};
+use crate::mlx::{MlxTensor};
+use crate::mlx::device::BitNetMlxDevice;
 use anyhow::Result;
 
 /// BitNet-specific MLX operations
@@ -117,7 +118,7 @@ impl BitNetMlxOps {
         Ok(MlxTensor::new(
             mask_array,
             device.clone(),
-            crate::memory::tensor::BitNetDType::F32,
+            crate::tensor::dtype::BitNetDType::F32,
         ))
     }
 }

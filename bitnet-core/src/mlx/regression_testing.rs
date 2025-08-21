@@ -516,8 +516,8 @@ impl MlxRegressionTester {
 
     fn create_device(&self, device_name: &str) -> Result<crate::mlx::BitNetMlxDevice> {
         match device_name {
-            "cpu" => Ok(crate::mlx::BitNetMlxDevice::cpu()),
-            "gpu" => Ok(crate::mlx::BitNetMlxDevice::gpu()),
+            "cpu" => crate::mlx::BitNetMlxDevice::cpu(),
+            "gpu" => crate::mlx::BitNetMlxDevice::gpu(),
             _ => Err(anyhow::anyhow!("Unknown device: {}", device_name)),
         }
     }

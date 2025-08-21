@@ -8,6 +8,235 @@ use mlx_rs::{Device as MlxDevice, DeviceType as MlxDeviceType};
 
 // Simplified device management for MLX
 use anyhow::Result;
+use crate::memory::MemoryMetrics;
+
+/// BitNet MLX Device wrapper
+#[derive(Debug)]
+pub struct BitNetMlxDevice {
+    #[cfg(feature = "mlx")]
+    inner: MlxDevice,
+    device_info: Option<MlxDeviceInfo>,
+    initialized: bool,
+}
+
+impl Clone for BitNetMlxDevice {
+    fn clone(&self) -> Self {
+        #[cfg(feature = "mlx")]
+        {
+            // Create a new device of the same type
+            let inner = if let Some(info) = &self.device_info {
+                match info.device_type {
+                    MlxDeviceType::Cpu => MlxDevice::cpu(),
+                    MlxDeviceType::Gpu => MlxDevice::gpu(),
+                }
+            } else {
+                MlxDevice::cpu()
+            };
+            
+            Self {
+                inner,
+                device_info: self.device_info.clone(),
+                initialized: self.initialized,
+            }
+        }
+        #[cfg(not(feature = "mlx"))]
+        {
+            Self {
+                device_info: self.device_info.clone(),
+                initialized: self.initialized,
+            }
+        }
+    }
+}
+
+impl BitNetMlxDevice {
+    /// Create a new BitNet MLX device
+    #[cfg(feature = "mlx")]
+    pub fn new(device: MlxDevice, device_info: MlxDeviceInfo) -> Self {
+        Self {
+            inner: device,
+            device_info: Some(device_info),
+            initialized: false,
+        }
+    }
+    
+    /// Create a new BitNet MLX device without MLX feature
+    #[cfg(not(feature = "mlx"))]
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            device_info: None,
+            initialized: false,
+        })
+    }
+    
+    /// Create default BitNet MLX device
+    pub fn default() -> Result<Self> {
+        #[cfg(feature = "mlx")]
+        {
+            let device_info = auto_select_mlx_device()?;
+            let mlx_device = match device_info.device_type {
+                MlxDeviceType::Cpu => MlxDevice::cpu(),
+                MlxDeviceType::Gpu => MlxDevice::gpu(),
+            };
+            Ok(Self::new(mlx_device, device_info))
+        }
+        #[cfg(not(feature = "mlx"))]
+        {
+            Self::new()
+        }
+    }
+    
+    /// Create a CPU-based MLX device
+    pub fn cpu() -> Result<Self> {
+        #[cfg(feature = "mlx")]
+        {
+            let mlx_device = MlxDevice::cpu();
+            let device_info = MlxDeviceInfo {
+                device_type: MlxDeviceType::Cpu,
+                device_id: 0,
+                memory_limit: Some(16 * 1024 * 1024 * 1024), // 16GB default CPU memory
+                supports_unified_memory: false,
+            };
+            
+            Ok(Self {
+                #[cfg(feature = "mlx")]
+                inner: mlx_device,
+                device_info: Some(device_info),
+                initialized: true,
+            })
+        }
+        
+        #[cfg(not(feature = "mlx"))]
+        {
+            Err(anyhow::anyhow!("MLX feature not enabled"))
+        }
+    }
+
+    /// Create GPU device
+    pub fn gpu() -> Result<Self> {
+        #[cfg(feature = "mlx")]
+        {
+            let mlx_device = MlxDevice::gpu();
+            let device_info = MlxDeviceInfo {
+                device_type: MlxDeviceType::Gpu,
+                device_id: 0,
+                memory_limit: Some(64 * 1024 * 1024 * 1024), // 64GB default unified memory
+                supports_unified_memory: true,
+            };
+            
+            Ok(Self {
+                #[cfg(feature = "mlx")]
+                inner: mlx_device,
+                device_info: Some(device_info),
+                initialized: true,
+            })
+        }
+        
+        #[cfg(not(feature = "mlx"))]
+        {
+            Err(anyhow::anyhow!("MLX feature not enabled"))
+        }
+    }
+    
+    /// Initialize the device
+    pub fn initialize(&mut self) -> Result<()> {
+        // MLX devices don't require explicit initialization
+        self.initialized = true;
+        Ok(())
+    }
+    
+    /// Check if the device is available
+    pub fn is_available(&self) -> bool {
+        #[cfg(feature = "mlx")]
+        {
+            self.device_info.is_some()
+        }
+        #[cfg(not(feature = "mlx"))]
+        {
+            false
+        }
+    }
+    
+    /// Get memory statistics
+    pub fn get_memory_stats(&self) -> crate::memory::MemoryResult<crate::memory::MemoryMetrics> {
+        // For now, return default metrics
+        // In a real implementation, this would query MLX device memory
+        Ok(crate::memory::MemoryMetrics::default())
+    }
+    
+    /// Cleanup device resources
+    pub fn cleanup(&mut self) -> Result<()> {
+        self.initialized = false;
+        Ok(())
+    }
+    
+    /// Get the device type as string
+    pub fn device_type(&self) -> &str {
+        #[cfg(feature = "mlx")]
+        {
+            if let Some(ref info) = self.device_info {
+                match info.device_type {
+                    MlxDeviceType::Cpu => "cpu",
+                    MlxDeviceType::Gpu => "gpu",
+                }
+            } else {
+                "unknown"
+            }
+        }
+        #[cfg(not(feature = "mlx"))]
+        {
+            "mock"
+        }
+    }
+    
+    /// Check if this device supports unified memory
+    pub fn supports_unified_memory(&self) -> bool {
+        #[cfg(feature = "mlx")]
+        {
+            self.device_info
+                .as_ref()
+                .map(|info| info.supports_unified_memory)
+                .unwrap_or(false)
+        }
+        #[cfg(not(feature = "mlx"))]
+        {
+            false
+        }
+    }
+    
+    /// Get the underlying MLX device
+    #[cfg(feature = "mlx")]
+    pub fn inner(&self) -> &MlxDevice {
+        &self.inner
+    }
+    
+    /// Get device info
+    pub fn device_info(&self) -> Option<&MlxDeviceInfo> {
+        self.device_info.as_ref()
+    }
+}
+
+impl Default for BitNetMlxDevice {
+    fn default() -> Self {
+        Self::default().unwrap_or_else(|_| {
+            #[cfg(feature = "mlx")]
+            {
+                Self {
+                    inner: MlxDevice::cpu(),
+                    device_info: Some(MlxDeviceInfo::cpu()),
+                    initialized: false,
+                }
+            }
+            #[cfg(not(feature = "mlx"))]
+            {
+                Self {
+                    device_info: None,
+                    initialized: false,
+                }
+            }
+        })
+    }
+}
 
 /// MLX device information
 #[cfg(feature = "mlx")]

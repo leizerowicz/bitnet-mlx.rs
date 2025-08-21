@@ -48,6 +48,9 @@ pub mod core;
 // Operations module
 pub mod ops;
 
+// Acceleration module  
+pub mod acceleration;
+
 // Legacy compatibility for backward compatibility
 pub mod legacy;
 

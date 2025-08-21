@@ -195,6 +195,11 @@ impl TensorShape {
         &self.dims
     }
 
+    /// Returns a slice of the underlying dimensions (alias for dims)
+    pub fn as_slice(&self) -> &[usize] {
+        &self.dims
+    }
+
     /// Returns the number of dimensions (rank)
     ///
     /// # Examples
@@ -225,6 +230,24 @@ impl TensorShape {
         } else {
             self.dims.iter().product()
         }
+    }
+
+    /// Returns the total number of elements (alias for num_elements)
+    ///
+    /// This method provides compatibility with other tensor libraries
+    /// that use the `size()` method name.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use bitnet_core::tensor::TensorShape;
+    ///
+    /// let shape = TensorShape::new(&[2, 3, 4]);
+    /// assert_eq!(shape.size(), 24);
+    /// assert_eq!(shape.size(), shape.num_elements());
+    /// ```
+    pub fn size(&self) -> usize {
+        self.num_elements()
     }
 
     /// Returns the stride information

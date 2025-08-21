@@ -480,54 +480,66 @@ fn bench_accuracy_performance_tradeoffs(c: &mut Criterion) {
     let elements = tensor_size.0 * tensor_size.1;
     group.throughput(Throughput::Elements(elements as u64));
 
-    let quantization_schemes = vec![
+    // Use the QuantizationConfig methods to define schemes
+    let quantization_configs = vec![
         ("fp32_baseline", None),
-        ("fp16", Some(16)),
-        ("int8", Some(8)),
-        ("int4", Some(4)),
-        ("bitnet_1_58", Some(2)),
+        ("bitnet_1_58", Some(QuantizationConfig::bitnet_1_58())),
+        ("int8_symmetric", Some(QuantizationConfig::int8_symmetric())),
+        ("int8_asymmetric", Some(QuantizationConfig::int8_asymmetric())),
+        ("int4_symmetric", Some(QuantizationConfig::int4_symmetric())),
+        ("fp16", Some(QuantizationConfig::fp16_quantization())),
     ];
 
-    for (scheme_name, bits) in quantization_schemes {
+    for (scheme_name, config_opt) in quantization_configs {
         group.bench_function(scheme_name, |bencher| {
             let device = Device::Cpu;
             let tensor = Tensor::randn(0f32, 1f32, tensor_size, &device).unwrap();
             
             bencher.iter(|| {
-                let result = match bits {
+                let result = match &config_opt {
                     None => {
                         // FP32 baseline - no quantization
                         tensor.clone()
                     },
-                    Some(16) => {
-                        // FP16 simulation (using FP32 operations)
-                        tensor.clone()
+                    Some(config) => {
+                        match config.bits {
+                            16 => {
+                                // FP16 simulation (using FP32 operations)
+                                tensor.clone()
+                            },
+                            8 => {
+                                // INT8 quantization based on config
+                                let scale = config.scale_factor.unwrap_or(127.0);
+                                let scale_tensor = Tensor::new(scale, &device).unwrap();
+                                let scaled = tensor.broadcast_mul(&scale_tensor).unwrap();
+                                let range = if config.symmetric { 
+                                    (-128.0, 127.0) 
+                                } else { 
+                                    (0.0, 255.0) 
+                                };
+                                let clamped = scaled.clamp(range.0, range.1).unwrap();
+                                let quantized = clamped.round().unwrap();
+                                quantized.broadcast_div(&scale_tensor).unwrap()
+                            },
+                            4 => {
+                                // INT4 quantization
+                                let scale = config.scale_factor.unwrap_or(7.0);
+                                let scale_tensor = Tensor::new(scale, &device).unwrap();
+                                let scaled = tensor.broadcast_mul(&scale_tensor).unwrap();
+                                let quantized = scaled.clamp(-8.0, 7.0).unwrap().round().unwrap();
+                                quantized.broadcast_div(&scale_tensor).unwrap()
+                            },
+                            2 => {
+                                // BitNet 1.58-bit quantization
+                                let scale = config.scale_factor.unwrap_or(0.1);
+                                let scale_tensor = Tensor::new(scale, &device).unwrap();
+                                let scaled = tensor.broadcast_div(&scale_tensor).unwrap();
+                                let quantized = scaled.clamp(-1.0, 1.0).unwrap().round().unwrap();
+                                quantized.broadcast_mul(&scale_tensor).unwrap()
+                            },
+                            _ => tensor.clone(),
+                        }
                     },
-                    Some(8) => {
-                        // INT8 quantization
-                        let scale = 127.0f32;
-                        let scale_tensor = Tensor::new(scale, &device).unwrap();
-                        let scaled = tensor.broadcast_mul(&scale_tensor).unwrap();
-                        let quantized = scaled.clamp(-128.0, 127.0).unwrap().round().unwrap();
-                        quantized.broadcast_div(&scale_tensor).unwrap()
-                    },
-                    Some(4) => {
-                        // INT4 quantization
-                        let scale = 7.0f32;
-                        let scale_tensor = Tensor::new(scale, &device).unwrap();
-                        let scaled = tensor.broadcast_mul(&scale_tensor).unwrap();
-                        let quantized = scaled.clamp(-8.0, 7.0).unwrap().round().unwrap();
-                        quantized.broadcast_div(&scale_tensor).unwrap()
-                    },
-                    Some(2) => {
-                        // BitNet 1.58-bit quantization
-                        let scale = 0.1f32;
-                        let scale_tensor = Tensor::new(scale, &device).unwrap();
-                        let scaled = tensor.broadcast_div(&scale_tensor).unwrap();
-                        let quantized = scaled.clamp(-1.0, 1.0).unwrap().round().unwrap();
-                        quantized.broadcast_mul(&scale_tensor).unwrap()
-                    },
-                    _ => tensor.clone(),
                 };
                 
                 black_box(result)

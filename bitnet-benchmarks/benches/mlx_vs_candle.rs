@@ -8,9 +8,9 @@ use candle_core::{Tensor, Device, DType};
 use std::time::Duration;
 
 #[cfg(feature = "mlx")]
-use bitnet_core::mlx::{
-    MlxTensor, BitNetMlxDevice, operations::BitNetMlxOps,
-    mlx_matmul, mlx_quantize, mlx_dequantize
+use bitnet_core::{
+    mlx::{MlxTensor, BitNetMlxDevice, operations::BitNetMlxOps},
+    tensor::BitNetDType,
 };
 
 /// Configuration for benchmark parameters
@@ -90,8 +90,7 @@ fn bench_matmul_comparison(c: &mut Criterion) {
                 BenchmarkId::new("mlx", format!("{}x{}", rows, cols)),
                 &(rows, cols),
                 |bencher, &(rows, cols)| {
-                    use bitnet_core::memory::tensor::BitNetDType;
-                    let device = BitNetMlxDevice::default();
+                    let device = BitNetMlxDevice::default().unwrap();
                     let a = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
                     let b = MlxTensor::randn(&[cols, rows], BitNetDType::F32, device).unwrap();
                     
@@ -144,8 +143,7 @@ fn bench_quantization_comparison(c: &mut Criterion) {
                 BenchmarkId::new("mlx_quantize", format!("{}x{}", rows, cols)),
                 &(rows, cols),
                 |b, &(rows, cols)| {
-                    use bitnet_core::memory::tensor::BitNetDType;
-                    let device = BitNetMlxDevice::default();
+                    let device = BitNetMlxDevice::default().unwrap();
                     let tensor = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device).unwrap();
                     
                     b.iter(|| {
@@ -211,8 +209,7 @@ fn bench_elementwise_comparison(c: &mut Criterion) {
                 BenchmarkId::new("mlx_add", format!("{}x{}", rows, cols)),
                 &(rows, cols),
                 |b, &(rows, cols)| {
-                    use bitnet_core::memory::tensor::BitNetDType;
-                    let device = BitNetMlxDevice::default();
+                    let device = BitNetMlxDevice::default().unwrap();
                     let a = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
                     let b = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device).unwrap();
                     
@@ -232,7 +229,7 @@ fn bench_elementwise_comparison(c: &mut Criterion) {
                 &(rows, cols),
                 |b, &(rows, cols)| {
                     use bitnet_core::memory::tensor::BitNetDType;
-                    let device = BitNetMlxDevice::default();
+                    let device = BitNetMlxDevice::default().unwrap();
                     let a = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
                     let b = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device).unwrap();
                     
@@ -295,7 +292,7 @@ fn bench_memory_operations(c: &mut Criterion) {
                 &(rows, cols),
                 |b, &(rows, cols)| {
                     use bitnet_core::memory::tensor::BitNetDType;
-                    let device = BitNetMlxDevice::default();
+                    let device = BitNetMlxDevice::default().unwrap();
                     
                     b.iter(|| {
                         let result = MlxTensor::zeros(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
@@ -308,8 +305,7 @@ fn bench_memory_operations(c: &mut Criterion) {
                 BenchmarkId::new("mlx_ones", format!("{}x{}", rows, cols)),
                 &(rows, cols),
                 |b, &(rows, cols)| {
-                    use bitnet_core::memory::tensor::BitNetDType;
-                    let device = BitNetMlxDevice::default();
+                    let device = BitNetMlxDevice::default().unwrap();
                     
                     b.iter(|| {
                         let result = MlxTensor::ones(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
@@ -363,8 +359,7 @@ fn bench_bitlinear_comparison(c: &mut Criterion) {
                 BenchmarkId::new("mlx_bitlinear", format!("{}x{}", input_size, output_size)),
                 &(input_size, output_size),
                 |b, &(input_size, output_size)| {
-                    use bitnet_core::memory::tensor::BitNetDType;
-                    let device = BitNetMlxDevice::default();
+                    let device = BitNetMlxDevice::default().unwrap();
                     let input = MlxTensor::randn(&[batch_size, input_size], BitNetDType::F32, device.clone()).unwrap();
                     let weight = MlxTensor::randn(&[input_size, output_size], BitNetDType::F32, device.clone()).unwrap();
                     let bias = MlxTensor::randn(&[output_size], BitNetDType::F32, device).unwrap();

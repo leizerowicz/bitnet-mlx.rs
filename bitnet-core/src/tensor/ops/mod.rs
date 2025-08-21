@@ -50,6 +50,14 @@ pub enum TensorOpError {
     /// Data type mismatch error
     #[error("Data type mismatch in operation {operation}: {reason}")]
     DTypeMismatch { operation: String, reason: String },
+    
+    /// Data type mismatch error (alternative form)
+    #[error("Data type mismatch in operation {operation}: {reason}")]
+    DataTypeMismatch { operation: String, reason: String },
+
+    /// Computation error during operation
+    #[error("Computation error in operation {operation}: {reason}")]
+    ComputationError { operation: String, reason: String },
 
     /// Unsupported operation for the given data type
     #[error("Operation {operation} is not supported for data type {dtype:?}")]
@@ -121,8 +129,14 @@ impl From<candle_core::Error> for TensorOpError {
 pub mod arithmetic;
 pub mod broadcasting;
 pub mod linear_algebra;
+pub mod reduction;
+pub mod activation;
+pub mod simd;
 
 // Re-exports for convenience
 pub use arithmetic::*;
 pub use broadcasting::*;
 pub use linear_algebra::*;
+pub use reduction::*;
+pub use activation::*;
+pub use simd::*;
