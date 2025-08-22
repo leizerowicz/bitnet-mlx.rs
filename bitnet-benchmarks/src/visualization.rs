@@ -115,7 +115,7 @@ impl PerformanceVisualizer {
         let mut operation_groups: HashMap<String, Vec<&PerformanceMeasurement>> = HashMap::new();
         for measurement in measurements {
             operation_groups.entry(measurement.operation.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(measurement);
         }
         
@@ -527,23 +527,23 @@ impl PerformanceVisualizer {
         format!(r#"
     <div class="summary-grid">
         <div class="summary-card">
-            <div class="metric-value">{}</div>
+            <div class="metric-value">{total_operations}</div>
             <div class="metric-label">Total Operations Tested</div>
         </div>
         <div class="summary-card">
-            <div class="metric-value">{:.1}</div>
+            <div class="metric-value">{avg_throughput:.1}</div>
             <div class="metric-label">Average Throughput (ops/sec)</div>
         </div>
         <div class="summary-card">
-            <div class="metric-value">{:.2}x</div>
+            <div class="metric-value">{best_speedup:.2}x</div>
             <div class="metric-label">Best Speedup Achieved</div>
         </div>
         <div class="summary-card">
-            <div class="metric-value">{:.1}%</div>
+            <div class="metric-value">{success_rate:.1}%</div>
             <div class="metric-label">Success Rate</div>
         </div>
     </div>
-"#, total_operations, avg_throughput, best_speedup, success_rate)
+"#)
     }
 
     fn generate_performance_charts(&self, measurements: &[PerformanceMeasurement]) -> String {
@@ -551,9 +551,9 @@ impl PerformanceVisualizer {
         format!(r#"
     <div class="chart-container">
         <h2>📊 Performance Overview</h2>
-        {}
+        {chart}
     </div>
-"#, chart)
+"#)
     }
 
     fn generate_comparison_charts(&self, comparisons: &[ComparisonResult]) -> String {
@@ -561,9 +561,9 @@ impl PerformanceVisualizer {
         format!(r#"
     <div class="chart-container">
         <h2>⚡ Speedup Comparison</h2>
-        {}
+        {chart}
     </div>
-"#, chart)
+"#)
     }
 
     fn generate_detailed_tables(&self, measurements: &[PerformanceMeasurement], comparisons: &[ComparisonResult]) -> String {
@@ -573,14 +573,14 @@ impl PerformanceVisualizer {
         format!(r#"
     <div class="chart-container">
         <h2>📋 Detailed Performance Results</h2>
-        {}
+        {perf_table}
     </div>
     
     <div class="chart-container">
         <h2>🔄 Performance Comparisons</h2>
-        {}
+        {comp_table}
     </div>
-"#, perf_table, comp_table)
+"#)
     }
 
     fn generate_html_footer(&self) -> String {

@@ -3,7 +3,6 @@
 //! This module provides a comprehensive test suite for Metal shader compilation,
 //! including basic functionality, error handling, performance testing, and edge cases.
 
-use std::path::PathBuf;
 use std::time::Instant;
 
 #[cfg(all(target_os = "macos", feature = "metal"))]
@@ -271,7 +270,7 @@ mod metal_tests {
 
 #[cfg(not(all(target_os = "macos", feature = "metal")))]
 mod non_metal_tests {
-    use super::*;
+    
 
     #[test]
     fn test_shader_compilation_unavailable() {
@@ -331,5 +330,5 @@ fn test_comprehensive_shader_compilation() {
     }
     
     let total_time = start_time.elapsed();
-    println!("✓ Comprehensive test completed in {:?}", total_time);
+    println!("✓ Comprehensive test completed in {total_time:?}");
 }

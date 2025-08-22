@@ -84,6 +84,7 @@ pub struct PackedTernaryWeights {
 
 /// Metadata required for unpacking
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct PackingMetadata {
     /// Number of elements in original tensor
     pub element_count: usize,
@@ -99,18 +100,6 @@ pub struct PackingMetadata {
     pub extra_data: HashMap<String, Vec<u8>>,
 }
 
-impl Default for PackingMetadata {
-    fn default() -> Self {
-        Self {
-            element_count: 0,
-            block_sizes: None,
-            sparse_indices: None,
-            rle_data: None,
-            padding: 0,
-            extra_data: HashMap::new(),
-        }
-    }
-}
 
 /// Trait for ternary weight packing operations
 pub trait TernaryPacker: Send + Sync {
@@ -181,9 +170,9 @@ pub trait TernaryPacker: Send + Sync {
         
         // Check for valid ternary values
         for (i, &weight) in weights.iter().enumerate() {
-            if weight < -1 || weight > 1 {
+            if !(-1..=1).contains(&weight) {
                 return Err(QuantizationError::InvalidInput(
-                    format!("Invalid ternary weight {} at position {}, expected range [-1, 1]", weight, i)
+                    format!("Invalid ternary weight {weight} at position {i}, expected range [-1, 1]")
                 ));
             }
         }
@@ -202,9 +191,9 @@ pub trait TernaryPacker: Send + Sync {
         
         // Check for valid ternary values
         for (i, &weight) in unpacked.iter().enumerate() {
-            if weight < -1 || weight > 1 {
+            if !(-1..=1).contains(&weight) {
                 return Err(QuantizationError::InvalidInput(
-                    format!("Invalid unpacked ternary weight {} at position {}", weight, i)
+                    format!("Invalid unpacked ternary weight {weight} at position {i}")
                 ));
             }
         }
@@ -250,8 +239,7 @@ pub trait TernaryPacker: Send + Sync {
                 
                 if stored_checksum != calculated_checksum {
                     return Err(QuantizationError::InvalidInput(
-                        format!("Checksum mismatch: expected 0x{:08X}, got 0x{:08X}",
-                               stored_checksum, calculated_checksum)
+                        format!("Checksum mismatch: expected 0x{stored_checksum:08X}, got 0x{calculated_checksum:08X}")
                     ));
                 }
             }
@@ -365,7 +353,7 @@ impl TernaryPacker for BitPacked2BitPacker {
     
     fn estimate_savings(&self, weights: &[i8], _config: &TernaryPackingConfig) -> PackingSavingsEstimate {
         let original_size = weights.len();
-        let packed_size = (weights.len() + 3) / 4; // 4 values per byte, round up
+        let packed_size = weights.len().div_ceil(4); // 4 values per byte, round up
         let memory_saved = original_size.saturating_sub(packed_size);
         
         PackingSavingsEstimate {
@@ -457,7 +445,7 @@ impl TernaryPacker for Base3PackedPacker {
     
     fn estimate_savings(&self, weights: &[i8], _config: &TernaryPackingConfig) -> PackingSavingsEstimate {
         let original_size = weights.len();
-        let packed_size = (weights.len() + 4) / 5; // 5 values per byte, round up
+        let packed_size = weights.len().div_ceil(5); // 5 values per byte, round up
         let memory_saved = original_size.saturating_sub(packed_size);
         
         PackingSavingsEstimate {
@@ -485,7 +473,7 @@ impl TernaryPacker for ByteAlignedPacker {
         let values_per_aligned_block = alignment; // 1 byte per value for simplicity
         
         // Pad to alignment boundary
-        let padded_len = ((weights.len() + alignment - 1) / alignment) * alignment;
+        let padded_len = weights.len().div_ceil(alignment) * alignment;
         let mut padded_weights = weights.to_vec();
         padded_weights.resize(padded_len, 0); // Pad with zeros
         
@@ -525,7 +513,7 @@ impl TernaryPacker for ByteAlignedPacker {
     fn estimate_savings(&self, weights: &[i8], config: &TernaryPackingConfig) -> PackingSavingsEstimate {
         let alignment = config.alignment;
         let original_size = weights.len();
-        let aligned_size = ((weights.len() + alignment - 1) / alignment) * alignment;
+        let aligned_size = weights.len().div_ceil(alignment) * alignment;
         let memory_saved = 0; // No compression, just alignment
         
         PackingSavingsEstimate {

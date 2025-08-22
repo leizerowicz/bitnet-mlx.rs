@@ -52,25 +52,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let shape_b = TensorShape::new(&[4]);
     let shape_c = TensorShape::new(&[1, 3, 4]);
     
-    println!("Shape A: {}", shape_a);
-    println!("Shape B: {}", shape_b);
-    println!("Shape C: {}", shape_c);
+    println!("Shape A: {shape_a}");
+    println!("Shape B: {shape_b}");
+    println!("Shape C: {shape_c}");
     
     if shape_a.is_broadcast_compatible(&shape_b) {
         let broadcast_result = shape_a.broadcast_shape(&shape_b)?;
-        println!("✅ A + B broadcast result: {}", broadcast_result);
+        println!("✅ A + B broadcast result: {broadcast_result}");
     }
     
     if shape_a.is_broadcast_compatible(&shape_c) {
         let broadcast_result = shape_a.broadcast_shape(&shape_c)?;
-        println!("✅ A + C broadcast result: {}", broadcast_result);
+        println!("✅ A + C broadcast result: {broadcast_result}");
     }
     
     // Test incompatible broadcasting
     let incompatible_a = TensorShape::new(&[3, 4]);
     let incompatible_b = TensorShape::new(&[2, 5]);
     
-    println!("Incompatible shapes: {} and {}", incompatible_a, incompatible_b);
+    println!("Incompatible shapes: {incompatible_a} and {incompatible_b}");
     println!("Compatible: {}", incompatible_a.is_broadcast_compatible(&incompatible_b));
     println!();
 
@@ -81,28 +81,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("------------------------------------");
     
     let original_shape = TensorShape::new(&[2, 3, 4]);
-    println!("Original shape: {}", original_shape);
+    println!("Original shape: {original_shape}");
     
     // Reshape
     let reshaped = original_shape.reshape(&[6, 4])?;
-    println!("Reshaped to [6, 4]: {}", reshaped);
+    println!("Reshaped to [6, 4]: {reshaped}");
     
     // Transpose
     let transposed = original_shape.transpose(&[2, 0, 1])?;
-    println!("Transposed [2,0,1]: {}", transposed);
+    println!("Transposed [2,0,1]: {transposed}");
     
     // Squeeze and unsqueeze
     let with_singleton = TensorShape::new(&[2, 1, 3, 1]);
-    println!("With singletons: {}", with_singleton);
+    println!("With singletons: {with_singleton}");
     
     let squeezed = with_singleton.squeeze(None)?;
-    println!("Squeezed all: {}", squeezed);
+    println!("Squeezed all: {squeezed}");
     
     let squeezed_specific = with_singleton.squeeze(Some(1))?;
-    println!("Squeezed axis 1: {}", squeezed_specific);
+    println!("Squeezed axis 1: {squeezed_specific}");
     
     let unsqueezed = squeezed.unsqueeze(1)?;
-    println!("Unsqueezed at axis 1: {}", unsqueezed);
+    println!("Unsqueezed at axis 1: {unsqueezed}");
     println!();
 
     // ==========================================
@@ -112,16 +112,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("-----------------------------------");
     
     let tensor_shape = TensorShape::new(&[4, 6, 8]);
-    println!("Tensor shape: {}", tensor_shape);
+    println!("Tensor shape: {tensor_shape}");
     
     // Multi-dimensional indexing validation
     let indices = vec![1, 2, 3];
     if tensor_shape.validate_indices(&indices).is_ok() {
         let linear_offset = tensor_shape.linear_offset(&indices)?;
-        println!("Indices {:?} -> Linear offset: {}", indices, linear_offset);
+        println!("Indices {indices:?} -> Linear offset: {linear_offset}");
         
         let recovered_indices = tensor_shape.indices_from_offset(linear_offset)?;
-        println!("Round-trip check: {} -> {:?}", linear_offset, recovered_indices);
+        println!("Round-trip check: {linear_offset} -> {recovered_indices:?}");
     }
     
     // Advanced slicing operations
@@ -134,7 +134,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         SliceIndex::Range(2..6),  // Columns 2-5
     ];
     let view = tensor_shape.view(&slices)?;
-    println!("Range slice [0..2, :, 2..6]: {}", view);
+    println!("Range slice [0..2, :, 2..6]: {view}");
     
     // Step slice
     let step_slices = vec![
@@ -143,7 +143,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         SliceIndex::Full,
     ];
     let step_view = tensor_shape.view(&step_slices)?;
-    println!("Step slice [0..4:2, :, :]: {}", step_view);
+    println!("Step slice [0..4:2, :, :]: {step_view}");
     
     // Index slice (removes dimension)
     let index_slices = vec![
@@ -152,7 +152,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         SliceIndex::Full,
     ];
     let index_view = tensor_shape.view(&index_slices)?;
-    println!("Index slice [1, :, :]: {}", index_view);
+    println!("Index slice [1, :, :]: {index_view}");
     println!();
 
     // ==========================================
@@ -162,7 +162,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("----------------------------");
     
     let large_shape = TensorShape::new(&[100, 200, 300]);
-    println!("Large tensor shape: {}", large_shape);
+    println!("Large tensor shape: {large_shape}");
     
     // Memory requirements for different data types
     let f32_req = large_shape.memory_requirements(4);
@@ -199,7 +199,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("------------------------");
     
     let base_shape = TensorShape::new(&[2, 3, 4]);
-    println!("Base shape: {}", base_shape);
+    println!("Base shape: {base_shape}");
     
     let operations = vec![
         ShapeOperation::Transpose(vec![2, 0, 1]),
@@ -208,7 +208,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
     
     let final_shape = base_shape.apply_operations(&operations)?;
-    println!("After chained operations: {}", final_shape);
+    println!("After chained operations: {final_shape}");
     
     // Show each step
     println!("Step-by-step:");
@@ -253,7 +253,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Check if they can be broadcast together
     if tensor_shape_a.is_broadcast_compatible(&tensor_shape_b) {
         let broadcast_shape = tensor_shape_a.broadcast_shape(&tensor_shape_b)?;
-        println!("✅ Tensors can be broadcast to: {}", broadcast_shape);
+        println!("✅ Tensors can be broadcast to: {broadcast_shape}");
         
         // Show memory requirements for the broadcast result
         let broadcast_mem_req = broadcast_shape.memory_requirements(4);
@@ -263,9 +263,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Demonstrate tensor reshaping compatibility
     let reshape_target = TensorShape::new(&[6, 1]);
     if tensor_shape_a.can_reshape_to(&reshape_target) {
-        println!("✅ Tensor A can be reshaped to {}", reshape_target);
+        println!("✅ Tensor A can be reshaped to {reshape_target}");
     } else {
-        println!("❌ Tensor A cannot be reshaped to {}", reshape_target);
+        println!("❌ Tensor A cannot be reshaped to {reshape_target}");
     }
     println!();
 

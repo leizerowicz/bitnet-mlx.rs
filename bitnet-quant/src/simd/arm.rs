@@ -270,7 +270,7 @@ impl ArmSimdOps {
             // Pack pairs of values into bytes (4 ternary values per byte)
             for j in (0..8).step_by(4) {
                 if output_pos < output.len() && j + 3 < 8 {
-                    let packed = ((temp_vals[j] & 0x3) << 0) |
+                    let packed = ((temp_vals[j] & 0x3)) |
                                 ((temp_vals[j + 1] & 0x3) << 2) |
                                 ((temp_vals[j + 2] & 0x3) << 4) |
                                 ((temp_vals[j + 3] & 0x3) << 6);
@@ -318,7 +318,7 @@ impl ArmSimdOps {
             return Err(QuantizationError::ConfigError("NEON not available".into()));
         }
         
-        let required_input_bytes = (count + 3) / 4;
+        let required_input_bytes = count.div_ceil(4);
         if input.len() < required_input_bytes || output.len() < count {
             return Err(QuantizationError::ConfigError("Buffer size mismatch".into()));
         }

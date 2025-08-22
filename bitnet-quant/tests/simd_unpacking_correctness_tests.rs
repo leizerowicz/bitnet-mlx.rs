@@ -324,8 +324,8 @@ mod consistency_tests {
             let simd_result = simd_unpacker.unpack(&packed).unwrap();
             let scalar_result = scalar_unpacker.unpack(&packed).unwrap();
             
-            assert_eq!(simd_result, scalar_result, "Inconsistency in strategy: {:?}", strategy);
-            assert_eq!(weights, simd_result, "Incorrect unpacking for strategy: {:?}", strategy);
+            assert_eq!(simd_result, scalar_result, "Inconsistency in strategy: {strategy:?}");
+            assert_eq!(weights, simd_result, "Incorrect unpacking for strategy: {strategy:?}");
         }
     }
 }
@@ -497,7 +497,7 @@ mod utility_tests {
             let packed = packer.pack(&weights, &config).unwrap();
             let unpacked = simd_unpack_weights(&packed).unwrap();
             
-            assert_eq!(weights, unpacked, "Failed for strategy: {:?}", strategy);
+            assert_eq!(weights, unpacked, "Failed for strategy: {strategy:?}");
         }
     }
 }
@@ -529,7 +529,7 @@ mod performance_tests {
         assert!(benchmark_result.scalar_time_ns > 0);
         assert!(benchmark_result.speedup > 0.0);
         
-        println!("Benchmark result: {:?}", benchmark_result);
+        println!("Benchmark result: {benchmark_result:?}");
     }
 
     #[test]
@@ -566,7 +566,7 @@ mod performance_tests {
             assert_eq!(simd_result, scalar_result);
             assert_eq!(weights, simd_result);
             
-            println!("Size: {}, SIMD: {:?}, Scalar: {:?}", size, simd_time, scalar_time);
+            println!("Size: {size}, SIMD: {simd_time:?}, Scalar: {scalar_time:?}");
         }
     }
 }
@@ -717,8 +717,7 @@ mod integration_tests {
                 assert!(val == -1 || val == 0 || val == 1);
             }
             
-            println!("Successfully unpacked {}x{} layer ({} weights)", 
-                     input_size, output_size, weight_count);
+            println!("Successfully unpacked {input_size}x{output_size} layer ({weight_count} weights)");
         }
     }
 
@@ -781,7 +780,7 @@ mod integration_tests {
             let packed = packer.pack(&weights, &config).unwrap();
             let unpacked = unpacker.unpack(&packed).unwrap();
             
-            assert_eq!(weights, unpacked, "Failed for strategy: {:?}", strategy);
+            assert_eq!(weights, unpacked, "Failed for strategy: {strategy:?}");
         }
     }
 }

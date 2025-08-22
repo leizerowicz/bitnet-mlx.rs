@@ -129,6 +129,12 @@ pub struct MetalAccelerator {
     available: bool,
 }
 
+// SAFETY: Metal resources are thread-safe when properly managed through Arc/Mutex
+#[cfg(feature = "metal")]
+unsafe impl Send for MetalAccelerator {}
+#[cfg(feature = "metal")]
+unsafe impl Sync for MetalAccelerator {}
+
 #[cfg(feature = "metal")]
 impl MetalAccelerator {
     /// Creates a new Metal accelerator with initialization
@@ -178,7 +184,7 @@ impl MetalAccelerator {
             let command_queue = device.new_command_queue();
 
             // Load and compile shaders
-            let shader_source = include_str!("../../../../metal/shaders/tensor_operations.metal");
+            let shader_source = include_str!("../../metal/shaders/tensor_operations.metal");
             let library = device.new_library_with_source(shader_source, &metal::CompileOptions::new())
                 .map_err(|e| AccelerationError::InitializationFailed {
                     backend: "Metal".to_string(),
@@ -186,27 +192,33 @@ impl MetalAccelerator {
                 })?;
 
             // Create command buffer manager
-            let command_buffer_manager = Arc::new(CommandBufferManager::new(&device)
-                .map_err(|e| AccelerationError::InitializationFailed {
-                    backend: "Metal".to_string(),
-                    reason: format!("Command buffer manager creation failed: {:?}", e),
-                })?);
+            let command_queue = device.new_command_queue();
+            let config = crate::metal::CommandBufferPoolConfig {
+                max_command_buffers: 64,
+                default_timeout: std::time::Duration::from_millis(1000),
+                auto_cleanup: cfg!(debug_assertions),
+                cleanup_interval: std::time::Duration::from_secs(1),
+                enable_reuse: true,
+            };
+            let command_buffer_manager = Arc::new(CommandBufferManager::new(
+                device.clone(),
+                command_queue.clone(),
+                config,
+            ));
 
             // Initialize BitNet shaders
-            let bitnet_shaders = BitNetShaders::new(&device, &library)
+            let bitnet_shaders = BitNetShaders::new(device.clone())
                 .map_err(|e| AccelerationError::InitializationFailed {
                     backend: "Metal".to_string(),
                     reason: format!("BitNet shaders initialization failed: {:?}", e),
                 })?;
 
             // Initialize GPU memory pool
-            let gpu_memory_pool = Arc::new(HybridMemoryPool::new(
-                1024 * 1024 * 512, // 512MB initial pool
-                None, // Don't pass device directly
-            ).map_err(|e| AccelerationError::InitializationFailed {
-                backend: "Metal".to_string(),
-                reason: format!("GPU memory pool creation failed: {:?}", e),
-            })?);
+            let gpu_memory_pool = Arc::new(HybridMemoryPool::new()
+                .map_err(|e| AccelerationError::InitializationFailed {
+                    backend: "Metal".to_string(),
+                    reason: format!("GPU memory pool creation failed: {:?}", e),
+                })?);
 
             self.device = Some(device);
             self.command_queue = Some(command_queue);
@@ -231,11 +243,11 @@ impl MetalAccelerator {
 
         // Get buffer size
         let element_count = tensor.shape().total_elements();
-        let element_size = tensor.dtype().size_in_bytes();
+        let element_size = tensor.dtype().size_bytes().unwrap_or(4);
         let size = element_count * element_size;
 
         // Check buffer cache first
-        let cache_key = format!("tensor_{}_{}", tensor.id(), size);
+        let cache_key = format!("tensor_{}_{}", tensor.tensor_id(), size);
         {
             let buffer_cache = self.buffer_cache.lock().map_err(|_| AccelerationError::InitializationFailed {
                 backend: "Metal".to_string(),
@@ -302,7 +314,7 @@ impl MetalAccelerator {
 
         // Calculate size
         let element_count = shape.iter().product::<usize>();
-        let element_size = dtype.size_in_bytes();
+        let element_size = dtype.size_bytes();
 
         // Read buffer data
         let buffer_data = unsafe {
@@ -313,7 +325,7 @@ impl MetalAccelerator {
         };
 
         // Create new tensor with the data
-        let tensor = BitNetTensor::from_data(buffer_data, shape.to_vec(), dtype)
+        let tensor = BitNetTensor::from_data(buffer_data, shape, dtype, Some(candle_core::Device::Cpu))
             .map_err(|e| AccelerationError::MemoryTransferFailed {
                 direction: "GPU to CPU".to_string(),
                 reason: format!("Failed to create tensor from buffer: {:?}", e),
@@ -431,8 +443,8 @@ impl AccelerationBackendImpl for MetalAccelerator {
             let b_buffer = self.transfer_tensor_to_gpu(b)?;
 
             // Calculate output shape
-            let a_shape = a.shape().dimensions();
-            let b_shape = b.shape().dimensions();
+            let a_shape = a.shape().dims();
+            let b_shape = b.shape().dims();
             let output_shape = vec![a_shape[0], b_shape[1]];
 
             // Create output buffer
@@ -459,7 +471,7 @@ impl AccelerationBackendImpl for MetalAccelerator {
             let acceleration_metrics = AccelerationMetrics {
                 backend_used: AccelerationBackend::Metal,
                 execution_time_seconds: total_time,
-                memory_used_bytes: (a_data.len() + b_data.len() + output_element_count) * 4,
+                memory_used_bytes: ((a_data.len() + b_data.len() + output_element_count) * 4) as u64,
                 operations_per_second: (output_element_count as f64) / total_time,
                 efficiency_score: 0.95,
                 cache_hit_rate: metrics.buffer_cache_hits as f64 / (metrics.buffer_cache_hits + metrics.buffer_cache_misses) as f64,
@@ -485,8 +497,8 @@ impl AccelerationBackendImpl for MetalAccelerator {
 
     fn create_tensor(&self, shape: &[usize], dtype: BitNetDType, data: Option<&[f32]>) -> AccelerationResult<BitNetTensor> {
         match data {
-            Some(data) => BitNetTensor::from_data(data, shape.to_vec(), dtype),
-            None => BitNetTensor::zeros(shape, dtype),
+            Some(data) => BitNetTensor::from_data(data, shape, dtype, Some(candle_core::Device::Cpu)),
+            None => BitNetTensor::zeros(shape, dtype, Some(candle_core::Device::Cpu)),
         }
         .map_err(|e| AccelerationError::OperationFailed {
             backend: "Metal".to_string(),
@@ -511,22 +523,80 @@ impl AccelerationBackendImpl for MetalAccelerator {
         let metrics = self.metrics.lock()
             .map_err(|_| anyhow::anyhow!("Failed to lock metrics"))?;
 
-        Ok(MemoryMetrics {
-            total_allocated: metrics.gpu_memory_allocated as usize,
-            total_deallocated: metrics.gpu_memory_freed as usize,
-            current_allocated: (metrics.gpu_memory_allocated - metrics.gpu_memory_freed) as usize,
-            peak_allocated: metrics.gpu_memory_allocated as usize,
-            allocation_count: metrics.buffer_cache_misses as usize,
+        use std::collections::HashMap;
+        let mut device_stats = HashMap::new();
+        device_stats.insert("Metal GPU".to_string(), crate::memory::metrics::DeviceMemoryStats {
+            total_allocated: metrics.gpu_memory_allocated as u64,
+            total_deallocated: metrics.gpu_memory_freed as u64,
+            current_allocated: (metrics.gpu_memory_allocated - metrics.gpu_memory_freed) as u64,
+            peak_allocated: metrics.gpu_memory_allocated as u64,
+            allocation_count: metrics.buffer_cache_misses as u64,
+            deallocation_count: 0 as u64,
+            active_allocations: (metrics.buffer_cache_hits as u64 + metrics.buffer_cache_misses as u64),
+        });
+
+        Ok(crate::memory::MemoryMetrics {
+            total_allocated: metrics.gpu_memory_allocated as u64,
+            total_deallocated: metrics.gpu_memory_freed as u64,
+            current_allocated: (metrics.gpu_memory_allocated - metrics.gpu_memory_freed) as u64,
+            peak_allocated: metrics.gpu_memory_allocated as u64,
+            allocation_count: metrics.buffer_cache_misses as u64,
             deallocation_count: 0,
-            active_allocations: metrics.buffer_cache_hits as usize + metrics.buffer_cache_misses as usize,
-            allocation_efficiency: metrics.buffer_cache_hits as f64 / (metrics.buffer_cache_hits + metrics.buffer_cache_misses) as f64,
-            largest_allocation: 0,
-            average_allocation_size: if metrics.buffer_cache_misses > 0 {
-                metrics.gpu_memory_allocated / metrics.buffer_cache_misses
-            } else {
-                0
-            } as usize,
-            memory_pressure: 0.0,
+            active_allocations: metrics.buffer_cache_hits as u64 + metrics.buffer_cache_misses as u64,
+            peak_active_allocations: metrics.buffer_cache_hits as u64 + metrics.buffer_cache_misses as u64,
+            device_stats,
+            pool_stats: crate::memory::metrics::PoolMemoryStats {
+                small_block: crate::memory::metrics::PoolTypeStats {
+                    total_allocated: 0,
+                    total_deallocated: 0,
+                    current_allocated: 0,
+                    peak_allocated: 0,
+                    allocation_count: 0,
+                    deallocation_count: 0,
+                    active_allocations: 0,
+                    efficiency: crate::memory::metrics::PoolEfficiencyMetrics {
+                        average_allocation_size: 0.0,
+                        fragmentation_ratio: 0.0,
+                        utilization_ratio: 0.0,
+                        expansion_count: 0,
+                        contraction_count: 0,
+                    },
+                },
+                large_block: crate::memory::metrics::PoolTypeStats {
+                    total_allocated: 0,
+                    total_deallocated: 0,
+                    current_allocated: 0,
+                    peak_allocated: 0,
+                    allocation_count: 0,
+                    deallocation_count: 0,
+                    active_allocations: 0,
+                    efficiency: crate::memory::metrics::PoolEfficiencyMetrics {
+                        average_allocation_size: 0.0,
+                        fragmentation_ratio: 0.0,
+                        utilization_ratio: 0.0,
+                        expansion_count: 0,
+                        contraction_count: 0,
+                    },
+                },
+            },
+            size_distribution: crate::memory::metrics::SizeDistribution {
+                tiny: 0,
+                small: 0,
+                medium: 0,
+                large: 0,
+                huge: 0,
+            },
+            performance: crate::memory::metrics::PerformanceMetrics {
+                avg_allocation_latency_ns: 0,
+                avg_deallocation_latency_ns: 0,
+                max_allocation_latency_ns: 0,
+                max_deallocation_latency_ns: 0,
+                total_allocation_time_ns: 0,
+                total_deallocation_time_ns: 0,
+                allocation_failures: 0,
+                deallocation_failures: 0,
+            },
+            last_updated: Some(std::time::SystemTime::now()),
         })
     }
 
@@ -548,7 +618,7 @@ impl AccelerationBackendImpl for MetalAccelerator {
 }
 
 /// Create a new Metal accelerator instance
-pub fn create_metal_accelerator() -> AccelerationResult<Box<dyn AccelerationBackendImpl>> {
+pub fn create_metal_accelerator() -> AccelerationResult<Box<dyn AccelerationBackendImpl + Send + Sync>> {
     #[cfg(feature = "metal")]
     {
         let mut accelerator = MetalAccelerator::new()?;

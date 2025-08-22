@@ -83,7 +83,7 @@ fn demo_one_bit_quantization(weights: &Tensor, device: &Device) -> Result<(), Bo
     ];
     
     for (method, name) in threshold_methods {
-        println!("\n📋 Method: {}", name);
+        println!("\n📋 Method: {name}");
         
         // Create 1-bit quantization scheme
         let config = QuantizationSchemeConfig {
@@ -118,9 +118,9 @@ fn demo_one_bit_quantization(weights: &Tensor, device: &Device) -> Result<(), Bo
         // Calculate error
         let error = weights.sub(&dequantized)?.sqr()?.mean_all()?.to_scalar::<f32>()?;
         
-        println!("  ⚡ Quantization time: {:?}", quantize_time);
-        println!("  ⚡ Dequantization time: {:?}", dequantize_time);
-        println!("  📊 Quantization error (MSE): {:.6}", error);
+        println!("  ⚡ Quantization time: {quantize_time:?}");
+        println!("  ⚡ Dequantization time: {dequantize_time:?}");
+        println!("  📊 Quantization error (MSE): {error:.6}");
         println!("  💾 Compression ratio: {:.2}x", quantized.compression_ratio());
         println!("  📏 Memory footprint: {} bytes", quantized.memory_footprint());
         
@@ -128,7 +128,7 @@ fn demo_one_bit_quantization(weights: &Tensor, device: &Device) -> Result<(), Bo
         let values = quantized.values.flatten_all()?.to_vec1::<f32>()?;
         let positive_count = values.iter().filter(|&&x| x > 0.0).count();
         let negative_count = values.iter().filter(|&&x| x < 0.0).count();
-        println!("  📈 Value distribution: +1: {}, -1: {}", positive_count, negative_count);
+        println!("  📈 Value distribution: +1: {positive_count}, -1: {negative_count}");
     }
     
     println!();
@@ -149,10 +149,10 @@ fn demo_one_five_eight_bit_quantization(weights: &Tensor, device: &Device) -> Re
     let threshold_factors = [0.5, 0.7, 0.9];
     
     for (method, method_name) in ternary_methods {
-        println!("\n📋 Method: {}", method_name);
+        println!("\n📋 Method: {method_name}");
         
         for &factor in &threshold_factors {
-            println!("  🎯 Threshold factor: {}", factor);
+            println!("  🎯 Threshold factor: {factor}");
             
             let config = QuantizationSchemeConfig {
                 base: QuantizationConfig {
@@ -189,11 +189,11 @@ fn demo_one_five_eight_bit_quantization(weights: &Tensor, device: &Device) -> Re
             let negative_count = values.iter().filter(|&&x| x < -1e-6).count();
             let sparsity = zero_count as f32 / values.len() as f32;
             
-            println!("    ⚡ Time: {:?}", quantize_time);
-            println!("    📊 MSE: {:.6}", error);
+            println!("    ⚡ Time: {quantize_time:?}");
+            println!("    📊 MSE: {error:.6}");
             println!("    💾 Compression: {:.2}x", quantized.compression_ratio());
             println!("    🕳️  Sparsity: {:.1}%", sparsity * 100.0);
-            println!("    📈 Distribution: +1: {}, 0: {}, -1: {}", positive_count, zero_count, negative_count);
+            println!("    📈 Distribution: +1: {positive_count}, 0: {zero_count}, -1: {negative_count}");
         }
     }
     
@@ -240,9 +240,9 @@ fn demo_performance_comparison(weights: &Tensor, device: &Device) -> Result<(), 
         let avg_error = total_error / 100.0;
         
         if let Some(quantized) = quantized_result {
-            println!("📊 {} Quantization:", name);
-            println!("  ⚡ Average time: {:?}", avg_time);
-            println!("  📊 Average MSE: {:.6}", avg_error);
+            println!("📊 {name} Quantization:");
+            println!("  ⚡ Average time: {avg_time:?}");
+            println!("  📊 Average MSE: {avg_error:.6}");
             println!("  💾 Compression ratio: {:.2}x", quantized.compression_ratio());
             println!("  📏 Memory footprint: {} bytes", quantized.memory_footprint());
         }
@@ -307,8 +307,8 @@ fn demo_custom_configuration(weights: &Tensor, device: &Device) -> Result<(), Bo
     let sparsity = zero_count as f32 / values.len() as f32;
     
     println!("📊 Results:");
-    println!("  ⚡ Quantization time: {:?}", quantize_time);
-    println!("  📊 Quantization error (MSE): {:.6}", error);
+    println!("  ⚡ Quantization time: {quantize_time:?}");
+    println!("  📊 Quantization error (MSE): {error:.6}");
     println!("  💾 Compression ratio: {:.2}x", quantized.compression_ratio());
     println!("  🕳️  Achieved sparsity: {:.1}%", sparsity * 100.0);
     println!("  📏 Memory footprint: {} bytes", quantized.memory_footprint());

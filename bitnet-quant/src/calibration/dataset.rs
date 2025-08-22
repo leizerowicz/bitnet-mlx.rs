@@ -6,10 +6,9 @@
 
 use crate::calibration::error::{CalibrationError, CalibrationResult};
 use crate::calibration::config::CalibrationConfig;
-use crate::calibration::statistics::{StatisticsCollector, LayerStatistics, StatisticsUpdate, StatisticsConfig};
+use crate::calibration::statistics::{StatisticsCollector, LayerStatistics, StatisticsUpdate};
 use crate::calibration::sampling::{SamplerFactory, RepresentativeSampler, SamplingMetadata};
 use crate::calibration::streaming::StreamingProcessor;
-use crate::calibration::config::StreamingConfig;
 use candle_core::{Tensor, Device};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -189,7 +188,7 @@ impl CalibrationDataset {
         for (idx, tensor) in tensors.into_iter().enumerate() {
             // Create metadata for the tensor
             let metadata = SampleMetadata {
-                id: format!("tensor_{}", idx),
+                id: format!("tensor_{idx}"),
                 source_path: None,
                 shape: tensor.shape().dims().to_vec(),
                 dtype: "f32".to_string(), // Assume f32 for simplicity
@@ -379,10 +378,10 @@ impl CalibrationDataset {
     fn calculate_tensor_importance(&self, tensor: &Tensor) -> CalibrationResult<f32> {
         // Simple importance calculation based on tensor statistics
         let flattened = tensor.flatten_all()
-            .map_err(|e| CalibrationError::statistics(format!("Failed to flatten tensor: {}", e)))?;
+            .map_err(|e| CalibrationError::statistics(format!("Failed to flatten tensor: {e}")))?;
         
         let values: Vec<f32> = flattened.to_vec1()
-            .map_err(|e| CalibrationError::statistics(format!("Failed to convert tensor: {}", e)))?;
+            .map_err(|e| CalibrationError::statistics(format!("Failed to convert tensor: {e}")))?;
         
         if values.is_empty() {
             return Ok(0.0);

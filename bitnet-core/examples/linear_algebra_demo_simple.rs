@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize global memory pool
     set_global_memory_pool(Arc::downgrade(&memory_pool));
     
-    println!("Using device: {:?}\n", device);
+    println!("Using device: {device:?}\n");
     
     demo_matrix_multiplication(&device)?;
     demo_dot_products(&device)?;
@@ -98,7 +98,7 @@ fn demo_matrix_transformations(device: &candle_core::Device) -> Result<(), Box<d
             println!("   ✓ Identity matrix creation successful\n");
         }
         Err(e) => {
-            println!("   ⚠️  Identity matrix creation failed: {}\n", e);
+            println!("   ⚠️  Identity matrix creation failed: {e}\n");
         }
     }
     

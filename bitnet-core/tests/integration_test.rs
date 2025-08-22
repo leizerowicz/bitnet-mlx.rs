@@ -42,7 +42,7 @@ fn test_metal_compatibility_functions() {
     
     // Test is_metal_available()
     let metal_available = is_metal_available();
-    println!("Metal available: {}", metal_available);
+    println!("Metal available: {metal_available}");
     
     // Test get_metal_device_name()
     let device_name = get_metal_device_name();
@@ -50,7 +50,7 @@ fn test_metal_compatibility_functions() {
     
     match device_name {
         Some(name) => {
-            println!("Metal device name: {}", name);
+            println!("Metal device name: {name}");
             assert!(!name.is_empty(), "Device name should not be empty");
         }
         None => {
@@ -81,7 +81,7 @@ fn test_metal_compatibility_with_device_creation() {
             println!("Consistent: Metal is not available and device creation failed");
         }
         (true, Err(e)) => {
-            println!("Warning: Metal reported as available but device creation failed: {}", e);
+            println!("Warning: Metal reported as available but device creation failed: {e}");
             // This can happen in some edge cases, so we don't fail the test
         }
         (false, Ok(_)) => {

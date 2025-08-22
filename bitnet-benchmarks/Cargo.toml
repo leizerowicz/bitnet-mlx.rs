@@ -1,6 +1,6 @@
 [package]
 name = "bitnet-benchmarks"
-version = "0.2.8"
+version = "0.2.9"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -11,9 +11,34 @@ description = "Comprehensive benchmarking suite for BitNet implementation"
 keywords = ["bitnet", "benchmarks", "performance", "neural-networks"]
 categories = ["science", "development-tools"]
 
-[[bin]]
-name = "bitnet-benchmarks"
-path = "src/main.rs"
+# Benchmark definitions for criterion
+[[bench]]
+name = "test_minimal"
+harness = false
+
+[[bench]]
+name = "tensor_performance"
+harness = false
+
+[[bench]]
+name = "mlx_vs_candle"
+harness = false
+
+[[bench]]
+name = "quantization_performance"
+harness = false
+
+[[bench]]
+name = "simd_performance"
+harness = false
+
+[[bench]]
+name = "tensor_operations_comprehensive"
+harness = false
+
+[[bench]]
+name = "comprehensive_performance_comparison"
+harness = false
 
 [features]
 default = ["std"]

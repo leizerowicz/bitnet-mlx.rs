@@ -449,8 +449,8 @@ impl AccelerationBackendImpl for MlxAccelerator {
         metrics.cache_hit_rate = if a.size_in_bytes() >= self.zero_copy_threshold_bytes { 1.0 } else { 0.0 };
         
         #[cfg(feature = "tracing")]
-        debug!("MLX matmul completed: {:.2}x speedup, {:.2} GFLOPS, {}μs",
-               metrics.speedup_factor, metrics.compute_throughput_gflops, 
+        debug!("MLX matmul completed: {:.2} ops/sec, {:.2} efficiency, {}μs",
+               metrics.operations_per_second, metrics.efficiency_score, 
                execution_time.as_micros());
         
         Ok((result, metrics))
@@ -499,8 +499,8 @@ impl AccelerationBackendImpl for MlxAccelerator {
         metrics.cache_hit_rate = if a.size_in_bytes() >= self.zero_copy_threshold_bytes { 1.0 } else { 0.0 };
         
         #[cfg(feature = "tracing")]
-        debug!("MLX add completed: {:.2}x speedup, {:.2} GB/s, {}μs",
-               metrics.speedup_factor, metrics.memory_bandwidth_gbps, 
+        debug!("MLX add completed: {:.2} ops/sec, {:.2} efficiency, {}μs",
+               metrics.operations_per_second, metrics.efficiency_score, 
                execution_time.as_micros());
         
         Ok((result, metrics))

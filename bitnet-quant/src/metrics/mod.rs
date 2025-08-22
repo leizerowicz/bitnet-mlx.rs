@@ -14,7 +14,7 @@ pub mod mitigation;
 pub mod reporting;
 // pub mod examples;  // Temporarily disabled due to compilation issues
 
-use candle_core::{Tensor, Result, Device};
+use candle_core::{Tensor, Result};
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 
@@ -177,7 +177,7 @@ pub trait MetricsExporter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use candle_core::{Device, DType};
+    
 
     #[test]
     fn test_safe_divide() {

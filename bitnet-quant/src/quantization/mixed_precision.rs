@@ -273,7 +273,7 @@ impl MixedPrecisionQuantizer {
 
         // Get appropriate quantizer for the target precision
         let quantizer = self.weight_quantizers.get(&target_precision)
-            .ok_or_else(|| QuantizationError::UnsupportedPrecision(format!("{:?}", target_precision)))?;
+            .ok_or_else(|| QuantizationError::UnsupportedPrecision(format!("{target_precision:?}")))?;
 
         // Convert to candle tensor for quantization
         let candle_weights = converted_weights.to_candle()
@@ -310,7 +310,7 @@ impl MixedPrecisionQuantizer {
 
         // Get appropriate quantizer for the target precision
         let quantizer = self.activation_quantizers.get(&target_precision)
-            .ok_or_else(|| QuantizationError::UnsupportedPrecision(format!("{:?}", target_precision)))?;
+            .ok_or_else(|| QuantizationError::UnsupportedPrecision(format!("{target_precision:?}")))?;
 
         // Convert to candle tensor for quantization
         let candle_activations = converted_activations.to_candle()
@@ -435,7 +435,7 @@ impl MixedPrecisionQuantizer {
     ) -> QuantizationResult<()> {
         // This would implement the actual precision adjustment logic
         // For now, we'll just log the adjustment
-        println!("Applying {:?} precision adjustment to layer {}", adjustment, layer_id);
+        println!("Applying {adjustment:?} precision adjustment to layer {layer_id}");
         Ok(())
     }
 
@@ -529,7 +529,7 @@ pub fn create_mixed_precision_quantizer(
 mod tests {
     use super::*;
     use bitnet_core::device::get_cpu_device;
-    use bitnet_core::memory::HybridMemoryPool;
+    
 
     #[test]
     fn test_mixed_precision_quantization_config() {

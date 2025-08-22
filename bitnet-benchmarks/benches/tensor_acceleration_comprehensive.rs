@@ -461,7 +461,7 @@ fn bench_memory_pool_acceleration(c: &mut Criterion) {
         
         // Benchmark memory pool allocation/deallocation patterns
         group.bench_with_input(
-            BenchmarkId::new("memory_pool_allocation_pattern", format!("{}x{}", rows, cols)),
+            BenchmarkId::new("memory_pool_allocation_pattern", format!("{rows}x{cols}")),
             &(rows, cols),
             |bencher, &(rows, cols)| {
                 let memory_pool = Arc::clone(&config.memory_pool);
@@ -508,7 +508,7 @@ fn bench_configurable_iteration_performance(c: &mut Criterion) {
     // Benchmark using all config data types
     for &dtype in &config.data_types {
         group.bench_with_input(
-            BenchmarkId::new("data_type_performance", format!("{:?}", dtype)),
+            BenchmarkId::new("data_type_performance", format!("{dtype:?}")),
             &dtype,
             |bencher, &dtype| {
                 // Create test tensors

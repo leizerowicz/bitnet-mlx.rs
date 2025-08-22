@@ -126,7 +126,7 @@ impl VisualizationEngine {
             data_points.push(DataPoint {
                 label: layer_name.clone(),
                 values: vec![("Sensitivity Score".to_string(), (*sensitivity).into())],
-                metadata: Some(format!("Layer: {}, Sensitivity: {:.3}", layer_name, sensitivity)),
+                metadata: Some(format!("Layer: {layer_name}, Sensitivity: {sensitivity:.3}")),
             });
         }
 
@@ -154,13 +154,13 @@ impl VisualizationEngine {
             for (j, layer2) in layers.iter().enumerate() {
                 if let Some(correlation) = correlations.get(*layer1).and_then(|c| c.get(*layer2)) {
                     data_points.push(DataPoint {
-                        label: format!("{}_{}", layer1, layer2),
+                        label: format!("{layer1}_{layer2}"),
                         values: vec![
                             ("X".to_string(), DataValue::Integer(i as i64)),
                             ("Y".to_string(), DataValue::Integer(j as i64)),
                             ("Correlation".to_string(), (*correlation).into()),
                         ],
-                        metadata: Some(format!("Correlation between {} and {}: {:.3}", layer1, layer2, correlation)),
+                        metadata: Some(format!("Correlation between {layer1} and {layer2}: {correlation:.3}")),
                     });
                 }
             }
@@ -308,7 +308,7 @@ impl VisualizationEngine {
             if i < histogram.bin_edges.len() - 1 {
                 let bin_center = (histogram.bin_edges[i] + histogram.bin_edges[i + 1]) / 2.0;
                 data_points.push(DataPoint {
-                    label: format!("Bin {}", i),
+                    label: format!("Bin {i}"),
                     values: vec![
                         ("Error Value".to_string(), bin_center.into()),
                         ("Frequency".to_string(), DataValue::Integer(count as i64)),
@@ -320,8 +320,8 @@ impl VisualizationEngine {
         }
 
         Ok(Visualization {
-            id: format!("error_histogram_{}", layer_name),
-            title: format!("Error Distribution Histogram - {}", layer_name),
+            id: format!("error_histogram_{layer_name}"),
+            title: format!("Error Distribution Histogram - {layer_name}"),
             visualization_type: VisualizationType::Histogram,
             data_points,
             config: ChartConfig {
@@ -375,18 +375,18 @@ impl VisualizationEngine {
         
         for (iteration, &sqnr_value) in evolution.sqnr_values.iter().enumerate() {
             data_points.push(DataPoint {
-                label: format!("Iteration {}", iteration),
+                label: format!("Iteration {iteration}"),
                 values: vec![
                     ("Iteration".to_string(), DataValue::Integer(iteration as i64)),
                     ("SQNR (dB)".to_string(), sqnr_value.into()),
                 ],
-                metadata: Some(format!("Iteration: {}, SQNR: {:.2} dB", iteration, sqnr_value)),
+                metadata: Some(format!("Iteration: {iteration}, SQNR: {sqnr_value:.2} dB")),
             });
         }
 
         Ok(Visualization {
-            id: format!("sqnr_evolution_{}", layer_name),
-            title: format!("SQNR Evolution - {}", layer_name),
+            id: format!("sqnr_evolution_{layer_name}"),
+            title: format!("SQNR Evolution - {layer_name}"),
             visualization_type: VisualizationType::LineChart,
             data_points,
             config: ChartConfig {
@@ -406,18 +406,18 @@ impl VisualizationEngine {
         
         for (iteration, &similarity) in evolution.similarity_values.iter().enumerate() {
             data_points.push(DataPoint {
-                label: format!("Iteration {}", iteration),
+                label: format!("Iteration {iteration}"),
                 values: vec![
                     ("Iteration".to_string(), DataValue::Integer(iteration as i64)),
                     ("Cosine Similarity".to_string(), similarity.into()),
                 ],
-                metadata: Some(format!("Iteration: {}, Similarity: {:.4}", iteration, similarity)),
+                metadata: Some(format!("Iteration: {iteration}, Similarity: {similarity:.4}")),
             });
         }
 
         Ok(Visualization {
-            id: format!("similarity_evolution_{}", layer_name),
-            title: format!("Cosine Similarity Evolution - {}", layer_name),
+            id: format!("similarity_evolution_{layer_name}"),
+            title: format!("Cosine Similarity Evolution - {layer_name}"),
             visualization_type: VisualizationType::LineChart,
             data_points,
             config: ChartConfig {
@@ -458,7 +458,7 @@ impl VisualizationEngine {
                     let idx = i * dims[1] + j;
                     if idx < error_vec.len() {
                         data_points.push(DataPoint {
-                            label: format!("({}, {})", i, j),
+                            label: format!("({i}, {j})"),
                             values: vec![
                                 ("X".to_string(), DataValue::Integer(i as i64)),
                                 ("Y".to_string(), DataValue::Integer(j as i64)),
@@ -471,8 +471,8 @@ impl VisualizationEngine {
             }
 
             Ok(Visualization {
-                id: format!("tensor_visualization_{}", layer_name),
-                title: format!("Spatial Error Distribution - {}", layer_name),
+                id: format!("tensor_visualization_{layer_name}"),
+                title: format!("Spatial Error Distribution - {layer_name}"),
                 visualization_type: VisualizationType::Heatmap,
                 data_points,
                 config: ChartConfig {
@@ -491,18 +491,18 @@ impl VisualizationEngine {
             
             for (i, &error_val) in error_vec.iter().enumerate() {
                 data_points.push(DataPoint {
-                    label: format!("Index {}", i),
+                    label: format!("Index {i}"),
                     values: vec![
                         ("Index".to_string(), DataValue::Integer(i as i64)),
                         ("Error".to_string(), error_val.into()),
                     ],
-                    metadata: Some(format!("Index: {}, Error: {:.6}", i, error_val)),
+                    metadata: Some(format!("Index: {i}, Error: {error_val:.6}")),
                 });
             }
 
             Ok(Visualization {
-                id: format!("tensor_visualization_{}", layer_name),
-                title: format!("1D Error Distribution - {}", layer_name),
+                id: format!("tensor_visualization_{layer_name}"),
+                title: format!("1D Error Distribution - {layer_name}"),
                 visualization_type: VisualizationType::LineChart,
                 data_points,
                 config: ChartConfig {
@@ -543,28 +543,28 @@ impl VisualizationEngine {
         match format {
             OutputFormat::JSON => {
                 let _json_data = serde_json::to_string_pretty(visualization)
-                    .map_err(|e| CandleError::Msg(format!("JSON serialization error: {}", e)))?;
+                    .map_err(|e| CandleError::Msg(format!("JSON serialization error: {e}")))?;
                 // In practice, write to file: std::fs::write(filename, json_data)?;
-                println!("Would export JSON to: {}", filename);
+                println!("Would export JSON to: {filename}");
             },
             OutputFormat::CSV => {
                 let _csv_data = self.convert_to_csv(visualization)?;
                 // In practice, write CSV data to file
-                println!("Would export CSV to: {}", filename);
+                println!("Would export CSV to: {filename}");
             },
             OutputFormat::SVG => {
                 let _svg_data = self.generate_svg(visualization)?;
                 // In practice, write SVG data to file
-                println!("Would export SVG to: {}", filename);
+                println!("Would export SVG to: {filename}");
             },
             OutputFormat::PNG => {
                 // In practice, generate PNG from SVG or use plotting library
-                println!("Would export PNG to: {}", filename);
+                println!("Would export PNG to: {filename}");
             },
             OutputFormat::HTML => {
                 let _html_data = self.generate_interactive_html(visualization)?;
                 // In practice, write HTML data to file
-                println!("Would export HTML to: {}", filename);
+                println!("Would export HTML to: {filename}");
             },
         }
         Ok(())
@@ -586,7 +586,7 @@ impl VisualizationEngine {
         for point in &visualization.data_points {
             let mut row = vec![point.label.clone()];
             for (_, value) in &point.values {
-                row.push(format!("{}", value));
+                row.push(format!("{value}"));
             }
             csv_lines.push(row.join(","));
         }
@@ -728,10 +728,10 @@ impl From<String> for DataValue {
 impl std::fmt::Display for DataValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            DataValue::Float(v) => write!(f, "{}", v),
-            DataValue::Integer(v) => write!(f, "{}", v),
-            DataValue::String(v) => write!(f, "{}", v),
-            DataValue::Boolean(v) => write!(f, "{}", v),
+            DataValue::Float(v) => write!(f, "{v}"),
+            DataValue::Integer(v) => write!(f, "{v}"),
+            DataValue::String(v) => write!(f, "{v}"),
+            DataValue::Boolean(v) => write!(f, "{v}"),
         }
     }
 }

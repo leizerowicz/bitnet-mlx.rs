@@ -41,7 +41,7 @@ fn benchmark_simd_unpacking(c: &mut Criterion) {
             
             // Benchmark SIMD implementation
             group.bench_with_input(
-                BenchmarkId::new(format!("{:?}_simd", strategy), size),
+                BenchmarkId::new(format!("{strategy:?}_simd"), size),
                 &packed,
                 |b, packed| {
                     b.iter(|| {
@@ -53,7 +53,7 @@ fn benchmark_simd_unpacking(c: &mut Criterion) {
             
             // Benchmark scalar implementation
             group.bench_with_input(
-                BenchmarkId::new(format!("{:?}_scalar", strategy), size),
+                BenchmarkId::new(format!("{strategy:?}_scalar"), size),
                 &packed,
                 |b, packed| {
                     b.iter(|| {
@@ -139,7 +139,7 @@ fn benchmark_byte_aligned_detailed(c: &mut Criterion) {
             });
             
             group.bench_with_input(
-                BenchmarkId::new(format!("simd_align_{}", alignment), size),
+                BenchmarkId::new(format!("simd_align_{alignment}"), size),
                 &packed,
                 |b, packed| {
                     b.iter(|| {
@@ -150,7 +150,7 @@ fn benchmark_byte_aligned_detailed(c: &mut Criterion) {
             );
             
             group.bench_with_input(
-                BenchmarkId::new(format!("scalar_align_{}", alignment), size),
+                BenchmarkId::new(format!("scalar_align_{alignment}"), size),
                 &packed,
                 |b, packed| {
                     b.iter(|| {

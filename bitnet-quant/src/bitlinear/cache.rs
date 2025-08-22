@@ -273,7 +273,7 @@ impl QuantizedWeightCache {
     pub fn insert(&mut self, key: String, entry: CacheEntry) {
         // Check if we need to evict entries
         if self.cache.len() >= self.config.max_entries && !self.cache.contains_key(&key) {
-            if let Err(_) = self.evict_lru() {
+            if self.evict_lru().is_err() {
                 // If eviction fails, we still try to insert (might fail due to capacity)
                 return;
             }

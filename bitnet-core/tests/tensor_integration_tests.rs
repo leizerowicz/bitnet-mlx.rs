@@ -10,13 +10,13 @@ use std::thread;
 use std::collections::HashMap;
 
 use bitnet_core::memory::{
-    HybridMemoryPool, MemoryPoolConfig, TrackingConfig, TrackingLevel,
-    CleanupManager, CleanupConfig, CleanupStrategyType, CleanupPriority,
-    MemoryPressureLevel, MemoryTracker, DetailedMemoryMetrics
+    HybridMemoryPool, MemoryPoolConfig, TrackingConfig,
+    CleanupManager, CleanupConfig,
+    MemoryPressureLevel
 };
-use bitnet_core::memory::tensor::{BitNetTensor, BitNetDType, TensorHandle, TensorMetadata};
-use bitnet_core::device::{get_cpu_device, auto_select_device, is_metal_available, get_metal_device};
-use candle_core::{Device, Tensor, DType};
+use bitnet_core::memory::tensor::{BitNetTensor, BitNetDType};
+use bitnet_core::device::{get_cpu_device, is_metal_available, get_metal_device};
+use candle_core::Device;
 
 // =============================================================================
 // Test Infrastructure and Utilities
@@ -185,7 +185,7 @@ fn create_test_tensor_batch(
         
         let tensor = BitNetTensor::zeros(&shape, dtype, device, &env.pool)
             .expect("Failed to create test tensor");
-        tensor.set_name(Some(format!("test_tensor_{}", i)));
+        tensor.set_name(Some(format!("test_tensor_{i}")));
         tensors.push(tensor);
     }
     
@@ -249,14 +249,14 @@ fn test_end_to_end_tensor_lifecycle_workflow() {
     
     // Clean up orphaned handles
     let cleanup_count = env.pool.cleanup_orphaned_handles();
-    println!("Cleaned up {} orphaned memory handles", cleanup_count);
+    println!("Cleaned up {cleanup_count} orphaned memory handles");
     
     // Verify final state
     let final_metrics = env.pool.get_metrics();
     assert_eq!(final_metrics.active_allocations, 0);
     
     let summary = env.get_metrics_summary();
-    println!("Lifecycle test summary: {:?}", summary);
+    println!("Lifecycle test summary: {summary:?}");
     
     assert!(summary.max_concurrent_tensors > 0);
     assert!(summary.total_measurements >= 4);
@@ -283,7 +283,7 @@ fn test_cross_system_integration_validation() {
     ];
     
     for (scenario_name, count, shape, dtype) in test_scenarios {
-        println!("Testing scenario: {}", scenario_name);
+        println!("Testing scenario: {scenario_name}");
         
         let scenario_start = Instant::now();
         let tensors = create_test_tensor_batch(&env, count, &shape, dtype, device);
@@ -311,7 +311,7 @@ fn test_cross_system_integration_validation() {
         }
         
         let scenario_duration = scenario_start.elapsed();
-        println!("Scenario {} completed in {:?}", scenario_name, scenario_duration);
+        println!("Scenario {scenario_name} completed in {scenario_duration:?}");
         
         system_tensors.extend(tensors);
         env.record_metrics();
@@ -335,8 +335,8 @@ fn test_cross_system_integration_validation() {
         assert!(migrated_tensor.handle().is_valid());
         
         if let Some(detailed_metrics) = env.pool.get_detailed_metrics() {
-            let source_key = format!("{:?}", source_device);
-            let target_key = format!("{:?}", target_device);
+            let source_key = format!("{source_device:?}");
+            let target_key = format!("{target_device:?}");
             
             assert!(detailed_metrics.device_usage.contains_key(&source_key));
             assert!(detailed_metrics.device_usage.contains_key(&target_key));
@@ -362,7 +362,7 @@ fn test_cross_system_integration_validation() {
     assert_eq!(cleanup_metrics.active_allocations, 0);
     
     let summary = env.get_metrics_summary();
-    println!("Cross-system integration summary: {:?}", summary);
+    println!("Cross-system integration summary: {summary:?}");
 }
 
 #[test]
@@ -377,7 +377,7 @@ fn test_comprehensive_integration_summary() {
     println!("Test Environment:");
     println!("  Available devices: {}", env.devices.len());
     for (i, device) in env.devices.iter().enumerate() {
-        println!("    Device {}: {:?}", i, device);
+        println!("    Device {i}: {device:?}");
     }
     println!("  Tracking enabled: {}", env.config.enable_tracking);
     println!("  Cleanup enabled: {}", env.config.enable_cleanup);

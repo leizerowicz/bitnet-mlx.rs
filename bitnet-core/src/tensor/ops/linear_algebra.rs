@@ -51,10 +51,9 @@
 //! ```
 
 use std::cmp;
-use candle_core::{Device, Tensor as CandleTensor, Result as CandleResult};
+use candle_core::{Device, Tensor as CandleTensor};
 use crate::tensor::core::BitNetTensor;
 use crate::tensor::dtype::BitNetDType;
-use crate::tensor::shape::TensorShape;
 use super::{TensorOpResult, TensorOpError};
 
 #[cfg(feature = "tracing")]

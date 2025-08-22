@@ -74,7 +74,7 @@ impl SimdUtils {
         } else {
             // If not aligned, we need to reserve additional space
             let padding = Self::alignment_padding(addr, alignment);
-            let padding_elements = (padding + std::mem::size_of::<T>() - 1) / std::mem::size_of::<T>();
+            let padding_elements = padding.div_ceil(std::mem::size_of::<T>());
             
             vec.reserve(padding_elements);
             
@@ -287,7 +287,7 @@ pub fn simd_memcpy<T: Copy>(dst: &mut [T], src: &[T]) {
     }
     
     // Use system memcpy for large blocks
-    if dst.len() * std::mem::size_of::<T>() >= 1024 {
+    if std::mem::size_of_val(dst) >= 1024 {
         dst.copy_from_slice(src);
         return;
     }

@@ -4,10 +4,8 @@
 //! ensuring that errors provide detailed context and useful debugging information.
 
 use bitnet_core::error::{
-    BitNetError, BitNetErrorKind, ErrorContext, ErrorContextBuilder, ErrorSeverity,
-    ErrorReport, ErrorFormatter, ToBitNetError
+    BitNetError, BitNetErrorKind, ErrorContext, ErrorContextBuilder, ErrorSeverity, ErrorFormatter, ToBitNetError
 };
-use std::collections::HashMap;
 
 #[test]
 fn test_device_error_creation_and_formatting() {
@@ -235,7 +233,7 @@ fn test_error_context_builder() {
     assert_eq!(context.get("device"), Some(&"Metal".to_string()));
     assert!(context.source_location.is_some());
     
-    let display_str = format!("{}", context);
+    let display_str = format!("{context}");
     assert!(display_str.contains("operation=tensor_creation"));
     assert!(display_str.contains("device=Metal"));
     assert!(display_str.contains("location=tensor.rs:42"));
@@ -355,7 +353,7 @@ fn test_error_chaining_and_context_propagation() {
     
     let wrapped_error = BitNetError::tensor_error("Failed to load tensor data")
         .add_context("tensor_name", "weights")
-        .add_context("source_error", &original_error.error_id());
+        .add_context("source_error", original_error.error_id());
     
     // Verify both errors have their own contexts
     assert!(original_error.context().get("file_path").is_some());
@@ -395,7 +393,7 @@ fn test_error_display_formatting() {
         .add_context("available_devices", "none")
         .set_severity(ErrorSeverity::Error);
     
-    let display_str = format!("{}", error);
+    let display_str = format!("{error}");
     
     assert!(display_str.contains("ERROR"));
     assert!(display_str.contains("Metal device not found"));

@@ -83,7 +83,7 @@ fn bench_packing_strategies(c: &mut Criterion) {
             
             if packer.is_suitable(&weights, &config) {
                 group.bench_with_input(
-                    BenchmarkId::new(format!("pack_{}", name), size),
+                    BenchmarkId::new(format!("pack_{name}"), size),
                     &size,
                     |b, _| {
                         b.iter(|| {
@@ -126,7 +126,7 @@ fn bench_unpacking_strategies(c: &mut Criterion) {
             if packer.is_suitable(&weights, &config) {
                 if let Ok(packed) = packer.pack(&weights, &config) {
                     group.bench_with_input(
-                        BenchmarkId::new(format!("unpack_{}", name), size),
+                        BenchmarkId::new(format!("unpack_{name}"), size),
                         &size,
                         |b, _| {
                             b.iter(|| {
@@ -211,7 +211,7 @@ fn bench_compression_ratios(c: &mut Criterion) {
             
             if packer.is_suitable(weights, &config) {
                 group.bench_function(
-                    &format!("{}_{}", pattern_name, strategy_name),
+                    format!("{pattern_name}_{strategy_name}"),
                     |b| {
                         b.iter(|| {
                             let packed = packer.pack(black_box(weights), black_box(&config)).unwrap();
@@ -405,7 +405,7 @@ fn bench_memory_access(c: &mut Criterion) {
         
         // Benchmark sequential access (full unpack)
         group.bench_function(
-            &format!("sequential_access_{}", name),
+            format!("sequential_access_{name}"),
             |b| {
                 b.iter(|| {
                     let result = packer.unpack(black_box(&packed));
@@ -416,7 +416,7 @@ fn bench_memory_access(c: &mut Criterion) {
         
         // Benchmark memory footprint efficiency
         group.bench_function(
-            &format!("memory_footprint_{}", name),
+            format!("memory_footprint_{name}"),
             |b| {
                 b.iter(|| {
                     let footprint = packed.memory_footprint;
@@ -452,7 +452,7 @@ fn bench_hybrid_strategy(c: &mut Criterion) {
             let packer = HybridPacker;
             
             group.bench_with_input(
-                BenchmarkId::new(format!("hybrid_block_{}", block_size), size),
+                BenchmarkId::new(format!("hybrid_block_{block_size}"), size),
                 &size,
                 |b, _| {
                     b.iter(|| {
@@ -484,7 +484,7 @@ fn bench_bit_operations(c: &mut Criterion) {
         for &bits in &bit_widths {
             // Benchmark packing
             group.bench_with_input(
-                BenchmarkId::new(format!("pack_{}bit", bits), size),
+                BenchmarkId::new(format!("pack_{bits}bit"), size),
                 &size,
                 |b, _| {
                     b.iter(|| {
@@ -497,7 +497,7 @@ fn bench_bit_operations(c: &mut Criterion) {
             // Benchmark unpacking
             let packed = BitUtils::pack_bits(&values, bits);
             group.bench_with_input(
-                BenchmarkId::new(format!("unpack_{}bit", bits), size),
+                BenchmarkId::new(format!("unpack_{bits}bit"), size),
                 &size,
                 |b, _| {
                     b.iter(|| {

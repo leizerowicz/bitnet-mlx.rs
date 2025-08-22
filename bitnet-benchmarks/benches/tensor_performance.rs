@@ -204,7 +204,7 @@ fn bench_memory_allocation(c: &mut Criterion) {
     group.bench_function("single_large_allocation", |bencher| {
         bencher.iter(|| {
             let tensor = BitNetTensor::zeros(
-                black_box(&vec![1024, 1024]),
+                black_box(&[1024, 1024]),
                 black_box(BitNetDType::F32),
                 Some(black_box(device.clone()))
             ).expect("Failed to create large tensor");
@@ -217,7 +217,7 @@ fn bench_memory_allocation(c: &mut Criterion) {
         bencher.iter(|| {
             let tensors: Vec<_> = (0..100).map(|_| {
                 BitNetTensor::zeros(
-                    black_box(&vec![8, 8]),
+                    black_box(&[8, 8]),
                     black_box(BitNetDType::F32),
                     Some(black_box(device.clone()))
                 ).expect("Failed to create small tensor")
@@ -228,10 +228,8 @@ fn bench_memory_allocation(c: &mut Criterion) {
     
     // Benchmark mixed allocation sizes
     group.bench_function("mixed_allocation_sizes", |bencher| {
-        let sizes = vec![
-            vec![16, 16], vec![32, 32], vec![64, 64], 
-            vec![128, 128], vec![256, 256]
-        ];
+        let sizes = [vec![16, 16], vec![32, 32], vec![64, 64], 
+            vec![128, 128], vec![256, 256]];
         
         bencher.iter(|| {
             let tensors: Vec<_> = sizes.iter().map(|shape| {
@@ -264,7 +262,7 @@ fn bench_memory_pool_efficiency(c: &mut Criterion) {
         bencher.iter(|| {
             let tensors: Vec<_> = (0..50).map(|_| {
                 BitNetTensor::zeros(
-                    black_box(&vec![64, 64]),
+                    black_box(&[64, 64]),
                     black_box(BitNetDType::F32),
                     Some(black_box(device.clone()))
                 ).expect("Failed to create tensor with tracking")
@@ -282,7 +280,7 @@ fn bench_memory_pool_efficiency(c: &mut Criterion) {
         bencher.iter(|| {
             let tensors: Vec<_> = (0..50).map(|_| {
                 BitNetTensor::zeros(
-                    black_box(&vec![64, 64]),
+                    black_box(&[64, 64]),
                     black_box(BitNetDType::F32),
                     Some(black_box(device.clone()))
                 ).expect("Failed to create tensor without tracking")
@@ -414,9 +412,9 @@ fn bench_shape_operations(c: &mut Criterion) {
     let device = get_cpu_device();
     
     // Prepare test tensors
-    let tensor_1d = BitNetTensor::zeros(&vec![1024], BitNetDType::F32, Some(device.clone()))
+    let tensor_1d = BitNetTensor::zeros(&[1024], BitNetDType::F32, Some(device.clone()))
         .expect("Failed to create 1D tensor");
-    let tensor_2d = BitNetTensor::zeros(&vec![32, 32], BitNetDType::F32, Some(device.clone()))
+    let tensor_2d = BitNetTensor::zeros(&[32, 32], BitNetDType::F32, Some(device.clone()))
         .expect("Failed to create 2D tensor");
     
     // Benchmark reshape operations (placeholder - methods not yet implemented)
@@ -446,7 +444,7 @@ fn bench_shape_operations(c: &mut Criterion) {
     });
     
     // Benchmark squeeze operations (placeholder - method not yet implemented)
-    let tensor_with_ones = BitNetTensor::zeros(&vec![1, 32, 1, 32, 1], BitNetDType::F32, Some(device.clone()))
+    let tensor_with_ones = BitNetTensor::zeros(&[1, 32, 1, 32, 1], BitNetDType::F32, Some(device.clone()))
         .expect("Failed to create tensor with unit dimensions");
     
     group.bench_function("squeeze", |bencher| {

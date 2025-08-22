@@ -388,22 +388,22 @@ impl ErrorMitigationEngine {
             action_type: action.action_type.clone(),
             configuration: match &action.parameters {
                 MitigationParameters::BitWidth { to_bits, .. } => {
-                    format!("bit_width: {}", to_bits)
+                    format!("bit_width: {to_bits}")
                 },
                 MitigationParameters::ScaleFactor { multiplier, adaptive } => {
-                    format!("scale_multiplier: {}, adaptive: {}", multiplier, adaptive)
+                    format!("scale_multiplier: {multiplier}, adaptive: {adaptive}")
                 },
                 MitigationParameters::Asymmetric { enable_zero_point, per_channel } => {
-                    format!("zero_point: {}, per_channel: {}", enable_zero_point, per_channel)
+                    format!("zero_point: {enable_zero_point}, per_channel: {per_channel}")
                 },
                 MitigationParameters::Clipping { min_clip, max_clip, .. } => {
-                    format!("clip_range: [{}, {}]", min_clip, max_clip)
+                    format!("clip_range: [{min_clip}, {max_clip}]")
                 },
                 MitigationParameters::MixedPrecision { precision_map, fallback_precision } => {
-                    format!("precision_map: {:?}, fallback: {}", precision_map, fallback_precision)
+                    format!("precision_map: {precision_map:?}, fallback: {fallback_precision}")
                 },
                 MitigationParameters::Regularization { l1_weight, l2_weight, quantization_penalty } => {
-                    format!("l1: {}, l2: {}, quant_penalty: {}", l1_weight, l2_weight, quantization_penalty)
+                    format!("l1: {l1_weight}, l2: {l2_weight}, quant_penalty: {quantization_penalty}")
                 },
             },
             expected_improvement: action.estimated_impact.quality_improvement,
@@ -541,8 +541,7 @@ impl ErrorMitigationEngine {
         // Phase 1: Low complexity, high impact actions
         let phase1_actions: Vec<_> = actions.iter()
             .filter(|a| matches!(a.estimated_impact.implementation_complexity, ComplexityLevel::Low) && 
-                        matches!(a.priority, ActionPriority::High))
-            .map(|a| a.clone())
+                        matches!(a.priority, ActionPriority::High)).cloned()
             .collect();
         
         if !phase1_actions.is_empty() {
@@ -561,8 +560,7 @@ impl ErrorMitigationEngine {
         
         // Phase 2: Medium complexity actions
         let phase2_actions: Vec<_> = actions.iter()
-            .filter(|a| matches!(a.estimated_impact.implementation_complexity, ComplexityLevel::Medium))
-            .map(|a| a.clone())
+            .filter(|a| matches!(a.estimated_impact.implementation_complexity, ComplexityLevel::Medium)).cloned()
             .collect();
         
         if !phase2_actions.is_empty() {
@@ -582,8 +580,7 @@ impl ErrorMitigationEngine {
         
         // Phase 3: High complexity actions
         let phase3_actions: Vec<_> = actions.iter()
-            .filter(|a| matches!(a.estimated_impact.implementation_complexity, ComplexityLevel::High))
-            .map(|a| a.clone())
+            .filter(|a| matches!(a.estimated_impact.implementation_complexity, ComplexityLevel::High)).cloned()
             .collect();
         
         if !phase3_actions.is_empty() {
@@ -776,7 +773,7 @@ impl ErrorMitigationEngine {
         let mut best_action = None;
         
         for strategy in strategies {
-            let actions = self.apply_mitigation_strategies("adaptive_layer", current_metrics, &vec![strategy.clone()])?;
+            let actions = self.apply_mitigation_strategies("adaptive_layer", current_metrics, &[strategy.clone()])?;
             for action in actions {
                 let score = action.estimated_impact.quality_improvement / (action.estimated_impact.performance_cost + 0.01);
                 if score > best_score {

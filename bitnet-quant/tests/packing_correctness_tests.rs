@@ -389,7 +389,7 @@ fn test_packer_factory_optimal_selection() {
         // Verify round-trip correctness
         let packer = TernaryPackerFactory::create_packer(selected_strategy);
         let unpacked = packer.unpack(&optimal_packed).unwrap();
-        assert_eq!(weights, unpacked, "Failed round-trip for pattern: {}", name);
+        assert_eq!(weights, unpacked, "Failed round-trip for pattern: {name}");
         
         // Verify compression is reasonable
         assert!(optimal_packed.compression_ratio > 0.0);
@@ -482,7 +482,7 @@ fn test_large_weight_arrays() {
             let unpacked = packer.unpack(&packed).unwrap();
             
             assert_eq!(weights, unpacked, 
-                "Failed for strategy {:?} with size {}", strategy, size);
+                "Failed for strategy {strategy:?} with size {size}");
             assert!(packed.compression_ratio > 0.0);
         }
     }
@@ -540,7 +540,7 @@ fn test_error_recovery_and_graceful_handling() {
         let result = packer.pack_with_validation(&weights, &config);
         match name {
             "empty_weights" | "invalid_values" => {
-                assert!(result.is_err(), "Expected error for case: {}", name);
+                assert!(result.is_err(), "Expected error for case: {name}");
             }
             _ => {}
         }
@@ -588,13 +588,13 @@ fn test_sparsity_analysis_comprehensive() {
     for (name, weights, expected_sparsity, expected_balance) in test_cases {
         let analysis = packing_utils::analyze_sparsity(&weights);
         
-        assert_eq!(analysis.total_elements, weights.len(), "Total elements mismatch for {}", name);
+        assert_eq!(analysis.total_elements, weights.len(), "Total elements mismatch for {name}");
         assert_abs_diff_eq!(analysis.sparsity_ratio, expected_sparsity, epsilon = 0.001);
         assert_abs_diff_eq!(analysis.balance_ratio, expected_balance, epsilon = 0.001);
         
         // Verify counts add up
         assert_eq!(analysis.zero_count + analysis.positive_count + analysis.negative_count,
-                  analysis.total_elements, "Count mismatch for {}", name);
+                  analysis.total_elements, "Count mismatch for {name}");
     }
 }
 
@@ -618,6 +618,6 @@ fn test_strategy_recommendation_logic() {
         
         let recommended = packing_utils::recommend_strategy(&weights);
         assert_eq!(recommended, expected_strategy, 
-                  "Strategy recommendation mismatch for {}", name);
+                  "Strategy recommendation mismatch for {name}");
     }
 }

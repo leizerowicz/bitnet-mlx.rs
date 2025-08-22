@@ -8,7 +8,6 @@ use bitnet_core::device::{
     get_metal_device_name, is_metal_available, describe_device, DeviceError,
 };
 use candle_core::Device;
-use std::time::Duration;
 
 /// Test basic Metal device availability checking
 #[test]
@@ -18,10 +17,10 @@ fn test_metal_availability_check() {
     // The result depends on the platform and hardware
     // On macOS with Metal support: should be true
     // On other platforms or without Metal: should be false
-    println!("Metal availability: {}", is_available);
+    println!("Metal availability: {is_available}");
     
     // Ensure the function doesn't panic and returns a boolean
-    assert!(is_available == true || is_available == false);
+    assert!(is_available || !is_available);
 }
 
 /// Test Metal device creation through candle-core
@@ -37,18 +36,18 @@ fn test_candle_metal_device_creation() {
             // Test device description
             let description = describe_device(&device);
             assert_eq!(description, "Metal GPU (macOS)");
-            println!("Device description: {}", description);
+            println!("Device description: {description}");
         }
         Err(DeviceError::MetalNotAvailable) => {
             println!("Metal not available on this platform (expected on non-macOS)");
             // This is expected on non-macOS platforms
         }
         Err(DeviceError::MetalCreationFailed(msg)) => {
-            println!("Metal device creation failed: {}", msg);
+            println!("Metal device creation failed: {msg}");
             // This can happen on macOS systems without proper Metal support
         }
         Err(e) => {
-            panic!("Unexpected error type: {}", e);
+            panic!("Unexpected error type: {e}");
         }
     }
 }
@@ -107,7 +106,7 @@ fn test_metal_rs_device_creation_unsupported() {
             println!("Correctly returned UnsupportedPlatform error");
         }
         Some(other_error) => {
-            panic!("Expected UnsupportedPlatform error, got: {:?}", other_error);
+            panic!("Expected UnsupportedPlatform error, got: {other_error:?}");
         }
         None => {
             panic!("Expected MetalError, got different error type");
@@ -168,7 +167,7 @@ fn test_metal_context_initialization() {
 #[test]
 #[cfg(not(all(target_os = "macos", feature = "metal")))]
 fn test_metal_context_initialization_unsupported() {
-    use bitnet_core::metal::{initialize_metal_context, MetalError};
+    use bitnet_core::metal::initialize_metal_context;
     
     let result = initialize_metal_context();
     
@@ -184,8 +183,8 @@ fn test_device_info_retrieval() {
     
     // CPU should always be available
     assert!(cpu_available);
-    println!("CPU available: {}", cpu_available);
-    println!("Metal available: {}", metal_available);
+    println!("CPU available: {cpu_available}");
+    println!("Metal available: {metal_available}");
     
     // Metal availability should be consistent with is_metal_available()
     assert_eq!(metal_available, is_metal_available());
@@ -199,7 +198,7 @@ fn test_metal_device_name_retrieval() {
     
     match device_name {
         Some(name) => {
-            println!("Metal device name: {}", name);
+            println!("Metal device name: {name}");
             assert!(!name.is_empty());
             
             // If we got a device name, Metal should be available
@@ -240,7 +239,7 @@ fn test_auto_device_selection() {
     
     // Verify the device description
     let description = describe_device(&device);
-    println!("Auto-selected device description: {}", description);
+    println!("Auto-selected device description: {description}");
     assert!(!description.is_empty());
 }
 
@@ -254,7 +253,7 @@ fn test_cpu_device_fallback() {
     
     let description = describe_device(&cpu_device);
     assert_eq!(description, "CPU (Universal)");
-    println!("CPU device description: {}", description);
+    println!("CPU device description: {description}");
 }
 
 /// Test Metal device capabilities (when available)
@@ -317,7 +316,7 @@ fn test_metal_error_handling() {
     for error in errors {
         let error_string = error.to_string();
         assert!(!error_string.is_empty());
-        println!("Error: {}", error_string);
+        println!("Error: {error_string}");
     }
 }
 
@@ -333,7 +332,7 @@ fn test_device_error_handling() {
     for error in errors {
         let error_string = error.to_string();
         assert!(!error_string.is_empty());
-        println!("Device Error: {}", error_string);
+        println!("Device Error: {error_string}");
     }
 }
 
@@ -344,9 +343,9 @@ fn test_metal_availability_consistency() {
     let device_info_metal_available = get_device_info().1;
     let is_metal_available_result = is_metal_available();
     
-    println!("Candle Metal available: {}", candle_metal_available);
-    println!("Device info Metal available: {}", device_info_metal_available);
-    println!("is_metal_available(): {}", is_metal_available_result);
+    println!("Candle Metal available: {candle_metal_available}");
+    println!("Device info Metal available: {device_info_metal_available}");
+    println!("is_metal_available(): {is_metal_available_result}");
     
     // These should all be consistent
     assert_eq!(device_info_metal_available, is_metal_available_result);
@@ -383,7 +382,7 @@ fn test_metal_device_selection_scenarios() {
             }
         }
         Err(e) => {
-            println!("Metal device not available: {}", e);
+            println!("Metal device not available: {e}");
             
             // If Metal is not available, auto selection should use CPU
             assert!(matches!(auto_device, Device::Cpu));
@@ -419,12 +418,12 @@ fn test_metal_device_creation_performance() {
     }
     
     let average_time = total_time / iterations;
-    println!("Average Metal device creation time: {:?}", average_time);
-    println!("Successful creations: {}/{}", successful_creations, iterations);
+    println!("Average Metal device creation time: {average_time:?}");
+    println!("Successful creations: {successful_creations}/{iterations}");
     
     // Performance assertion: device creation should be reasonably fast
     assert!(average_time < std::time::Duration::from_millis(100), 
-            "Metal device creation taking too long: {:?}", average_time);
+            "Metal device creation taking too long: {average_time:?}");
 }
 
 /// Test Metal device availability with feature flags
@@ -447,7 +446,7 @@ fn test_metal_feature_flag_behavior() {
         println!("Metal feature is disabled");
         
         // With Metal feature disabled, functions should return appropriate defaults
-        assert_eq!(is_metal_available(), false);
+        assert!(!is_metal_available());
         assert_eq!(get_metal_device_name(), None);
         assert!(matches!(get_metal_device(), Err(DeviceError::MetalNotAvailable)));
         
@@ -596,12 +595,12 @@ fn test_platform_specific_behavior() {
         
         // On macOS, Metal might be available
         let metal_available = is_metal_available();
-        println!("Metal available on macOS: {}", metal_available);
+        println!("Metal available on macOS: {metal_available}");
         
         if metal_available {
             // If Metal is available, we should be able to get device info
             let device_name = get_metal_device_name();
-            println!("Metal device name on macOS: {:?}", device_name);
+            println!("Metal device name on macOS: {device_name:?}");
         }
     }
     

@@ -83,7 +83,7 @@ mod boundary_value_tests {
                 let data = quantized.values.to_vec1::<f32>().unwrap();
                 for &val in &data {
                     if val.is_finite() {
-                        assert!(val >= -1.0 && val <= 1.0);
+                        assert!((-1.0..=1.0).contains(&val));
                     }
                 }
             }
@@ -129,7 +129,7 @@ mod boundary_value_tests {
             let config = WeightQuantizationConfig::default();
             
             let result = absmean_quantize_weights(&weights, &device);
-            assert!(result.is_ok(), "Failed for shape {:?}", shape);
+            assert!(result.is_ok(), "Failed for shape {shape:?}");
         }
     }
 
@@ -170,7 +170,7 @@ mod input_validation_tests {
             Ok(_) => {}, // Conversion succeeded
             Err(e) => {
                 // Should be a type-related error
-                assert!(format!("{:?}", e).contains("type") || format!("{:?}", e).contains("dtype"));
+                assert!(format!("{e:?}").contains("type") || format!("{e:?}").contains("dtype"));
             }
         }
     }
@@ -240,7 +240,7 @@ mod resource_exhaustion_tests {
             let config = WeightQuantizationConfig::default();
             
             let result = absmean_quantize_weights(&weights, &device);
-            assert!(result.is_ok(), "Failed at size {}", size);
+            assert!(result.is_ok(), "Failed at size {size}");
             
             // Verify memory is released properly
             drop(result);
@@ -256,7 +256,7 @@ mod resource_exhaustion_tests {
         // Perform many repeated operations to test for memory leaks
         for i in 0..50 {
             let result = absmean_quantize_weights(&weights, &device);
-            assert!(result.is_ok(), "Failed at iteration {}", i);
+            assert!(result.is_ok(), "Failed at iteration {i}");
             
             // Immediately drop to test cleanup
             drop(result);
@@ -283,14 +283,14 @@ mod resource_exhaustion_tests {
             
             let packer = TernaryPackerFactory::create_packer(strategy);
             let result = packer.pack(&weights, &test_config);
-            assert!(result.is_ok(), "Packing failed for strategy {:?}", strategy);
+            assert!(result.is_ok(), "Packing failed for strategy {strategy:?}");
             
             let packed = result.unwrap();
             let unpack_result = packer.unpack(&packed);
-            assert!(unpack_result.is_ok(), "Unpacking failed for strategy {:?}", strategy);
+            assert!(unpack_result.is_ok(), "Unpacking failed for strategy {strategy:?}");
             
             let unpacked = unpack_result.unwrap();
-            assert_eq!(weights, unpacked, "Data mismatch for strategy {:?}", strategy);
+            assert_eq!(weights, unpacked, "Data mismatch for strategy {strategy:?}");
         }
     }
 }
@@ -315,7 +315,7 @@ mod error_propagation_tests {
         match result.unwrap_err() {
             QuantizationError::ValidationFailed(_) => {}, // Expected
             QuantizationError::TensorError(_) => {}, // Also acceptable
-            other => panic!("Unexpected error type: {:?}", other),
+            other => panic!("Unexpected error type: {other:?}"),
         }
     }
 
@@ -446,7 +446,7 @@ mod packing_edge_cases {
         for strategy in strategies {
             let packer = TernaryPackerFactory::create_packer(strategy);
             let result = packer.pack(&weights, &config);
-            assert!(result.is_ok(), "Failed for strategy {:?}", strategy);
+            assert!(result.is_ok(), "Failed for strategy {strategy:?}");
             
             let packed = result.unwrap();
             let unpacked = packer.unpack(&packed).unwrap();
@@ -521,8 +521,8 @@ mod simd_edge_cases {
             
             let unpacker = SimdUnpacker::new();
             let result = unpacker.unpack(&packed);
-            assert!(result.is_ok(), "Failed for size {}", size);
-            assert_eq!(weights, result.unwrap(), "Data mismatch for size {}", size);
+            assert!(result.is_ok(), "Failed for size {size}");
+            assert_eq!(weights, result.unwrap(), "Data mismatch for size {size}");
         }
     }
 }
@@ -549,13 +549,13 @@ mod stress_tests {
             let result = absmean_quantize_weights(&weights, &device);
             let duration = start.elapsed();
             
-            assert!(result.is_ok(), "Failed at size {}", size);
+            assert!(result.is_ok(), "Failed at size {size}");
             times.push(duration);
             
             // Performance should not degrade catastrophically
             if times.len() > 1 {
                 let ratio = times.last().unwrap().as_secs_f64() / times[times.len()-2].as_secs_f64();
-                assert!(ratio < 100.0, "Performance degraded too much: {}x", ratio);
+                assert!(ratio < 100.0, "Performance degraded too much: {ratio}x");
             }
         }
     }
@@ -578,14 +578,14 @@ mod stress_tests {
             let result = packer.pack(&weights, &config);
             let pack_time = start.elapsed();
             
-            assert!(result.is_ok(), "Packing failed for {:?}", strategy);
+            assert!(result.is_ok(), "Packing failed for {strategy:?}");
             
             let packed = result.unwrap();
             let start = Instant::now();
             let unpack_result = packer.unpack(&packed);
             let unpack_time = start.elapsed();
             
-            assert!(unpack_result.is_ok(), "Unpacking failed for {:?}", strategy);
+            assert!(unpack_result.is_ok(), "Unpacking failed for {strategy:?}");
             
             // Performance should be reasonable
             assert!(pack_time.as_millis() < 1000, "Packing too slow for {:?}: {}ms", strategy, pack_time.as_millis());
@@ -604,7 +604,7 @@ mod stress_tests {
             let weights = Tensor::randn(0.0, 1.0, (size,), &device).unwrap();
             
             let result = absmean_quantize_weights(&weights, &device);
-            assert!(result.is_ok(), "Failed at iteration {}", i);
+            assert!(result.is_ok(), "Failed at iteration {i}");
             
             // Force cleanup
             drop(result);
@@ -695,7 +695,7 @@ mod integration_error_tests {
                 // If it succeeds, verify the result is reasonable
                 let data = quantized.values.to_vec1::<f32>().unwrap();
                 for &val in &data {
-                    assert!(val >= -1.0 && val <= 1.0, "Quantized value {} out of range", val);
+                    assert!((-1.0..=1.0).contains(&val), "Quantized value {val} out of range");
                 }
             }
             Err(e) => {

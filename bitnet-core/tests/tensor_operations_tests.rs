@@ -9,8 +9,8 @@ use std::time::Duration;
 use std::thread;
 
 use bitnet_core::memory::HybridMemoryPool;
-use bitnet_core::memory::tensor::{BitNetTensor, BitNetDType, TensorMetadata, TensorHandle};
-use bitnet_core::device::{get_cpu_device, auto_select_device, is_metal_available, get_metal_device};
+use bitnet_core::memory::tensor::{BitNetTensor, BitNetDType};
+use bitnet_core::device::{get_cpu_device, is_metal_available, get_metal_device};
 use candle_core::{Device, Tensor, DType};
 
 /// Helper function to create a test memory pool
@@ -75,8 +75,7 @@ fn test_tensor_zeros_creation() {
             
             for shape in shapes {
                 let tensor = BitNetTensor::zeros(&shape, dtype, device, &pool)
-                    .expect(&format!("Failed to create zeros tensor with shape {:?}, dtype {}, device {:?}", 
-                                   shape, dtype, device));
+                    .unwrap_or_else(|_| panic!("Failed to create zeros tensor with shape {shape:?}, dtype {dtype}, device {device:?}"));
                 
                 // Verify tensor properties
                 assert_eq!(tensor.shape(), shape);
@@ -87,7 +86,7 @@ fn test_tensor_zeros_creation() {
                     (Device::Cpu, Device::Cpu) => {},
                     (Device::Metal(_), Device::Metal(_)) => {},
                     (Device::Cuda(_), Device::Cuda(_)) => {},
-                    _ => panic!("Device mismatch: expected {:?}, got {:?}", device, tensor_device),
+                    _ => panic!("Device mismatch: expected {device:?}, got {tensor_device:?}"),
                 }
                 assert_eq!(tensor.ref_count(), 1);
                 
@@ -119,8 +118,7 @@ fn test_tensor_ones_creation() {
             
             for shape in shapes {
                 let tensor = BitNetTensor::ones(&shape, dtype, device, &pool)
-                    .expect(&format!("Failed to create ones tensor with shape {:?}, dtype {}, device {:?}", 
-                                   shape, dtype, device));
+                    .unwrap_or_else(|_| panic!("Failed to create ones tensor with shape {shape:?}, dtype {dtype}, device {device:?}"));
                 
                 // Verify tensor properties
                 assert_eq!(tensor.shape(), shape);
@@ -131,7 +129,7 @@ fn test_tensor_ones_creation() {
                     (Device::Cpu, Device::Cpu) => {},
                     (Device::Metal(_), Device::Metal(_)) => {},
                     (Device::Cuda(_), Device::Cuda(_)) => {},
-                    _ => panic!("Device mismatch: expected {:?}, got {:?}", device, tensor_device),
+                    _ => panic!("Device mismatch: expected {device:?}, got {tensor_device:?}"),
                 }
                 
                 // TODO: Implement actual data verification once data initialization is complete
@@ -156,8 +154,7 @@ fn test_tensor_from_data_creation() {
         
         for (data, shape) in test_cases {
             let tensor = BitNetTensor::from_data(data.clone(), &shape, device, &pool)
-                .expect(&format!("Failed to create tensor from data with shape {:?}, device {:?}", 
-                               shape, device));
+                .unwrap_or_else(|_| panic!("Failed to create tensor from data with shape {shape:?}, device {device:?}"));
             
             // Verify tensor properties
             assert_eq!(tensor.shape(), shape);
@@ -168,7 +165,7 @@ fn test_tensor_from_data_creation() {
                 (Device::Cpu, Device::Cpu) => {},
                 (Device::Metal(_), Device::Metal(_)) => {},
                 (Device::Cuda(_), Device::Cuda(_)) => {},
-                _ => panic!("Device mismatch: expected {:?}, got {:?}", device, tensor_device),
+                _ => panic!("Device mismatch: expected {device:?}, got {tensor_device:?}"),
             }
             assert_eq!(tensor.element_count(), data.len());
             
@@ -196,7 +193,7 @@ fn test_tensor_from_data_shape_mismatch() {
         
         if let Err(e) = result {
             assert!(e.to_string().contains("Shape mismatch"), 
-                   "Expected shape mismatch error, got: {}", e);
+                   "Expected shape mismatch error, got: {e}");
         }
     }
 }
@@ -243,7 +240,7 @@ fn test_tensor_from_candle_conversion() {
                             (Device::Cpu, Device::Cpu) => {},
                             (Device::Metal(_), Device::Metal(_)) => {},
                             (Device::Cuda(_), Device::Cuda(_)) => {},
-                            _ => panic!("Device mismatch: expected {:?}, got {:?}", device, tensor_device),
+                            _ => panic!("Device mismatch: expected {device:?}, got {tensor_device:?}"),
                         }
                         
                         // Verify dtype conversion
@@ -254,7 +251,7 @@ fn test_tensor_from_candle_conversion() {
                     }
                     Err(e) => {
                         // Some conversions might fail for unsupported types
-                        println!("Conversion failed for {:?} on {:?}: {}", candle_dtype, device, e);
+                        println!("Conversion failed for {candle_dtype:?} on {device:?}: {e}");
                     }
                 }
             }
@@ -292,7 +289,7 @@ fn test_tensor_to_candle_conversion() {
                             (Device::Cpu, Device::Cpu) => {},
                             (Device::Metal(_), Device::Metal(_)) => {},
                             (Device::Cuda(_), Device::Cuda(_)) => {},
-                            _ => panic!("Device mismatch: expected {:?}, got {:?}", device, tensor_device),
+                            _ => panic!("Device mismatch: expected {device:?}, got {tensor_device:?}"),
                         }
                         
                         // Verify dtype conversion
@@ -300,7 +297,7 @@ fn test_tensor_to_candle_conversion() {
                         assert_eq!(tensor.dtype(), expected_candle_dtype);
                     }
                     Err(e) => {
-                        println!("to_candle conversion failed for dtype {} on {:?}: {}", dtype, device, e);
+                        println!("to_candle conversion failed for dtype {dtype} on {device:?}: {e}");
                     }
                 }
             }
@@ -333,7 +330,7 @@ fn test_candle_roundtrip_conversion() {
         (Device::Cpu, Device::Cpu) => {},
         (Device::Metal(_), Device::Metal(_)) => {},
         (Device::Cuda(_), Device::Cuda(_)) => {},
-        _ => panic!("Device mismatch after roundtrip: {:?} vs {:?}", orig_device, conv_device),
+        _ => panic!("Device mismatch after roundtrip: {orig_device:?} vs {conv_device:?}"),
     }
 }
 
@@ -366,7 +363,7 @@ fn test_tensor_reshape_operations() {
                 assert_eq!(new_tensor.dtype(), tensor.dtype());
             }
             Err(e) => {
-                println!("Reshape to {:?} failed: {}", new_shape, e);
+                println!("Reshape to {new_shape:?} failed: {e}");
                 // TODO: Once reshape is fully implemented, this should succeed
             }
         }
@@ -381,7 +378,7 @@ fn test_tensor_reshape_operations() {
     
     for new_shape in invalid_reshapes {
         let result = tensor.reshape(&new_shape);
-        assert!(result.is_err(), "Expected error for invalid reshape to {:?}", new_shape);
+        assert!(result.is_err(), "Expected error for invalid reshape to {new_shape:?}");
     }
 }
 
@@ -416,7 +413,7 @@ fn test_tensor_cloning() {
                 (Device::Cpu, Device::Cpu) => {},
                 (Device::Metal(_), Device::Metal(_)) => {},
                 (Device::Cuda(_), Device::Cuda(_)) => {},
-                _ => panic!("Device mismatch after cloning: {:?} vs {:?}", orig_device, cloned_device),
+                _ => panic!("Device mismatch after cloning: {orig_device:?} vs {cloned_device:?}"),
             }
             assert_eq!(cloned.name(), original.name());
             
@@ -425,7 +422,7 @@ fn test_tensor_cloning() {
             println!("Tensor cloning succeeded (implementation may be incomplete)");
         }
         Err(e) => {
-            println!("Tensor cloning failed: {}", e);
+            println!("Tensor cloning failed: {e}");
             // TODO: Once clone_tensor is fully implemented, this should succeed
         }
     }
@@ -457,7 +454,7 @@ fn test_tensor_device_migration() {
         (Device::Cpu, Device::Cpu) => {},
         (Device::Metal(_), Device::Metal(_)) => {},
         (Device::Cuda(_), Device::Cuda(_)) => {},
-        _ => panic!("Device mismatch: expected {:?}, got {:?}", source_device, tensor_device),
+        _ => panic!("Device mismatch: expected {source_device:?}, got {tensor_device:?}"),
     }
     
     // Migrate to target device
@@ -471,14 +468,14 @@ fn test_tensor_device_migration() {
                 (Device::Cpu, Device::Cpu) => {},
                 (Device::Metal(_), Device::Metal(_)) => {},
                 (Device::Cuda(_), Device::Cuda(_)) => {},
-                _ => panic!("Device mismatch: expected {:?}, got {:?}", target_device, new_tensor_device),
+                _ => panic!("Device mismatch: expected {target_device:?}, got {new_tensor_device:?}"),
             }
             assert_eq!(new_tensor.shape(), tensor.shape());
             assert_eq!(new_tensor.dtype(), tensor.dtype());
             assert_ne!(new_tensor.id(), tensor.id()); // Should be a new tensor
         }
         Err(e) => {
-            println!("Device migration failed: {}", e);
+            println!("Device migration failed: {e}");
             // TODO: Once device migration is fully implemented, this should succeed
         }
     }
@@ -504,7 +501,7 @@ fn test_tensor_same_device_migration() {
         (Device::Cpu, Device::Cpu) => {},
         (Device::Metal(_), Device::Metal(_)) => {},
         (Device::Cuda(_), Device::Cuda(_)) => {},
-        _ => panic!("Device mismatch: expected {:?}, got {:?}", device, result_device),
+        _ => panic!("Device mismatch: expected {device:?}, got {result_device:?}"),
     }
 }
 
@@ -601,7 +598,7 @@ fn test_all_bitnet_dtypes() {
     
     for &dtype in &dtypes {
         let tensor = BitNetTensor::zeros(&[4], dtype, &device, &pool)
-            .expect(&format!("Failed to create tensor with dtype {}", dtype));
+            .unwrap_or_else(|_| panic!("Failed to create tensor with dtype {dtype}"));
         
         assert_eq!(tensor.dtype(), dtype);
         
@@ -646,7 +643,7 @@ fn test_dtype_value_ranges() {
     
     for dtype in integer_dtypes {
         if let Some((min, max)) = dtype.value_range() {
-            assert!(min <= max, "Min value should be <= max value for {}", dtype);
+            assert!(min <= max, "Min value should be <= max value for {dtype}");
             
             match dtype {
                 BitNetDType::I8 => {
@@ -677,7 +674,7 @@ fn test_dtype_value_ranges() {
     // Float types should not have value ranges
     let float_dtypes = vec![BitNetDType::F32, BitNetDType::F16, BitNetDType::BF16];
     for dtype in float_dtypes {
-        assert!(dtype.value_range().is_none(), "Float type {} should not have value range", dtype);
+        assert!(dtype.value_range().is_none(), "Float type {dtype} should not have value range");
     }
 }
 
@@ -852,13 +849,13 @@ fn test_concurrent_device_migration() {
                         (Device::Cpu, Device::Cpu) => {},
                         (Device::Metal(_), Device::Metal(_)) => {},
                         (Device::Cuda(_), Device::Cuda(_)) => {},
-                        _ => panic!("Device mismatch: expected {:?}, got {:?}", target_device_clone, migrated_device),
+                        _ => panic!("Device mismatch: expected {target_device_clone:?}, got {migrated_device:?}"),
                     }
                     assert_eq!(migrated.shape(), tensor_clone.shape());
                     true
                 }
                 Err(e) => {
-                    println!("Migration failed: {}", e);
+                    println!("Migration failed: {e}");
                     false
                 }
             }
@@ -894,11 +891,11 @@ fn test_tensor_creation_performance() {
     let duration = start_time.elapsed();
     let avg_duration = duration / iterations as u32;
     
-    println!("Average tensor creation time: {:?}", avg_duration);
+    println!("Average tensor creation time: {avg_duration:?}");
     
     // Verify performance is reasonable (less than 1ms per tensor)
     assert!(avg_duration < Duration::from_millis(1), 
-           "Tensor creation too slow: {:?}", avg_duration);
+           "Tensor creation too slow: {avg_duration:?}");
 }
 
 #[test]
@@ -919,11 +916,11 @@ fn test_handle_creation_performance() {
     let duration = start_time.elapsed();
     let avg_duration = duration / iterations as u32;
     
-    println!("Average handle creation time: {:?}", avg_duration);
+    println!("Average handle creation time: {avg_duration:?}");
     
     // Handle creation should be very fast (less than 10μs)
     assert!(avg_duration < Duration::from_micros(10), 
-           "Handle creation too slow: {:?}", avg_duration);
+           "Handle creation too slow: {avg_duration:?}");
 }
 
 #[test]
@@ -948,10 +945,9 @@ fn test_memory_efficiency() {
         
         // Check efficiency is approximately correct (within 1%)
         let diff = (efficiency - actual_efficiency).abs();
-        assert!(diff < 0.01, "Efficiency mismatch: expected {}, got {}", actual_efficiency, efficiency);
+        assert!(diff < 0.01, "Efficiency mismatch: expected {actual_efficiency}, got {efficiency}");
         
-        println!("Dtype {}: {} bytes, {:.1}x efficiency", 
-                dtype, expected_bytes, efficiency);
+        println!("Dtype {dtype}: {expected_bytes} bytes, {efficiency:.1}x efficiency");
     }
 }
 // =============================================================================
@@ -986,7 +982,7 @@ fn test_zeros_actual_data_content() {
     
     for (shape, dtype) in test_cases {
         let tensor = BitNetTensor::zeros(&shape, dtype, &device, &pool)
-            .expect(&format!("Failed to create zeros tensor with shape {:?}, dtype {}", shape, dtype));
+            .unwrap_or_else(|_| panic!("Failed to create zeros tensor with shape {shape:?}, dtype {dtype}"));
         
         // Verify tensor properties
         assert_eq!(tensor.shape(), shape);
@@ -1023,7 +1019,7 @@ fn test_ones_actual_data_content() {
     
     for (shape, dtype) in test_cases {
         let tensor = BitNetTensor::ones(&shape, dtype, &device, &pool)
-            .expect(&format!("Failed to create ones tensor with shape {:?}, dtype {}", shape, dtype));
+            .unwrap_or_else(|_| panic!("Failed to create ones tensor with shape {shape:?}, dtype {dtype}"));
         
         // Verify tensor properties
         assert_eq!(tensor.shape(), shape);
@@ -1047,7 +1043,7 @@ fn test_from_data_content_preservation() {
     
     for (data, shape) in test_cases {
         let tensor = BitNetTensor::from_data(data.clone(), &shape, &device, &pool)
-            .expect(&format!("Failed to create tensor from data with shape {:?}", shape));
+            .unwrap_or_else(|_| panic!("Failed to create tensor from data with shape {shape:?}"));
         
         // Verify tensor properties
         assert_eq!(tensor.shape(), shape);
@@ -1132,10 +1128,10 @@ fn test_transpose_3d_comprehensive() {
     
     for (perm, expected_shape) in permutations {
         let transposed = bitnet_core::tensor::transpose(&candle_tensor, &perm)
-            .expect(&format!("Failed to transpose with permutation {:?}", perm));
+            .unwrap_or_else(|_| panic!("Failed to transpose with permutation {perm:?}"));
         
         assert_eq!(transposed.shape().dims(), expected_shape.as_slice(),
-                  "Transpose with permutation {:?} produced wrong shape", perm);
+                  "Transpose with permutation {perm:?} produced wrong shape");
     }
 }
 
@@ -1160,10 +1156,10 @@ fn test_transpose_higher_dimensional() {
     
     for (perm, expected_shape) in permutations_4d {
         let transposed = bitnet_core::tensor::transpose(&candle_4d, &perm)
-            .expect(&format!("Failed to transpose 4D tensor with permutation {:?}", perm));
+            .unwrap_or_else(|_| panic!("Failed to transpose 4D tensor with permutation {perm:?}"));
         
         assert_eq!(transposed.shape().dims(), expected_shape.as_slice(),
-                  "4D transpose with permutation {:?} produced wrong shape", perm);
+                  "4D transpose with permutation {perm:?} produced wrong shape");
     }
     
     // Test 5D tensor transpose
@@ -1202,7 +1198,7 @@ fn test_transpose_invalid_permutations() {
     for invalid_perm in invalid_cases {
         let result = bitnet_core::tensor::transpose(&candle_tensor, &invalid_perm);
         assert!(result.is_err(), 
-               "Expected error for invalid permutation {:?}", invalid_perm);
+               "Expected error for invalid permutation {invalid_perm:?}");
     }
 }
 
@@ -1214,13 +1210,13 @@ fn test_transpose_with_different_dtypes() {
     
     for &dtype in &dtypes {
         let tensor = BitNetTensor::zeros(&[3, 4], dtype, &device, &pool)
-            .expect(&format!("Failed to create tensor with dtype {}", dtype));
+            .unwrap_or_else(|_| panic!("Failed to create tensor with dtype {dtype}"));
         
         let candle_tensor = tensor.to_candle()
             .expect("Failed to convert to candle");
         
         let transposed = bitnet_core::tensor::transpose(&candle_tensor, &[1, 0])
-            .expect(&format!("Failed to transpose tensor with dtype {}", dtype));
+            .unwrap_or_else(|_| panic!("Failed to transpose tensor with dtype {dtype}"));
         
         assert_eq!(transposed.shape().dims(), &[4, 3]);
         assert_eq!(transposed.dtype(), dtype.to_candle_dtype());
@@ -1339,7 +1335,7 @@ fn test_broadcasting_operations() {
             println!("Broadcasting addition succeeded");
         }
         Err(e) => {
-            println!("Broadcasting addition failed (may not be implemented): {}", e);
+            println!("Broadcasting addition failed (may not be implemented): {e}");
             // This is acceptable - broadcasting may not be fully implemented
         }
     }
@@ -1359,10 +1355,10 @@ fn test_arithmetic_with_different_dtypes() {
     
     for &dtype in &dtypes_to_test {
         let tensor1 = BitNetTensor::ones(&[2, 2], dtype, &device, &pool)
-            .expect(&format!("Failed to create tensor with dtype {}", dtype));
+            .unwrap_or_else(|_| panic!("Failed to create tensor with dtype {dtype}"));
         
         let tensor2 = BitNetTensor::zeros(&[2, 2], dtype, &device, &pool)
-            .expect(&format!("Failed to create tensor with dtype {}", dtype));
+            .unwrap_or_else(|_| panic!("Failed to create tensor with dtype {dtype}"));
         
         let candle1 = tensor1.to_candle()
             .expect("Failed to convert first tensor");
@@ -1372,13 +1368,13 @@ fn test_arithmetic_with_different_dtypes() {
         
         // Test addition
         let add_result = (&candle1 + &candle2)
-            .expect(&format!("Failed to add tensors with dtype {}", dtype));
+            .unwrap_or_else(|_| panic!("Failed to add tensors with dtype {dtype}"));
         
         assert_eq!(add_result.dtype(), dtype.to_candle_dtype());
         
         // Test multiplication
         let mul_result = (&candle1 * &candle2)
-            .expect(&format!("Failed to multiply tensors with dtype {}", dtype));
+            .unwrap_or_else(|_| panic!("Failed to multiply tensors with dtype {dtype}"));
         
         assert_eq!(mul_result.dtype(), dtype.to_candle_dtype());
     }
@@ -1402,16 +1398,16 @@ fn test_quantized_type_value_ranges() {
     
     for &dtype in &quantized_types {
         let tensor = BitNetTensor::zeros(&[10], dtype, &device, &pool)
-            .expect(&format!("Failed to create tensor with dtype {}", dtype));
+            .unwrap_or_else(|_| panic!("Failed to create tensor with dtype {dtype}"));
         
         // Verify value range is defined for quantized types
         let value_range = dtype.value_range();
         assert!(value_range.is_some(), 
-               "Quantized type {} should have a defined value range", dtype);
+               "Quantized type {dtype} should have a defined value range");
         
         let (min_val, max_val) = value_range.unwrap();
         assert!(min_val <= max_val, 
-               "Min value should be <= max value for {}", dtype);
+               "Min value should be <= max value for {dtype}");
         
         // Verify specific ranges
         match dtype {
@@ -1479,7 +1475,7 @@ fn test_quantization_round_trip_accuracy() {
     
     for &qtype in &quantized_types {
         let q_tensor = BitNetTensor::zeros(&[5], qtype, &device, &pool)
-            .expect(&format!("Failed to create quantized tensor with type {}", qtype));
+            .unwrap_or_else(|_| panic!("Failed to create quantized tensor with type {qtype}"));
         
         // Verify quantized tensor properties
         assert_eq!(q_tensor.dtype(), qtype);
@@ -1512,10 +1508,10 @@ fn test_memory_pressure_scenarios() {
         match BitNetTensor::zeros(&[large_size], BitNetDType::F32, &device, &pool) {
             Ok(tensor) => {
                 tensors.push(tensor);
-                println!("Created large tensor {}", i);
+                println!("Created large tensor {i}");
             }
             Err(e) => {
-                println!("Memory pressure encountered at tensor {}: {}", i, e);
+                println!("Memory pressure encountered at tensor {i}: {e}");
                 break;
             }
         }
@@ -1552,11 +1548,11 @@ fn test_invalid_shape_operations() {
         // but they should handle gracefully
         match result {
             Ok(tensor) => {
-                println!("Unexpectedly succeeded creating tensor with shape {:?}", invalid_shape);
+                println!("Unexpectedly succeeded creating tensor with shape {invalid_shape:?}");
                 assert_eq!(tensor.shape(), invalid_shape);
             }
             Err(e) => {
-                println!("Expected error for invalid shape {:?}: {}", invalid_shape, e);
+                println!("Expected error for invalid shape {invalid_shape:?}: {e}");
             }
         }
     }
@@ -1568,7 +1564,7 @@ fn test_invalid_shape_operations() {
             println!("Zero dimension tensor creation succeeded (this may be valid)");
         }
         Err(e) => {
-            println!("Zero dimension tensor creation failed as expected: {}", e);
+            println!("Zero dimension tensor creation failed as expected: {e}");
         }
     }
     
@@ -1580,7 +1576,7 @@ fn test_invalid_shape_operations() {
             println!("Large dimension tensor creation unexpectedly succeeded");
         }
         Err(e) => {
-            println!("Large dimension tensor creation failed as expected: {}", e);
+            println!("Large dimension tensor creation failed as expected: {e}");
         }
     }
 }
@@ -1604,12 +1600,12 @@ fn test_dimension_mismatch_errors() {
     for invalid_shape in invalid_reshapes {
         let result = tensor.reshape(&invalid_shape);
         assert!(result.is_err(), 
-               "Expected error for invalid reshape to {:?}", invalid_shape);
+               "Expected error for invalid reshape to {invalid_shape:?}");
         
         if let Err(e) = result {
             assert!(e.to_string().contains("Shape mismatch") || 
                    e.to_string().contains("mismatch"),
-                   "Expected shape mismatch error, got: {}", e);
+                   "Expected shape mismatch error, got: {e}");
         }
     }
 }
@@ -1656,7 +1652,7 @@ fn test_concurrent_operation_edge_cases() {
                             operations_completed += 1;
                         }
                         Err(e) => {
-                            println!("Thread {} clone failed at iteration {}: {}", thread_id, i, e);
+                            println!("Thread {thread_id} clone failed at iteration {i}: {e}");
                         }
                     }
                 }
@@ -1677,7 +1673,7 @@ fn test_concurrent_operation_edge_cases() {
         total_operations += handle.join().expect("Thread panicked");
     }
     
-    println!("Total concurrent operations completed: {}", total_operations);
+    println!("Total concurrent operations completed: {total_operations}");
     assert!(total_operations > 0);
     
     // Verify tensor is still valid after concurrent access
@@ -1710,13 +1706,13 @@ fn test_device_migration_error_conditions() {
                 (Device::Cpu, Device::Cpu) => {},
                 (Device::Metal(_), Device::Metal(_)) => {},
                 (Device::Cuda(_), Device::Cuda(_)) => {},
-                _ => panic!("Device mismatch: expected {:?}, got {:?}", target_device, migrated_device),
+                _ => panic!("Device mismatch: expected {target_device:?}, got {migrated_device:?}"),
             }
             assert_eq!(migrated.shape(), tensor.shape());
             println!("Large tensor migration succeeded");
         }
         Err(e) => {
-            println!("Large tensor migration failed as expected: {}", e);
+            println!("Large tensor migration failed as expected: {e}");
             // This is acceptable - large migrations might fail
         }
     }
@@ -1731,7 +1727,7 @@ fn test_device_migration_error_conditions() {
         (Device::Cpu, Device::Cpu) => {},
         (Device::Metal(_), Device::Metal(_)) => {},
         (Device::Cuda(_), Device::Cuda(_)) => {},
-        _ => panic!("Device mismatch: expected {:?}, got {:?}", source_device, result_device),
+        _ => panic!("Device mismatch: expected {source_device:?}, got {result_device:?}"),
     }
     assert_eq!(same_device_result.id(), tensor.id()); // Should return same tensor
 }
@@ -1787,7 +1783,7 @@ fn test_device_capability_detection() {
     
     // Test Metal device availability detection
     let metal_available = bitnet_core::device::is_metal_available();
-    println!("Metal GPU available: {}", metal_available);
+    println!("Metal GPU available: {metal_available}");
     
     if metal_available {
         // Test Metal device creation when available
@@ -1801,7 +1797,7 @@ fn test_device_capability_detection() {
             let device_name = bitnet_core::device::get_metal_device_name();
             if let Some(name) = device_name {
                 assert!(!name.is_empty(), "Metal device name should not be empty");
-                println!("Metal device name: {}", name);
+                println!("Metal device name: {name}");
             }
         }
     } else {
@@ -1826,7 +1822,7 @@ fn test_device_capability_detection() {
     
     // Test device info consistency
     let (cpu_info, metal_info) = bitnet_core::device::get_device_info();
-    assert_eq!(cpu_info, true, "CPU info should always be true");
+    assert!(cpu_info, "CPU info should always be true");
     assert_eq!(metal_info, metal_available, "Metal info should match availability check");
 }
 
@@ -1854,7 +1850,7 @@ fn test_cross_device_tensor_migration() {
     for (shape, dtype) in test_cases {
         // Create tensor on source device
         let tensor = BitNetTensor::zeros(&shape, dtype, source_device, &pool)
-            .expect(&format!("Failed to create tensor with shape {:?}, dtype {}", shape, dtype));
+            .unwrap_or_else(|_| panic!("Failed to create tensor with shape {shape:?}, dtype {dtype}"));
         
         // Verify tensor is on source device
         let tensor_device = tensor.device();
@@ -1904,12 +1900,12 @@ fn test_cross_device_tensor_migration() {
                         }
                     }
                     Err(e) => {
-                        println!("Bidirectional migration failed: {}", e);
+                        println!("Bidirectional migration failed: {e}");
                     }
                 }
             }
             Err(e) => {
-                println!("Migration failed for shape {:?}, dtype {}: {}", shape, dtype, e);
+                println!("Migration failed for shape {shape:?}, dtype {dtype}: {e}");
                 // Migration failure is acceptable - implementation may be incomplete
             }
         }
@@ -1970,7 +1966,7 @@ fn test_cross_device_tensor_operations() {
                     assert_eq!(result.shape().dims(), &[3, 3]);
                 }
                 Err(e) => {
-                    println!("Cross-device addition failed (expected): {}", e);
+                    println!("Cross-device addition failed (expected): {e}");
                     // This is acceptable - cross-device operations may require explicit migration
                 }
             }
@@ -1986,7 +1982,7 @@ fn test_cross_device_tensor_operations() {
                             assert_eq!(result.shape().dims(), &[3, 3]);
                         }
                         Err(e) => {
-                            println!("Same-device addition after migration failed: {}", e);
+                            println!("Same-device addition after migration failed: {e}");
                         }
                     }
                 }
@@ -2015,7 +2011,7 @@ fn test_device_specific_memory_management() {
         for i in 0..tensor_count {
             let size = (i + 1) * 100;
             let tensor = BitNetTensor::zeros(&[size], BitNetDType::F32, device, &pool)
-                .expect(&format!("Failed to create tensor {} on device", i));
+                .unwrap_or_else(|_| panic!("Failed to create tensor {i} on device"));
             
             // Verify tensor is on correct device
             let tensor_device = tensor.device();
@@ -2058,7 +2054,7 @@ fn test_device_specific_memory_management() {
                 assert_eq!(handle.element_count().unwrap(), large_size);
             }
             Err(e) => {
-                println!("  Large allocation failed: {}", e);
+                println!("  Large allocation failed: {e}");
                 // This is acceptable - large allocations may fail due to memory constraints
             }
         }
@@ -2104,7 +2100,7 @@ fn test_device_error_handling_scenarios() {
             println!("Very large tensor creation unexpectedly succeeded");
         }
         Err(e) => {
-            println!("Very large tensor creation failed as expected: {}", e);
+            println!("Very large tensor creation failed as expected: {e}");
             // Verify error message is meaningful
             assert!(!e.to_string().is_empty(), "Error message should not be empty");
         }
@@ -2119,10 +2115,10 @@ fn test_device_error_handling_scenarios() {
         let result = BitNetTensor::zeros(&invalid_shape, BitNetDType::F32, &cpu_device, &pool);
         match result {
             Ok(_) => {
-                println!("Invalid shape {:?} unexpectedly succeeded", invalid_shape);
+                println!("Invalid shape {invalid_shape:?} unexpectedly succeeded");
             }
             Err(e) => {
-                println!("Invalid shape {:?} failed as expected: {}", invalid_shape, e);
+                println!("Invalid shape {invalid_shape:?} failed as expected: {e}");
             }
         }
     }
@@ -2181,13 +2177,13 @@ fn test_device_memory_pressure_handling() {
                     }
                 }
                 Err(e) => {
-                    println!("  Memory pressure reached at iteration {}: {}", i, e);
+                    println!("  Memory pressure reached at iteration {i}: {e}");
                     break;
                 }
             }
         }
         
-        println!("  Successfully allocated {} tensors before pressure", allocation_count);
+        println!("  Successfully allocated {allocation_count} tensors before pressure");
         
         // Test memory recovery by releasing some tensors
         let release_count = allocation_count / 2;
@@ -2204,7 +2200,7 @@ fn test_device_memory_pressure_handling() {
                 assert_eq!(recovery_tensor.element_count(), 1000);
             }
             Err(e) => {
-                println!("  Memory recovery failed: {}", e);
+                println!("  Memory recovery failed: {e}");
                 // This may be acceptable depending on implementation
             }
         }
@@ -2219,7 +2215,7 @@ fn test_device_memory_pressure_handling() {
                     assert_eq!(typed_tensor.size_bytes(), expected_size);
                 }
                 Err(e) => {
-                    println!("  Failed to allocate {} tensor under pressure: {}", dtype, e);
+                    println!("  Failed to allocate {dtype} tensor under pressure: {e}");
                 }
             }
         }
@@ -2286,7 +2282,7 @@ fn test_concurrent_multi_device_operations() {
                         operations_completed += 1;
                     }
                     Err(e) => {
-                        println!("Thread {} operation {} failed: {}", device_idx, i, e);
+                        println!("Thread {device_idx} operation {i} failed: {e}");
                     }
                 }
                 
@@ -2300,7 +2296,7 @@ fn test_concurrent_multi_device_operations() {
                             operations_completed += 1;
                         }
                         Err(e) => {
-                            println!("Thread {} clone failed: {}", device_idx, e);
+                            println!("Thread {device_idx} clone failed: {e}");
                         }
                     }
                 }
@@ -2309,7 +2305,7 @@ fn test_concurrent_multi_device_operations() {
                 thread::sleep(Duration::from_micros(10));
             }
             
-            println!("Thread {} completed {} operations", device_idx, operations_completed);
+            println!("Thread {device_idx} completed {operations_completed} operations");
             (device_idx, operations_completed, thread_tensors.len())
         });
         
@@ -2344,7 +2340,7 @@ fn test_concurrent_multi_device_operations() {
                                 cross_operations += 1;
                             }
                             Err(e) => {
-                                println!("Cross-device migration {} failed: {}", i, e);
+                                println!("Cross-device migration {i} failed: {e}");
                             }
                         }
                     }
@@ -2367,13 +2363,12 @@ fn test_concurrent_multi_device_operations() {
         match handle.join() {
             Ok(result) => {
                 let (device_idx, ops, tensors) = result;
-                println!("Device {} thread completed: {} operations, {} tensors",
-                        device_idx, ops, tensors);
+                println!("Device {device_idx} thread completed: {ops} operations, {tensors} tensors");
                 total_operations += ops;
                 total_tensors += tensors;
             }
             Err(e) => {
-                println!("Thread {} panicked: {:?}", i, e);
+                println!("Thread {i} panicked: {e:?}");
             }
         }
     }
@@ -2382,17 +2377,16 @@ fn test_concurrent_multi_device_operations() {
     for handle in cross_device_handles {
         match handle.join() {
             Ok(cross_ops) => {
-                println!("Cross-device thread completed: {} operations", cross_ops);
+                println!("Cross-device thread completed: {cross_ops} operations");
                 total_operations += cross_ops;
             }
             Err(e) => {
-                println!("Cross-device thread panicked: {:?}", e);
+                println!("Cross-device thread panicked: {e:?}");
             }
         }
     }
     
-    println!("Total concurrent operations: {}, Total tensors: {}",
-            total_operations, total_tensors);
+    println!("Total concurrent operations: {total_operations}, Total tensors: {total_tensors}");
     
     // Verify pool state after concurrent operations
     let final_metrics = pool.get_metrics();
@@ -2444,13 +2438,11 @@ fn test_tensor_creation_destruction_memory_leak() {
     let allocation_diff = final_active as i64 - initial_active as i64;
     
     assert!(memory_diff < 50000, // Less than 50KB growth allowed
-           "Significant memory leak detected: allocated memory increased by {} bytes",
-           memory_diff);
+           "Significant memory leak detected: allocated memory increased by {memory_diff} bytes");
     assert!(allocation_diff.abs() < 200, // Allow for more allocation overhead
-           "Significant allocation leak detected: active allocations changed by {}",
-           allocation_diff);
+           "Significant allocation leak detected: active allocations changed by {allocation_diff}");
     
-    println!("Memory leak test passed: {} iterations with no leaks detected", iterations);
+    println!("Memory leak test passed: {iterations} iterations with no leaks detected");
 }
 
 #[test]
@@ -2504,7 +2496,7 @@ fn test_cyclic_reference_cleanup() {
     // Memory should return to reasonable state (allowing for implementation overhead)
     let memory_diff = final_metrics.current_allocated as i64 - initial_metrics.current_allocated as i64;
     assert!(memory_diff.abs() < 50000, // Allow up to 50KB difference
-           "Potential cyclic reference leak: memory difference {} bytes", memory_diff);
+           "Potential cyclic reference leak: memory difference {memory_diff} bytes");
     
     println!("Cyclic reference cleanup test passed");
 }
@@ -2549,10 +2541,9 @@ fn test_large_scale_memory_stability() {
             
             // Allow for some growth but detect significant leaks
             assert!(memory_growth < 1024 * 1024, // Less than 1MB growth
-                   "Memory instability detected at batch {}: {} bytes growth",
-                   batch, memory_growth);
+                   "Memory instability detected at batch {batch}: {memory_growth} bytes growth");
             
-            println!("Batch {} completed, memory growth: {} bytes", batch, memory_growth);
+            println!("Batch {batch} completed, memory growth: {memory_growth} bytes");
         }
     }
     
@@ -2561,10 +2552,9 @@ fn test_large_scale_memory_stability() {
     let total_growth = final_metrics.current_allocated as i64 - baseline_allocated as i64;
     
     assert!(total_growth < 1024 * 1024, // Less than 1MB total growth
-           "Large-scale memory instability: {} bytes total growth after {} iterations",
-           total_growth, iterations);
+           "Large-scale memory instability: {total_growth} bytes total growth after {iterations} iterations");
     
-    println!("Large-scale memory stability test passed: {} iterations", iterations);
+    println!("Large-scale memory stability test passed: {iterations} iterations");
 }
 
 #[test]
@@ -2611,7 +2601,7 @@ fn test_device_migration_memory_cleanup() {
                 drop(migrated_tensor);
             }
             Err(e) => {
-                println!("Migration {} failed: {}", i, e);
+                println!("Migration {i} failed: {e}");
                 drop(tensor);
             }
         }
@@ -2623,8 +2613,7 @@ fn test_device_migration_memory_cleanup() {
             
             // Allow for reasonable growth but detect leaks
             assert!(memory_growth < 10 * 1024 * 1024, // Less than 10MB
-                   "Device migration memory leak at iteration {}: {} bytes",
-                   i, memory_growth);
+                   "Device migration memory leak at iteration {i}: {memory_growth} bytes");
         }
     }
     
@@ -2636,8 +2625,7 @@ fn test_device_migration_memory_cleanup() {
     let total_growth = final_metrics.current_allocated as i64 - initial_metrics.current_allocated as i64;
     
     assert!(total_growth < 5 * 1024 * 1024, // Less than 5MB final growth
-           "Device migration memory leak: {} bytes after {} migrations",
-           total_growth, migration_count);
+           "Device migration memory leak: {total_growth} bytes after {migration_count} migrations");
     
     println!("Device migration memory cleanup test passed");
 }
@@ -2704,8 +2692,7 @@ fn test_operation_memory_leak_detection() {
             let memory_growth = current_metrics.current_allocated as i64 - baseline_metrics.current_allocated as i64;
             
             assert!(memory_growth < 5 * 1024 * 1024, // Less than 5MB
-                   "Operation memory leak at iteration {}: {} bytes",
-                   i, memory_growth);
+                   "Operation memory leak at iteration {i}: {memory_growth} bytes");
         }
     }
     
@@ -2714,8 +2701,7 @@ fn test_operation_memory_leak_detection() {
     let total_growth = final_metrics.current_allocated as i64 - baseline_metrics.current_allocated as i64;
     
     assert!(total_growth < 10 * 1024 * 1024, // Less than 10MB final growth
-           "Operation memory leak: {} bytes after {} operations",
-           total_growth, operation_count);
+           "Operation memory leak: {total_growth} bytes after {operation_count} operations");
     
     println!("Operation memory leak detection test passed");
 }
@@ -2790,13 +2776,12 @@ fn test_concurrent_memory_leak_prevention() {
     let total_growth = final_metrics.current_allocated as i64 - baseline_metrics.current_allocated as i64;
     
     assert!(total_growth < 10 * 1024 * 1024, // Less than 10MB
-           "Concurrent memory leak: {} bytes after {} threads with {} operations each",
-           total_growth, thread_count, operations_per_thread);
+           "Concurrent memory leak: {total_growth} bytes after {thread_count} threads with {operations_per_thread} operations each");
     
     // Verify no excessive active allocations remain from our test
     let active_diff = final_metrics.active_allocations as i64 - baseline_metrics.active_allocations as i64;
     assert!(active_diff.abs() < 500, // Allow for more concurrent overhead
-           "Active allocation leak: {} allocations difference", active_diff);
+           "Active allocation leak: {active_diff} allocations difference");
     
     println!("Concurrent memory leak prevention test passed");
 }
@@ -2882,8 +2867,7 @@ fn test_handle_lifecycle_memory_management() {
             let memory_growth = current_metrics.current_allocated as i64 - baseline_metrics.current_allocated as i64;
             
             assert!(memory_growth < 1024 * 1024, // Less than 1MB
-                   "Handle lifecycle memory leak at iteration {}: {} bytes",
-                   i, memory_growth);
+                   "Handle lifecycle memory leak at iteration {i}: {memory_growth} bytes");
         }
     }
     
@@ -2892,8 +2876,7 @@ fn test_handle_lifecycle_memory_management() {
     let total_growth = final_metrics.current_allocated as i64 - baseline_metrics.current_allocated as i64;
     
     assert!(total_growth < 512 * 1024, // Less than 512KB final growth
-           "Handle lifecycle memory leak: {} bytes after {} iterations",
-           total_growth, handle_test_iterations);
+           "Handle lifecycle memory leak: {total_growth} bytes after {handle_test_iterations} iterations");
     
     println!("Handle lifecycle memory management test passed");
 }
@@ -2916,7 +2899,7 @@ fn test_memory_tracking_integration() {
     let initial_detailed_metrics = tracker.get_detailed_metrics();
     let initial_pressure = tracker.get_pressure_level();
     
-    println!("Initial memory pressure: {:?}", initial_pressure);
+    println!("Initial memory pressure: {initial_pressure:?}");
     println!("Initial active allocations: {}", initial_detailed_metrics.active_allocations);
     
     // Create tensors and verify tracking
@@ -2959,7 +2942,7 @@ fn test_memory_tracking_integration() {
     let final_metrics = tracker.get_detailed_metrics();
     let final_pressure = tracker.get_pressure_level();
     
-    println!("Final memory pressure: {:?}", final_pressure);
+    println!("Final memory pressure: {final_pressure:?}");
     println!("Final active allocations: {}", final_metrics.active_allocations);
     
     // Memory should be cleaned up
@@ -3028,7 +3011,7 @@ impl BenchmarkStats {
     }
 
     fn print_summary(&self, operation_name: &str) {
-        println!("=== {} Performance ===", operation_name);
+        println!("=== {operation_name} Performance ===");
         println!("  Operations: {}", self.total_operations);
         println!("  Min time: {:?}", self.min_duration);
         println!("  Max time: {:?}", self.max_duration);
@@ -3056,7 +3039,7 @@ fn run_benchmark<F>(
     mut operation: F,
 ) -> BenchmarkStats
 where
-    F: FnMut() -> (),
+    F: FnMut(),
 {
     // Warm-up iterations to stabilize performance
     for _ in 0..warmup_iterations {
@@ -3117,7 +3100,7 @@ fn benchmark_tensor_creation_operations() {
                 
                 // Benchmark zeros creation
                 let zeros_stats = run_benchmark(
-                    &format!("zeros_{}", operation_name),
+                    &format!("zeros_{operation_name}"),
                     10, // warmup
                     100, // benchmark iterations
                     || {
@@ -3129,7 +3112,7 @@ fn benchmark_tensor_creation_operations() {
                 
                 // Benchmark ones creation
                 let ones_stats = run_benchmark(
-                    &format!("ones_{}", operation_name),
+                    &format!("ones_{operation_name}"),
                     10,
                     100,
                     || {
@@ -3145,7 +3128,7 @@ fn benchmark_tensor_creation_operations() {
                     let test_data: Vec<f32> = (0..element_count).map(|i| i as f32).collect();
                     
                     let from_data_stats = run_benchmark(
-                        &format!("from_data_{}", operation_name),
+                        &format!("from_data_{operation_name}"),
                         10,
                         50, // Fewer iterations for data copying
                         || {
@@ -3175,7 +3158,7 @@ fn benchmark_mathematical_operations() {
     ];
     
     for shape in &test_shapes {
-        let shape_name = format!("{:?}", shape);
+        let shape_name = format!("{shape:?}");
         
         // Create test tensors
         let tensor1 = BitNetTensor::ones(shape, BitNetDType::F32, &device, &pool)
@@ -3185,7 +3168,7 @@ fn benchmark_mathematical_operations() {
         
         // Benchmark transpose operations
         let transpose_stats = run_benchmark(
-            &format!("transpose_{}", shape_name),
+            &format!("transpose_{shape_name}"),
             5,
             50,
             || {
@@ -3200,7 +3183,7 @@ fn benchmark_mathematical_operations() {
         // Benchmark reshape operations
         let element_count: usize = shape.iter().product();
         let reshape_stats = run_benchmark(
-            &format!("reshape_{}", shape_name),
+            &format!("reshape_{shape_name}"),
             5,
             50,
             || {
@@ -3215,7 +3198,7 @@ fn benchmark_mathematical_operations() {
         let candle2 = tensor2.to_candle().expect("Failed to convert tensor2");
         
         let addition_stats = run_benchmark(
-            &format!("addition_{}", shape_name),
+            &format!("addition_{shape_name}"),
             5,
             100,
             || {
@@ -3225,7 +3208,7 @@ fn benchmark_mathematical_operations() {
         addition_stats.assert_performance_threshold(Duration::from_millis(100), "Addition");
         
         let multiplication_stats = run_benchmark(
-            &format!("multiplication_{}", shape_name),
+            &format!("multiplication_{shape_name}"),
             5,
             100,
             || {
@@ -3236,7 +3219,7 @@ fn benchmark_mathematical_operations() {
         
         // Benchmark tensor cloning
         let clone_stats = run_benchmark(
-            &format!("clone_{}", shape_name),
+            &format!("clone_{shape_name}"),
             5,
             50,
             || {
@@ -3271,7 +3254,7 @@ fn benchmark_size_scaling_performance() {
         
         // Benchmark creation time vs size
         let creation_stats = run_benchmark(
-            &format!("creation_scaling_{}", size_name),
+            &format!("creation_scaling_{size_name}"),
             3,
             20,
             || {
@@ -3309,10 +3292,9 @@ fn benchmark_size_scaling_performance() {
         
         // Creation time should scale reasonably with size (not exponentially)
         assert!(time_ratio < size_ratio * 2.0,
-               "Creation time scaling too poorly: {:.2}x time for {:.2}x size",
-               time_ratio, size_ratio);
+               "Creation time scaling too poorly: {time_ratio:.2}x time for {size_ratio:.2}x size");
         
-        println!("Scaling {:.2}x size -> {:.2}x time", size_ratio, time_ratio);
+        println!("Scaling {size_ratio:.2}x size -> {time_ratio:.2}x time");
     }
     
     // Test different data types scaling
@@ -3321,7 +3303,7 @@ fn benchmark_size_scaling_performance() {
     
     for &dtype in &dtypes_to_test {
         let dtype_stats = run_benchmark(
-            &format!("dtype_scaling_{}", dtype),
+            &format!("dtype_scaling_{dtype}"),
             5,
             50,
             || {
@@ -3355,8 +3337,8 @@ fn benchmark_device_specific_performance() {
     ];
     
     for shape in &test_shapes {
-        let shape_name = format!("{:?}", shape);
-        println!("Testing shape: {}", shape_name);
+        let shape_name = format!("{shape:?}");
+        println!("Testing shape: {shape_name}");
         
         let mut device_performance = Vec::new();
         
@@ -3365,7 +3347,7 @@ fn benchmark_device_specific_performance() {
             
             // Benchmark tensor creation on each device
             let creation_stats = run_benchmark(
-                &format!("device_creation_{}_{}", device_name, shape_name),
+                &format!("device_creation_{device_name}_{shape_name}"),
                 5,
                 30,
                 || {
@@ -3379,7 +3361,7 @@ fn benchmark_device_specific_performance() {
                 .expect("Failed to create source tensor");
             
             let migration_stats = run_benchmark(
-                &format!("device_migration_to_{}", device_name),
+                &format!("device_migration_to_{device_name}"),
                 3,
                 10,
                 || {
@@ -3402,9 +3384,9 @@ fn benchmark_device_specific_performance() {
             let create_ratio = dev2_create.as_secs_f64() / dev1_create.as_secs_f64();
             let migrate_ratio = dev2_migrate.as_secs_f64() / dev1_migrate.as_secs_f64();
             
-            println!("Performance comparison: {} vs {}", dev1_name, dev2_name);
-            println!("  Creation ratio: {:.2}x", create_ratio);
-            println!("  Migration ratio: {:.2}x", migrate_ratio);
+            println!("Performance comparison: {dev1_name} vs {dev2_name}");
+            println!("  Creation ratio: {create_ratio:.2}x");
+            println!("  Migration ratio: {migrate_ratio:.2}x");
         }
     }
     
@@ -3433,7 +3415,7 @@ fn benchmark_device_specific_performance() {
                 println!("Cross-device operations supported: avg time {:?}", cross_device_stats.avg_duration);
             }
             Err(e) => {
-                println!("Cross-device operations not supported (expected): {}", e);
+                println!("Cross-device operations not supported (expected): {e}");
             }
         }
     }
@@ -3451,7 +3433,7 @@ fn benchmark_concurrent_operation_performance() {
     let operations_per_thread = 50;
     
     for &thread_count in &concurrency_levels {
-        println!("Testing with {} threads", thread_count);
+        println!("Testing with {thread_count} threads");
         
         let start_time = std::time::Instant::now();
         let mut handles = Vec::new();
@@ -3579,7 +3561,7 @@ fn benchmark_concurrent_operation_performance() {
     }
     
     let pressure_time = pressure_start.elapsed();
-    println!("Memory pressure test: {} tensors created in {:?}", total_created, pressure_time);
+    println!("Memory pressure test: {total_created} tensors created in {pressure_time:?}");
 }
 
 #[test]
@@ -3610,12 +3592,11 @@ fn benchmark_memory_efficiency() {
         let memory_overhead = memory_used.saturating_sub(expected_memory);
         let efficiency_ratio = expected_memory as f64 / memory_used as f64;
         
-        println!("{} allocation: {} elements, {} bytes used, {} bytes expected, overhead: {} bytes, efficiency: {:.2}x",
-                size_name, element_count, memory_used, expected_memory, memory_overhead, efficiency_ratio);
+        println!("{size_name} allocation: {element_count} elements, {memory_used} bytes used, {expected_memory} bytes expected, overhead: {memory_overhead} bytes, efficiency: {efficiency_ratio:.2}x");
         
         // Benchmark allocation/deallocation speed
         let alloc_dealloc_stats = run_benchmark(
-            &format!("alloc_dealloc_{}", size_name),
+            &format!("alloc_dealloc_{size_name}"),
             5,
             50,
             || {
@@ -3646,19 +3627,16 @@ fn benchmark_memory_efficiency() {
         let memory_efficiency = dtype.memory_efficiency();
         let actual_efficiency = BitNetDType::F32.bytes_for_elements(element_count) as f64 / memory_used as f64;
         
-        println!("Dtype {}: expected {} bytes, used {} bytes, theoretical efficiency {:.1}x, actual efficiency {:.2}x",
-                dtype, expected_memory, memory_used, memory_efficiency, actual_efficiency);
+        println!("Dtype {dtype}: expected {expected_memory} bytes, used {memory_used} bytes, theoretical efficiency {memory_efficiency:.1}x, actual efficiency {actual_efficiency:.2}x");
         
         // Verify memory usage is reasonable
         assert!(memory_used >= expected_memory, 
-               "Memory usage {} less than expected {} for dtype {}", 
-               memory_used, expected_memory, dtype);
+               "Memory usage {memory_used} less than expected {expected_memory} for dtype {dtype}");
         
         // Allow for reasonable overhead (up to 50% for small allocations)
         let max_overhead = std::cmp::max(expected_memory / 2, 1024); // At least 1KB overhead allowed
         assert!(memory_used <= expected_memory + max_overhead,
-               "Excessive memory overhead for dtype {}: {} used vs {} expected",
-               dtype, memory_used, expected_memory);
+               "Excessive memory overhead for dtype {dtype}: {memory_used} used vs {expected_memory} expected");
         
         drop(tensor);
     }
@@ -3678,7 +3656,7 @@ fn benchmark_memory_efficiency() {
         let peak_metrics = pool.get_metrics();
         let peak_memory = peak_metrics.current_allocated;
         
-        println!("Created 50 tensors, peak memory: {} bytes", peak_memory);
+        println!("Created 50 tensors, peak memory: {peak_memory} bytes");
         
         // Drop all tensors
         drop(tensors);
@@ -3715,11 +3693,11 @@ fn benchmark_memory_efficiency() {
     }
     
     let fragmentation_time = fragmentation_start.elapsed();
-    println!("Fragmentation test completed in {:?}", fragmentation_time);
+    println!("Fragmentation test completed in {fragmentation_time:?}");
     
     // Verify fragmentation doesn't severely impact performance
     assert!(fragmentation_time < Duration::from_secs(5),
-           "Memory fragmentation test took too long: {:?}", fragmentation_time);
+           "Memory fragmentation test took too long: {fragmentation_time:?}");
 }
 
 #[test]
@@ -3745,15 +3723,15 @@ fn benchmark_quantization_performance() {
     ];
     
     for shape in &test_shapes {
-        let shape_name = format!("{:?}", shape);
+        let shape_name = format!("{shape:?}");
         let element_count: usize = shape.iter().product();
         
-        println!("Testing quantized types with shape: {}", shape_name);
+        println!("Testing quantized types with shape: {shape_name}");
         
         // Benchmark creation performance for each quantized type
         for &qtype in &quantized_types {
             let creation_stats = run_benchmark(
-                &format!("quantized_creation_{}_{}", qtype, shape_name),
+                &format!("quantized_creation_{qtype}_{shape_name}"),
                 5,
                 50,
                 || {
@@ -3774,7 +3752,7 @@ fn benchmark_quantization_performance() {
         
         // Compare quantized vs full precision performance
         let f32_stats = run_benchmark(
-            &format!("f32_creation_{}", shape_name),
+            &format!("f32_creation_{shape_name}"),
             5,
             50,
             || {
@@ -3784,7 +3762,7 @@ fn benchmark_quantization_performance() {
         );
         
         let i8_stats = run_benchmark(
-            &format!("i8_creation_{}", shape_name),
+            &format!("i8_creation_{shape_name}"),
             5,
             50,
             || {
@@ -3794,11 +3772,11 @@ fn benchmark_quantization_performance() {
         );
         
         let performance_ratio = i8_stats.avg_duration.as_secs_f64() / f32_stats.avg_duration.as_secs_f64();
-        println!("  I8 vs F32 performance ratio: {:.2}x", performance_ratio);
+        println!("  I8 vs F32 performance ratio: {performance_ratio:.2}x");
         
         // Test BitNet 1.58b specific performance
         let bitnet158_stats = run_benchmark(
-            &format!("bitnet158_creation_{}", shape_name),
+            &format!("bitnet158_creation_{shape_name}"),
             5,
             50,
             || {
@@ -3838,7 +3816,7 @@ fn benchmark_quantization_performance() {
     for &target_type in &quantized_types {
         // Simulate quantization by creating target tensor and measuring conversion overhead
         let conversion_stats = run_benchmark(
-            &format!("quantization_to_{}", target_type),
+            &format!("quantization_to_{target_type}"),
             3,
             20,
             || {
@@ -3911,9 +3889,9 @@ fn benchmark_quantization_performance() {
     let bitnet_efficiency = f32_memory as f64 / bitnet_memory as f64;
     
     println!("  Memory efficiency comparison (10K elements):");
-    println!("    F32: {} bytes", f32_memory);
-    println!("    I8: {} bytes ({:.1}x efficiency)", i8_memory, i8_efficiency);
-    println!("    BitNet158: {} bytes ({:.1}x efficiency)", bitnet_memory, bitnet_efficiency);
+    println!("    F32: {f32_memory} bytes");
+    println!("    I8: {i8_memory} bytes ({i8_efficiency:.1}x efficiency)");
+    println!("    BitNet158: {bitnet_memory} bytes ({bitnet_efficiency:.1}x efficiency)");
     
     // Verify expected memory savings (more lenient thresholds)
     assert!(i8_efficiency >= 2.0, "I8 should provide at least 2x memory efficiency");
@@ -4062,7 +4040,7 @@ fn benchmark_regression_testing() {
     let mut consistency_measurements = Vec::new();
     for run in 0..5 {
         let run_stats = run_benchmark(
-            &format!("consistency_run_{}", run),
+            &format!("consistency_run_{run}"),
             5,
             20,
             || {
@@ -4113,8 +4091,7 @@ fn benchmark_regression_testing() {
                 "REGRESSION"
             };
             
-            println!("  {}: {:?} (expected {:?}) - {:.2}x - {}",
-                    test_name, actual_duration, expected_duration, performance_ratio, status);
+            println!("  {test_name}: {actual_duration:?} (expected {expected_duration:?}) - {performance_ratio:.2}x - {status}");
             
             // Flag significant regressions (more than 2x slower)
             if performance_ratio > 2.0 {
@@ -4124,8 +4101,7 @@ fn benchmark_regression_testing() {
             
             // For automated testing, we'll be lenient and only fail on extreme regressions
             assert!(performance_ratio <= 5.0,
-                   "Extreme performance regression in {}: {:.2}x slower than baseline",
-                   test_name, performance_ratio);
+                   "Extreme performance regression in {test_name}: {performance_ratio:.2}x slower than baseline");
         }
     }
     
@@ -4152,12 +4128,11 @@ fn benchmark_regression_testing() {
     
     let memory_efficiency = expected_memory as f64 / memory_used as f64;
     
-    println!("Memory usage: {} bytes used, {} bytes expected, {:.2}x efficiency",
-             memory_used, expected_memory, memory_efficiency);
+    println!("Memory usage: {memory_used} bytes used, {expected_memory} bytes expected, {memory_efficiency:.2}x efficiency");
     
     // Verify memory usage is reasonable (allow for up to 2x overhead)
     assert!(memory_efficiency >= 0.5,
-           "Excessive memory overhead: {:.2}x efficiency", memory_efficiency);
+           "Excessive memory overhead: {memory_efficiency:.2}x efficiency");
     
     drop(test_tensors);
     
@@ -4172,7 +4147,7 @@ fn benchmark_regression_testing() {
     let cleanup_time = cleanup_start.elapsed();
     let final_metrics = pool.get_metrics();
     
-    println!("Cleanup completed in {:?}", cleanup_time);
+    println!("Cleanup completed in {cleanup_time:?}");
     
     // Verify cleanup was effective
     let memory_recovered = peak_metrics.current_allocated.saturating_sub(final_metrics.current_allocated);
@@ -4189,7 +4164,7 @@ fn benchmark_regression_testing() {
     }
     
     println!("Performance consistency: {:.2}% CV", coefficient_of_variation * 100.0);
-    println!("Memory efficiency: {:.2}x", memory_efficiency);
+    println!("Memory efficiency: {memory_efficiency:.2}x");
     println!("Cleanup efficiency: {:.1}%", cleanup_efficiency * 100.0);
 }
 
@@ -4212,7 +4187,7 @@ fn benchmark_tensor_creation_performance() {
     ];
     
     for (shape, size_name) in &test_cases {
-        println!("Testing {} tensors with shape {:?}", size_name, shape);
+        println!("Testing {size_name} tensors with shape {shape:?}");
         
         // Warm-up iterations
         for _ in 0..10 {
@@ -4247,7 +4222,7 @@ fn benchmark_tensor_creation_performance() {
         }
         let from_data_duration = start.elapsed();
         
-        println!("  {} tensors:", size_name);
+        println!("  {size_name} tensors:");
         println!("    zeros(): avg {:?}", zeros_duration / 100);
         println!("    ones(): avg {:?}", ones_duration / 100);
         println!("    from_data(): avg {:?}", from_data_duration / 100);
@@ -4255,11 +4230,11 @@ fn benchmark_tensor_creation_performance() {
         // Validate reasonable performance thresholds
         let reasonable_threshold = std::time::Duration::from_millis(100);
         assert!(zeros_duration < reasonable_threshold,
-               "zeros() creation too slow for {} tensors: {:?}", size_name, zeros_duration);
+               "zeros() creation too slow for {size_name} tensors: {zeros_duration:?}");
         assert!(ones_duration < reasonable_threshold,
-               "ones() creation too slow for {} tensors: {:?}", size_name, ones_duration);
+               "ones() creation too slow for {size_name} tensors: {ones_duration:?}");
         assert!(from_data_duration < reasonable_threshold * 2, // Allow more time for data copying
-               "from_data() creation too slow for {} tensors: {:?}", size_name, from_data_duration);
+               "from_data() creation too slow for {size_name} tensors: {from_data_duration:?}");
     }
 }
 
@@ -4278,7 +4253,7 @@ fn benchmark_mathematical_operations_performance() {
     ];
     
     for (shape, size_name) in &test_cases {
-        println!("Testing {} mathematical operations with shape {:?}", size_name, shape);
+        println!("Testing {size_name} mathematical operations with shape {shape:?}");
         
         // Create test tensors
         let tensor1 = BitNetTensor::ones(shape, BitNetDType::F32, &device, &pool)
@@ -4314,16 +4289,16 @@ fn benchmark_mathematical_operations_performance() {
         }
         let arithmetic_duration = start.elapsed();
         
-        println!("  {} operations:", size_name);
+        println!("  {size_name} operations:");
         println!("    transpose: avg {:?}", transpose_duration / 100);
         println!("    arithmetic (add+mul): avg {:?}", arithmetic_duration / 100);
         
         // Validate reasonable performance thresholds
         let reasonable_threshold = std::time::Duration::from_millis(200);
         assert!(transpose_duration < reasonable_threshold,
-               "Transpose too slow for {} tensors: {:?}", size_name, transpose_duration);
+               "Transpose too slow for {size_name} tensors: {transpose_duration:?}");
         assert!(arithmetic_duration < reasonable_threshold,
-               "Arithmetic operations too slow for {} tensors: {:?}", size_name, arithmetic_duration);
+               "Arithmetic operations too slow for {size_name} tensors: {arithmetic_duration:?}");
     }
 }
 
@@ -4350,7 +4325,7 @@ fn benchmark_device_migration_performance() {
     ];
     
     for (shape, size_name) in &test_cases {
-        println!("Testing {} device migration with shape {:?}", size_name, shape);
+        println!("Testing {size_name} device migration with shape {shape:?}");
         
         // Create test tensor on source device
         let tensor = BitNetTensor::zeros(shape, BitNetDType::F32, source_device, &pool)
@@ -4374,7 +4349,7 @@ fn benchmark_device_migration_performance() {
         // Validate reasonable performance threshold
         let reasonable_threshold = std::time::Duration::from_millis(500);
         assert!(migration_duration < reasonable_threshold,
-               "Device migration too slow for {} tensors: {:?}", size_name, migration_duration);
+               "Device migration too slow for {size_name} tensors: {migration_duration:?}");
     }
 }
 
@@ -4393,7 +4368,7 @@ fn benchmark_memory_operations_performance() {
     ];
     
     for (shape, size_name) in &test_cases {
-        println!("Testing {} memory operations with shape {:?}", size_name, shape);
+        println!("Testing {size_name} memory operations with shape {shape:?}");
         
         // Warm-up iterations
         for _ in 0..10 {
@@ -4419,16 +4394,16 @@ fn benchmark_memory_operations_performance() {
         }
         let alloc_cleanup_duration = start.elapsed();
         
-        println!("  {} memory operations:", size_name);
+        println!("  {size_name} memory operations:");
         println!("    allocation: avg {:?}", allocation_duration / 100);
         println!("    alloc+cleanup: avg {:?}", alloc_cleanup_duration / 100);
         
         // Validate reasonable performance thresholds
         let reasonable_threshold = std::time::Duration::from_millis(100);
         assert!(allocation_duration < reasonable_threshold,
-               "Memory allocation too slow for {} tensors: {:?}", size_name, allocation_duration);
+               "Memory allocation too slow for {size_name} tensors: {allocation_duration:?}");
         assert!(alloc_cleanup_duration < reasonable_threshold * 2,
-               "Memory alloc+cleanup too slow for {} tensors: {:?}", size_name, alloc_cleanup_duration);
+               "Memory alloc+cleanup too slow for {size_name} tensors: {alloc_cleanup_duration:?}");
     }
 }
 
@@ -4444,7 +4419,7 @@ fn benchmark_concurrent_operations_performance() {
     let operations_per_thread = 50;
     
     for &thread_count in &concurrency_levels {
-        println!("Testing with {} threads", thread_count);
+        println!("Testing with {thread_count} threads");
         
         // Warm-up iterations
         for _ in 0..10 {
@@ -4479,14 +4454,12 @@ fn benchmark_concurrent_operations_performance() {
         let total_operations = thread_count * operations_per_thread;
         let avg_per_operation = total_duration / total_operations as u32;
         
-        println!("  {} threads: {} ops in {:?}, avg per op: {:?}",
-                thread_count, total_operations, total_duration, avg_per_operation);
+        println!("  {thread_count} threads: {total_operations} ops in {total_duration:?}, avg per op: {avg_per_operation:?}");
         
         // Validate reasonable performance threshold
         let reasonable_threshold = std::time::Duration::from_millis(50);
         assert!(avg_per_operation < reasonable_threshold,
-               "Concurrent operations too slow with {} threads: avg {:?}",
-               thread_count, avg_per_operation);
+               "Concurrent operations too slow with {thread_count} threads: avg {avg_per_operation:?}");
     }
 }
 
@@ -4509,7 +4482,7 @@ fn benchmark_focused_size_scaling_performance() {
     for (shape, size_name) in &size_tests {
         let element_count: usize = shape.iter().product();
         
-        println!("Testing {} tensors: {} elements", size_name, element_count);
+        println!("Testing {size_name} tensors: {element_count} elements");
         
         // Warm-up iterations
         for _ in 0..10 {
@@ -4528,12 +4501,12 @@ fn benchmark_focused_size_scaling_performance() {
         
         creation_times.push((element_count, avg_duration));
         
-        println!("  {}: avg creation time {:?}", size_name, avg_duration);
+        println!("  {size_name}: avg creation time {avg_duration:?}");
         
         // Validate reasonable performance threshold
         let reasonable_threshold = std::time::Duration::from_millis(50);
         assert!(avg_duration < reasonable_threshold,
-               "Tensor creation too slow for {} size: {:?}", size_name, avg_duration);
+               "Tensor creation too slow for {size_name} size: {avg_duration:?}");
     }
     
     // Verify scaling characteristics
@@ -4544,12 +4517,11 @@ fn benchmark_focused_size_scaling_performance() {
         let size_ratio = curr_size as f64 / prev_size as f64;
         let time_ratio = curr_time.as_secs_f64() / prev_time.as_secs_f64();
         
-        println!("Scaling {:.2}x size -> {:.2}x time", size_ratio, time_ratio);
+        println!("Scaling {size_ratio:.2}x size -> {time_ratio:.2}x time");
         
         // Creation time should scale reasonably with size (not exponentially)
         assert!(time_ratio < size_ratio * 3.0,
-               "Creation time scaling too poorly: {:.2}x time for {:.2}x size",
-               time_ratio, size_ratio);
+               "Creation time scaling too poorly: {time_ratio:.2}x time for {size_ratio:.2}x size");
     }
     
     // Test different data types scaling
@@ -4579,6 +4551,6 @@ fn benchmark_focused_size_scaling_performance() {
         // Validate reasonable performance threshold
         let reasonable_threshold = std::time::Duration::from_millis(20);
         assert!(avg_duration < reasonable_threshold,
-               "Data type {} creation too slow: {:?}", dtype, avg_duration);
+               "Data type {dtype} creation too slow: {avg_duration:?}");
     }
 }

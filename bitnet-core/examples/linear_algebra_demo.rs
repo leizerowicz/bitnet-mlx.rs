@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize global memory pool
     set_global_memory_pool(Arc::downgrade(&memory_pool));
     
-    println!("Using device: {:?}", device);
+    println!("Using device: {device:?}");
     
     // Run all demonstrations
     demo_matrix_multiplication()?;
@@ -54,7 +54,7 @@ fn demo_matrix_multiplication() -> Result<(), Box<dyn std::error::Error>> {
     let duration = start.elapsed();
     
     println!("   Result shape: {:?}", result.shape().dims());
-    println!("   Computation time: {:?}", duration);
+    println!("   Computation time: {duration:?}");
     
     // Large matrix multiplication with automatic optimization
     println!("\n2. Large Matrix Multiplication (Auto-optimization):");
@@ -68,7 +68,7 @@ fn demo_matrix_multiplication() -> Result<(), Box<dyn std::error::Error>> {
     let duration = start.elapsed();
     
     println!("   Result shape: {:?}", result_large.shape().dims());
-    println!("   Computation time: {:?}", duration);
+    println!("   Computation time: {duration:?}");
     
     // Batched matrix multiplication
     println!("\n3. Batched Matrix Multiplication:");
@@ -82,7 +82,7 @@ fn demo_matrix_multiplication() -> Result<(), Box<dyn std::error::Error>> {
     let duration = start.elapsed();
     
     println!("   Result shape: {:?}", result_batch.shape().dims());
-    println!("   Computation time: {:?}", duration);
+    println!("   Computation time: {duration:?}");
     
     Ok(())
 }
@@ -103,7 +103,7 @@ fn demo_dot_products() -> Result<(), Box<dyn std::error::Error>> {
     let duration = start.elapsed();
     
     println!("   Dot product result shape: {:?}", dot_result.shape().dims());
-    println!("   Computation time: {:?}", duration);
+    println!("   Computation time: {duration:?}");
     
     // Outer product
     println!("\n2. Outer Product:");
@@ -117,7 +117,7 @@ fn demo_dot_products() -> Result<(), Box<dyn std::error::Error>> {
     let duration = start.elapsed();
     
     println!("   Outer product result shape: {:?}", outer_result.shape().dims());
-    println!("   Computation time: {:?}", duration);
+    println!("   Computation time: {duration:?}");
     
     // High-dimensional dot product
     println!("\n3. Multi-dimensional Dot Product:");
@@ -131,7 +131,7 @@ fn demo_dot_products() -> Result<(), Box<dyn std::error::Error>> {
     let duration = start.elapsed();
     
     println!("   Dot product result shape: {:?}", dot_nd.shape().dims());
-    println!("   Computation time: {:?}", duration);
+    println!("   Computation time: {duration:?}");
     
     Ok(())
 }
@@ -150,7 +150,7 @@ fn demo_matrix_transformations() -> Result<(), Box<dyn std::error::Error>> {
     let duration = start.elapsed();
     
     println!("   Transposed shape: {:?}", transposed.shape().dims());
-    println!("   Computation time: {:?}", duration);
+    println!("   Computation time: {duration:?}");
     
     // Tensor permutation
     println!("\n2. Tensor Permutation:");
@@ -163,7 +163,7 @@ fn demo_matrix_transformations() -> Result<(), Box<dyn std::error::Error>> {
     
     println!("   Permuted shape: {:?}", permuted.shape().dims());
     println!("   Permutation [2, 0, 1] applied");
-    println!("   Computation time: {:?}", duration);
+    println!("   Computation time: {duration:?}");
     
     // Identity matrix creation
     println!("\n3. Identity Matrix Creation:");
@@ -197,7 +197,7 @@ fn demo_advanced_decompositions() -> Result<(), Box<dyn std::error::Error>> {
     println!("   U matrix: {:?}", u.shape().dims());
     println!("   Singular values: {:?}", s.shape().dims());
     println!("   V^T matrix: {:?}", vt.shape().dims());
-    println!("   SVD computation time: {:?}", duration);
+    println!("   SVD computation time: {duration:?}");
     println!("   Note: Current implementation is placeholder");
     
     // QR Decomposition
@@ -211,7 +211,7 @@ fn demo_advanced_decompositions() -> Result<(), Box<dyn std::error::Error>> {
     
     println!("   Q matrix: {:?}", q.shape().dims());
     println!("   R matrix: {:?}", r.shape().dims());
-    println!("   QR computation time: {:?}", duration);
+    println!("   QR computation time: {duration:?}");
     println!("   Note: Current implementation is placeholder");
     
     // Cholesky Decomposition
@@ -224,7 +224,7 @@ fn demo_advanced_decompositions() -> Result<(), Box<dyn std::error::Error>> {
     let duration = start.elapsed();
     
     println!("   Cholesky factor: {:?}", chol.shape().dims());
-    println!("   Cholesky computation time: {:?}", duration);
+    println!("   Cholesky computation time: {duration:?}");
     println!("   Note: Current implementation is placeholder");
     
     // Eigenvalue Decomposition
@@ -238,7 +238,7 @@ fn demo_advanced_decompositions() -> Result<(), Box<dyn std::error::Error>> {
     
     println!("   Eigenvalues: {:?}", eigenvals.shape().dims());
     println!("   Eigenvectors: {:?}", eigenvecs.shape().dims());
-    println!("   Eigendecomposition time: {:?}", duration);
+    println!("   Eigendecomposition time: {duration:?}");
     println!("   Note: Current implementation is placeholder");
     
     Ok(())
@@ -262,7 +262,7 @@ fn demo_performance_benchmarks() -> Result<(), Box<dyn std::error::Error>> {
         let ops = (size as f64).powi(3) * 2.0; // Approximate FLOPS
         let gflops = ops / duration.as_secs_f64() / 1e9;
         
-        println!("   {}×{}: {:?} ({:.2} GFLOPS)", size, size, duration, gflops);
+        println!("   {size}×{size}: {duration:?} ({gflops:.2} GFLOPS)");
     }
     
     println!("\n2. Dot Product Performance Scaling:");
@@ -279,7 +279,7 @@ fn demo_performance_benchmarks() -> Result<(), Box<dyn std::error::Error>> {
         let ops = size as f64 * 2.0; // Multiply and add
         let gflops = ops / duration.as_secs_f64() / 1e9;
         
-        println!("   {} elements: {:?} ({:.2} GFLOPS)", size, duration, gflops);
+        println!("   {size} elements: {duration:?} ({gflops:.2} GFLOPS)");
     }
     
     Ok(())
@@ -324,7 +324,7 @@ fn demo_optimization_strategies() -> Result<(), Box<dyn std::error::Error>> {
             let _result = matmul_with_config(&a, &b, &config)?;
             let duration = start.elapsed();
             
-            println!("   {}: {:?}", name, duration);
+            println!("   {name}: {duration:?}");
         }
         
         // Show automatic strategy selection

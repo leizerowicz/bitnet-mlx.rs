@@ -282,8 +282,8 @@ pub fn accelerated_matmul(
     
     #[cfg(feature = "tracing")]
     if context.metrics_enabled() {
-        debug!("Accelerated matmul completed: backend={:?}, time={}ns",
-               _metrics.backend, _metrics.execution_time_ns);
+        debug!("Accelerated matmul completed: backend={:?}, time={:.3}s",
+               _metrics.backend_used, _metrics.execution_time_seconds);
     }
     
     Ok(result)
@@ -299,8 +299,8 @@ pub fn accelerated_add(
     
     #[cfg(feature = "tracing")]
     if context.metrics_enabled() {
-        debug!("Accelerated add completed: backend={:?}, time={}ns",
-               _metrics.backend, _metrics.execution_time_ns);
+        debug!("Accelerated add completed: backend={:?}, time={:.3}s",
+               _metrics.backend_used, _metrics.execution_time_seconds);
     }
     
     Ok(result)
@@ -317,8 +317,8 @@ pub fn accelerated_mul(
     
     #[cfg(feature = "tracing")]
     if context.metrics_enabled() {
-        debug!("Accelerated mul completed: backend={:?}, time={}ns",
-               _metrics.backend, _metrics.execution_time_ns);
+        debug!("Accelerated mul completed: backend={:?}, time={:.3}s",
+               _metrics.backend_used, _metrics.execution_time_seconds);
     }
     
     Ok(result)

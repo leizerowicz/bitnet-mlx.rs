@@ -109,7 +109,7 @@ impl ScalingFactor {
                 if channel < scales.len() {
                     Ok(scales[channel])
                 } else {
-                    Err(QuantizationError::InvalidInput(format!("Channel {} out of bounds", channel)))
+                    Err(QuantizationError::InvalidInput(format!("Channel {channel} out of bounds")))
                 }
             }
             None => Ok(self.value),

@@ -4,7 +4,6 @@
 //! to load, compile, and execute BitNet operations on GPU.
 
 use anyhow::Result;
-use bitnet_core::metal::*;
 
 #[cfg(all(target_os = "macos", feature = "metal"))]
 fn main() -> Result<()> {

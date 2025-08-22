@@ -5,7 +5,7 @@
 
 use crate::bitlinear::error::{BitLinearError, BitLinearResult};
 use bitnet_core::memory::{HybridMemoryPool, MemoryHandle};
-use candle_core::{Device, Tensor, DType, Shape};
+use candle_core::{Tensor, DType, Shape};
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, RwLock, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -270,7 +270,7 @@ impl WeightCacheManager {
             }
         };
         
-        if let Some(mut entry) = cache.get_mut(layer_name) {
+        if let Some(entry) = cache.get_mut(layer_name) {
             // Check if entry has expired
             if entry.is_expired(self.config.entry_ttl_seconds) {
                 // Remove expired entry
@@ -479,12 +479,12 @@ impl WeightCacheManager {
             
             // Calculate how many entries to evict
             let entries_to_evict = if needs_capacity {
-                std::cmp::max(1, (current_size - self.config.max_entries + 1))
+                std::cmp::max(1, current_size - self.config.max_entries + 1)
             } else {
                 // Estimate entries needed to free enough memory
                 let memory_to_free = current_memory + entry_memory - self.config.max_memory_bytes;
                 let avg_entry_size = if current_size > 0 { current_memory / current_size } else { entry_memory };
-                std::cmp::max(1, (memory_to_free + avg_entry_size - 1) / avg_entry_size)
+                std::cmp::max(1, memory_to_free.div_ceil(avg_entry_size))
             };
             
             self.evict_lru_entries(entries_to_evict)?;
@@ -711,12 +711,12 @@ fn compute_tensor_hash(tensor: &Tensor) -> BitLinearResult<u64> {
     
     // Hash a sample of the data (first and last few elements)
     let flat = tensor.flatten_all()
-        .map_err(|e| BitLinearError::TensorError(format!("Tensor flattening failed: {}", e)))?;
+        .map_err(|e| BitLinearError::TensorError(format!("Tensor flattening failed: {e}")))?;
     
     let sample_size = std::cmp::min(100, flat.elem_count());
     if sample_size > 0 {
         let data = flat.to_vec1::<f32>()
-            .map_err(|e| BitLinearError::TensorError(format!("Tensor data extraction failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Tensor data extraction failed: {e}")))?;
         
         // Hash first few elements
         for i in 0..std::cmp::min(sample_size / 2, data.len()) {

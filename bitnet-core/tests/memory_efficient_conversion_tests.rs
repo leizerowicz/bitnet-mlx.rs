@@ -6,10 +6,8 @@
 use bitnet_core::memory::{
     HybridMemoryPool, 
     conversion::{
-        ConversionEngine, ConversionConfig, ConversionStrategy, ConversionQuality,
-        ZeroCopyConverter, StreamingConverter, InPlaceConverter, BatchConverter,
-        ConversionPipeline, ConversionMetrics, ConversionStats, ConversionEvent,
-        StreamingConfig, BatchConfig, PerformanceConfig
+        ConversionEngine, ConversionConfig, ConversionStrategy, ConversionQuality, ConversionStats, ConversionEvent,
+        StreamingConfig, BatchConfig
     },
     tensor::{BitNetTensor, BitNetDType}
 };
@@ -423,7 +421,7 @@ fn test_performance_under_load() {
     let duration = start.elapsed();
 
     assert_eq!(results.len(), 50);
-    println!("Batch conversion of 50 tensors took: {:?}", duration);
+    println!("Batch conversion of 50 tensors took: {duration:?}");
 
     // Verify all conversions succeeded
     for result in &results {

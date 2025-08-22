@@ -5,8 +5,7 @@
 
 use bitnet_quant::prelude::*;
 use candle_core::{Device, Tensor, DType, Shape};
-use approx::{assert_relative_eq, assert_abs_diff_eq};
-use std::collections::HashMap;
+use approx::assert_abs_diff_eq;
 
 /// Test helper to create test tensors with known patterns
 fn create_test_tensor(device: &Device, pattern: &str) -> Tensor {
@@ -65,7 +64,7 @@ fn test_weight_quantization_mathematical_correctness() {
         // Verify ternary values
         let values = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
         assert!(verify_ternary_values(&values), 
-            "Non-ternary values found for pattern {} with method {:?}", pattern, method);
+            "Non-ternary values found for pattern {pattern} with method {method:?}");
         
         // Verify dequantization preserves shape
         let dequantized = quantizer.dequantize(&quantized).unwrap();
@@ -101,12 +100,12 @@ fn test_activation_quantization_mathematical_correctness() {
             match precision {
                 QuantizationPrecision::OneFiveFiveBit => {
                     assert!(verify_ternary_values(&values),
-                        "Non-ternary values found for pattern {} with 1.58-bit precision", pattern);
+                        "Non-ternary values found for pattern {pattern} with 1.58-bit precision");
                 }
                 QuantizationPrecision::EightBit => {
                     // 8-bit values should be in range [-127, 127]
-                    assert!(values.iter().all(|&v| v >= -127.0 && v <= 127.0),
-                        "8-bit values out of range for pattern {}", pattern);
+                    assert!(values.iter().all(|&v| (-127.0..=127.0).contains(&v)),
+                        "8-bit values out of range for pattern {pattern}");
                 }
                 _ => {}
             }
@@ -133,11 +132,9 @@ fn test_quantization_error_bounds() {
     let device = Device::Cpu;
     
     // Test that quantization error is within reasonable bounds
-    let test_data = vec![
-        Tensor::new(&[1.0f32, -1.0, 0.5, -0.5, 0.0], &device).unwrap(),
+    let test_data = [Tensor::new(&[1.0f32, -1.0, 0.5, -0.5, 0.0], &device).unwrap(),
         Tensor::new(&[2.0f32, -1.5, 0.3, -0.8, 0.1], &device).unwrap(),
-        Tensor::new(&[0.1f32, -0.1, 0.05, -0.05, 0.0], &device).unwrap(),
-    ];
+        Tensor::new(&[0.1f32, -0.1, 0.05, -0.05, 0.0], &device).unwrap()];
     
     for (i, weights) in test_data.iter().enumerate() {
         // Test weight quantization error
@@ -146,7 +143,7 @@ fn test_quantization_error_bounds() {
         let dequantized_weights = weight_quantizer.dequantize(&quantized_weights).unwrap();
         
         let weight_error = QuantizationUtils::compute_quantization_error(weights, &dequantized_weights).unwrap();
-        assert!(weight_error < 2.0, "Weight quantization error too high for test case {}: {}", i, weight_error);
+        assert!(weight_error < 2.0, "Weight quantization error too high for test case {i}: {weight_error}");
         
         // Test activation quantization error
         let quantized_activations = absmax_quantize_activations(weights, &device, None).unwrap();
@@ -155,7 +152,7 @@ fn test_quantization_error_bounds() {
             .mul(&scales_broadcast).unwrap();
         
         let activation_error = QuantizationUtils::compute_quantization_error(weights, &dequantized_activations).unwrap();
-        assert!(activation_error < 2.0, "Activation quantization error too high for test case {}: {}", i, activation_error);
+        assert!(activation_error < 2.0, "Activation quantization error too high for test case {i}: {activation_error}");
     }
 }
 
@@ -178,7 +175,7 @@ fn test_quantization_symmetry_properties() {
     // Check that negative values are negated versions of positive values
     for (pos, neg) in pos_values.iter().zip(neg_values.iter()) {
         if pos.abs() > 1e-6 && neg.abs() > 1e-6 {
-            assert_eq!(pos, &(-neg), "Symmetry property violated: {} != -{}", pos, neg);
+            assert_eq!(pos, &(-neg), "Symmetry property violated: {pos} != -{neg}");
         }
     }
 }
@@ -226,11 +223,11 @@ fn test_quantization_sparsity_preservation() {
     
     // Quantized tensor should maintain some sparsity (though it may be different)
     // For ternary quantization, we expect some sparsity to be preserved
-    assert!(quantized_sparsity >= 0.0 && quantized_sparsity <= 1.0);
+    assert!((0.0..=1.0).contains(&quantized_sparsity));
     
     // If original was very sparse, quantized should have some sparsity too
     if original_sparsity > 0.5 {
-        assert!(quantized_sparsity > 0.1, "Sparsity not preserved: {} -> {}", original_sparsity, quantized_sparsity);
+        assert!(quantized_sparsity > 0.1, "Sparsity not preserved: {original_sparsity} -> {quantized_sparsity}");
     }
 }
 
@@ -255,7 +252,7 @@ fn test_quantization_threshold_sensitivity() {
     // Lower threshold factors should generally produce higher sparsity
     // (though this is not always strictly monotonic due to discrete quantization)
     assert!(sparsity_levels[0] >= sparsity_levels[sparsity_levels.len() - 1] - 0.2,
-        "Threshold sensitivity test failed: sparsity levels {:?}", sparsity_levels);
+        "Threshold sensitivity test failed: sparsity levels {sparsity_levels:?}");
 }
 
 #[test]
@@ -277,11 +274,11 @@ fn test_quantization_numerical_stability() {
         assert!(weight_result.is_ok(), "Weight quantization failed for {}: {:?}", name, weight_result.err());
         
         if let Ok(quantized) = weight_result {
-            assert!(quantized.stats.scale_factor.is_finite(), "Non-finite scale factor for {}", name);
-            assert!(quantized.stats.scale_factor >= 0.0, "Negative scale factor for {}", name);
+            assert!(quantized.stats.scale_factor.is_finite(), "Non-finite scale factor for {name}");
+            assert!(quantized.stats.scale_factor >= 0.0, "Negative scale factor for {name}");
             
             let values = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
-            assert!(verify_ternary_values(&values), "Non-ternary values for {}", name);
+            assert!(verify_ternary_values(&values), "Non-ternary values for {name}");
         }
         
         // Test activation quantization stability
@@ -289,8 +286,8 @@ fn test_quantization_numerical_stability() {
         assert!(activation_result.is_ok(), "Activation quantization failed for {}: {:?}", name, activation_result.err());
         
         if let Ok(quantized) = activation_result {
-            assert!(quantized.stats.scale_factor.is_finite(), "Non-finite scale factor for {}", name);
-            assert!(quantized.stats.scale_factor >= 0.0, "Negative scale factor for {}", name);
+            assert!(quantized.stats.scale_factor.is_finite(), "Non-finite scale factor for {name}");
+            assert!(quantized.stats.scale_factor >= 0.0, "Negative scale factor for {name}");
         }
     }
 }
@@ -382,7 +379,7 @@ fn test_quantization_error_propagation() {
         current = dequantized;
         
         // Error should not grow exponentially
-        assert!(error < 10.0, "Error too large at iteration {}: {}", i, error);
+        assert!(error < 10.0, "Error too large at iteration {i}: {error}");
     }
     
     // Errors should not increase dramatically
@@ -403,22 +400,22 @@ fn test_quantization_compression_ratios() {
     let weight_compression = quantized_weights.compression_ratio();
     
     // Should achieve significant compression (f32 to ~1.58 bits)
-    assert!(weight_compression > 10.0, "Weight compression ratio too low: {}", weight_compression);
-    assert!(weight_compression < 50.0, "Weight compression ratio suspiciously high: {}", weight_compression);
+    assert!(weight_compression > 10.0, "Weight compression ratio too low: {weight_compression}");
+    assert!(weight_compression < 50.0, "Weight compression ratio suspiciously high: {weight_compression}");
     
     // Activation quantization (1.58-bit)
     let quantized_activations = absmax_quantize_activations(&test_tensor, &device, None).unwrap();
     let activation_compression = quantized_activations.stats.compression_ratio;
     
-    assert!(activation_compression > 10.0, "Activation compression ratio too low: {}", activation_compression);
-    assert!(activation_compression < 50.0, "Activation compression ratio suspiciously high: {}", activation_compression);
+    assert!(activation_compression > 10.0, "Activation compression ratio too low: {activation_compression}");
+    assert!(activation_compression < 50.0, "Activation compression ratio suspiciously high: {activation_compression}");
     
     // 8-bit activation quantization
     let quantized_8bit = absmax_quantize_activations(&test_tensor, &device, Some(QuantizationPrecision::EightBit)).unwrap();
     let compression_8bit = quantized_8bit.stats.compression_ratio;
     
     // 8-bit should have lower compression than 1.58-bit
-    assert!(compression_8bit > 3.0, "8-bit compression ratio too low: {}", compression_8bit);
+    assert!(compression_8bit > 3.0, "8-bit compression ratio too low: {compression_8bit}");
     assert!(compression_8bit < activation_compression, "8-bit compression should be lower than 1.58-bit");
 }
 
@@ -467,21 +464,21 @@ fn test_quantization_boundary_conditions() {
         
         // Test weight quantization
         let weight_result = absmean_quantize_weights(&tensor, &device);
-        assert!(weight_result.is_ok(), "Weight quantization failed for {}", name);
+        assert!(weight_result.is_ok(), "Weight quantization failed for {name}");
         
         if let Ok(quantized) = weight_result {
             let values = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
-            assert!(verify_ternary_values(&values), "Non-ternary values for {}", name);
-            assert_eq!(values.len(), data.len(), "Length mismatch for {}", name);
+            assert!(verify_ternary_values(&values), "Non-ternary values for {name}");
+            assert_eq!(values.len(), data.len(), "Length mismatch for {name}");
         }
         
         // Test activation quantization
         let activation_result = absmax_quantize_activations(&tensor, &device, None);
-        assert!(activation_result.is_ok(), "Activation quantization failed for {}", name);
+        assert!(activation_result.is_ok(), "Activation quantization failed for {name}");
         
         if let Ok(quantized) = activation_result {
             let values = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
-            assert_eq!(values.len(), data.len(), "Length mismatch for {}", name);
+            assert_eq!(values.len(), data.len(), "Length mismatch for {name}");
         }
     }
 }

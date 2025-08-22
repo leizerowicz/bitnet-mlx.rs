@@ -3,7 +3,6 @@
 //! This module contains comprehensive tests for MLX (Apple's Machine Learning framework)
 //! availability, device discovery, capability checking, and integration across different platforms.
 
-use std::time::Duration;
 
 /// Test basic MLX availability checking
 #[test]

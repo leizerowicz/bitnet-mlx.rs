@@ -5,8 +5,7 @@
 
 use bitnet_core::device::{
     get_cpu_device, auto_select_device, compare_devices, devices_equal, devices_compatible,
-    assert_devices_equal, assert_devices_not_equal, assert_devices_compatible,
-    DeviceComparisonResult, DeviceType, CapabilityMatch
+    assert_devices_equal, assert_devices_compatible, DeviceType, CapabilityMatch
 };
 
 #[cfg(feature = "metal")]
@@ -147,7 +146,7 @@ fn test_device_comparison_result_display() {
     let cpu2 = get_cpu_device();
     
     let comparison = compare_devices(&cpu1, &cpu2);
-    let display_str = format!("{}", comparison);
+    let display_str = format!("{comparison}");
     
     assert!(display_str.contains("Devices are equal"));
     assert!(display_str.contains("Cpu"));
@@ -162,7 +161,7 @@ fn test_device_comparison_result_not_equal_display() {
     let comparison = compare_devices(&cpu, &auto_device);
     
     if comparison.is_not_equal() {
-        let display_str = format!("{}", comparison);
+        let display_str = format!("{comparison}");
         assert!(display_str.contains("Devices are not equal"));
         assert!(display_str.contains("!="));
     }
@@ -259,10 +258,8 @@ fn test_device_comparison_consistency() {
 
 #[test]
 fn test_multiple_device_comparisons() {
-    let devices = vec![
-        get_cpu_device(),
-        auto_select_device(),
-    ];
+    let devices = [get_cpu_device(),
+        auto_select_device()];
     
     // Test all pairwise comparisons
     for (i, device1) in devices.iter().enumerate() {
@@ -275,7 +272,7 @@ fn test_multiple_device_comparisons() {
             }
             
             // All comparisons should succeed without panicking
-            let display_str = format!("{}", comparison);
+            let display_str = format!("{comparison}");
             assert!(!display_str.is_empty());
         }
     }
@@ -349,7 +346,7 @@ fn test_device_comparison_performance() {
     let duration = start.elapsed();
     
     // Comparisons should be fast (less than 1ms per comparison on average)
-    assert!(duration.as_millis() < 1000, "Device comparisons taking too long: {:?}", duration);
+    assert!(duration.as_millis() < 1000, "Device comparisons taking too long: {duration:?}");
 }
 
 #[test]
@@ -364,7 +361,7 @@ fn test_device_comparison_memory_usage() {
     
     // Verify all comparisons are valid
     for comparison in &comparisons {
-        let display_str = format!("{}", comparison);
+        let display_str = format!("{comparison}");
         assert!(!display_str.is_empty());
         assert!(!comparison.details().device1_type.to_string().is_empty());
     }
@@ -384,13 +381,13 @@ impl DeviceTypeDisplay for DeviceType {
             DeviceType::Cpu => "CPU".to_string(),
             DeviceType::Metal { device_id } => {
                 match device_id {
-                    Some(id) => format!("Metal({})", id),
+                    Some(id) => format!("Metal({id})"),
                     None => "Metal".to_string(),
                 }
             }
             DeviceType::Cuda { device_id } => {
                 match device_id {
-                    Some(id) => format!("CUDA({})", id),
+                    Some(id) => format!("CUDA({id})"),
                     None => "CUDA".to_string(),
                 }
             }

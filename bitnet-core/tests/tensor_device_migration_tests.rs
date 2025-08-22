@@ -10,11 +10,8 @@ use std::thread;
 use bitnet_core::memory::{HybridMemoryPool, MemoryPoolConfig, TrackingConfig};
 use bitnet_core::tensor::{BitNetTensor, BitNetDType};
 use bitnet_core::device::{
-    get_cpu_device, is_metal_available, get_metal_device,
-    DeviceType
+    get_cpu_device, is_metal_available, get_metal_device
 };
-use bitnet_core::device_integration::DeviceCapabilities;
-use candle_core::Device;
 use std::collections::HashMap;
 
 // =============================================================================
@@ -93,7 +90,7 @@ fn test_cpu_device_tensor_creation() {
     for shape in &config.test_shapes {
         for &dtype in &[BitNetDType::F32, BitNetDType::F16, BitNetDType::I32] {
             let tensor = BitNetTensor::zeros(shape, dtype, Some(cpu_device.clone()))
-                .expect(&format!("Failed to create CPU tensor: shape={:?}, dtype={:?}", shape, dtype));
+                .unwrap_or_else(|_| panic!("Failed to create CPU tensor: shape={shape:?}, dtype={dtype:?}"));
             
             // Verify tensor properties
             assert_eq!(tensor.shape().dims(), shape);
@@ -102,7 +99,7 @@ fn test_cpu_device_tensor_creation() {
             // Verify device placement
             assert!(matches!(tensor.device(), candle_core::Device::Cpu));
             
-            println!("✓ CPU tensor created: {:?} {:?}", shape, dtype);
+            println!("✓ CPU tensor created: {shape:?} {dtype:?}");
         }
     }
 }
@@ -122,7 +119,7 @@ fn test_metal_device_availability() {
     println!("✓ Metal device available: {}", get_device_name(&metal_device));
     
     // Test Metal tensor creation
-    let tensor = BitNetTensor::zeros(&vec![32, 32], BitNetDType::F32, Some(metal_device.clone()))
+    let tensor = BitNetTensor::zeros(&[32, 32], BitNetDType::F32, Some(metal_device.clone()))
         .expect("Failed to create Metal tensor");
     
     assert!(matches!(tensor.device(), candle_core::Device::Metal(_)));
@@ -138,12 +135,12 @@ fn test_automatic_device_selection() {
     
     for shape in &config.test_shapes {
         let tensor = BitNetTensor::zeros(shape, BitNetDType::F32, None)
-            .expect(&format!("Failed to create auto-device tensor: shape={:?}", shape));
+            .unwrap_or_else(|_| panic!("Failed to create auto-device tensor: shape={shape:?}"));
         
         let selected_device = tensor.device();
-        let device_name = get_device_name(&selected_device);
+        let device_name = get_device_name(selected_device);
         
-        println!("Auto-selected device for {:?}: {}", shape, device_name);
+        println!("Auto-selected device for {shape:?}: {device_name}");
         
         // Verify device is valid
         match selected_device {
@@ -205,7 +202,7 @@ fn test_cpu_to_metal_migration_placeholder() {
         assert_eq!(cpu_tensor.shape().dims(), metal_tensor.shape().dims());
         assert_eq!(cpu_tensor.dtype(), metal_tensor.dtype());
         
-        println!("✓ Equivalent tensors created on both devices: {:?}", shape);
+        println!("✓ Equivalent tensors created on both devices: {shape:?}");
     }
 }
 
@@ -245,7 +242,7 @@ fn test_metal_to_cpu_migration_placeholder() {
         assert_eq!(metal_tensor.shape().dims(), cpu_tensor.shape().dims());
         assert_eq!(metal_tensor.dtype(), cpu_tensor.dtype());
         
-        println!("✓ Equivalent tensors created on both devices: {:?}", shape);
+        println!("✓ Equivalent tensors created on both devices: {shape:?}");
     }
 }
 
@@ -294,10 +291,10 @@ fn test_migration_performance_baseline() {
         .map(|m| m.throughput_mbps)
         .sum::<f64>() / baseline_metrics.len() as f64;
     
-    println!("Average baseline throughput: {:.2} MB/s", avg_throughput);
+    println!("Average baseline throughput: {avg_throughput:.2} MB/s");
     
     // Performance should be reasonable (>100 MB/s for memory allocation)
-    assert!(avg_throughput > 50.0, "Baseline performance too low: {:.2} MB/s", avg_throughput);
+    assert!(avg_throughput > 50.0, "Baseline performance too low: {avg_throughput:.2} MB/s");
 }
 
 #[test]
@@ -348,7 +345,7 @@ fn test_concurrent_device_operations() {
     let num_threads = 4;
     let tensors_per_thread = 10;
     
-    println!("Testing concurrent device operations with {} threads", num_threads);
+    println!("Testing concurrent device operations with {num_threads} threads");
     
     let handles: Vec<_> = (0..num_threads).map(|thread_id| {
         let cpu_device_clone = cpu_device.clone();
@@ -358,10 +355,10 @@ fn test_concurrent_device_operations() {
             
             for i in 0..tensors_per_thread {
                 let tensor = BitNetTensor::zeros(
-                    &vec![32, 32],
+                    &[32, 32],
                     BitNetDType::F32,
                     Some((*cpu_device_clone).clone())
-                ).expect(&format!("Thread {} failed to create tensor {}", thread_id, i));
+                ).unwrap_or_else(|_| panic!("Thread {thread_id} failed to create tensor {i}"));
                 
                 // Verify device placement
                 assert!(matches!(tensor.device(), candle_core::Device::Cpu));
@@ -381,7 +378,7 @@ fn test_concurrent_device_operations() {
     }
     
     assert_eq!(total_tensors, num_threads * tensors_per_thread);
-    println!("✓ Concurrent device operations completed: {} total tensors", total_tensors);
+    println!("✓ Concurrent device operations completed: {total_tensors} total tensors");
 }
 
 #[test]
@@ -398,12 +395,12 @@ fn test_concurrent_auto_device_selection() {
         thread::spawn(move || {
             for i in 0..selections_per_thread {
                 let tensor = BitNetTensor::zeros(
-                    &vec![16, 16],
+                    &[16, 16],
                     BitNetDType::F32,
                     None // Auto device selection
-                ).expect(&format!("Thread {} failed auto selection {}", thread_id, i));
+                ).unwrap_or_else(|_| panic!("Thread {thread_id} failed auto selection {i}"));
                 
-                let device_name = get_device_name(&tensor.device());
+                let device_name = get_device_name(tensor.device());
                 
                 // Record device selection
                 {
@@ -423,7 +420,7 @@ fn test_concurrent_auto_device_selection() {
     let selections = device_selections.lock().unwrap();
     println!("Auto device selection results:");
     for (device, count) in selections.iter() {
-        println!("  {}: {} selections", device, count);
+        println!("  {device}: {count} selections");
     }
     
     let total_selections: usize = selections.values().sum();
@@ -466,11 +463,11 @@ fn test_device_capability_detection() {
     ];
     
     for &dtype in &dtypes_to_test {
-        let tensor = BitNetTensor::zeros(&vec![16, 16], dtype, Some(cpu_device.clone()))
-            .expect(&format!("CPU should support dtype {:?}", dtype));
+        let tensor = BitNetTensor::zeros(&[16, 16], dtype, Some(cpu_device.clone()))
+            .unwrap_or_else(|_| panic!("CPU should support dtype {dtype:?}"));
         
         assert_eq!(tensor.dtype(), dtype);
-        println!("✓ CPU supports data type: {:?}", dtype);
+        println!("✓ CPU supports data type: {dtype:?}");
     }
 }
 
@@ -488,8 +485,8 @@ fn test_device_memory_characteristics() {
     
     let mut cpu_tensors = Vec::new();
     for i in 0..10 {
-        let tensor = BitNetTensor::zeros(&vec![64, 64], BitNetDType::F32, Some(cpu_device.clone()))
-            .expect(&format!("Failed to create CPU tensor {}", i));
+        let tensor = BitNetTensor::zeros(&[64, 64], BitNetDType::F32, Some(cpu_device.clone()))
+            .unwrap_or_else(|_| panic!("Failed to create CPU tensor {i}"));
         cpu_tensors.push(tensor);
     }
     
@@ -497,7 +494,7 @@ fn test_device_memory_characteristics() {
         .map(|m| m.current_memory_usage - initial_usage)
         .unwrap_or(0);
     
-    println!("CPU memory usage for 10 tensors: {} bytes", cpu_usage);
+    println!("CPU memory usage for 10 tensors: {cpu_usage} bytes");
     
     // Test Metal memory characteristics (if available)
     if is_metal_available() {
@@ -508,7 +505,7 @@ fn test_device_memory_characteristics() {
         
         let mut metal_tensors = Vec::new();
         for i in 0..5 { // Fewer for GPU memory
-            if let Ok(tensor) = BitNetTensor::zeros(&vec![64, 64], BitNetDType::F32, Some(metal_device.clone())) {
+            if let Ok(tensor) = BitNetTensor::zeros(&[64, 64], BitNetDType::F32, Some(metal_device.clone())) {
                 metal_tensors.push(tensor);
             }
         }
@@ -535,7 +532,7 @@ fn test_device_migration_error_handling() {
     // Test invalid tensor creation (should handle gracefully)
     let result = BitNetTensor::from_vec(
         vec![1.0f32, 2.0], // 2 elements
-        &vec![3, 3],       // 9 element shape - mismatch
+        &[3, 3],       // 9 element shape - mismatch
         BitNetDType::F32,
         Some(cpu_device.clone())
     );
@@ -544,7 +541,7 @@ fn test_device_migration_error_handling() {
     println!("✓ Shape-data mismatch properly handled");
     
     // Test empty tensor handling
-    let empty_result = BitNetTensor::zeros(&vec![0], BitNetDType::F32, Some(cpu_device.clone()));
+    let empty_result = BitNetTensor::zeros(&[0], BitNetDType::F32, Some(cpu_device.clone()));
     match empty_result {
         Ok(_) => println!("✓ Empty tensor creation handled"),
         Err(_) => println!("✓ Empty tensor creation rejected"),
@@ -563,8 +560,8 @@ fn test_device_resource_cleanup() {
     {
         let cpu_device = get_cpu_device();
         let _tensors: Vec<_> = (0..20).map(|i| {
-            BitNetTensor::zeros(&vec![32, 32], BitNetDType::F32, Some(cpu_device.clone()))
-                .expect(&format!("Failed to create tensor {}", i))
+            BitNetTensor::zeros(&[32, 32], BitNetDType::F32, Some(cpu_device.clone()))
+                .unwrap_or_else(|_| panic!("Failed to create tensor {i}"))
         }).collect();
         
         let mid_metrics = pool.get_detailed_metrics()

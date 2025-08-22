@@ -98,14 +98,14 @@ fn demo_zero_copy_conversions(pool: &Arc<HybridMemoryPool>, device: &candle_core
     let start = Instant::now();
     let same_type_result = engine.zero_copy_convert(&f32_tensor, BitNetDType::F32)?;
     let duration = start.elapsed();
-    println!("  Same type (F32 -> F32): {:?} (zero allocation)", duration);
+    println!("  Same type (F32 -> F32): {duration:?} (zero allocation)");
 
     // Compatible type conversion (F16 <-> BF16)
     let f16_tensor = BitNetTensor::ones(&[32, 32], BitNetDType::F16, device, pool)?;
     let start = Instant::now();
     let bf16_result = engine.zero_copy_convert(&f16_tensor, BitNetDType::BF16)?;
     let duration = start.elapsed();
-    println!("  Compatible types (F16 -> BF16): {:?} (memory reinterpretation)", duration);
+    println!("  Compatible types (F16 -> BF16): {duration:?} (memory reinterpretation)");
 
     // Verify sizes are the same
     assert_eq!(f16_tensor.size_bytes(), bf16_result.size_bytes());
@@ -133,7 +133,7 @@ fn demo_in_place_conversions(pool: &Arc<HybridMemoryPool>, device: &candle_core:
     let duration = start.elapsed();
 
     println!("  After in-place conversion: {} ({} bytes)", tensor.dtype(), tensor.size_bytes());
-    println!("  Time: {:?}", duration);
+    println!("  Time: {duration:?}");
     println!("  Memory saved: {} bytes ({:.1}x reduction)", 
              original_size - tensor.size_bytes(),
              original_size as f64 / tensor.size_bytes() as f64);
@@ -158,7 +158,7 @@ fn demo_streaming_conversions(pool: &Arc<HybridMemoryPool>, device: &candle_core
     let result = engine.streaming_convert(&large_tensor, BitNetDType::I8, 64 * 1024)?;
     let duration = start.elapsed();
 
-    println!("  Streaming conversion F32 -> I8: {:?}", duration);
+    println!("  Streaming conversion F32 -> I8: {duration:?}");
     println!("  Result: {} bytes ({:.1}x compression)",
              result.size_bytes(),
              large_tensor.size_bytes() as f64 / result.size_bytes() as f64);
@@ -184,14 +184,14 @@ fn demo_batch_conversions(pool: &Arc<HybridMemoryPool>, device: &candle_core::De
         .collect();
     let tensors = tensors?;
 
-    println!("  Created {} tensors for batch processing", tensor_count);
+    println!("  Created {tensor_count} tensors for batch processing");
 
     // Batch convert all tensors
     let start = Instant::now();
     let results = engine.batch_convert(&tensors, BitNetDType::F16)?;
     let duration = start.elapsed();
 
-    println!("  Batch conversion F32 -> F16: {:?}", duration);
+    println!("  Batch conversion F32 -> F16: {duration:?}");
     println!("  Throughput: {:.2} tensors/sec", 
              tensor_count as f64 / duration.as_secs_f64());
 
@@ -227,7 +227,7 @@ fn demo_performance_comparison(pool: &Arc<HybridMemoryPool>, device: &candle_cor
         let _result = engine.convert(&tensor, BitNetDType::I8)?;
         let duration = start.elapsed();
         
-        println!("  {}: {:?}", name, duration);
+        println!("  {name}: {duration:?}");
     }
 
     println!();
@@ -311,7 +311,7 @@ fn demo_configuration_options(pool: &Arc<HybridMemoryPool>, device: &candle_core
     // Validate configuration
     match config.validate() {
         Ok(()) => println!("  ✓ Configuration is valid"),
-        Err(e) => println!("  ✗ Configuration error: {}", e),
+        Err(e) => println!("  ✗ Configuration error: {e}"),
     }
 
     let engine = ConversionEngine::new(config, pool.clone())?;
@@ -331,13 +331,11 @@ fn demo_metrics_and_monitoring(pool: &Arc<HybridMemoryPool>, device: &candle_cor
     let engine = ConversionEngine::new(config, pool.clone())?;
 
     // Perform several conversions to generate metrics
-    let tensors = vec![
-        BitNetTensor::ones(&[32, 32], BitNetDType::F32, device, pool)?,
+    let tensors = [BitNetTensor::ones(&[32, 32], BitNetDType::F32, device, pool)?,
         BitNetTensor::ones(&[64, 64], BitNetDType::F32, device, pool)?,
-        BitNetTensor::ones(&[128, 128], BitNetDType::F32, device, pool)?,
-    ];
+        BitNetTensor::ones(&[128, 128], BitNetDType::F32, device, pool)?];
 
-    let targets = vec![BitNetDType::F16, BitNetDType::I8, BitNetDType::I4];
+    let targets = [BitNetDType::F16, BitNetDType::I8, BitNetDType::I4];
 
     for (tensor, target) in tensors.iter().zip(targets.iter()) {
         let _result = engine.convert(tensor, *target)?;
@@ -355,11 +353,11 @@ fn demo_metrics_and_monitoring(pool: &Arc<HybridMemoryPool>, device: &candle_cor
 
     // Strategy usage
     if let Some(most_used) = stats.most_used_strategy() {
-        println!("    Most used strategy: {:?}", most_used);
+        println!("    Most used strategy: {most_used:?}");
     }
 
     if let Some(fastest) = stats.fastest_strategy() {
-        println!("    Fastest strategy: {:?}", fastest);
+        println!("    Fastest strategy: {fastest:?}");
     }
 
     // Memory statistics

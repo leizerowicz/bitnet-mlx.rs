@@ -6,12 +6,12 @@
 use bitnet_quant::prelude::*;
 use bitnet_quant::{
     PrecisionController, PrecisionControlConfig, PrecisionBounds, DynamicAdjustmentConfig,
-    PrecisionMonitoringConfig, PrecisionValidationConfig, PerformanceThresholds,
-    AdjustmentStrategy, PrecisionMetric, AlertThresholds, AdjustmentReason,
+    PrecisionMonitoringConfig, PerformanceThresholds,
+    AdjustmentStrategy, AdjustmentReason,
     EnhancedQuantizationConfigBuilder, ConfigurationPreset,
     create_precision_controller, create_enhanced_config, QuantizationStats,
 };
-use candle_core::{Tensor, Device, DType};
+use candle_core::Device;
 use std::time::Duration;
 
 #[test]
@@ -323,15 +323,15 @@ fn test_configuration_presets() {
     
     for preset in presets {
         let config = create_enhanced_config(preset);
-        assert!(config.is_ok(), "Failed to create config for preset: {:?}", preset);
+        assert!(config.is_ok(), "Failed to create config for preset: {preset:?}");
         
         let config = config.unwrap();
-        assert!(config.validate().is_ok(), "Config validation failed for preset: {:?}", preset);
+        assert!(config.validate().is_ok(), "Config validation failed for preset: {preset:?}");
         
         // Test that precision controller can be created
         let device = Device::Cpu;
         let controller = create_precision_controller(config.precision_control, device);
-        assert!(controller.is_ok(), "Failed to create controller for preset: {:?}", preset);
+        assert!(controller.is_ok(), "Failed to create controller for preset: {preset:?}");
     }
 }
 
@@ -421,7 +421,7 @@ fn test_adjustment_strategy_behavior() {
         config.dynamic_adjustment.enabled = true;
         
         let controller = PrecisionController::new(config, device.clone());
-        assert!(controller.is_ok(), "Failed to create controller with strategy: {:?}", strategy);
+        assert!(controller.is_ok(), "Failed to create controller with strategy: {strategy:?}");
     }
 }
 

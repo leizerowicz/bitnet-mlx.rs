@@ -64,28 +64,28 @@ impl fmt::Display for CorruptionType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CorruptionType::SizeMismatch { expected, actual, context } => {
-                write!(f, "Size mismatch in {}: expected {} bytes, got {} bytes", context, expected, actual)
+                write!(f, "Size mismatch in {context}: expected {expected} bytes, got {actual} bytes")
             }
             CorruptionType::InvalidValues { invalid_bytes, positions, expected_range } => {
-                write!(f, "Invalid values {:?} at positions {:?}, expected range: {}", invalid_bytes, positions, expected_range)
+                write!(f, "Invalid values {invalid_bytes:?} at positions {positions:?}, expected range: {expected_range}")
             }
             CorruptionType::ChecksumMismatch { expected, actual, algorithm } => {
-                write!(f, "{} checksum mismatch: expected 0x{:08X}, got 0x{:08X}", algorithm, expected, actual)
+                write!(f, "{algorithm} checksum mismatch: expected 0x{expected:08X}, got 0x{actual:08X}")
             }
             CorruptionType::MetadataInconsistency { field, expected, actual } => {
-                write!(f, "Metadata inconsistency in {}: expected '{}', got '{}'", field, expected, actual)
+                write!(f, "Metadata inconsistency in {field}: expected '{expected}', got '{actual}'")
             }
             CorruptionType::StrategySpecific { strategy, details } => {
-                write!(f, "Strategy-specific corruption in {:?}: {}", strategy, details)
+                write!(f, "Strategy-specific corruption in {strategy:?}: {details}")
             }
             CorruptionType::StructuralCorruption { description, recovery_possible } => {
-                write!(f, "Structural corruption: {} (recovery possible: {})", description, recovery_possible)
+                write!(f, "Structural corruption: {description} (recovery possible: {recovery_possible})")
             }
             CorruptionType::PaddingCorruption { expected_padding, actual_padding } => {
-                write!(f, "Padding corruption: expected {} padding bytes, got {}", expected_padding, actual_padding)
+                write!(f, "Padding corruption: expected {expected_padding} padding bytes, got {actual_padding}")
             }
             CorruptionType::IndexOutOfBounds { index, max_valid, format } => {
-                write!(f, "Index {} out of bounds in {} format (max valid: {})", index, format, max_valid)
+                write!(f, "Index {index} out of bounds in {format} format (max valid: {max_valid})")
             }
         }
     }
@@ -438,7 +438,7 @@ impl CorruptionDetector {
             Err(e) => {
                 reports.push(CorruptionReport {
                     corruption_type: CorruptionType::StructuralCorruption {
-                        description: format!("Partial unpack failed: {}", e),
+                        description: format!("Partial unpack failed: {e}"),
                         recovery_possible: true,
                     },
                     severity: CorruptionSeverity::Severe,
@@ -465,8 +465,8 @@ impl CorruptionDetector {
     fn calculate_minimum_expected_size(&self, packed: &PackedTernaryWeights) -> usize {
         match packed.strategy {
             TernaryPackingStrategy::Uncompressed => packed.metadata.element_count,
-            TernaryPackingStrategy::BitPacked2Bit => (packed.metadata.element_count + 3) / 4,
-            TernaryPackingStrategy::Base3Packed => (packed.metadata.element_count + 4) / 5,
+            TernaryPackingStrategy::BitPacked2Bit => packed.metadata.element_count.div_ceil(4),
+            TernaryPackingStrategy::Base3Packed => packed.metadata.element_count.div_ceil(5),
             TernaryPackingStrategy::ByteAligned => packed.metadata.element_count,
             TernaryPackingStrategy::RunLengthEncoded => 2, // At least one run
             TernaryPackingStrategy::CompressedSparse => 4, // At least header
@@ -478,11 +478,11 @@ impl CorruptionDetector {
     fn calculate_maximum_expected_size(&self, packed: &PackedTernaryWeights) -> usize {
         match packed.strategy {
             TernaryPackingStrategy::Uncompressed => packed.metadata.element_count,
-            TernaryPackingStrategy::BitPacked2Bit => (packed.metadata.element_count + 3) / 4,
-            TernaryPackingStrategy::Base3Packed => (packed.metadata.element_count + 4) / 5,
+            TernaryPackingStrategy::BitPacked2Bit => packed.metadata.element_count.div_ceil(4),
+            TernaryPackingStrategy::Base3Packed => packed.metadata.element_count.div_ceil(5),
             TernaryPackingStrategy::ByteAligned => {
                 let alignment = packed.config.alignment;
-                ((packed.metadata.element_count + alignment - 1) / alignment) * alignment
+                packed.metadata.element_count.div_ceil(alignment) * alignment
             }
             TernaryPackingStrategy::RunLengthEncoded => packed.metadata.element_count * 2, // Worst case: no compression
             TernaryPackingStrategy::CompressedSparse => {
@@ -794,7 +794,7 @@ impl StrategyValidator for CompressedSparseValidator {
                 severity: CorruptionSeverity::Severe,
                 confidence: 0.9,
                 byte_offset: Some(expected_size.min(packed.data.len())),
-                corrupted_length: Some((expected_size as isize - packed.data.len() as isize).abs() as usize),
+                corrupted_length: Some((expected_size as isize - packed.data.len() as isize).unsigned_abs()),
                 recovery_suggestions: vec![RecoveryAction::DiscardCorrupted {
                     safe_length: expected_size.min(packed.data.len()),
                 }],
@@ -1097,7 +1097,7 @@ mod tests {
         let detector = CorruptionDetector::default();
         
         // Test empty data with non-zero element count
-        let mut packed = PackedTernaryWeights {
+        let packed = PackedTernaryWeights {
             data: Vec::new(),
             shape: candle_core::Shape::from_dims(&[10]),
             strategy: TernaryPackingStrategy::BitPacked2Bit,
@@ -1117,7 +1117,7 @@ mod tests {
     
     #[test]
     fn test_checksum_validation() {
-        let mut detector = CorruptionDetector::default();
+        let detector = CorruptionDetector::default();
         
         let mut packed = PackedTernaryWeights {
             data: vec![1, 2, 3, 4],

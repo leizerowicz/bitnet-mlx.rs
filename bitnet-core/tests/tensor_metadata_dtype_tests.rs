@@ -14,15 +14,14 @@
 //! - Concurrent access patterns and thread safety
 
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 use std::thread;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use bitnet_core::memory::tensor::{BitNetDType, TensorMetadata};
 use bitnet_core::memory::tensor::metadata::DeviceInfo;
-use bitnet_core::device::{get_cpu_device, auto_select_device, is_metal_available, get_metal_device};
+use bitnet_core::device::{get_cpu_device, is_metal_available, get_metal_device};
 use candle_core::{Device, DType};
-use serde_json;
 use approx::assert_relative_eq;
 use rand::{Rng, thread_rng};
 
@@ -73,7 +72,7 @@ fn create_random_metadata(id: u64) -> TensorMetadata {
     let shape: Vec<usize> = (0..rank).map(|_| rng.gen_range(1..=100)).collect();
     
     let name = if rng.gen_bool(0.5) {
-        Some(format!("tensor_{}", id))
+        Some(format!("tensor_{id}"))
     } else {
         None
     };
@@ -170,13 +169,13 @@ fn test_metadata_serialization_edge_cases() {
                     shape.clone(),
                     dtype,
                     device,
-                    Some(format!("{}_{}", test_name, dtype)),
+                    Some(format!("{test_name}_{dtype}")),
                 );
                 
                 // Add complex state
                 metadata.add_tag("serialization_test".to_string());
-                metadata.add_tag(format!("dtype_{}", dtype));
-                metadata.add_tag(format!("device_{:?}", device));
+                metadata.add_tag(format!("dtype_{dtype}"));
+                metadata.add_tag(format!("device_{device:?}"));
                 metadata.set_migrating(true);
                 metadata.add_ref();
                 metadata.add_ref();
@@ -235,7 +234,7 @@ fn test_metadata_performance_under_high_frequency_updates() {
     let touch_duration = start_time.elapsed();
     let avg_touch_time = touch_duration / iterations;
     
-    println!("Average touch() time: {:?}", avg_touch_time);
+    println!("Average touch() time: {avg_touch_time:?}");
     assert!(avg_touch_time < Duration::from_micros(10), "touch() too slow");
     
     // Test reference counting performance
@@ -247,13 +246,13 @@ fn test_metadata_performance_under_high_frequency_updates() {
     let ref_count_duration = start_time.elapsed();
     let avg_ref_count_time = ref_count_duration / (iterations * 2);
     
-    println!("Average ref count operation time: {:?}", avg_ref_count_time);
+    println!("Average ref count operation time: {avg_ref_count_time:?}");
     assert!(avg_ref_count_time < Duration::from_nanos(100), "ref counting too slow");
     
     // Test tag operations performance
     let start_time = Instant::now();
     for i in 0..1000 {
-        let tag = format!("tag_{}", i);
+        let tag = format!("tag_{i}");
         metadata.add_tag(tag.clone());
         assert!(metadata.has_tag(&tag));
         metadata.remove_tag(&tag);
@@ -262,7 +261,7 @@ fn test_metadata_performance_under_high_frequency_updates() {
     let tag_duration = start_time.elapsed();
     let avg_tag_time = tag_duration / (1000 * 3); // 3 operations per iteration
     
-    println!("Average tag operation time: {:?}", avg_tag_time);
+    println!("Average tag operation time: {avg_tag_time:?}");
     assert!(avg_tag_time < Duration::from_micros(50), "tag operations too slow");
 }
 
@@ -350,7 +349,7 @@ fn test_metadata_concurrent_access_patterns() {
                 
                 // Perform various operations
                 meta.touch();
-                meta.add_tag(format!("thread_{}_{}", thread_id, i));
+                meta.add_tag(format!("thread_{thread_id}_{i}"));
                 meta.add_ref();
                 
                 if i % 10 == 0 {
@@ -363,7 +362,7 @@ fn test_metadata_concurrent_access_patterns() {
                 
                 // Verify consistency
                 assert!(meta.ref_count() > 0);
-                assert!(meta.has_tag(&format!("thread_{}_{}", thread_id, i)));
+                assert!(meta.has_tag(&format!("thread_{thread_id}_{i}")));
             }
         });
         
@@ -383,8 +382,8 @@ fn test_metadata_concurrent_access_patterns() {
     // Verify all expected tags are present
     for thread_id in 0..thread_count {
         for i in 0..operations_per_thread {
-            let tag = format!("thread_{}_{}", thread_id, i);
-            assert!(final_meta.has_tag(&tag), "Missing tag: {}", tag);
+            let tag = format!("thread_{thread_id}_{i}");
+            assert!(final_meta.has_tag(&tag), "Missing tag: {tag}");
         }
     }
 }
@@ -398,16 +397,16 @@ fn test_all_bitnet_dtypes_comprehensive() {
     let dtypes = get_all_dtypes();
     
     for &dtype in &dtypes {
-        println!("Testing dtype: {}", dtype);
+        println!("Testing dtype: {dtype}");
         
         // Test basic properties
         let bits = dtype.bits_per_element();
         let description = dtype.description();
         let efficiency = dtype.memory_efficiency();
         
-        assert!(bits > 0, "Bits per element should be positive for {}", dtype);
-        assert!(!description.is_empty(), "Description should not be empty for {}", dtype);
-        assert!(efficiency > 0.0, "Memory efficiency should be positive for {}", dtype);
+        assert!(bits > 0, "Bits per element should be positive for {dtype}");
+        assert!(!description.is_empty(), "Description should not be empty for {dtype}");
+        assert!(efficiency > 0.0, "Memory efficiency should be positive for {dtype}");
         
         // Test bytes calculation for various element counts
         let test_counts = vec![1, 7, 8, 15, 16, 31, 32, 63, 64, 127, 128, 1000, 10000];
@@ -415,10 +414,10 @@ fn test_all_bitnet_dtypes_comprehensive() {
         for count in test_counts {
             let bytes = dtype.bytes_for_elements(count);
             let expected_bits = bits * count;
-            let expected_bytes = (expected_bits + 7) / 8; // Round up to bytes
+            let expected_bytes = expected_bits.div_ceil(8); // Round up to bytes
             
             assert_eq!(bytes, expected_bytes, 
-                      "Byte calculation mismatch for {} with {} elements", dtype, count);
+                      "Byte calculation mismatch for {dtype} with {count} elements");
         }
         
         // Test type classification
@@ -429,7 +428,7 @@ fn test_all_bitnet_dtypes_comprehensive() {
         
         // Verify mutual exclusivity where appropriate
         if is_float {
-            assert!(!is_integer, "Type cannot be both float and integer: {}", dtype);
+            assert!(!is_integer, "Type cannot be both float and integer: {dtype}");
         }
         
         if is_bitnet158 {
@@ -440,7 +439,7 @@ fn test_all_bitnet_dtypes_comprehensive() {
         // Test value ranges for integer types
         if is_integer || is_bitnet158 {
             if let Some((min, max)) = dtype.value_range() {
-                assert!(min <= max, "Min should be <= max for {}", dtype);
+                assert!(min <= max, "Min should be <= max for {dtype}");
                 
                 // Verify range matches expected bit width
                 let range_size = (max - min + 1) as usize;
@@ -451,19 +450,18 @@ fn test_all_bitnet_dtypes_comprehensive() {
                     assert_eq!(range_size, 3, "BitNet158 should have 3 possible values");
                 } else {
                     assert!(range_size <= max_values, 
-                           "Range size {} exceeds max values {} for {}", 
-                           range_size, max_values, dtype);
+                           "Range size {range_size} exceeds max values {max_values} for {dtype}");
                 }
             }
         } else {
             assert!(dtype.value_range().is_none(), 
-                   "Float types should not have value ranges: {}", dtype);
+                   "Float types should not have value ranges: {dtype}");
         }
         
         // Test Candle dtype conversion
         let candle_dtype = dtype.to_candle_dtype();
         assert!(matches!(candle_dtype, DType::F32 | DType::F16 | DType::BF16 | DType::I64),
-               "Unexpected candle dtype for {}: {:?}", dtype, candle_dtype);
+               "Unexpected candle dtype for {dtype}: {candle_dtype:?}");
         
         // Test memory efficiency calculation
         let expected_efficiency = 32.0 / bits as f32;
@@ -549,17 +547,17 @@ fn test_dtype_memory_efficiency_calculations() {
             // Verify memory savings for quantized types
             if dtype.is_quantized() {
                 assert!(bytes <= f32_bytes, 
-                       "Quantized type {} should use less memory than F32", dtype);
+                       "Quantized type {dtype} should use less memory than F32");
                 assert!(efficiency >= 1.0, 
-                       "Quantized type {} should have efficiency >= 1.0", dtype);
+                       "Quantized type {dtype} should have efficiency >= 1.0");
             }
             
             // Verify bit-level efficiency for sub-byte types
             if dtype.bits_per_element() < 8 {
                 let bits_used = dtype.bits_per_element() * count;
-                let bytes_needed = (bits_used + 7) / 8; // Round up
+                let bytes_needed = bits_used.div_ceil(8); // Round up
                 assert_eq!(bytes, bytes_needed,
-                          "Bit packing incorrect for {} with {} elements", dtype, count);
+                          "Bit packing incorrect for {dtype} with {count} elements");
             }
         }
     }
@@ -585,16 +583,16 @@ fn test_dtype_compatibility_with_operations() {
                        "I64 Candle dtype should correspond to integer or BitNet158 dtype");
             }
             _ => {
-                panic!("Unexpected Candle dtype: {:?}", candle_dtype);
+                panic!("Unexpected Candle dtype: {candle_dtype:?}");
             }
         }
         
         // Test serialization compatibility
         let serialized = serde_json::to_string(&dtype)
-            .expect(&format!("Failed to serialize dtype {}", dtype));
+            .unwrap_or_else(|_| panic!("Failed to serialize dtype {dtype}"));
         let deserialized: BitNetDType = serde_json::from_str(&serialized)
-            .expect(&format!("Failed to deserialize dtype {}", dtype));
-        assert_eq!(dtype, deserialized, "Serialization roundtrip failed for {}", dtype);
+            .unwrap_or_else(|_| panic!("Failed to deserialize dtype {dtype}"));
+        assert_eq!(dtype, deserialized, "Serialization roundtrip failed for {dtype}");
     }
 }
 
@@ -605,12 +603,12 @@ fn test_dtype_edge_cases_and_boundary_conditions() {
     for &dtype in &dtypes {
         // Test with zero elements
         let zero_bytes = dtype.bytes_for_elements(0);
-        assert_eq!(zero_bytes, 0, "Zero elements should require zero bytes for {}", dtype);
+        assert_eq!(zero_bytes, 0, "Zero elements should require zero bytes for {dtype}");
         
         // Test with maximum reasonable element count
         let max_elements = 1_000_000;
         let max_bytes = dtype.bytes_for_elements(max_elements);
-        assert!(max_bytes > 0, "Large element count should require positive bytes for {}", dtype);
+        assert!(max_bytes > 0, "Large element count should require positive bytes for {dtype}");
         
         // Test bit packing edge cases for sub-byte types
         if dtype.bits_per_element() < 8 {
@@ -628,10 +626,9 @@ fn test_dtype_edge_cases_and_boundary_conditions() {
             
             for count in test_counts {
                 let bytes = dtype.bytes_for_elements(count);
-                let expected_bytes = (count * bits_per_element + 7) / 8;
+                let expected_bytes = (count * bits_per_element).div_ceil(8);
                 assert_eq!(bytes, expected_bytes,
-                          "Bit packing boundary test failed for {} with {} elements", 
-                          dtype, count);
+                          "Bit packing boundary test failed for {dtype} with {count} elements");
             }
         }
         
@@ -688,18 +685,18 @@ fn test_metadata_accuracy_with_different_dtypes() {
                 shape.clone(),
                 dtype,
                 &device,
-                Some(format!("test_{}_{:?}", dtype, shape)),
+                Some(format!("test_{dtype}_{shape:?}")),
             );
             
             // Verify element count calculation
             let expected_elements: usize = if shape.is_empty() { 1 } else { shape.iter().product() };
             assert_eq!(metadata.element_count, expected_elements,
-                      "Element count mismatch for {} with shape {:?}", dtype, shape);
+                      "Element count mismatch for {dtype} with shape {shape:?}");
             
             // Verify size calculation
             let expected_size = dtype.bytes_for_elements(expected_elements);
             assert_eq!(metadata.size_bytes, expected_size,
-                      "Size calculation mismatch for {} with shape {:?}", dtype, shape);
+                      "Size calculation mismatch for {dtype} with shape {shape:?}");
             
             // Verify memory efficiency
             let efficiency = metadata.memory_efficiency();
@@ -736,9 +733,9 @@ fn test_memory_calculations_with_various_dtypes() {
             // For quantized types, verify bit-level efficiency
             if dtype.is_quantized() {
                 let bits_used = dtype.bits_per_element() * count;
-                let bytes_used = (bits_used + 7) / 8;
+                let bytes_used = bits_used.div_ceil(8);
                 assert_eq!(metadata.size_bytes, bytes_used,
-                          "Bit packing calculation incorrect for {} with {} elements", dtype, count);
+                          "Bit packing calculation incorrect for {dtype} with {count} elements");
             }
         }
     }
@@ -756,7 +753,7 @@ fn test_device_compatibility_across_dtypes() {
                 vec![100],
                 dtype,
                 device,
-                Some(format!("device_test_{}_{:?}", dtype, device)),
+                Some(format!("device_test_{dtype}_{device:?}")),
             );
             
             // Verify device info is correctly stored
@@ -764,7 +761,7 @@ fn test_device_compatibility_across_dtypes() {
                 (DeviceInfo::Cpu, Device::Cpu) => {},
                 (DeviceInfo::Metal(_), Device::Metal(_)) => {},
                 (DeviceInfo::Cuda(_), Device::Cuda(_)) => {},
-                _ => panic!("Device info mismatch for {} on {:?}", dtype, device),
+                _ => panic!("Device info mismatch for {dtype} on {device:?}"),
             }
             
             // Test device migration with different dtypes
@@ -802,7 +799,7 @@ fn test_metadata_updates_during_dtype_conversions() {
             vec![100],
             source_dtype,
             &device,
-            Some(format!("conversion_test_{}", source_dtype)),
+            Some(format!("conversion_test_{source_dtype}")),
         );
         
         let original_element_count = metadata.element_count;
@@ -856,7 +853,7 @@ fn test_metadata_tagging_and_classification_systems() {
     
     for (category, tags) in tag_categories {
         for tag in tags {
-            let full_tag = format!("{}:{}", category, tag);
+            let full_tag = format!("{category}:{tag}");
             metadata.add_tag(full_tag.clone());
             assert!(metadata.has_tag(&full_tag));
         }
@@ -894,7 +891,7 @@ fn test_comprehensive_dtype_precision_validation() {
     let dtypes = get_all_dtypes();
     
     for &dtype in &dtypes {
-        println!("Validating precision for: {}", dtype);
+        println!("Validating precision for: {dtype}");
         
         // Test precision characteristics
         let bits = dtype.bits_per_element();
@@ -982,7 +979,7 @@ fn test_performance_and_efficiency_comprehensive() {
     let element_counts = vec![1000, 10000, 100000];
     
     for &count in &element_counts {
-        println!("Testing efficiency with {} elements", count);
+        println!("Testing efficiency with {count} elements");
         
         let mut efficiency_results = HashMap::new();
         let f32_bytes = BitNetDType::F32.bytes_for_elements(count);
@@ -1008,9 +1005,9 @@ fn test_performance_and_efficiency_comprehensive() {
             if dtype.is_quantized() {
                 let (bytes, efficiency, _) = efficiency_results[&dtype];
                 assert!(efficiency > 1.0,
-                       "Quantized type {} should be more efficient than F32", dtype);
+                       "Quantized type {dtype} should be more efficient than F32");
                 assert!(bytes < f32_bytes,
-                       "Quantized type {} should use less memory than F32", dtype);
+                       "Quantized type {dtype} should use less memory than F32");
             }
         }
     }
@@ -1023,7 +1020,7 @@ fn test_edge_cases_and_boundary_conditions_comprehensive() {
     for &dtype in &dtypes {
         // Test with zero elements
         let zero_bytes = dtype.bytes_for_elements(0);
-        assert_eq!(zero_bytes, 0, "Zero elements should require zero bytes for {}", dtype);
+        assert_eq!(zero_bytes, 0, "Zero elements should require zero bytes for {dtype}");
         
         // Test bit packing edge cases for sub-byte types
         if dtype.bits_per_element() < 8 {
@@ -1041,16 +1038,15 @@ fn test_edge_cases_and_boundary_conditions_comprehensive() {
             
             for count in test_counts {
                 let bytes = dtype.bytes_for_elements(count);
-                let expected_bytes = (count * bits_per_element + 7) / 8;
+                let expected_bytes = (count * bits_per_element).div_ceil(8);
                 assert_eq!(bytes, expected_bytes,
-                          "Bit packing boundary test failed for {} with {} elements",
-                          dtype, count);
+                          "Bit packing boundary test failed for {dtype} with {count} elements");
             }
         }
         
         // Test value range boundaries for integer types
         if let Some((min_val, max_val)) = dtype.value_range() {
-            assert!(min_val <= max_val, "Min should be <= max for {}", dtype);
+            assert!(min_val <= max_val, "Min should be <= max for {dtype}");
             
             // Test specific expected ranges
             match dtype {
@@ -1105,7 +1101,7 @@ fn test_concurrent_access_and_thread_safety() {
                 
                 // Perform thread-safe operations
                 meta.touch();
-                meta.add_tag(format!("thread_{}_{}", thread_id, i));
+                meta.add_tag(format!("thread_{thread_id}_{i}"));
                 meta.add_ref();
                 
                 if i % 10 == 0 {
@@ -1118,7 +1114,7 @@ fn test_concurrent_access_and_thread_safety() {
                 
                 // Verify consistency
                 assert!(meta.ref_count() > 0);
-                assert!(meta.has_tag(&format!("thread_{}_{}", thread_id, i)));
+                assert!(meta.has_tag(&format!("thread_{thread_id}_{i}")));
             }
         });
         
@@ -1160,7 +1156,7 @@ fn test_comprehensive_integration_validation() {
                     shape.clone(),
                     dtype,
                     device,
-                    Some(format!("integration_{}_{:?}", dtype, device)),
+                    Some(format!("integration_{dtype}_{device:?}")),
                 );
                 
                 // Verify all properties are consistent
@@ -1191,7 +1187,6 @@ fn test_comprehensive_integration_validation() {
         }
     }
     
-    println!("Integration validation completed: {}/{} tests passed",
-             successful_tests, total_tests);
+    println!("Integration validation completed: {successful_tests}/{total_tests} tests passed");
     assert_eq!(successful_tests, total_tests);
 }

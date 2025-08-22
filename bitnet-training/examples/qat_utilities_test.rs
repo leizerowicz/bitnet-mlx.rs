@@ -62,7 +62,7 @@ fn test_regularization(device: &Device) -> Result<()> {
     let reg_loss = regularizer.compute_regularization(&parameters)?;
     let reg_value = reg_loss.to_scalar::<f32>()?;
     
-    println!("  Regularization loss: {:.6}", reg_value);
+    println!("  Regularization loss: {reg_value:.6}");
     
     // Verify regularization is working
     assert!(reg_value >= 0.0, "Regularization loss should be non-negative");
@@ -92,7 +92,7 @@ fn test_distillation(device: &Device) -> Result<()> {
     let distill_loss = distillation.compute_loss(&teacher_logits, &student_logits, None)?;
     let distill_value = distill_loss.to_scalar::<f32>()?;
     
-    println!("  Distillation loss: {:.6}", distill_value);
+    println!("  Distillation loss: {distill_value:.6}");
     
     // Verify distillation is working
     assert!(distill_value >= 0.0, "Distillation loss should be non-negative");
@@ -133,7 +133,7 @@ fn test_optimizers(device: &Device) -> Result<()> {
     let mut gradients = HashMap::new();
     
     for i in 0..3 {
-        let param_name = format!("layer_{}", i);
+        let param_name = format!("layer_{i}");
         let param = Tensor::randn(0.0f32, 1.0f32, (32, 64), device)?;
         let grad = Tensor::randn(0.0f32, 0.1f32, (32, 64), device)?;
         
@@ -161,7 +161,7 @@ fn test_optimizers(device: &Device) -> Result<()> {
     
     // Verify parameters were updated
     let param_diff = (updated_param - &initial_param)?.abs()?.sum_all()?.to_scalar::<f32>()?;
-    println!("  Parameter update magnitude: {:.6}", param_diff);
+    println!("  Parameter update magnitude: {param_diff:.6}");
     
     assert!(param_diff > 0.0, "Parameters should be updated");
     

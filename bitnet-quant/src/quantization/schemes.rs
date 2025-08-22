@@ -30,6 +30,7 @@ pub struct QuantizationSchemeConfig {
 
 /// Scheme-specific parameters for different quantization types
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct SchemeParameters {
     /// Parameters for 1-bit quantization
     pub one_bit: OneBitParams,
@@ -131,15 +132,6 @@ impl Default for QuantizationSchemeConfig {
     }
 }
 
-impl Default for SchemeParameters {
-    fn default() -> Self {
-        Self {
-            one_bit: OneBitParams::default(),
-            one_five_eight_bit: OneFiveEightBitParams::default(),
-            multi_bit: MultiBitParams::default(),
-        }
-    }
-}
 
 impl Default for OneBitParams {
     fn default() -> Self {
@@ -482,6 +474,10 @@ impl ConfigurableQuantizationScheme {
                 }
                 
                 best_threshold
+            },
+            TernaryMethod::DetSTE => {
+                // Deterministic Straight-Through Estimator - use mean threshold with conservative factor
+                abs_input.mean_all()?.to_scalar::<f32>()? * 0.7
             }
         };
         

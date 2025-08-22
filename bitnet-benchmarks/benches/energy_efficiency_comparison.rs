@@ -96,7 +96,7 @@ fn bench_energy_efficient_matmul(c: &mut Criterion) {
 
         // CPU energy benchmark
         group.bench_with_input(
-            BenchmarkId::new("cpu_energy", format!("{}x{}", rows, cols)),
+            BenchmarkId::new("cpu_energy", format!("{rows}x{cols}")),
             &(rows, cols),
             |bencher, &(rows, cols)| {
                 let device = Device::Cpu;
@@ -128,7 +128,7 @@ fn bench_energy_efficient_matmul(c: &mut Criterion) {
         #[cfg(target_os = "macos")]
         if Device::new_metal(0).is_ok() {
             group.bench_with_input(
-                BenchmarkId::new("metal_energy", format!("{}x{}", rows, cols)),
+                BenchmarkId::new("metal_energy", format!("{rows}x{cols}")),
                 &(rows, cols),
                 |bencher, &(rows, cols)| {
                     let device = Device::new_metal(0).unwrap();
@@ -214,7 +214,7 @@ fn bench_energy_efficient_quantization(c: &mut Criterion) {
 
         // CPU quantization energy
         group.bench_with_input(
-            BenchmarkId::new("cpu_quantize_energy", format!("{}x{}", rows, cols)),
+            BenchmarkId::new("cpu_quantize_energy", format!("{rows}x{cols}")),
             &(rows, cols),
             |bencher, &(rows, cols)| {
                 let device = Device::Cpu;

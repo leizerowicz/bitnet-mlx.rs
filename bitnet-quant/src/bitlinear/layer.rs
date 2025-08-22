@@ -4,7 +4,6 @@
 //! using 1.58-bit quantized weights while maintaining full-precision weights for training.
 
 use candle_core::{Device, Shape, Tensor};
-use bitnet_core::device::auto_select_device;
 use bitnet_core::memory::{HybridMemoryPool, MemoryResult};
 use crate::quantization::{
     QuantizedWeight, WeightQuantizer, WeightQuantizationConfig, 
@@ -196,7 +195,7 @@ impl BitLinear {
         
         // Generate random tensor with normal distribution
         let weights = Tensor::randn(0.0, std_dev as f32, shape, device)
-            .map_err(|e| BitLinearError::DeviceError(format!("Failed to initialize weights: {}", e)))?;
+            .map_err(|e| BitLinearError::DeviceError(format!("Failed to initialize weights: {e}")))?;
         
         Ok(weights)
     }
@@ -265,7 +264,7 @@ impl BitLinear {
             .map_err(|_| BitLinearError::QuantizationError("Failed to acquire quantizer lock".to_string()))?;
         
         let quantized = quantizer_guard.quantize(&weights_guard)
-            .map_err(|e| BitLinearError::QuantizationError(format!("Weight quantization failed: {}", e)))?;
+            .map_err(|e| BitLinearError::QuantizationError(format!("Weight quantization failed: {e}")))?;
         
         // Update cache if enabled
         if let Some(ref cache) = self.cache {
@@ -277,7 +276,7 @@ impl BitLinear {
                 &weights_guard,
                 self.layer_name.clone(),
             ).map_err(|e| {
-                let cache_err = crate::bitlinear::cache::CacheError::TensorError(format!("Failed to create cache entry: {}", e));
+                let cache_err = crate::bitlinear::cache::CacheError::TensorError(format!("Failed to create cache entry: {e}"));
                 BitLinearError::CacheError(cache_err)
             })?;
             
@@ -374,7 +373,7 @@ impl BitLinear {
             let mut weights_guard = self.weights.write()
                 .map_err(|_| BitLinearError::MemoryError("Failed to acquire weights write lock".to_string()))?;
             let new_weights = weights_guard.to_device(&device)
-                .map_err(|e| BitLinearError::DeviceError(format!("Failed to move weights to device: {}", e)))?;
+                .map_err(|e| BitLinearError::DeviceError(format!("Failed to move weights to device: {e}")))?;
             *weights_guard = new_weights;
         }
         
@@ -383,7 +382,7 @@ impl BitLinear {
             let mut bias_guard = bias.write()
                 .map_err(|_| BitLinearError::MemoryError("Failed to acquire bias write lock".to_string()))?;
             let new_bias = bias_guard.to_device(&device)
-                .map_err(|e| BitLinearError::DeviceError(format!("Failed to move bias to device: {}", e)))?;
+                .map_err(|e| BitLinearError::DeviceError(format!("Failed to move bias to device: {e}")))?;
             *bias_guard = new_bias;
         }
         

@@ -2175,7 +2175,7 @@ pub fn calculate_optimal_threadgroup_size(_device: &(), _pipeline_state: &(), _t
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    
 
     #[test]
     #[cfg(all(target_os = "macos", feature = "metal"))]

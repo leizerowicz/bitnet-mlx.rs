@@ -525,7 +525,7 @@ fn test_tokenizer_large_vocab() {
     
     // Create a large vocabulary
     for i in 0..10000 {
-        vocab.insert(format!("token_{}", i), i as u32);
+        vocab.insert(format!("token_{i}"), i as u32);
     }
     
     let tokenizer = create_simple_tokenizer(vocab.clone());
@@ -577,6 +577,6 @@ fn test_tokenizer_whitespace_handling() {
     
     for (text, expected_tokens) in test_cases {
         let tokens = encode_text(&tokenizer, text).unwrap();
-        assert_eq!(tokens, expected_tokens, "Failed for text: '{}'", text);
+        assert_eq!(tokens, expected_tokens, "Failed for text: '{text}'");
     }
 }

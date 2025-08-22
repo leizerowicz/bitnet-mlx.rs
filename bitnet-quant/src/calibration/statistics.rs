@@ -423,10 +423,10 @@ impl StatisticsCollector {
     /// Convert tensor to Vec<f32> for processing
     fn tensor_to_vec(&self, tensor: &Tensor) -> CalibrationResult<Vec<f32>> {
         let flattened = tensor.flatten_all()
-            .map_err(|e| CalibrationError::statistics(format!("Failed to flatten tensor: {}", e)))?;
+            .map_err(|e| CalibrationError::statistics(format!("Failed to flatten tensor: {e}")))?;
         
         let values: Vec<f32> = flattened.to_vec1()
-            .map_err(|e| CalibrationError::statistics(format!("Failed to convert tensor to vec: {}", e)))?;
+            .map_err(|e| CalibrationError::statistics(format!("Failed to convert tensor to vec: {e}")))?;
         
         Ok(values)
     }
@@ -761,7 +761,7 @@ impl StatisticsUpdate for StatisticsCollector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use candle_core::{Device, DType};
+    use candle_core::Device;
 
     fn create_test_tensor(shape: &[usize]) -> CalibrationResult<Tensor> {
         let device = Device::Cpu;

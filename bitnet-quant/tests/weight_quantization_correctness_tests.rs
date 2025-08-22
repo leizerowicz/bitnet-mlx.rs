@@ -5,10 +5,9 @@
 //! and BitNet-specific weight quantization algorithms.
 
 use bitnet_quant::quantization::weights::*;
-use bitnet_quant::quantization::{QuantizationPrecision, QuantizationConfig, QuantizationStrategy, QuantizationStats};
-use bitnet_quant::quantization::utils::QuantizationError;
+use bitnet_quant::quantization::QuantizationPrecision;
 use candle_core::{Device, Tensor, DType, Shape};
-use approx::{assert_relative_eq, assert_abs_diff_eq};
+use approx::assert_abs_diff_eq;
 
 /// Test helper to create weight tensors with specific characteristics
 fn create_weight_tensor(device: &Device, pattern: &str, shape: &[usize]) -> Tensor {
@@ -58,7 +57,7 @@ fn test_ternary_method_mean_threshold() {
     // Verify ternary values
     let values = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
     for &val in &values {
-        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {}", val);
+        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {val}");
     }
     
     // Verify that the threshold is based on mean absolute value
@@ -70,8 +69,8 @@ fn test_ternary_method_mean_threshold() {
     let original_data = weights.flatten_all().unwrap().to_vec1::<f32>().unwrap();
     for (i, (&original, &quantized_val)) in original_data.iter().zip(values.iter()).enumerate() {
         if original.abs() > expected_threshold {
-            assert_ne!(quantized_val, 0.0, "Value {} should not be zero at index {}", original, i);
-            assert_eq!(quantized_val.signum(), original.signum(), "Sign mismatch at index {}", i);
+            assert_ne!(quantized_val, 0.0, "Value {original} should not be zero at index {i}");
+            assert_eq!(quantized_val.signum(), original.signum(), "Sign mismatch at index {i}");
         }
     }
 }
@@ -87,7 +86,7 @@ fn test_ternary_method_median_threshold() {
     // Verify ternary values
     let values = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
     for &val in &values {
-        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {}", val);
+        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {val}");
     }
     
     // Verify shape preservation
@@ -106,7 +105,7 @@ fn test_ternary_method_adaptive_threshold() {
     // Verify ternary values
     let values = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
     for &val in &values {
-        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {}", val);
+        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {val}");
     }
     
     // Adaptive threshold should handle outliers better
@@ -116,7 +115,7 @@ fn test_ternary_method_adaptive_threshold() {
     
     for (&original, &quantized_val) in original_data.iter().zip(values.iter()) {
         if original.abs() > max_abs * 0.8 {
-            assert_ne!(quantized_val, 0.0, "Large value {} should not be quantized to zero", original);
+            assert_ne!(quantized_val, 0.0, "Large value {original} should not be quantized to zero");
         }
     }
 }
@@ -132,7 +131,7 @@ fn test_ternary_method_optimal_threshold() {
     // Verify ternary values
     let values = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
     for &val in &values {
-        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {}", val);
+        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {val}");
     }
     
     // Optimal threshold should minimize quantization error
@@ -149,7 +148,7 @@ fn test_ternary_method_optimal_threshold() {
     let mean_error = mean_diff.sqr().unwrap().mean_all().unwrap().to_scalar::<f32>().unwrap();
     
     // Optimal should have equal or better error (allowing for some numerical tolerance)
-    assert!(error <= mean_error + 0.1, "Optimal method error {} should be <= mean method error {}", error, mean_error);
+    assert!(error <= mean_error + 0.1, "Optimal method error {error} should be <= mean method error {mean_error}");
 }
 
 #[test]
@@ -172,13 +171,13 @@ fn test_custom_threshold_factors() {
         
         // Verify all values are ternary
         for &val in &values {
-            assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {}", val);
+            assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {val}");
         }
     }
     
     // Lower threshold factors should generally produce higher sparsity
     assert!(sparsity_levels[0] >= sparsity_levels[sparsity_levels.len() - 1] - 0.3,
-        "Sparsity should decrease with higher threshold factors: {:?}", sparsity_levels);
+        "Sparsity should decrease with higher threshold factors: {sparsity_levels:?}");
 }
 
 #[test]
@@ -191,7 +190,7 @@ fn test_absmean_quantize_weights_correctness() {
     // Verify ternary values
     let values = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
     for &val in &values {
-        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {}", val);
+        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {val}");
     }
     
     // Verify shape preservation
@@ -235,7 +234,7 @@ fn test_weight_quantization_with_different_shapes() {
         // Verify ternary values
         let values = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
         for &val in &values {
-            assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {} for shape {:?}", val, shape);
+            assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {val} for shape {shape:?}");
         }
         
         // Verify statistics
@@ -290,11 +289,11 @@ fn test_weight_quantization_sparsity_analysis() {
         let sparsity = zero_count as f32 / values.len() as f32;
         
         // Verify sparsity is reasonable
-        assert!(sparsity >= 0.0 && sparsity <= 1.0, "Invalid sparsity {} for pattern {}", sparsity, name);
+        assert!((0.0..=1.0).contains(&sparsity), "Invalid sparsity {sparsity} for pattern {name}");
         
         // For sparse patterns, expect some sparsity
         if pattern == "sparse_weights" {
-            assert!(sparsity > 0.3, "Expected higher sparsity for sparse weights: {}", sparsity);
+            assert!(sparsity > 0.3, "Expected higher sparsity for sparse weights: {sparsity}");
         }
     }
 }
@@ -318,12 +317,12 @@ fn test_weight_quantization_sign_preservation() {
     
     // Positive weights should produce non-negative quantized values
     for &val in &pos_values {
-        assert!(val >= 0.0, "Positive weight produced negative quantized value: {}", val);
+        assert!(val >= 0.0, "Positive weight produced negative quantized value: {val}");
     }
     
     // Negative weights should produce non-positive quantized values
     for &val in &neg_values {
-        assert!(val <= 0.0, "Negative weight produced positive quantized value: {}", val);
+        assert!(val <= 0.0, "Negative weight produced positive quantized value: {val}");
     }
     
     // Mixed weights should preserve signs for large values
@@ -331,7 +330,7 @@ fn test_weight_quantization_sign_preservation() {
     for (&original, &quantized) in original_mixed.iter().zip(mixed_values.iter()) {
         if original.abs() > 2.0 && quantized.abs() > 0.5 {
             assert_eq!(original.signum(), quantized.signum(), 
-                "Sign not preserved: {} -> {}", original, quantized);
+                "Sign not preserved: {original} -> {quantized}");
         }
     }
 }
@@ -395,8 +394,8 @@ fn test_weight_quantization_error_analysis() {
         let error = diff.sqr().unwrap().mean_all().unwrap().to_scalar::<f32>().unwrap();
         
         // Error should be reasonable
-        assert!(error >= 0.0, "Negative error for pattern {}: {}", name, error);
-        assert!(error < 100.0, "Error too high for pattern {}: {}", name, error);
+        assert!(error >= 0.0, "Negative error for pattern {name}: {error}");
+        assert!(error < 100.0, "Error too high for pattern {name}: {error}");
         
         // Error should match stored statistics
         assert_abs_diff_eq!(error, quantized.stats.quantization_error, epsilon = 1e-6);
@@ -416,7 +415,7 @@ fn test_weight_quantization_memory_efficiency() {
     
     // Should achieve significant compression
     let compression_ratio = original_size as f32 / quantized_size as f32;
-    assert!(compression_ratio > 4.0, "Compression ratio too low: {}", compression_ratio);
+    assert!(compression_ratio > 4.0, "Compression ratio too low: {compression_ratio}");
     
     // Verify compression ratio calculation
     let calculated_ratio = quantized.compression_ratio();
@@ -445,14 +444,14 @@ fn test_weight_quantization_edge_cases() {
             let values = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
             for &val in &values {
                 assert!(val == -1.0 || val == 0.0 || val == 1.0, 
-                    "Non-ternary value {} for edge case {}", val, name);
+                    "Non-ternary value {val} for edge case {name}");
             }
             
             // Verify scale factor is reasonable
             assert!(quantized.stats.scale_factor >= 0.0, 
-                "Negative scale factor for edge case {}", name);
+                "Negative scale factor for edge case {name}");
             assert!(quantized.stats.scale_factor.is_finite(), 
-                "Non-finite scale factor for edge case {}", name);
+                "Non-finite scale factor for edge case {name}");
         }
     }
 }

@@ -11,12 +11,11 @@ use std::thread;
 use std::collections::HashMap;
 
 use bitnet_core::memory::{
-    HybridMemoryPool, MemoryPoolConfig, MemoryHandle, MemoryError, MemoryResult,
-    SmallBlockPool, LargeBlockPool, CpuMemoryPool, TrackingConfig, TrackingLevel,
-    CleanupManager, CleanupConfig, MemoryPressureLevel
+    HybridMemoryPool, MemoryPoolConfig, MemoryError,
+    SmallBlockPool, LargeBlockPool, TrackingConfig, MemoryPressureLevel
 };
-use bitnet_core::memory::handle::{PoolType, CpuMemoryMetadata};
-use bitnet_core::device::{get_cpu_device, auto_select_device, is_metal_available, get_metal_device};
+use bitnet_core::memory::handle::PoolType;
+use bitnet_core::device::{get_cpu_device, is_metal_available, get_metal_device};
 
 #[cfg(feature = "metal")]
 use bitnet_core::memory::{MetalMemoryPool, handle::MetalMemoryMetadata};
@@ -69,7 +68,7 @@ fn test_basic_buffer_creation_cpu() {
             }
             
             let handle = pool.allocate(size, alignment, &device)
-                .expect(&format!("Failed to create buffer: size={}, alignment={}", size, alignment));
+                .unwrap_or_else(|_| panic!("Failed to create buffer: size={size}, alignment={alignment}"));
             
             // Verify buffer properties
             assert_eq!(handle.size(), size);
@@ -82,7 +81,7 @@ fn test_basic_buffer_creation_cpu() {
             handle.validate().expect("Buffer handle should be valid");
             
             // Verify device consistency
-            assert!(format!("{:?}", handle.device()) == format!("{:?}", device));
+            assert!(format!("{:?}", handle.device()) == format!("{device:?}"));
             
             // Clean up
             pool.deallocate(handle).expect("Failed to deallocate buffer");
@@ -224,7 +223,7 @@ fn test_small_block_pool_buffer_lifecycle() {
     
     for &size in &small_sizes {
         let handle = pool.allocate(size, 16, &device, handle_counter.clone())
-            .expect(&format!("Failed to allocate small buffer: {}", size));
+            .unwrap_or_else(|_| panic!("Failed to allocate small buffer: {size}"));
         
         assert_eq!(handle.size(), size);
         assert_eq!(handle.pool_type(), PoolType::SmallBlock);
@@ -258,7 +257,7 @@ fn test_large_block_pool_buffer_lifecycle() {
     
     for &size in &large_sizes {
         let handle = pool.allocate(size, 16, &device, handle_counter.clone())
-            .expect(&format!("Failed to allocate large buffer: {}", size));
+            .unwrap_or_else(|_| panic!("Failed to allocate large buffer: {size}"));
         
         assert_eq!(handle.size(), size);
         assert_eq!(handle.pool_type(), PoolType::LargeBlock);
@@ -295,7 +294,7 @@ fn test_hybrid_pool_buffer_routing() {
     
     for (size, expected_pool) in test_cases {
         let handle = pool.allocate(size, 16, &device)
-            .expect(&format!("Failed to allocate buffer: {}", size));
+            .unwrap_or_else(|_| panic!("Failed to allocate buffer: {size}"));
         
         let expected_pool_type = match expected_pool {
             "small" => PoolType::SmallBlock,
@@ -304,7 +303,7 @@ fn test_hybrid_pool_buffer_routing() {
         };
         
         assert_eq!(handle.pool_type(), expected_pool_type,
-                  "Buffer size {} should use {} pool", size, expected_pool);
+                  "Buffer size {size} should use {expected_pool} pool");
         
         pool.deallocate(handle).expect("Failed to deallocate buffer");
     }
@@ -332,17 +331,17 @@ fn test_device_specific_pool_isolation() {
                 .expect("Failed to allocate device-specific buffer");
             
             // Verify device consistency
-            assert!(format!("{:?}", handle.device()) == format!("{:?}", device));
+            assert!(format!("{:?}", handle.device()) == format!("{device:?}"));
             handles.push(handle);
         }
         
-        device_handles.insert(format!("{:?}", device), handles);
+        device_handles.insert(format!("{device:?}"), handles);
     }
     
     // Verify device-specific metrics
     if let Some(detailed_metrics) = pool.get_detailed_metrics() {
         for device in &devices {
-            let device_key = format!("{:?}", device);
+            let device_key = format!("{device:?}");
             assert!(detailed_metrics.device_usage.contains_key(&device_key));
             assert!(detailed_metrics.device_usage[&device_key] > 0);
         }
@@ -380,8 +379,8 @@ fn test_buffer_handle_validation_success() {
     
     // Test CPU metadata access
     if let Some(cpu_metadata) = handle.cpu_metadata() {
-        assert_eq!(cpu_metadata.page_aligned, true); // 64-byte alignment >= 4096
-        assert_eq!(cpu_metadata.locked, false);
+        assert!(cpu_metadata.page_aligned); // 64-byte alignment >= 4096
+        assert!(!cpu_metadata.locked);
     } else {
         panic!("CPU buffer should have CPU metadata");
     }
@@ -730,7 +729,7 @@ fn test_buffer_cleanup_with_memory_pressure() {
     }
     let cleanup_duration = cleanup_start.elapsed();
     
-    println!("Cleanup under pressure completed in {:?}", cleanup_duration);
+    println!("Cleanup under pressure completed in {cleanup_duration:?}");
     
     let final_metrics = pool.get_metrics();
     assert_eq!(final_metrics.active_allocations, 0);
@@ -813,8 +812,8 @@ fn test_buffer_stress_rapid_allocation_deallocation() {
     let avg_dealloc_time = deallocation_times.iter().sum::<Duration>() / iterations as u32;
     
     println!("Stress test results:");
-    println!("  Average allocation time: {:?}", avg_alloc_time);
-    println!("  Average deallocation time: {:?}", avg_dealloc_time);
+    println!("  Average allocation time: {avg_alloc_time:?}");
+    println!("  Average deallocation time: {avg_dealloc_time:?}");
     
     // Performance should remain reasonable
     assert!(avg_alloc_time < Duration::from_micros(100), "Allocation too slow");
@@ -846,11 +845,11 @@ fn test_buffer_stress_memory_exhaustion() {
                 }
             }
             Err(MemoryError::InsufficientMemory { .. }) => {
-                println!("Memory exhausted after {} allocations", allocation_count);
+                println!("Memory exhausted after {allocation_count} allocations");
                 break;
             }
             Err(e) => {
-                panic!("Unexpected error during stress test: {}", e);
+                panic!("Unexpected error during stress test: {e}");
             }
         }
     }
@@ -897,8 +896,7 @@ fn test_buffer_stress_size_variations() {
         }
         let deallocation_time = dealloc_start.elapsed();
         
-        println!("Size {}: alloc {:?}, dealloc {:?}",
-                size, allocation_time, deallocation_time);
+        println!("Size {size}: alloc {allocation_time:?}, dealloc {deallocation_time:?}");
     }
 }
 
@@ -923,13 +921,13 @@ fn test_buffer_device_migration_cpu_to_metal() {
     let cpu_handle = pool.allocate(4096, 16, cpu_device)
         .expect("Failed to create CPU buffer");
     
-    assert!(format!("{:?}", cpu_handle.device()) == format!("{:?}", cpu_device));
+    assert!(format!("{:?}", cpu_handle.device()) == format!("{cpu_device:?}"));
     
     // Simulate migration by creating new buffer on target device
     let migrated_handle = pool.allocate(4096, 16, target_device)
         .expect("Failed to create migrated buffer");
     
-    assert!(format!("{:?}", migrated_handle.device()) == format!("{:?}", target_device));
+    assert!(format!("{:?}", migrated_handle.device()) == format!("{target_device:?}"));
     assert_ne!(cpu_handle.id(), migrated_handle.id());
     
     // Clean up both buffers
@@ -955,7 +953,7 @@ fn test_buffer_cross_device_operations() {
             buffers.push(handle);
         }
         
-        device_buffers.insert(format!("{:?}", device), buffers);
+        device_buffers.insert(format!("{device:?}"), buffers);
     }
     
     // Verify device isolation
@@ -1007,7 +1005,7 @@ fn test_buffer_allocation_under_memory_pressure() {
             println!("Allocation failed under pressure (expected)");
         }
         Err(e) => {
-            panic!("Unexpected error under pressure: {}", e);
+            panic!("Unexpected error under pressure: {e}");
         }
     }
     
@@ -1100,7 +1098,7 @@ fn test_buffer_recovery_from_pressure() {
             pool.deallocate(handle).expect("Failed to deallocate recovery buffer");
         }
         Err(e) => {
-            println!("Allocation still failing after recovery: {}", e);
+            println!("Allocation still failing after recovery: {e}");
         }
     }
     
@@ -1124,7 +1122,7 @@ fn test_buffer_invalid_parameters() {
     
     for &alignment in &invalid_alignments {
         let result = pool.allocate(1024, alignment, &device);
-        assert!(result.is_err(), "Should fail with invalid alignment: {}", alignment);
+        assert!(result.is_err(), "Should fail with invalid alignment: {alignment}");
         
         if let Err(MemoryError::InvalidAlignment { alignment: a }) = result {
             assert_eq!(a, alignment);
@@ -1136,7 +1134,7 @@ fn test_buffer_invalid_parameters() {
     
     for &alignment in &valid_alignments {
         let handle = pool.allocate(1024, alignment, &device)
-            .expect(&format!("Should succeed with valid alignment: {}", alignment));
+            .unwrap_or_else(|_| panic!("Should succeed with valid alignment: {alignment}"));
         assert_eq!(handle.alignment(), alignment);
         pool.deallocate(handle).expect("Failed to deallocate valid alignment buffer");
     }
@@ -1152,7 +1150,7 @@ fn test_buffer_extreme_sizes() {
     
     for &size in &small_sizes {
         let handle = pool.allocate(size, 1, &device)
-            .expect(&format!("Should handle small size: {}", size));
+            .unwrap_or_else(|_| panic!("Should handle small size: {size}"));
         assert_eq!(handle.size(), size);
         pool.deallocate(handle).expect("Failed to deallocate small buffer");
     }
@@ -1171,10 +1169,10 @@ fn test_buffer_extreme_sizes() {
                 pool.deallocate(handle).expect("Failed to deallocate large buffer");
             }
             Err(MemoryError::InsufficientMemory { .. }) => {
-                println!("Large allocation failed (acceptable): {} bytes", size);
+                println!("Large allocation failed (acceptable): {size} bytes");
             }
             Err(e) => {
-                panic!("Unexpected error for large allocation: {}", e);
+                panic!("Unexpected error for large allocation: {e}");
             }
         }
     }
@@ -1192,7 +1190,7 @@ fn test_buffer_comprehensive_integration() {
     
     // Test all combinations of devices and scenarios
     for device in &devices {
-        println!("Testing device: {:?}", device);
+        println!("Testing device: {device:?}");
         
         // Various buffer sizes and patterns
         let test_patterns = vec![
@@ -1204,7 +1202,7 @@ fn test_buffer_comprehensive_integration() {
         ];
         
         for (pattern_name, sizes) in test_patterns {
-            println!("  Pattern: {}", pattern_name);
+            println!("  Pattern: {pattern_name}");
             
             let mut pattern_handles = Vec::new();
             
@@ -1212,14 +1210,14 @@ fn test_buffer_comprehensive_integration() {
                 match pool.allocate(size, 16, device) {
                     Ok(handle) => {
                         assert_eq!(handle.size(), size);
-                        assert!(format!("{:?}", handle.device()) == format!("{:?}", device));
+                        assert!(format!("{:?}", handle.device()) == format!("{device:?}"));
                         
                         total_buffers += 1;
                         total_bytes += size as u64;
                         pattern_handles.push(handle);
                     }
                     Err(e) => {
-                        println!("    Allocation failed for size {}: {}", size, e);
+                        println!("    Allocation failed for size {size}: {e}");
                         break;
                     }
                 }
@@ -1237,8 +1235,8 @@ fn test_buffer_comprehensive_integration() {
     assert_eq!(final_metrics.active_allocations, 0);
     
     println!("Integration test completed:");
-    println!("  Total buffers tested: {}", total_buffers);
-    println!("  Total bytes allocated: {}", total_bytes);
+    println!("  Total buffers tested: {total_buffers}");
+    println!("  Total bytes allocated: {total_bytes}");
     println!("  Devices tested: {}", devices.len());
     
     // Verify memory tracking if available

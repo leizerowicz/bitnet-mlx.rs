@@ -165,7 +165,7 @@ impl LayerWiseAnalyzer {
         mse_ranking.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
         rankings.push(LayerRanking {
             metric_name: "MSE".to_string(),
-            layer_order: mse_ranking.into_iter().map(|(name, value)| (name, value)).collect(),
+            layer_order: mse_ranking.into_iter().collect(),
             ascending: true, // Lower MSE is better
         });
         
@@ -176,7 +176,7 @@ impl LayerWiseAnalyzer {
         sqnr_ranking.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         rankings.push(LayerRanking {
             metric_name: "SQNR".to_string(),
-            layer_order: sqnr_ranking.into_iter().map(|(name, value)| (name, value)).collect(),
+            layer_order: sqnr_ranking.into_iter().collect(),
             ascending: false, // Higher SQNR is better
         });
         
@@ -187,7 +187,7 @@ impl LayerWiseAnalyzer {
         cosine_ranking.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         rankings.push(LayerRanking {
             metric_name: "Cosine Similarity".to_string(),
-            layer_order: cosine_ranking.into_iter().map(|(name, value)| (name, value)).collect(),
+            layer_order: cosine_ranking.into_iter().collect(),
             ascending: false, // Higher cosine similarity is better
         });
         
@@ -680,21 +680,13 @@ pub enum IssueSeverity {
 
 /// Temporal analysis of layer metrics
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct TemporalAnalysis {
     pub layer_trends: HashMap<String, LayerTrend>,
     pub time_range: (u64, u64), // (start_timestamp, end_timestamp)
     pub num_time_points: usize,
 }
 
-impl Default for TemporalAnalysis {
-    fn default() -> Self {
-        Self {
-            layer_trends: HashMap::new(),
-            time_range: (0, 0),
-            num_time_points: 0,
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct LayerTrend {

@@ -78,7 +78,7 @@ fn test_tensor_creation_zeros() {
     
     for (shape, dtype) in test_cases {
         let tensor = BitNetTensor::zeros(&shape, dtype, Some(device.clone()))
-            .expect(&format!("Failed to create zeros tensor: shape={:?}, dtype={:?}", shape, dtype));
+            .unwrap_or_else(|_| panic!("Failed to create zeros tensor: shape={shape:?}, dtype={dtype:?}"));
             
         assert_eq!(tensor.shape().dims(), &shape);
         assert_eq!(tensor.dtype(), dtype);
@@ -100,7 +100,7 @@ fn test_tensor_creation_ones() {
     
     for (shape, dtype) in test_cases {
         let tensor = BitNetTensor::ones(&shape, dtype, Some(device.clone()))
-            .expect(&format!("Failed to create ones tensor: shape={:?}, dtype={:?}", shape, dtype));
+            .unwrap_or_else(|_| panic!("Failed to create ones tensor: shape={shape:?}, dtype={dtype:?}"));
             
         assert_eq!(tensor.shape().dims(), &shape);
         assert_eq!(tensor.dtype(), dtype);
@@ -164,7 +164,7 @@ fn test_tensor_memory_pool_integration() {
     // Create multiple tensors and verify memory tracking
     for i in 0..10 {
         let tensor = BitNetTensor::zeros(&[64, 64], BitNetDType::F32, Some(device.clone()))
-            .expect(&format!("Failed to create tensor {}", i));
+            .unwrap_or_else(|_| panic!("Failed to create tensor {i}"));
             
         tensors.push(tensor);
     }
@@ -343,7 +343,7 @@ fn test_tensor_thread_safety() {
             assert_eq!(dtype, BitNetDType::F32);
             assert_eq!(element_count, 100);
             
-            format!("Thread {} completed", i)
+            format!("Thread {i} completed")
         });
         
         handles.push(handle);
@@ -446,7 +446,7 @@ fn test_tensor_data_type_validation() {
     
     for &dtype in &[BitNetDType::F32, BitNetDType::F16, BitNetDType::I8, BitNetDType::U8] {
         let tensor = BitNetTensor::zeros(&[4, 4], dtype, Some(device.clone()))
-            .expect(&format!("Failed to create tensor with dtype {:?}", dtype));
+            .unwrap_or_else(|_| panic!("Failed to create tensor with dtype {dtype:?}"));
             
         assert_eq!(tensor.dtype(), dtype);
         assert!(tensor.dtype().is_valid());
@@ -495,13 +495,13 @@ fn test_tensor_creation_performance() {
     let start_time = Instant::now();
     
     let tensors: Vec<_> = (0..num_tensors).map(|i| {
-        BitNetTensor::zeros(&vec![64, 64], BitNetDType::F32, Some(device.clone()))
-            .expect(&format!("Failed to create tensor {}", i))
+        BitNetTensor::zeros(&[64, 64], BitNetDType::F32, Some(device.clone()))
+            .unwrap_or_else(|_| panic!("Failed to create tensor {i}"))
     }).collect();
     
     let creation_time = start_time.elapsed();
     
-    println!("Created {} tensors in {:?}", num_tensors, creation_time);
+    println!("Created {num_tensors} tensors in {creation_time:?}");
     println!("Average per tensor: {:?}", creation_time / num_tensors as u32);
     
     // Verify all tensors were created correctly
@@ -510,5 +510,5 @@ fn test_tensor_creation_performance() {
     // Basic performance expectation (adjust as needed)
     let max_expected_time = Duration::from_millis(1000); // 1 second for 100 tensors
     assert!(creation_time < max_expected_time, 
-           "Tensor creation took too long: {:?}", creation_time);
+           "Tensor creation took too long: {creation_time:?}");
 }

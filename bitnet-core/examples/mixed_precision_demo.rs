@@ -91,7 +91,7 @@ fn demo_basic_configuration() -> Result<(), Box<dyn std::error::Error>> {
 
     // Estimate memory savings
     let memory_savings = custom_config.estimate_memory_savings();
-    println!("  📊 Estimated memory efficiency: {:.2}x", memory_savings);
+    println!("  📊 Estimated memory efficiency: {memory_savings:.2}x");
 
     println!();
     Ok(())
@@ -163,7 +163,7 @@ fn demo_layer_precision_management(
     let optimizations = layer_manager.optimize_for_memory(0.5)?;
     println!("Suggested optimizations:");
     for (layer_id, new_precision) in &optimizations {
-        println!("  - {}: {:?}", layer_id, new_precision);
+        println!("  - {layer_id}: {new_precision:?}");
     }
 
     // Analyze precision impact
@@ -173,7 +173,7 @@ fn demo_layer_precision_management(
     println!("  - Total layers: {}", analysis.total_layers);
     println!("  - Precision distribution:");
     for (precision, count) in &analysis.precision_distribution {
-        println!("    {:?}: {} layers", precision, count);
+        println!("    {precision:?}: {count} layers");
     }
 
     println!();
@@ -209,7 +209,7 @@ fn demo_precision_conversion(
     ];
 
     for (name, strategy) in strategies {
-        println!("\n{} conversion strategy:", name);
+        println!("\n{name} conversion strategy:");
         
         let config = ConversionConfig {
             strategy,
@@ -328,9 +328,9 @@ fn demo_policy_based_precision() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     for (scenario_name, layer_type, memory_usage) in scenarios {
-        println!("\nScenario: {}", scenario_name);
-        println!("  - Layer type: {:?}", layer_type);
-        println!("  - Memory usage: {:.1}MB", memory_usage);
+        println!("\nScenario: {scenario_name}");
+        println!("  - Layer type: {layer_type:?}");
+        println!("  - Memory usage: {memory_usage:.1}MB");
         
         // This would normally be called by the precision manager
         // For demo purposes, we'll show what policies would apply
@@ -342,7 +342,7 @@ fn demo_policy_based_precision() -> Result<(), Box<dyn std::error::Error>> {
     println!("\nPolicy Statistics:");
     println!("  - Total applications: {}", stats.total_applications);
     if let Some(most_used) = stats.most_used_policy() {
-        println!("  - Most used policy: {}", most_used);
+        println!("  - Most used policy: {most_used}");
     }
 
     println!();
@@ -401,7 +401,7 @@ fn demo_validation_and_optimization() -> Result<(), Box<dyn std::error::Error>> 
                     for issue in &result.issues {
                         println!("    - {}: {}", issue.severity, issue.description);
                         if let Some(fix) = &issue.suggested_fix {
-                            println!("      Suggested fix: {}", fix);
+                            println!("      Suggested fix: {fix}");
                         }
                     }
                 }
@@ -421,7 +421,7 @@ fn demo_validation_and_optimization() -> Result<(), Box<dyn std::error::Error>> 
                 }
             }
             Err(e) => {
-                println!("  ❌ Validation error: {}", e);
+                println!("  ❌ Validation error: {e}");
             }
         }
     }
@@ -436,7 +436,7 @@ fn demo_validation_and_optimization() -> Result<(), Box<dyn std::error::Error>> 
             println!("  - Total suggestions: {}", result.suggestions.len());
         }
         Err(e) => {
-            println!("  ❌ Cross-layer validation error: {}", e);
+            println!("  ❌ Cross-layer validation error: {e}");
         }
     }
 
@@ -448,7 +448,7 @@ fn demo_validation_and_optimization() -> Result<(), Box<dyn std::error::Error>> 
     // Register test layers
     for spec in test_specs {
         if let Err(e) = precision_manager.register_layer(spec) {
-            println!("  - Failed to register layer: {}", e);
+            println!("  - Failed to register layer: {e}");
         }
     }
 
@@ -465,10 +465,10 @@ fn demo_validation_and_optimization() -> Result<(), Box<dyn std::error::Error>> 
     ];
 
     for (name, objective) in objectives {
-        println!("  - {}: ", name);
+        println!("  - {name}: ");
         match precision_manager.optimize_precision(objective) {
             Ok(()) => println!("✅ Optimization completed"),
-            Err(e) => println!("❌ Optimization failed: {}", e),
+            Err(e) => println!("❌ Optimization failed: {e}"),
         }
     }
 
@@ -487,7 +487,7 @@ fn demo_validation_and_optimization() -> Result<(), Box<dyn std::error::Error>> 
             }
         }
         Err(e) => {
-            println!("❌ Analysis failed: {}", e);
+            println!("❌ Analysis failed: {e}");
         }
     }
 

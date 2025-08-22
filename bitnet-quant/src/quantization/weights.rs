@@ -20,6 +20,8 @@ pub enum TernaryMethod {
     AdaptiveThreshold,
     /// Optimal threshold that minimizes quantization error
     OptimalThreshold,
+    /// Deterministic Straight-Through Estimator
+    DetSTE,
 }
 
 impl Default for TernaryMethod {
@@ -336,6 +338,7 @@ impl BitNetWeightQuantizer {
             TernaryMethod::MedianThreshold => self.quantize_ternary_median_threshold(weights),
             TernaryMethod::AdaptiveThreshold => self.quantize_ternary_adaptive_threshold(weights),
             TernaryMethod::OptimalThreshold => self.quantize_ternary_optimal_threshold(weights),
+            TernaryMethod::DetSTE => self.quantize_ternary_detste(weights),
         }
     }
 
@@ -424,6 +427,17 @@ impl BitNetWeightQuantizer {
         
         // Apply optimal threshold
         self.apply_ternary_quantization(weights, best_threshold)
+    }
+
+    /// Deterministic Straight-Through Estimator quantization
+    fn quantize_ternary_detste(&self, weights: &Tensor) -> QuantizationResult<Tensor> {
+        // Simple deterministic ternary quantization using sign function
+        let abs_weights = weights.abs()?;
+        let mean_abs = abs_weights.mean_all()?.to_scalar::<f32>()?;
+        let threshold = mean_abs * self.config.custom_threshold_factor.unwrap_or(0.7);
+        
+        // Apply ternary quantization with straight-through gradient estimation
+        self.apply_ternary_quantization(weights, threshold)
     }
 
     /// Apply ternary quantization with given threshold

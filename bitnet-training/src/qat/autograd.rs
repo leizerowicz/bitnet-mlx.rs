@@ -1,7 +1,7 @@
 // QAT Autograd - Custom autograd functions for quantization-aware training
 // Implements automatic differentiation support for quantization operations
 
-use candle_core::{Result, Tensor, Device, DType};
+use candle_core::{Result, Tensor, Device};
 
 use super::straight_through::{STEVariant, STEConfig};
 

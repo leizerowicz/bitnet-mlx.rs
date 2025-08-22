@@ -127,7 +127,7 @@ fn test_fallback_to_candle_scenarios() {
         assert!(result.is_ok(), "Fallback should succeed for all error types");
 
         let tensor = result.unwrap();
-        assert!(tensor.dims().len() > 0, "Fallback tensor should have valid dimensions");
+        assert!(!tensor.dims().is_empty(), "Fallback tensor should have valid dimensions");
         assert!(tensor.device().is_cpu(), "Fallback tensor should be on CPU");
     }
 }
@@ -185,7 +185,7 @@ fn test_execution_backend_consistency() {
     for operation in operations {
         let backend1 = choose_execution_backend(operation);
         let backend2 = choose_execution_backend(operation);
-        assert_eq!(backend1, backend2, "Backend selection should be consistent for operation: {}", operation);
+        assert_eq!(backend1, backend2, "Backend selection should be consistent for operation: {operation}");
     }
 }
 
@@ -198,7 +198,7 @@ fn test_fallback_tensor_properties() {
     let tensor = result.unwrap();
 
     // Verify tensor properties
-    assert!(tensor.dims().len() > 0);
+    assert!(!tensor.dims().is_empty());
     assert!(tensor.device().is_cpu());
     assert_eq!(tensor.dtype(), candle_core::DType::F32);
 

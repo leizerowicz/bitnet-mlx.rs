@@ -4,19 +4,18 @@
 //! on Apple Silicon devices. It showcases quantization, tensor operations,
 //! and performance comparisons between CPU, Metal, and MLX backends.
 
-use bitnet_core::memory::{HybridMemoryPool, MemoryPoolConfig};
-use bitnet_core::device::auto_select_device;
 use anyhow::Result;
 use std::time::Instant;
 
 #[cfg(feature = "mlx")]
-use bitnet_core::mlx::{
-    default_mlx_device, MlxTensor, BitNetMlxOps, is_mlx_available,
-    MlxTensorOps, BitNetMlxDevice
+use bitnet_core::{
+    HybridMemoryPool,
+    mlx::{
+        default_mlx_device, MlxTensor, BitNetMlxOps, is_mlx_available,
+        MlxTensorOps, BitNetMlxDevice
+    },
+    BitNetDType
 };
-
-#[cfg(feature = "mlx")]
-use bitnet_core::memory::tensor::BitNetDType;
 
 fn main() -> Result<()> {
     println!("🚀 BitNet MLX Acceleration Demo");

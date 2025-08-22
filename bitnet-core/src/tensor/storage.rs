@@ -143,7 +143,7 @@ impl TensorStorage {
         device: Device,
         memory_manager: &Arc<TensorMemoryManager>,
     ) -> MemoryResult<Self> {
-        let mut storage = Self::new(shape, dtype, device, memory_manager)?;
+        let storage = Self::new(shape, dtype, device, memory_manager)?;
         
         if data.len() != storage.total_size {
             return Err(MemoryError::InternalError {

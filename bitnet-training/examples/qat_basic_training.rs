@@ -61,7 +61,7 @@ impl QATTrainer {
     /// Create new QAT trainer
     pub fn new(config: QATTrainingConfig, device: Device) -> Result<Self> {
         let memory_pool = HybridMemoryPool::new()
-            .map_err(|e| candle_core::Error::Msg(format!("Failed to create memory pool: {:?}", e)))?;
+            .map_err(|e| candle_core::Error::Msg(format!("Failed to create memory pool: {e:?}")))?;
 
         // Create loss function
         let loss_function = QuantizationAwareLoss::new(
@@ -208,7 +208,7 @@ impl QATTrainer {
 
             // Periodic logging
             if step % 100 == 0 {
-                println!("  Step {}: Loss = {:.6}", step, loss_scalar);
+                println!("  Step {step}: Loss = {loss_scalar:.6}");
             }
 
             // Checkpointing
@@ -260,7 +260,7 @@ impl QATTrainer {
         let output_size = 10; // Assume classification with 10 classes
         
         // Create random predictions for demo
-        Ok(Tensor::randn(0f32, 1f32, (batch_size, output_size), &self.device)?)
+        Tensor::randn(0f32, 1f32, (batch_size, output_size), &self.device)
     }
 
     /// Compute QAT loss with all components
@@ -315,8 +315,8 @@ impl QATTrainer {
         step: usize,
         _parameters: &HashMap<String, Tensor>,
     ) -> Result<()> {
-        let checkpoint_name = format!("qat_checkpoint_step_{}.json", step);
-        println!("Saving checkpoint: {}", checkpoint_name);
+        let checkpoint_name = format!("qat_checkpoint_step_{step}.json");
+        println!("Saving checkpoint: {checkpoint_name}");
         
         // In practice, would save model parameters and optimizer state
         // For now, just save the training state
@@ -339,11 +339,11 @@ impl QATTrainer {
         println!("Samples Processed: {}", summary.samples_processed);
         
         if let Some(val_loss) = summary.best_validation_loss {
-            println!("Best Validation Loss: {:.6}", val_loss);
+            println!("Best Validation Loss: {val_loss:.6}");
         }
         
         if let Some(accuracy) = summary.validation_accuracy {
-            println!("Final Validation Accuracy: {:.4}", accuracy);
+            println!("Final Validation Accuracy: {accuracy:.4}");
         }
     }
 }

@@ -9,9 +9,8 @@ use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use crate::metrics::{
     QuantizationMetrics, 
-    layer_wise::{LayerWiseAnalysisResult, ProblematicLayer, OptimizationPlan},
-    mitigation::{MitigationResult, AdaptiveMitigationResult},
-    visualization::VisualizationDashboard,
+    layer_wise::LayerWiseAnalysisResult,
+    mitigation::MitigationResult,
 };
 
 /// Comprehensive reporting engine for quantization analysis
@@ -385,8 +384,7 @@ impl ReportingEngine {
             for (layer2, correlation) in correlations {
                 if layer1 < layer2 && correlation.abs() > 0.7 {
                     correlation_insights.push(format!(
-                        "Strong correlation ({:.3}) between {} and {}",
-                        correlation, layer1, layer2
+                        "Strong correlation ({correlation:.3}) between {layer1} and {layer2}"
                     ));
                 }
             }
@@ -413,7 +411,7 @@ impl ReportingEngine {
             .count();
         
         if high_mse_count > analysis.layer_metrics.len() / 4 {
-            issues.push(format!("High MSE in {} layers - Consider increasing bit width", high_mse_count));
+            issues.push(format!("High MSE in {high_mse_count} layers - Consider increasing bit width"));
         }
         
         let low_sqnr_count = analysis.layer_metrics.values()
@@ -421,7 +419,7 @@ impl ReportingEngine {
             .count();
         
         if low_sqnr_count > 0 {
-            issues.push(format!("Low SQNR in {} layers - May need asymmetric quantization", low_sqnr_count));
+            issues.push(format!("Low SQNR in {low_sqnr_count} layers - May need asymmetric quantization"));
         }
         
         let low_similarity_count = analysis.layer_metrics.values()
@@ -429,7 +427,7 @@ impl ReportingEngine {
             .count();
         
         if low_similarity_count > 0 {
-            issues.push(format!("Reduced similarity in {} layers - Consider mixed precision", low_similarity_count));
+            issues.push(format!("Reduced similarity in {low_similarity_count} layers - Consider mixed precision"));
         }
         
         issues
@@ -458,7 +456,7 @@ impl ReportingEngine {
             predictability_score,
             outlier_layers: analysis.sensitivity_ranking.iter()
                 .take(5)
-                .map(|(name, score)| format!("{}: {:.2}", name, score))
+                .map(|(name, score)| format!("{name}: {score:.2}"))
                 .collect(),
             estimated_memory_usage,
             estimated_compute_overhead,
@@ -562,7 +560,7 @@ impl ReportingEngine {
             if !actions.iter().any(|a| a.description.contains(layer_name)) {
                 actions.push(ImmediateAction {
                     priority: ActionPriority::High,
-                    description: format!("Optimize high-sensitivity layer: {}", layer_name),
+                    description: format!("Optimize high-sensitivity layer: {layer_name}"),
                     estimated_effort: "4-8 hours".to_string(),
                     expected_impact: "Medium-High".to_string(),
                     implementation_steps: vec![
@@ -764,7 +762,7 @@ impl ReportingEngine {
                 let markdown_content = self.generate_markdown_report(report)?;
                 let filename = format!("{}/quantization_analysis_report.md", self.output_directory);
                 // In practice, write to file: std::fs::write(&filename, markdown_content)?;
-                println!("Would export Markdown report to: {}", filename);
+                println!("Would export Markdown report to: {filename}");
                 exported_files.push(filename);
             },
             
@@ -772,23 +770,23 @@ impl ReportingEngine {
                 let html_content = self.generate_html_report(report)?;
                 let filename = format!("{}/quantization_analysis_report.html", self.output_directory);
                 // In practice, write to file: std::fs::write(&filename, html_content)?;
-                println!("Would export HTML report to: {}", filename);
+                println!("Would export HTML report to: {filename}");
                 exported_files.push(filename);
             },
             
             ReportFormat::PDF => {
                 // In practice, generate PDF using a PDF library
                 let filename = format!("{}/quantization_analysis_report.pdf", self.output_directory);
-                println!("Would export PDF report to: {}", filename);
+                println!("Would export PDF report to: {filename}");
                 exported_files.push(filename);
             },
             
             ReportFormat::JSON => {
                 let json_content = serde_json::to_string_pretty(report)
-                    .map_err(|e| CandleError::Msg(format!("JSON serialization error: {}", e)))?;
+                    .map_err(|e| CandleError::Msg(format!("JSON serialization error: {e}")))?;
                 let filename = format!("{}/quantization_analysis_report.json", self.output_directory);
                 // In practice, write to file: std::fs::write(&filename, json_content)?;
-                println!("Would export JSON report to: {}", filename);
+                println!("Would export JSON report to: {filename}");
                 exported_files.push(filename);
             },
         }
@@ -802,7 +800,7 @@ impl ReportingEngine {
         // Title and metadata
         content.push_str(&format!("# {}\n\n", report.metadata.title));
         let timestamp = std::time::UNIX_EPOCH + std::time::Duration::from_secs(report.metadata.generated_at);
-        content.push_str(&format!("**Generated:** {:?}\n", timestamp));
+        content.push_str(&format!("**Generated:** {timestamp:?}\n"));
         content.push_str(&format!("**Layers Analyzed:** {}\n\n", report.metadata.total_layers_analyzed));
         
         // Executive Summary
@@ -811,9 +809,9 @@ impl ReportingEngine {
         
         content.push_str("### Key Findings\n");
         for finding in &report.executive_summary.key_findings {
-            content.push_str(&format!("- {}\n", finding));
+            content.push_str(&format!("- {finding}\n"));
         }
-        content.push_str("\n");
+        content.push('\n');
         
         content.push_str(&format!("**High Priority Actions:** {}\n", report.executive_summary.high_priority_actions_count));
         content.push_str(&format!("**Improvement Potential:** {}\n\n", report.executive_summary.estimated_improvement_potential));
@@ -821,9 +819,9 @@ impl ReportingEngine {
         // Next Steps
         content.push_str("### Immediate Next Steps\n");
         for step in &report.executive_summary.next_steps {
-            content.push_str(&format!("1. {}\n", step));
+            content.push_str(&format!("1. {step}\n"));
         }
-        content.push_str("\n");
+        content.push('\n');
         
         // Detailed Analysis
         content.push_str("## Detailed Analysis\n\n");
@@ -836,7 +834,7 @@ impl ReportingEngine {
             content.push_str(&format!("{}. **{}** - Sensitivity: {:.2}, Quality: {}/15\n", 
                 i+1, layer.layer_name, layer.sensitivity_score, layer.quality_assessment.overall_score));
         }
-        content.push_str("\n");
+        content.push('\n');
         
         // Recommendations
         content.push_str("## Recommendations\n\n");
@@ -845,7 +843,7 @@ impl ReportingEngine {
             content.push_str(&format!("- **{:?}:** {} (Effort: {}, Impact: {})\n", 
                 action.priority, action.description, action.estimated_effort, action.expected_impact));
         }
-        content.push_str("\n");
+        content.push('\n');
         
         Ok(content)
     }
@@ -878,7 +876,7 @@ impl ReportingEngine {
         
         html.push_str("<h3>Key Findings</h3>\n<ul>\n");
         for finding in &report.executive_summary.key_findings {
-            html.push_str(&format!("<li>{}</li>\n", finding));
+            html.push_str(&format!("<li>{finding}</li>\n"));
         }
         html.push_str("</ul>\n");
         

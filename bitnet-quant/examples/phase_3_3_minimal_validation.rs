@@ -35,10 +35,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let module_path = metrics_path.join(module);
         if module_path.exists() {
             found_modules.push(module);
-            println!("  ✅ {} - Found", module);
+            println!("  ✅ {module} - Found");
         } else {
             missing_modules.push(module);
-            println!("  ❌ {} - Missing", module);
+            println!("  ❌ {module} - Missing");
         }
     }
     
@@ -54,7 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let module_path = metrics_path.join(module);
         if let Ok(metadata) = fs::metadata(&module_path) {
             let size_kb = metadata.len() / 1024;
-            println!("  {} - {} KB", module, size_kb);
+            println!("  {module} - {size_kb} KB");
         }
     }
     
@@ -66,19 +66,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Ok(content) = fs::read_to_string(&module_path) {
             let lines = content.lines().count();
             total_lines += lines;
-            println!("  {} - {} lines", module, lines);
+            println!("  {module} - {lines} lines");
         }
     }
     
     println!("\n🎯 Phase 3.3 Validation Results:");
-    println!("  Total Lines of Code: {}", total_lines);
+    println!("  Total Lines of Code: {total_lines}");
     
     if missing_modules.is_empty() {
         println!("  ✅ All Phase 3.3 modules are present!");
         println!("  ✅ Phase 3.3 structure is COMPLETE");
         
         if total_lines > 10000 {
-            println!("  ✅ Comprehensive implementation detected ({}+ lines)", total_lines);
+            println!("  ✅ Comprehensive implementation detected ({total_lines}+ lines)");
         }
         
         println!("\n🏆 Phase 3.3 Integration Test: PASSED");
@@ -87,7 +87,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         
         Ok(())
     } else {
-        println!("  ⚠️  Missing modules: {:?}", missing_modules);
+        println!("  ⚠️  Missing modules: {missing_modules:?}");
         println!("  ❌ Phase 3.3 structure is INCOMPLETE");
         println!("\n💥 Phase 3.3 Integration Test: FAILED");
         

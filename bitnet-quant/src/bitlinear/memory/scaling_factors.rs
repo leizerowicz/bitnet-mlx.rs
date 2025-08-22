@@ -4,7 +4,7 @@
 //! with caching, reuse, and memory-efficient computation strategies.
 
 use crate::bitlinear::error::{BitLinearError, BitLinearResult};
-use bitnet_core::memory::{HybridMemoryPool, MemoryHandle};
+use bitnet_core::memory::HybridMemoryPool;
 use candle_core::{Device, Tensor, DType, Shape};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, Mutex};
@@ -12,8 +12,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Scaling computation policies
 #[derive(Debug, Clone, PartialEq)]
+#[derive(Default)]
 pub enum ScalingPolicy {
     /// Use absolute mean for scaling (BitNet standard)
+    #[default]
     AbsoluteMean,
     /// Use absolute maximum for scaling
     AbsoluteMaximum,
@@ -29,11 +31,6 @@ pub enum ScalingPolicy {
     },
 }
 
-impl Default for ScalingPolicy {
-    fn default() -> Self {
-        ScalingPolicy::AbsoluteMean
-    }
-}
 
 /// Configuration for scaling factor management
 #[derive(Debug, Clone)]
@@ -490,7 +487,7 @@ impl ScalingFactorManager {
             *stats = ScalingStats::default();
         }
         
-        if let Ok(mut cache) = self.cache.write() {
+        if let Ok(cache) = self.cache.write() {
             let (hits, misses, evictions) = cache.stats();
             if let Ok(mut stats) = self.stats.write() {
                 stats.cache_hits = hits;
@@ -510,45 +507,45 @@ impl ScalingFactorManager {
     
     fn compute_absolute_mean_scale(&self, tensor: &Tensor) -> BitLinearResult<Tensor> {
         let abs_tensor = tensor.abs()
-            .map_err(|e| BitLinearError::TensorError(format!("Absolute value computation failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Absolute value computation failed: {e}")))?;
         
         let scale = abs_tensor.mean_all()
-            .map_err(|e| BitLinearError::TensorError(format!("Mean computation failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Mean computation failed: {e}")))?;
         
         Ok(scale)
     }
     
     fn compute_absolute_max_scale(&self, tensor: &Tensor) -> BitLinearResult<Tensor> {
         let abs_tensor = tensor.abs()
-            .map_err(|e| BitLinearError::TensorError(format!("Absolute value computation failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Absolute value computation failed: {e}")))?;
         
         let scale = abs_tensor.max_keepdim(0)
-            .map_err(|e| BitLinearError::TensorError(format!("Max computation failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Max computation failed: {e}")))?;
             
         // Get scalar value
         let flat_scale = scale.flatten_all()
-            .map_err(|e| BitLinearError::TensorError(format!("Scale flattening failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Scale flattening failed: {e}")))?;
         
         let scale_values = flat_scale.to_vec1::<f32>()
-            .map_err(|e| BitLinearError::TensorError(format!("Scale extraction failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Scale extraction failed: {e}")))?;
         
         let max_scale = scale_values.iter().fold(0.0f32, |a, &b| a.max(b));
         
         Tensor::from_slice(&[max_scale], &[1], tensor.device())
-            .map_err(|e| BitLinearError::TensorError(format!("Scale tensor creation failed: {}", e)))
+            .map_err(|e| BitLinearError::TensorError(format!("Scale tensor creation failed: {e}")))
     }
     
     fn compute_percentile_scale(&self, tensor: &Tensor, percentile: f32) -> BitLinearResult<Tensor> {
         let percentile = percentile.clamp(0.0, 100.0);
         
         let abs_tensor = tensor.abs()
-            .map_err(|e| BitLinearError::TensorError(format!("Absolute value computation failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Absolute value computation failed: {e}")))?;
         
         let flat = abs_tensor.flatten_all()
-            .map_err(|e| BitLinearError::TensorError(format!("Tensor flattening failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Tensor flattening failed: {e}")))?;
         
         let mut values = flat.to_vec1::<f32>()
-            .map_err(|e| BitLinearError::TensorError(format!("Value extraction failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Value extraction failed: {e}")))?;
         
         // Sort values to compute percentile
         values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
@@ -559,7 +556,7 @@ impl ScalingFactorManager {
         let scale_value = values[index];
         
         Tensor::from_slice(&[scale_value], &[1], tensor.device())
-            .map_err(|e| BitLinearError::TensorError(format!("Scale tensor creation failed: {}", e)))
+            .map_err(|e| BitLinearError::TensorError(format!("Scale tensor creation failed: {e}")))
     }
     
     fn compute_running_average_scale(
@@ -571,7 +568,7 @@ impl ScalingFactorManager {
         // Compute current scale
         let current_scale = self.compute_absolute_mean_scale(tensor)?;
         let current_value = current_scale.to_scalar::<f32>()
-            .map_err(|e| BitLinearError::TensorError(format!("Scale scalar extraction failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Scale scalar extraction failed: {e}")))?;
         
         // Update running average
         let averaged_value = {
@@ -589,7 +586,7 @@ impl ScalingFactorManager {
         };
         
         Tensor::from_slice(&[averaged_value], &[1], tensor.device())
-            .map_err(|e| BitLinearError::TensorError(format!("Scale tensor creation failed: {}", e)))
+            .map_err(|e| BitLinearError::TensorError(format!("Scale tensor creation failed: {e}")))
     }
     
     fn compute_adaptive_scale(
@@ -602,34 +599,34 @@ impl ScalingFactorManager {
         // Start with absolute mean
         let base_scale = self.compute_absolute_mean_scale(tensor)?;
         let base_value = base_scale.to_scalar::<f32>()
-            .map_err(|e| BitLinearError::TensorError(format!("Base scale extraction failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Base scale extraction failed: {e}")))?;
         
         // Compute tensor statistics for adaptation
         let variance = tensor.var(0)
-            .map_err(|e| BitLinearError::TensorError(format!("Variance computation failed: {}", e)))?
+            .map_err(|e| BitLinearError::TensorError(format!("Variance computation failed: {e}")))?
             .mean_all()
-            .map_err(|e| BitLinearError::TensorError(format!("Mean variance computation failed: {}", e)))?
+            .map_err(|e| BitLinearError::TensorError(format!("Mean variance computation failed: {e}")))?
             .to_scalar::<f32>()
-            .map_err(|e| BitLinearError::TensorError(format!("Variance scalar extraction failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Variance scalar extraction failed: {e}")))?;
         
         // Adapt scale based on variance
         let adaptation_factor = 1.0 + adaptation_rate * variance.sqrt();
         let adapted_scale = (base_value * adaptation_factor).clamp(min_scale, max_scale);
         
         Tensor::from_slice(&[adapted_scale], &[1], tensor.device())
-            .map_err(|e| BitLinearError::TensorError(format!("Adaptive scale tensor creation failed: {}", e)))
+            .map_err(|e| BitLinearError::TensorError(format!("Adaptive scale tensor creation failed: {e}")))
     }
     
     fn apply_scale_bounds(&self, scale: Tensor) -> BitLinearResult<Tensor> {
         let scale_value = scale.to_scalar::<f32>()
-            .map_err(|e| BitLinearError::TensorError(format!("Scale value extraction failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Scale value extraction failed: {e}")))?;
         
         let bounded_value = scale_value.clamp(self.config.min_scale_value, self.config.max_scale_value);
         
         if bounded_value != scale_value {
             // Create new tensor with bounded value
             Tensor::from_slice(&[bounded_value], &[1], scale.device())
-                .map_err(|e| BitLinearError::TensorError(format!("Bounded scale creation failed: {}", e)))
+                .map_err(|e| BitLinearError::TensorError(format!("Bounded scale creation failed: {e}")))
         } else {
             Ok(scale)
         }
@@ -675,12 +672,12 @@ fn compute_tensor_hash(tensor: &Tensor) -> BitLinearResult<u64> {
     
     // Hash sample of data
     let flat = tensor.flatten_all()
-        .map_err(|e| BitLinearError::TensorError(format!("Tensor flattening failed: {}", e)))?;
+        .map_err(|e| BitLinearError::TensorError(format!("Tensor flattening failed: {e}")))?;
     
     let sample_size = std::cmp::min(50, flat.elem_count());
     if sample_size > 0 {
         let data = flat.to_vec1::<f32>()
-            .map_err(|e| BitLinearError::TensorError(format!("Tensor data extraction failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Tensor data extraction failed: {e}")))?;
         
         for i in 0..std::cmp::min(sample_size, data.len()) {
             data[i].to_bits().hash(&mut hasher);

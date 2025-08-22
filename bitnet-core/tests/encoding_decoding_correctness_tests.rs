@@ -12,7 +12,6 @@ use bitnet_core::tokenizer::{
 };
 use bitnet_core::memory::tensor::dtype::BitNetDType;
 use std::collections::HashMap;
-use anyhow::Result;
 
 /// Test helper to create a comprehensive test tokenizer
 fn create_comprehensive_test_tokenizer() -> bitnet_core::tokenizer::Tokenizer {
@@ -128,11 +127,10 @@ fn test_tokenizer_round_trip_correctness() {
         if text.contains("unknown") || text.contains("@") || text.contains("$") || text.contains(",") || text.contains("!") ||
            text.chars().any(|c| c.is_uppercase()) || has_unknown_words {
             // Text with unknown tokens should have <unk> in decoded version
-            assert!(decoded.contains("<unk>"), "Expected <unk> in decoded text for: '{}'", text);
+            assert!(decoded.contains("<unk>"), "Expected <unk> in decoded text for: '{text}'");
         } else if !normalized_original.is_empty() {
             assert_eq!(normalized_decoded, normalized_original,
-                "Round-trip failed for text: '{}' -> tokens: {:?} -> decoded: '{}'",
-                text, tokens, decoded);
+                "Round-trip failed for text: '{text}' -> tokens: {tokens:?} -> decoded: '{decoded}'");
         }
     }
 }
@@ -149,7 +147,7 @@ fn test_tokenizer_batch_encoding_correctness() {
     for (i, text) in test_texts.iter().enumerate() {
         let individual_tokens = encode_text(&tokenizer, text).unwrap();
         assert_eq!(batch_tokens[i], individual_tokens,
-            "Batch encoding mismatch for text '{}' at index {}", text, i);
+            "Batch encoding mismatch for text '{text}' at index {i}");
     }
     
     // Test batch decoding
@@ -180,7 +178,7 @@ fn test_tokenizer_special_token_handling() {
         let decoded = decode_tokens(&tokenizer, &tokens).unwrap();
         
         // Special tokens should be preserved in round-trip
-        assert_eq!(text, decoded, "Special token handling failed for: '{}'", text);
+        assert_eq!(text, decoded, "Special token handling failed for: '{text}'");
     }
 }
 
@@ -202,7 +200,7 @@ fn test_tokenizer_unicode_correctness() {
         let decoded = decode_tokens(&tokenizer, &tokens).unwrap();
         
         // Unicode should be preserved
-        assert_eq!(text, decoded, "Unicode handling failed for: '{}'", text);
+        assert_eq!(text, decoded, "Unicode handling failed for: '{text}'");
     }
 }
 
@@ -249,7 +247,7 @@ fn test_tokenizer_consistency_across_operations() {
     // All results should be identical
     let first_result = &all_results[0];
     for (i, result) in all_results.iter().enumerate() {
-        assert_eq!(result, first_result, "Inconsistent result at iteration {}", i);
+        assert_eq!(result, first_result, "Inconsistent result at iteration {i}");
     }
     
     // Test batch vs individual consistency
@@ -257,7 +255,7 @@ fn test_tokenizer_consistency_across_operations() {
     let batch_results = encode_batch(&tokenizer, &texts).unwrap();
     
     for (i, batch_result) in batch_results.iter().enumerate() {
-        assert_eq!(batch_result, first_result, "Batch result {} differs from individual", i);
+        assert_eq!(batch_result, first_result, "Batch result {i} differs from individual");
     }
 }
 
@@ -439,13 +437,13 @@ fn test_quantization_data_type_conversions() {
             if from_type.is_quantized() && !to_type.is_quantized() {
                 // Dequantization: quantized -> full precision
                 assert!(to_bits >= from_bits,
-                    "Dequantization should not decrease precision: {:?} -> {:?}", from_type, to_type);
+                    "Dequantization should not decrease precision: {from_type:?} -> {to_type:?}");
             }
             
             if !from_type.is_quantized() && to_type.is_quantized() {
                 // Quantization: full precision -> quantized
                 assert!(to_bits <= from_bits,
-                    "Quantization should not increase precision: {:?} -> {:?}", from_type, to_type);
+                    "Quantization should not increase precision: {from_type:?} -> {to_type:?}");
             }
         }
     }
@@ -510,7 +508,7 @@ fn test_end_to_end_text_processing_pipeline() {
     for (i, decoded) in decoded_texts.iter().enumerate() {
         // Due to unknown token handling, we check for partial matches
         let original_words: Vec<&str> = input_texts[i].split_whitespace().collect();
-        let known_words = vec!["hello", "the", "weather", "machine", "learning"];
+        let known_words = ["hello", "the", "weather", "machine", "learning"];
         
         let has_known_content = known_words.iter().any(|&word| {
             original_words.iter().any(|&orig_word| {
@@ -521,7 +519,7 @@ fn test_end_to_end_text_processing_pipeline() {
         if !has_known_content {
             // If no known words, should at least have <unk> tokens
             assert!(decoded.contains("<unk>"),
-                "Decoded text should contain either known words or <unk>: '{}'", decoded);
+                "Decoded text should contain either known words or <unk>: '{decoded}'");
         }
     }
 }
@@ -575,17 +573,17 @@ fn test_tokenizer_robustness() {
         if input.trim().is_empty() {
             // Empty or whitespace-only strings should produce empty token sequences
             let tokens = encode_result.unwrap();
-            assert_eq!(tokens, Vec::<u32>::new(), "Whitespace-only input should produce empty tokens: '{}'", input);
+            assert_eq!(tokens, Vec::<u32>::new(), "Whitespace-only input should produce empty tokens: '{input}'");
         } else {
             // Non-empty strings should encode successfully
-            assert!(encode_result.is_ok(), "Should successfully encode: '{}'", input);
+            assert!(encode_result.is_ok(), "Should successfully encode: '{input}'");
             
             let tokens = encode_result.unwrap();
-            assert!(!tokens.is_empty(), "Non-empty input should produce non-empty tokens: '{}'", input);
+            assert!(!tokens.is_empty(), "Non-empty input should produce non-empty tokens: '{input}'");
             
             // Should be able to decode back
             let decode_result = decode_tokens(&tokenizer, &tokens);
-            assert!(decode_result.is_ok(), "Should successfully decode tokens for: '{}'", input);
+            assert!(decode_result.is_ok(), "Should successfully decode tokens for: '{input}'");
         }
     }
 }

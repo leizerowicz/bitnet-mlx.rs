@@ -5,7 +5,6 @@
 //! capabilities across multiple architectures.
 
 use super::capabilities::{detect_simd_capabilities, SimdCapabilities};
-use super::utils::prefetch_memory;
 use crate::quantization::utils::QuantizationError;
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
@@ -27,7 +26,7 @@ impl SimdPackingOps {
     /// Pack ternary values (-1, 0, +1) into compact 2-bit representation
     /// Each pair of bits represents: 00 = -1, 01 = 0, 10 = +1, 11 = reserved
     pub fn pack_ternary(&self, input: &[i8], output: &mut [u8]) -> Result<(), QuantizationError> {
-        let required_output_size = (input.len() + 3) / 4; // 4 ternary values per byte
+        let required_output_size = input.len().div_ceil(4); // 4 ternary values per byte
         if output.len() < required_output_size {
             return Err(QuantizationError::ConfigError(
                 "Output buffer too small for packing".into()
@@ -76,7 +75,7 @@ impl SimdPackingOps {
                 0 => 0b01,  
                 1 => 0b10,
                 _ => return Err(QuantizationError::ConfigError(
-                    format!("Invalid ternary value: {}", current_val)
+                    format!("Invalid ternary value: {current_val}")
                 )),
             };
             
@@ -238,7 +237,7 @@ impl SimdPackingOps {
             // Pack 4 values per output byte
             for j in (0..16).step_by(4) {
                 if output_pos < output.len() {
-                    let packed = ((temp_vals[j] & 0x3) << 0) |
+                    let packed = ((temp_vals[j] & 0x3)) |
                                 ((temp_vals[j + 1] & 0x3) << 2) |
                                 ((temp_vals[j + 2] & 0x3) << 4) |
                                 ((temp_vals[j + 3] & 0x3) << 6);

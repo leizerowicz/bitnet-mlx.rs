@@ -200,7 +200,7 @@ impl StreamingProcessor {
             
             // Process the chunk
             processor.process_chunk(&chunk)
-                .map_err(|e| CalibrationError::streaming(format!("Chunk processing failed: {}", e)))?;
+                .map_err(|e| CalibrationError::streaming(format!("Chunk processing failed: {e}")))?;
             
             self.metrics.chunks_processed += 1;
             self.metrics.tensors_processed += chunk.tensors.len();
@@ -229,7 +229,7 @@ impl StreamingProcessor {
         // In a real implementation, you'd use a proper thread pool
         
         let max_parallel = self.config.max_parallel_chunks.min(chunks.len());
-        let chunk_size = (chunks.len() + max_parallel - 1) / max_parallel;
+        let chunk_size = chunks.len().div_ceil(max_parallel);
         
         let handles: Vec<_> = chunks
             .chunks(chunk_size)
@@ -252,7 +252,7 @@ impl StreamingProcessor {
         for handle in handles {
             handle.join()
                 .map_err(|_| CalibrationError::streaming("Thread join failed".to_string()))?
-                .map_err(|e| CalibrationError::streaming(format!("Parallel processing failed: {}", e)))?;
+                .map_err(|e| CalibrationError::streaming(format!("Parallel processing failed: {e}")))?;
         }
 
         Ok(())
@@ -276,7 +276,7 @@ impl StreamingProcessor {
     fn create_chunks_from_tensors(&self, tensors: Vec<Tensor>) -> CalibrationResult<Vec<DataChunk>> {
         let chunk_size = self.config.chunk_size;
         let mut chunks = Vec::new();
-        let total_chunks = (tensors.len() + chunk_size - 1) / chunk_size;
+        let total_chunks = tensors.len().div_ceil(chunk_size);
 
         for (chunk_idx, tensor_batch) in tensors.chunks(chunk_size).enumerate() {
             let memory_size = self.estimate_tensor_memory_size(tensor_batch);

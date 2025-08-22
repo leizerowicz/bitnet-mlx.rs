@@ -11,13 +11,12 @@ use std::thread;
 use std::collections::HashMap;
 
 use bitnet_core::memory::{
-    HybridMemoryPool, MemoryPoolConfig, TrackingConfig, TrackingLevel,
-    CleanupManager, CleanupConfig, CleanupStrategyType, CleanupPriority,
-    MemoryPressureLevel, MemoryTracker, MemoryProfiler, AllocationTimeline,
-    PatternAnalyzer, PressureThresholds, DetailedMemoryMetrics
+    HybridMemoryPool, MemoryPoolConfig, TrackingConfig,
+    CleanupManager, CleanupConfig,
+    MemoryPressureLevel
 };
-use bitnet_core::memory::tensor::{BitNetTensor, BitNetDType, TensorHandle, TensorMetadata};
-use bitnet_core::device::{get_cpu_device, auto_select_device, is_metal_available, get_metal_device};
+use bitnet_core::memory::tensor::{BitNetTensor, BitNetDType};
+use bitnet_core::device::{get_cpu_device, is_metal_available, get_metal_device};
 
 /// Helper function to reset all global state before each test
 fn reset_global_state() {
@@ -102,7 +101,7 @@ fn test_tensor_allocation_from_memory_pools() {
             assert_eq!(small_tensor.shape(), vec![32, 32]);
             assert_eq!(small_tensor.dtype(), dtype);
             // Verify device consistency using custom device comparison
-            bitnet_core::device::assert_devices_equal(&small_tensor.device(), &device);
+            bitnet_core::device::assert_devices_equal(&small_tensor.device(), device);
             
             // Test large tensor allocation (should use large block pool)
             let large_tensor = BitNetTensor::zeros(&[1024, 1024], dtype, device, &pool)
@@ -111,7 +110,7 @@ fn test_tensor_allocation_from_memory_pools() {
             assert_eq!(large_tensor.shape(), vec![1024, 1024]);
             assert_eq!(large_tensor.dtype(), dtype);
             // Verify device consistency using custom device comparison
-            bitnet_core::device::assert_devices_equal(&large_tensor.device(), &device);
+            bitnet_core::device::assert_devices_equal(&large_tensor.device(), device);
             
             // Verify memory pool metrics
             let metrics = pool.get_metrics();
@@ -193,14 +192,13 @@ fn test_tensor_memory_pool_efficiency() {
         drop(tensors);
         let deallocation_time = dealloc_start.elapsed();
         
-        println!("Shape {:?}: {} tensors allocated in {:?}, deallocated in {:?}", 
-                shape, count, allocation_time, deallocation_time);
+        println!("Shape {shape:?}: {count} tensors allocated in {allocation_time:?}, deallocated in {deallocation_time:?}");
         
         // Verify efficiency (allocation should be fast) - more realistic thresholds
         assert!(allocation_time < Duration::from_millis(500),
-                "Allocation too slow for shape {:?}: {:?}", shape, allocation_time);
+                "Allocation too slow for shape {shape:?}: {allocation_time:?}");
         assert!(deallocation_time < Duration::from_millis(100),
-                "Deallocation too slow for shape {:?}: {:?}", shape, deallocation_time);
+                "Deallocation too slow for shape {shape:?}: {deallocation_time:?}");
     }
 }
 
@@ -322,7 +320,7 @@ fn test_tensor_cleanup_with_memory_pressure() {
     drop(tensors);
     let cleanup_duration = cleanup_start.elapsed();
     
-    println!("Tensor cleanup completed in {:?}", cleanup_duration);
+    println!("Tensor cleanup completed in {cleanup_duration:?}");
     
     // With immediate cleanup, memory should be reclaimed immediately when tensors are dropped
     let final_metrics = pool.get_metrics();
@@ -465,7 +463,7 @@ fn test_tensor_memory_usage_tracking() {
     
     // Test device-specific tracking
     let device_usage = &final_metrics.device_usage;
-    let device_key = format!("{:?}", device);
+    let device_key = format!("{device:?}");
     assert!(device_usage.contains_key(&device_key));
     assert!(device_usage[&device_key] > 0);
 }
@@ -484,7 +482,7 @@ fn test_tensor_allocation_deallocation_patterns() {
     ];
     
     for (pattern_name, sizes) in patterns {
-        println!("Testing allocation pattern: {}", pattern_name);
+        println!("Testing allocation pattern: {pattern_name}");
         
         let start_metrics = pool.get_detailed_metrics()
             .expect("Detailed metrics should be available");
@@ -515,7 +513,7 @@ fn test_tensor_allocation_deallocation_patterns() {
         
         // Verify deallocation tracking with immediate cleanup
         assert_eq!(deallocated_metrics.active_allocations, start_metrics.active_allocations,
-                   "Expected immediate cleanup to reclaim all memory for pattern {}", pattern_name);
+                   "Expected immediate cleanup to reclaim all memory for pattern {pattern_name}");
     }
 }
 
@@ -584,7 +582,7 @@ fn test_tensor_memory_profiling_integration() {
         ];
         
         for (test_name, count, shape) in test_cases {
-            println!("Profiling test case: {}", test_name);
+            println!("Profiling test case: {test_name}");
             
             let start_time = Instant::now();
             let mut tensors = Vec::new();
@@ -601,8 +599,8 @@ fn test_tensor_memory_profiling_integration() {
             drop(tensors);
             let deallocation_time = dealloc_start.elapsed();
             
-            println!("  Allocation time: {:?}", allocation_time);
-            println!("  Deallocation time: {:?}", deallocation_time);
+            println!("  Allocation time: {allocation_time:?}");
+            println!("  Deallocation time: {deallocation_time:?}");
             
             // Get detailed metrics including performance data
             let metrics = tracker.get_detailed_metrics();
@@ -623,18 +621,18 @@ fn test_device_specific_tensor_allocation() {
     for device in &devices {
         let pool = create_tracked_pool();
         
-        println!("Testing device-specific allocation on: {:?}", device);
+        println!("Testing device-specific allocation on: {device:?}");
         
         // Test allocation on specific device
         let tensor = BitNetTensor::zeros(&[512, 512], BitNetDType::F32, device, &pool)
             .expect("Failed to create device-specific tensor");
         
         // Verify device consistency using custom device comparison
-        bitnet_core::device::assert_devices_equal(&tensor.device(), &device);
+        bitnet_core::device::assert_devices_equal(&tensor.device(), device);
         
         // Verify device-specific metrics
         if let Some(detailed_metrics) = pool.get_detailed_metrics() {
-            let device_key = format!("{:?}", device);
+            let device_key = format!("{device:?}");
             assert!(detailed_metrics.device_usage.contains_key(&device_key));
             assert!(detailed_metrics.device_usage[&device_key] > 0);
         }
@@ -642,7 +640,7 @@ fn test_device_specific_tensor_allocation() {
         // Test handle device consistency
         let handle = tensor.handle();
         // Verify device consistency using custom device comparison
-        bitnet_core::device::assert_devices_equal(&handle.device().unwrap(), &device);
+        bitnet_core::device::assert_devices_equal(&handle.device().unwrap(), device);
     }
 }
 
@@ -664,7 +662,7 @@ fn test_tensor_device_migration() {
         .expect("Failed to create source tensor");
     
     // Verify device consistency using custom device comparison
-    bitnet_core::device::assert_devices_equal(&tensor.device(), &source_device);
+    bitnet_core::device::assert_devices_equal(&tensor.device(), source_device);
     
     let initial_metrics = pool.get_detailed_metrics()
         .expect("Detailed metrics should be available");
@@ -674,7 +672,7 @@ fn test_tensor_device_migration() {
         .expect("Failed to migrate tensor");
     
     // Verify device consistency using custom device comparison
-    bitnet_core::device::assert_devices_equal(&migrated_tensor.device(), &target_device);
+    bitnet_core::device::assert_devices_equal(&migrated_tensor.device(), target_device);
     assert_eq!(migrated_tensor.shape(), tensor.shape());
     assert_eq!(migrated_tensor.dtype(), tensor.dtype());
     
@@ -685,8 +683,8 @@ fn test_tensor_device_migration() {
     assert!(post_migration_metrics.active_allocations > initial_metrics.active_allocations);
     
     // Verify device-specific usage tracking
-    let source_key = format!("{:?}", source_device);
-    let target_key = format!("{:?}", target_device);
+    let source_key = format!("{source_device:?}");
+    let target_key = format!("{target_device:?}");
     
     assert!(post_migration_metrics.device_usage.contains_key(&source_key));
     assert!(post_migration_metrics.device_usage.contains_key(&target_key));
@@ -700,7 +698,7 @@ fn test_device_memory_pressure_handling() {
     for device in &devices {
         let pool = create_tracked_pool();
         
-        println!("Testing memory pressure handling on: {:?}", device);
+        println!("Testing memory pressure handling on: {device:?}");
         
         // Create tensors until pressure is detected
         let mut tensors = Vec::new();
@@ -723,7 +721,7 @@ fn test_device_memory_pressure_handling() {
                     }
                 }
                 Err(e) => {
-                    println!("  Allocation failed at tensor {}: {}", i, e);
+                    println!("  Allocation failed at tensor {i}: {e}");
                     break;
                 }
             }
@@ -735,7 +733,7 @@ fn test_device_memory_pressure_handling() {
             tensors.truncate(tensors.len() / 2); // Drop half the tensors
             let cleanup_time = cleanup_start.elapsed();
             
-            println!("  Cleanup completed in {:?}", cleanup_time);
+            println!("  Cleanup completed in {cleanup_time:?}");
             
             // Verify pressure reduction
             if let Some(final_metrics) = pool.get_detailed_metrics() {
@@ -752,7 +750,7 @@ fn test_device_memory_cleanup() {
     for device in &devices {
         let (pool, cleanup_manager) = create_pool_with_cleanup();
         
-        println!("Testing device-specific cleanup on: {:?}", device);
+        println!("Testing device-specific cleanup on: {device:?}");
         
         // Create tensors on the device
         let mut tensors = Vec::new();
@@ -911,7 +909,7 @@ fn test_memory_alignment_for_different_dtypes() {
         let expected_size = dtype.bytes_for_elements(1000);
         assert_eq!(handle.size_bytes().unwrap(), expected_size);
         
-        println!("Dtype {}: {} bytes for 1000 elements", dtype, expected_size);
+        println!("Dtype {dtype}: {expected_size} bytes for 1000 elements");
     }
 }
 
@@ -955,12 +953,12 @@ fn test_stress_tensor_allocation_under_pressure() {
     let avg_dealloc_time = deallocation_times.iter().sum::<Duration>() / iterations as u32;
     
     println!("Stress test completed:");
-    println!("  Average allocation time: {:?}", avg_alloc_time);
-    println!("  Average deallocation time: {:?}", avg_dealloc_time);
+    println!("  Average allocation time: {avg_alloc_time:?}");
+    println!("  Average deallocation time: {avg_dealloc_time:?}");
     
     // Performance should remain reasonable under stress (more realistic thresholds)
-    assert!(avg_alloc_time < Duration::from_millis(1), "Allocation too slow under stress: {:?}", avg_alloc_time);
-    assert!(avg_dealloc_time < Duration::from_millis(1), "Deallocation too slow under stress: {:?}", avg_dealloc_time);
+    assert!(avg_alloc_time < Duration::from_millis(1), "Allocation too slow under stress: {avg_alloc_time:?}");
+    assert!(avg_dealloc_time < Duration::from_millis(1), "Deallocation too slow under stress: {avg_dealloc_time:?}");
 }
 
 #[test]
@@ -988,7 +986,7 @@ fn test_concurrent_tensor_memory_pressure() {
                         thread_tensors.push(tensor);
                     }
                     Err(e) => {
-                        println!("Thread {} failed to allocate tensor {}: {}", thread_id, i, e);
+                        println!("Thread {thread_id} failed to allocate tensor {i}: {e}");
                         break;
                     }
                 }
@@ -1009,8 +1007,7 @@ fn test_concurrent_tensor_memory_pressure() {
         total_tensors += handle.join().expect("Thread panicked");
     }
     
-    println!("Concurrent stress test: {} tensors created across {} threads",
-             total_tensors, thread_count);
+    println!("Concurrent stress test: {total_tensors} tensors created across {thread_count} threads");
     
     // Verify final state
     let final_metrics = pool.get_metrics();
@@ -1063,13 +1060,13 @@ fn test_memory_pressure_recovery() {
     
     // Final cleanup to ensure all dropped tensors are processed
     let final_cleanup_count = pool.cleanup_orphaned_handles();
-    println!("Final cleanup: {} orphaned handles", final_cleanup_count);
+    println!("Final cleanup: {final_cleanup_count} orphaned handles");
     
     // Verify recovery with immediate cleanup
     let final_metrics = pool.get_metrics();
     let expected_remaining = pressure_tensors.len() as u64;
     assert_eq!(final_metrics.active_allocations, expected_remaining,
-               "Expected immediate cleanup to leave only {} remaining tensors", expected_remaining);
+               "Expected immediate cleanup to leave only {expected_remaining} remaining tensors");
     assert!(final_metrics.current_allocated < pressure_metrics.current_allocated,
             "Expected memory usage to decrease after dropping tensors");
 }
@@ -1194,8 +1191,7 @@ fn test_memory_efficiency_by_dtype() {
         
         efficiency_results.insert(dtype, (actual_bytes, efficiency));
         
-        println!("Dtype {}: {} bytes ({:.1}x efficiency vs F32)",
-                dtype, actual_bytes, efficiency);
+        println!("Dtype {dtype}: {actual_bytes} bytes ({efficiency:.1}x efficiency vs F32)");
     }
     
     // Verify efficiency calculations
@@ -1205,8 +1201,7 @@ fn test_memory_efficiency_by_dtype() {
         if dtype != BitNetDType::F32 {
             let expected_efficiency = f32_bytes as f32 / bytes as f32;
             let diff = (efficiency - expected_efficiency).abs();
-            assert!(diff < 0.01, "Efficiency mismatch for {}: expected {:.2}, got {:.2}",
-                   dtype, expected_efficiency, efficiency);
+            assert!(diff < 0.01, "Efficiency mismatch for {dtype}: expected {expected_efficiency:.2}, got {efficiency:.2}");
         }
     }
 }
@@ -1232,16 +1227,14 @@ fn test_quantized_tensor_memory_efficiency() {
             .expect("Failed to create quantized tensor");
         
         let bits_per_element = dtype.bits_per_element();
-        let expected_bytes = (element_count * bits_per_element + 7) / 8; // Round up to bytes
+        let expected_bytes = (element_count * bits_per_element).div_ceil(8); // Round up to bytes
         let actual_bytes = tensor.size_bytes();
         
-        println!("Quantized dtype {}: {} bits/element, {} bytes total",
-                dtype, bits_per_element, actual_bytes);
+        println!("Quantized dtype {dtype}: {bits_per_element} bits/element, {actual_bytes} bytes total");
         
         // For quantized types, verify bit-level efficiency
         assert!(actual_bytes <= expected_bytes + 8, // Allow some padding
-               "Quantized tensor using too much memory: {} > {} bytes",
-               actual_bytes, expected_bytes);
+               "Quantized tensor using too much memory: {actual_bytes} > {expected_bytes} bytes");
         
         // Verify memory savings compared to F32
         let f32_tensor = BitNetTensor::zeros(&[element_count], BitNetDType::F32, &device, &pool)
@@ -1249,7 +1242,7 @@ fn test_quantized_tensor_memory_efficiency() {
         let f32_bytes = f32_tensor.size_bytes();
         
         let savings_ratio = f32_bytes as f32 / actual_bytes as f32;
-        println!("  Memory savings vs F32: {:.1}x", savings_ratio);
+        println!("  Memory savings vs F32: {savings_ratio:.1}x");
         
         assert!(savings_ratio >= 1.0, "Quantized type should use less memory than F32");
     }
@@ -1269,7 +1262,7 @@ fn test_tensor_memory_overhead_analysis() {
     ];
     
     for (config_name, shapes) in test_configs {
-        println!("Testing overhead for: {}", config_name);
+        println!("Testing overhead for: {config_name}");
         
         let start_metrics = pool.get_metrics();
         let mut tensors = Vec::new();
@@ -1291,13 +1284,13 @@ fn test_tensor_memory_overhead_analysis() {
             0.0
         };
         
-        println!("  Data bytes: {}", total_data_bytes);
-        println!("  Allocated bytes: {}", allocated_bytes);
-        println!("  Overhead: {} bytes ({:.1}%)", overhead_bytes, overhead_percentage);
+        println!("  Data bytes: {total_data_bytes}");
+        println!("  Allocated bytes: {allocated_bytes}");
+        println!("  Overhead: {overhead_bytes} bytes ({overhead_percentage:.1}%)");
         
         // Overhead should be reasonable (less than 20% for most cases)
         assert!(overhead_percentage < 20.0,
-               "Memory overhead too high for {}: {:.1}%", config_name, overhead_percentage);
+               "Memory overhead too high for {config_name}: {overhead_percentage:.1}%");
     }
 }
 
@@ -1329,7 +1322,7 @@ fn test_comprehensive_tensor_memory_integration() {
                 assert_eq!(tensor.shape(), vec![size]);
                 assert_eq!(tensor.dtype(), dtype);
                 // Verify device consistency using custom device comparison
-                bitnet_core::device::assert_devices_equal(&tensor.device(), &device);
+                bitnet_core::device::assert_devices_equal(&tensor.device(), device);
                 
                 // Verify handle functionality
                 let handle = tensor.handle();
@@ -1349,8 +1342,8 @@ fn test_comprehensive_tensor_memory_integration() {
     assert_eq!(final_metrics.active_allocations, total_tensors);
     
     println!("Integration test completed:");
-    println!("  Total tensors created: {}", total_tensors);
-    println!("  Total memory allocated: {} bytes", total_memory);
+    println!("  Total tensors created: {total_tensors}");
+    println!("  Total memory allocated: {total_memory} bytes");
     println!("  Active allocations: {}", final_metrics.active_allocations);
     println!("  Current allocated: {} bytes", final_metrics.current_allocated);
     

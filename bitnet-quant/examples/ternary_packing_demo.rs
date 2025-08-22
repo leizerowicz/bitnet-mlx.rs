@@ -91,7 +91,7 @@ fn create_mixed_weights(device: &Device) -> Result<Tensor, Box<dyn std::error::E
 }
 
 fn test_weight_pattern(name: &str, weights: &Tensor) -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n{}", name);
+    println!("\n{name}");
     println!("{}", "=".repeat(name.len()));
     
     // Convert to ternary format
@@ -151,8 +151,7 @@ fn test_weight_pattern(name: &str, weights: &Tensor) -> Result<(), Box<dyn std::
     // Find best strategy
     if let Some((best_strategy, best_ratio, best_savings)) = results.iter()
         .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap()) {
-        println!("\n🏆 Best strategy: {:?} ({:.2}x compression, {:.1}% savings)", 
-            best_strategy, best_ratio, best_savings);
+        println!("\n🏆 Best strategy: {best_strategy:?} ({best_ratio:.2}x compression, {best_savings:.1}% savings)");
     }
     
     Ok(())
@@ -176,8 +175,7 @@ fn demonstrate_auto_selection() -> Result<(), Box<dyn std::error::Error>> {
         let recommended = packing_utils::recommend_strategy(&weights);
         let auto_selected = TernaryPackerFactory::auto_select_strategy(&weights, &config);
         
-        println!("📋 {}: Recommended={:?}, Auto-selected={:?}", 
-            name, recommended, auto_selected);
+        println!("📋 {name}: Recommended={recommended:?}, Auto-selected={auto_selected:?}");
         
         // Test the auto-selected strategy
         let packed = TernaryPackerFactory::pack_optimal(&weights, &config)?;
@@ -192,7 +190,7 @@ fn performance_comparison() -> Result<(), Box<dyn std::error::Error>> {
     let sizes = [64, 256, 1024, 4096];
     
     for size in sizes {
-        println!("\n📏 Array size: {} elements", size);
+        println!("\n📏 Array size: {size} elements");
         
         // Create test data
         let weights: Vec<i8> = (0..size)
@@ -277,12 +275,12 @@ fn memory_analysis() -> Result<(), Box<dyn std::error::Error>> {
         print!("{:7.1}% |", sparsity * 100.0);
         for strategy in strategies {
             if let Some(&size) = results.get(&strategy) {
-                print!(" {:9} |", size);
+                print!(" {size:9} |");
             } else {
                 print!(" {:9} |", "N/A");
             }
         }
-        println!(" {:?}", best_strategy);
+        println!(" {best_strategy:?}");
     }
     
     Ok(())

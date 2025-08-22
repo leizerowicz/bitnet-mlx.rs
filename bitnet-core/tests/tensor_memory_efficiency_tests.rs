@@ -91,8 +91,8 @@ fn test_tensor_memory_allocation_efficiency() {
     let initial_usage = get_memory_usage(&pool);
     let initial_allocations = get_allocation_count(&pool);
     
-    println!("Initial memory usage: {} bytes", initial_usage);
-    println!("Initial allocations: {}", initial_allocations);
+    println!("Initial memory usage: {initial_usage} bytes");
+    println!("Initial allocations: {initial_allocations}");
     
     // Create various tensor sizes to test allocation efficiency
     let tensor_sizes = vec![
@@ -107,7 +107,7 @@ fn test_tensor_memory_allocation_efficiency() {
     
     for (i, shape) in tensor_sizes.iter().enumerate() {
         let tensor = BitNetTensor::zeros(shape, BitNetDType::F32, Some(device.clone()))
-            .expect(&format!("Failed to create tensor {}", i));
+            .unwrap_or_else(|_| panic!("Failed to create tensor {i}"));
         
         tensors.push(tensor);
         
@@ -120,8 +120,8 @@ fn test_tensor_memory_allocation_efficiency() {
     }
     
     let final_allocations = get_allocation_count(&pool);
-    println!("Peak memory usage: {} bytes", peak_usage);
-    println!("Final allocations: {}", final_allocations);
+    println!("Peak memory usage: {peak_usage} bytes");
+    println!("Final allocations: {final_allocations}");
     
     // Validate memory allocation efficiency
     assert!(final_allocations >= tensors.len(), 
@@ -135,8 +135,8 @@ fn test_tensor_memory_allocation_efficiency() {
     let actual_usage = peak_usage - initial_usage;
     let overhead_ratio = (actual_usage as f64 - total_tensor_data as f64) / total_tensor_data as f64;
     
-    println!("Total tensor data: {} bytes", total_tensor_data);
-    println!("Actual pool usage: {} bytes", actual_usage);
+    println!("Total tensor data: {total_tensor_data} bytes");
+    println!("Actual pool usage: {actual_usage} bytes");
     println!("Memory overhead ratio: {:.2}%", overhead_ratio * 100.0);
     
     // Memory overhead should be reasonable (less than 50%)
@@ -158,16 +158,16 @@ fn test_tensor_memory_cleanup_efficiency() {
         
         // Create many tensors
         for i in 0..50 {
-            let tensor = BitNetTensor::zeros(&vec![64, 64], BitNetDType::F32, Some(device.clone()))
-                .expect(&format!("Failed to create tensor {}", i));
+            let tensor = BitNetTensor::zeros(&[64, 64], BitNetDType::F32, Some(device.clone()))
+                .unwrap_or_else(|_| panic!("Failed to create tensor {i}"));
             tensors.push(tensor);
         }
         
         let mid_usage = get_memory_usage(&pool);
         let mid_allocations = get_allocation_count(&pool);
         
-        println!("Mid-test usage: {} bytes", mid_usage);
-        println!("Mid-test allocations: {}", mid_allocations);
+        println!("Mid-test usage: {mid_usage} bytes");
+        println!("Mid-test allocations: {mid_allocations}");
         
         assert!(mid_usage > initial_usage, "Memory usage should increase");
         assert!(mid_allocations > initial_allocations, "Allocations should increase");
@@ -181,8 +181,8 @@ fn test_tensor_memory_cleanup_efficiency() {
     let final_usage = get_memory_usage(&pool);
     let final_allocations = get_allocation_count(&pool);
     
-    println!("Final usage: {} bytes", final_usage);
-    println!("Final allocations: {}", final_allocations);
+    println!("Final usage: {final_usage} bytes");
+    println!("Final allocations: {final_allocations}");
     
     // Verify cleanup occurred
     let cleanup_ratio = (mid_usage - final_usage) as f64 / (mid_usage - initial_usage) as f64;
@@ -211,7 +211,7 @@ fn test_tensor_memory_fragmentation() {
     // Create initial tensors
     for (i, shape) in sizes.iter().enumerate() {
         let tensor = BitNetTensor::zeros(shape, BitNetDType::F32, Some(device.clone()))
-            .expect(&format!("Failed to create initial tensor {}", i));
+            .unwrap_or_else(|_| panic!("Failed to create initial tensor {i}"));
         tensors.push(tensor);
     }
     
@@ -229,23 +229,23 @@ fn test_tensor_memory_fragmentation() {
     // Create new tensors that should fit in the gaps
     let mut new_tensors = Vec::new();
     for i in 0..5 {
-        let tensor = BitNetTensor::zeros(&vec![10, 10], BitNetDType::F32, Some(device.clone()))
-            .expect(&format!("Failed to create fragmentation test tensor {}", i));
+        let tensor = BitNetTensor::zeros(&[10, 10], BitNetDType::F32, Some(device.clone()))
+            .unwrap_or_else(|_| panic!("Failed to create fragmentation test tensor {i}"));
         new_tensors.push(tensor);
     }
     
     let final_usage = get_memory_usage(&pool);
     
-    println!("After creation: {} bytes", after_creation);
-    println!("After fragmentation: {} bytes", after_fragmentation);
-    println!("Final usage: {} bytes", final_usage);
+    println!("After creation: {after_creation} bytes");
+    println!("After fragmentation: {after_fragmentation} bytes");
+    println!("Final usage: {final_usage} bytes");
     
     // Memory should not grow excessively due to fragmentation
     let fragmentation_growth = final_usage.saturating_sub(after_fragmentation);
     let expected_new_data = 5 * 10 * 10 * std::mem::size_of::<f32>();
     
-    println!("Fragmentation growth: {} bytes", fragmentation_growth);
-    println!("Expected new data: {} bytes", expected_new_data);
+    println!("Fragmentation growth: {fragmentation_growth} bytes");
+    println!("Expected new data: {expected_new_data} bytes");
     
     // Growth should be reasonable (less than 2x expected data)
     assert!(fragmentation_growth < expected_new_data * 2,
@@ -261,11 +261,11 @@ fn test_tensor_memory_pressure_handling() {
     let mut creation_failures = 0;
     let max_tensors = 200; // Try to create many large tensors
     
-    println!("Testing memory pressure handling with {} large tensors", max_tensors);
+    println!("Testing memory pressure handling with {max_tensors} large tensors");
     
     // Create tensors until memory pressure or failure
     for i in 0..max_tensors {
-        match BitNetTensor::zeros(&vec![256, 256], BitNetDType::F32, Some(device.clone())) {
+        match BitNetTensor::zeros(&[256, 256], BitNetDType::F32, Some(device.clone())) {
             Ok(tensor) => {
                 tensors.push(tensor);
                 
@@ -281,7 +281,7 @@ fn test_tensor_memory_pressure_handling() {
             }
             Err(_) => {
                 creation_failures += 1;
-                println!("Tensor creation failed at index {}", i);
+                println!("Tensor creation failed at index {i}");
                 if creation_failures > 5 {
                     break; // Stop if too many failures
                 }
@@ -290,7 +290,7 @@ fn test_tensor_memory_pressure_handling() {
     }
     
     println!("Created {} tensors before memory pressure/failure", tensors.len());
-    println!("Total creation failures: {}", creation_failures);
+    println!("Total creation failures: {creation_failures}");
     
     // Verify memory pressure handling
     if let Some(metrics) = pool.get_detailed_metrics() {
@@ -317,8 +317,8 @@ fn test_tensor_memory_pool_reuse() {
         
         // Create tensors
         for i in 0..20 {
-            let tensor = BitNetTensor::zeros(&vec![32, 32], BitNetDType::F32, Some(device.clone()))
-                .expect(&format!("Failed to create tensor {}-{}", round, i));
+            let tensor = BitNetTensor::zeros(&[32, 32], BitNetDType::F32, Some(device.clone()))
+                .unwrap_or_else(|_| panic!("Failed to create tensor {round}-{i}"));
             round_tensors.push(tensor);
         }
         
@@ -347,7 +347,7 @@ fn test_tensor_memory_pool_reuse() {
 #[test]
 fn test_tensor_concurrent_memory_efficiency() {
     let pool = Arc::new(create_tracked_pool());
-    let initial_usage = get_memory_usage(&*pool);
+    let initial_usage = get_memory_usage(&pool);
     
     let num_threads = 4;
     let tensors_per_thread = 25;
@@ -361,10 +361,10 @@ fn test_tensor_concurrent_memory_efficiency() {
             
             for i in 0..tensors_per_thread {
                 let tensor = BitNetTensor::zeros(
-                    &vec![32, 32],
+                    &[32, 32],
                     BitNetDType::F32,
                     Some(device.clone())
-                ).expect(&format!("Thread {} failed to create tensor {}", thread_id, i));
+                ).unwrap_or_else(|_| panic!("Thread {thread_id} failed to create tensor {i}"));
                 
                 thread_tensors.push(tensor);
                 
@@ -382,13 +382,13 @@ fn test_tensor_concurrent_memory_efficiency() {
         total_tensors += handle.join().expect("Thread panicked");
     }
     
-    let peak_usage = get_memory_usage(&*pool);
-    let peak_allocations = get_allocation_count(&*pool);
+    let peak_usage = get_memory_usage(&pool);
+    let peak_allocations = get_allocation_count(&pool);
     
     println!("Concurrent test results:");
-    println!("  Total tensors created: {}", total_tensors);
+    println!("  Total tensors created: {total_tensors}");
     println!("  Peak usage: {} bytes", peak_usage - initial_usage);
-    println!("  Peak allocations: {}", peak_allocations);
+    println!("  Peak allocations: {peak_allocations}");
     
     // Verify all tensors were created
     assert_eq!(total_tensors, num_threads * tensors_per_thread);
@@ -398,8 +398,8 @@ fn test_tensor_concurrent_memory_efficiency() {
     let actual_usage = peak_usage - initial_usage;
     let overhead = (actual_usage as f64 - expected_data as f64) / expected_data as f64;
     
-    println!("  Expected data: {} bytes", expected_data);
-    println!("  Actual usage: {} bytes", actual_usage);
+    println!("  Expected data: {expected_data} bytes");
+    println!("  Actual usage: {actual_usage} bytes");
     println!("  Overhead: {:.2}%", overhead * 100.0);
     
     // Concurrent overhead should be reasonable
@@ -420,8 +420,8 @@ fn test_cpu_memory_efficiency() {
     // Create CPU-specific tensors
     let mut cpu_tensors = Vec::new();
     for i in 0..20 {
-        let tensor = BitNetTensor::zeros(&vec![64, 64], BitNetDType::F32, Some(cpu_device.clone()))
-            .expect(&format!("Failed to create CPU tensor {}", i));
+        let tensor = BitNetTensor::zeros(&[64, 64], BitNetDType::F32, Some(cpu_device.clone()))
+            .unwrap_or_else(|_| panic!("Failed to create CPU tensor {i}"));
         cpu_tensors.push(tensor);
     }
     
@@ -429,13 +429,13 @@ fn test_cpu_memory_efficiency() {
     let expected_cpu = 20 * 64 * 64 * std::mem::size_of::<f32>();
     
     println!("CPU memory efficiency:");
-    println!("  Expected: {} bytes", expected_cpu);
-    println!("  Actual: {} bytes", cpu_usage);
+    println!("  Expected: {expected_cpu} bytes");
+    println!("  Actual: {cpu_usage} bytes");
     println!("  Efficiency: {:.2}%", (expected_cpu as f64 / cpu_usage as f64) * 100.0);
     
     // CPU efficiency should be good (>70%)
     let efficiency = (expected_cpu as f64 / cpu_usage as f64) * 100.0;
-    assert!(efficiency > 50.0, "CPU memory efficiency too low: {:.2}%", efficiency);
+    assert!(efficiency > 50.0, "CPU memory efficiency too low: {efficiency:.2}%");
 }
 
 #[test]
@@ -497,22 +497,21 @@ fn test_dtype_memory_efficiency() {
         let initial_usage = get_memory_usage(&pool);
         
         let tensor = BitNetTensor::zeros(&shape, dtype, Some(device.clone()))
-            .expect(&format!("Failed to create tensor with dtype {:?}", dtype));
+            .unwrap_or_else(|_| panic!("Failed to create tensor with dtype {dtype:?}"));
         
         let actual_usage = get_memory_usage(&pool) - initial_usage;
         let expected_usage = elements * expected_bytes_per_element;
         
-        println!("Data type {:?}:", dtype);
-        println!("  Expected: {} bytes", expected_usage);
-        println!("  Actual: {} bytes", actual_usage);
+        println!("Data type {dtype:?}:");
+        println!("  Expected: {expected_usage} bytes");
+        println!("  Actual: {actual_usage} bytes");
         println!("  Overhead: {:.2}%", 
                ((actual_usage as f64 - expected_usage as f64) / expected_usage as f64) * 100.0);
         
         // Memory usage should be close to expected (allow some overhead)
         let max_expected = expected_usage * 2; // Allow 100% overhead for metadata
         assert!(actual_usage <= max_expected,
-               "Memory usage for {:?} too high: {} bytes (expected ~{})", 
-               dtype, actual_usage, expected_usage);
+               "Memory usage for {dtype:?} too high: {actual_usage} bytes (expected ~{expected_usage})");
         
         drop(tensor);
         thread::sleep(Duration::from_millis(10)); // Allow cleanup
@@ -537,8 +536,8 @@ fn test_memory_performance_tradeoff() {
     
     let mut small_tensors = Vec::new();
     for i in 0..100 {
-        let tensor = BitNetTensor::zeros(&vec![16, 16], BitNetDType::F32, Some(device.clone()))
-            .expect(&format!("Failed to create small tensor {}", i));
+        let tensor = BitNetTensor::zeros(&[16, 16], BitNetDType::F32, Some(device.clone()))
+            .unwrap_or_else(|_| panic!("Failed to create small tensor {i}"));
         small_tensors.push(tensor);
     }
     
@@ -554,8 +553,8 @@ fn test_memory_performance_tradeoff() {
     
     let mut large_tensors = Vec::new();
     for i in 0..4 { // Same total elements as 100 small tensors
-        let tensor = BitNetTensor::zeros(&vec![80, 80], BitNetDType::F32, Some(device.clone()))
-            .expect(&format!("Failed to create large tensor {}", i));
+        let tensor = BitNetTensor::zeros(&[80, 80], BitNetDType::F32, Some(device.clone()))
+            .unwrap_or_else(|_| panic!("Failed to create large tensor {i}"));
         large_tensors.push(tensor);
     }
     

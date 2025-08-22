@@ -7,7 +7,7 @@ use bitnet_core::{Tensor, DType};
 fn test_get_cpu_device() {
     println!("Testing get_cpu_device():");
     let cpu_device = get_cpu_device();
-    println!("   ✓ CPU device created successfully: {:?}", cpu_device);
+    println!("   ✓ CPU device created successfully: {cpu_device:?}");
     
     // Verify it's actually a CPU device
     assert!(matches!(cpu_device, bitnet_core::Device::Cpu));
@@ -18,11 +18,11 @@ fn test_get_metal_device() {
     println!("Testing get_metal_device():");
     match get_metal_device() {
         Ok(metal_device) => {
-            println!("   ✓ Metal device created successfully: {:?}", metal_device);
+            println!("   ✓ Metal device created successfully: {metal_device:?}");
             assert!(matches!(metal_device, bitnet_core::Device::Metal(_)));
         }
         Err(e) => {
-            println!("   ⚠ Metal device not available: {}", e);
+            println!("   ⚠ Metal device not available: {e}");
             println!("   (This is expected on non-macOS systems or without Metal support)");
         }
     }
@@ -32,7 +32,7 @@ fn test_get_metal_device() {
 fn test_auto_select_device() {
     println!("Testing auto_select_device():");
     let auto_device = auto_select_device();
-    println!("   ✓ Auto-selected device: {:?}", auto_device);
+    println!("   ✓ Auto-selected device: {auto_device:?}");
     
     // Should return either CPU or Metal device
     assert!(matches!(auto_device, bitnet_core::Device::Cpu | bitnet_core::Device::Metal(_)));
@@ -64,7 +64,7 @@ fn test_device_usage_with_tensor_operations() {
             assert_eq!(tensor.shape().dims(), &[2, 2]);
         }
         Err(e) => {
-            println!("   ✗ Failed to create tensor: {}", e);
+            println!("   ✗ Failed to create tensor: {e}");
             panic!("Tensor creation should succeed on auto-selected device");
         }
     }

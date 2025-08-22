@@ -5,14 +5,15 @@
 
 use crate::bitlinear::error::{BitLinearError, BitLinearResult};
 use bitnet_core::memory::{HybridMemoryPool, MemoryHandle};
-use crate::simd::utils::{prefetch_read, prefetch_write};
-use candle_core::{Device, Tensor, DType, Shape};
+use candle_core::{Tensor, DType, Shape};
 use std::sync::Arc;
 
 /// Memory layout strategies for cache optimization
 #[derive(Debug, Clone, PartialEq)]
+#[derive(Default)]
 pub enum MemoryLayout {
     /// Row-major layout (C-style, default for most tensors)
+    #[default]
     RowMajor,
     /// Column-major layout (Fortran-style)
     ColumnMajor,
@@ -24,11 +25,6 @@ pub enum MemoryLayout {
     Adaptive { preferred_dim: usize },
 }
 
-impl Default for MemoryLayout {
-    fn default() -> Self {
-        MemoryLayout::RowMajor
-    }
-}
 
 /// Memory access patterns for optimization
 #[derive(Debug, Clone, PartialEq)]
@@ -146,7 +142,7 @@ impl CacheFriendlyTensor {
             _ => {
                 // Fall back to standard matrix multiplication
                 self.tensor.matmul(&other.tensor)
-                    .map_err(|e| BitLinearError::TensorError(format!("Matrix multiplication failed: {}", e)))?
+                    .map_err(|e| BitLinearError::TensorError(format!("Matrix multiplication failed: {e}")))?
             }
         };
         
@@ -199,7 +195,7 @@ impl CacheFriendlyTensor {
     fn row_major_matmul(&self, other: &Tensor) -> BitLinearResult<Tensor> {
         // Optimized row-major matrix multiplication with prefetching
         let result = self.tensor.matmul(other)
-            .map_err(|e| BitLinearError::TensorError(format!("Row-major matmul failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Row-major matmul failed: {e}")))?;
         
         Ok(result)
     }
@@ -207,7 +203,7 @@ impl CacheFriendlyTensor {
     fn column_major_matmul(&self, other: &Tensor) -> BitLinearResult<Tensor> {
         // Optimized column-major matrix multiplication
         let result = self.tensor.matmul(other)
-            .map_err(|e| BitLinearError::TensorError(format!("Column-major matmul failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Column-major matmul failed: {e}")))?;
         
         Ok(result)
     }
@@ -215,7 +211,7 @@ impl CacheFriendlyTensor {
     fn blocked_matmul(&self, other: &Tensor, block_size: usize) -> BitLinearResult<Tensor> {
         // Block-based matrix multiplication for better cache locality
         let result = self.tensor.matmul(other)
-            .map_err(|e| BitLinearError::TensorError(format!("Blocked matmul failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Blocked matmul failed: {e}")))?;
         
         Ok(result)
     }
@@ -265,7 +261,7 @@ fn optimize_tensor_layout(
                 Ok(tensor.clone())
             } else {
                 tensor.contiguous()
-                    .map_err(|e| BitLinearError::TensorError(format!("Row-major optimization failed: {}", e)))
+                    .map_err(|e| BitLinearError::TensorError(format!("Row-major optimization failed: {e}")))
             }
         }
         MemoryLayout::ColumnMajor => {
@@ -273,9 +269,9 @@ fn optimize_tensor_layout(
             let dims = tensor.dims();
             if dims.len() >= 2 {
                 let transposed = tensor.t()
-                    .map_err(|e| BitLinearError::TensorError(format!("Transpose failed: {}", e)))?;
+                    .map_err(|e| BitLinearError::TensorError(format!("Transpose failed: {e}")))?;
                 transposed.contiguous()
-                    .map_err(|e| BitLinearError::TensorError(format!("Column-major optimization failed: {}", e)))
+                    .map_err(|e| BitLinearError::TensorError(format!("Column-major optimization failed: {e}")))
             } else {
                 Ok(tensor.clone())
             }
@@ -287,7 +283,7 @@ fn optimize_tensor_layout(
                 Ok(tensor.clone())
             } else {
                 tensor.contiguous()
-                    .map_err(|e| BitLinearError::TensorError(format!("Blocked layout optimization failed: {}", e)))
+                    .map_err(|e| BitLinearError::TensorError(format!("Blocked layout optimization failed: {e}")))
             }
         }
         MemoryLayout::ZOrder => {
@@ -297,7 +293,7 @@ fn optimize_tensor_layout(
                 Ok(tensor.clone())
             } else {
                 tensor.contiguous()
-                    .map_err(|e| BitLinearError::TensorError(format!("Z-order optimization failed: {}", e)))
+                    .map_err(|e| BitLinearError::TensorError(format!("Z-order optimization failed: {e}")))
             }
         }
         MemoryLayout::Adaptive { preferred_dim } => {
@@ -308,16 +304,16 @@ fn optimize_tensor_layout(
                     Ok(tensor.clone())
                 } else {
                     tensor.contiguous()
-                        .map_err(|e| BitLinearError::TensorError(format!("Adaptive optimization failed: {}", e)))
+                        .map_err(|e| BitLinearError::TensorError(format!("Adaptive optimization failed: {e}")))
                 }
             } else {
                 // Column-major for other dimensions
                 let dims = tensor.dims();
                 if dims.len() >= 2 {
                     let transposed = tensor.t()
-                        .map_err(|e| BitLinearError::TensorError(format!("Adaptive transpose failed: {}", e)))?;
+                        .map_err(|e| BitLinearError::TensorError(format!("Adaptive transpose failed: {e}")))?;
                     transposed.contiguous()
-                        .map_err(|e| BitLinearError::TensorError(format!("Adaptive column-major optimization failed: {}", e)))
+                        .map_err(|e| BitLinearError::TensorError(format!("Adaptive column-major optimization failed: {e}")))
                 } else {
                     Ok(tensor.clone())
                 }
@@ -411,7 +407,7 @@ impl CacheFriendlyOps {
         // For simplicity, use standard copy
         // In a full implementation, this would use optimized copy routines
         let copied = src.copy()
-            .map_err(|e| BitLinearError::TensorError(format!("Tensor copy failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Tensor copy failed: {e}")))?;
         
         *dst = copied;
         Ok(())
@@ -424,11 +420,11 @@ impl CacheFriendlyOps {
     ) -> BitLinearResult<Tensor> {
         // For tensors with more than 2 dimensions, transpose the last two
         let transposed = tensor.t()
-            .map_err(|e| BitLinearError::TensorError(format!("Blocked transpose failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Blocked transpose failed: {e}")))?;
         
         // Ensure contiguous layout after transpose
         transposed.contiguous()
-            .map_err(|e| BitLinearError::TensorError(format!("Contiguous layout after transpose failed: {}", e)))
+            .map_err(|e| BitLinearError::TensorError(format!("Contiguous layout after transpose failed: {e}")))
     }
     
     /// Sum tensor with cache-aware reduction
@@ -438,9 +434,9 @@ impl CacheFriendlyOps {
     ) -> BitLinearResult<Tensor> {
         match dim {
             Some(d) => tensor.sum(d)
-                .map_err(|e| BitLinearError::TensorError(format!("Cache-aware sum failed: {}", e))),
+                .map_err(|e| BitLinearError::TensorError(format!("Cache-aware sum failed: {e}"))),
             None => tensor.sum_all()
-                .map_err(|e| BitLinearError::TensorError(format!("Cache-aware sum_all failed: {}", e))),
+                .map_err(|e| BitLinearError::TensorError(format!("Cache-aware sum_all failed: {e}"))),
         }
     }
     
@@ -457,7 +453,7 @@ impl CacheFriendlyOps {
         // In practice, you'd prefetch actual memory locations
         
         op(a, b)
-            .map_err(|e| BitLinearError::TensorError(format!("Prefetched elementwise operation failed: {}", e)))
+            .map_err(|e| BitLinearError::TensorError(format!("Prefetched elementwise operation failed: {e}")))
     }
 }
 

@@ -51,6 +51,8 @@ tokio = { version = "1.0", features = ["full"] }
 # Optional dependencies for features
 rayon = "1.7"
 tracing = "0.1"
+rand = "0.8"
+num_cpus = "1.0"
 
 [profile.dev]
 lto = false

@@ -6,7 +6,7 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use bitnet_core::memory::{
-    HybridMemoryPool, MemoryPoolConfig, TrackingConfig, TrackingLevel,
+    HybridMemoryPool, MemoryPoolConfig, TrackingConfig,
     MemoryPressureLevel, MemoryTracker, MemoryProfiler, AllocationTimeline,
     PatternAnalyzer, PressureThresholds
 };
@@ -191,7 +191,7 @@ fn test_pattern_analysis() {
     assert!(!patterns.is_empty(), "Should detect allocation patterns");
     
     let report = analyzer.generate_report();
-    assert!(report.patterns.len() > 0);
+    assert!(!report.patterns.is_empty());
     assert!(!report.summary.insights.is_empty());
 }
 
@@ -271,11 +271,11 @@ fn test_performance_overhead_validation() {
     let overhead_ratio = time_with_tracking.as_nanos() as f64 / time_no_tracking.as_nanos() as f64;
     let overhead_percentage = (overhead_ratio - 1.0) * 100.0;
     
-    println!("Performance overhead: {:.2}%", overhead_percentage);
+    println!("Performance overhead: {overhead_percentage:.2}%");
     
     // Validate that overhead is under 5%
     assert!(overhead_percentage < 5.0, 
-        "Tracking overhead ({:.2}%) exceeds 5% threshold", overhead_percentage);
+        "Tracking overhead ({overhead_percentage:.2}%) exceeds 5% threshold");
     
     // Also check the tracking system's own overhead reporting
     if let Some(metrics) = pool_with_tracking.get_detailed_metrics() {

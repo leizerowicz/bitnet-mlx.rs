@@ -541,7 +541,7 @@ pub fn absmax_quantize_activations(
             (quantized, DType::U8)
         }
         _ => {
-            return Err(QuantizationError::UnsupportedPrecision(format!("{:?}", precision)));
+            return Err(QuantizationError::UnsupportedPrecision(format!("{precision:?}")));
         }
     };
     

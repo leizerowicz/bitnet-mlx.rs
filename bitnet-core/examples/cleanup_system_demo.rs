@@ -9,8 +9,7 @@ use std::time::Duration;
 use std::thread;
 
 use bitnet_core::memory::{
-    HybridMemoryPool, MemoryPoolConfig, CleanupManager, CleanupConfig, CleanupResult,
-    CleanupStrategyType, CleanupPriority, TrackingConfig, TrackingLevel
+    HybridMemoryPool, MemoryPoolConfig, CleanupManager, CleanupConfig, TrackingConfig, TrackingLevel
 };
 use bitnet_core::device::auto_select_device;
 
@@ -135,7 +134,7 @@ fn demonstrate_manual_cleanup(
     
     if !result.success {
         if let Some(error) = &result.error_message {
-            println!("    Error: {}", error);
+            println!("    Error: {error}");
         }
     }
     
@@ -148,7 +147,7 @@ fn demonstrate_device_cleanup(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let device = auto_select_device();
     
-    println!("  🖥️  Performing device-specific cleanup for: {:?}", device);
+    println!("  🖥️  Performing device-specific cleanup for: {device:?}");
     let result = cleanup_manager.cleanup_device(&device)?;
     
     println!("    Strategy used: {:?}", result.strategy_used);
@@ -159,7 +158,7 @@ fn demonstrate_device_cleanup(
     if !result.metadata.is_empty() {
         println!("    Device-specific metadata:");
         for (key, value) in &result.metadata {
-            println!("      {}: {}", key, value);
+            println!("      {key}: {value}");
         }
     }
     
@@ -202,7 +201,7 @@ fn demonstrate_pool_compaction(
     
     if result.success {
         let improvement = (result.fragmentation_before - result.fragmentation_after) * 100.0;
-        println!("    Fragmentation improvement: {:.1}%", improvement);
+        println!("    Fragmentation improvement: {improvement:.1}%");
     }
     
     Ok(())
@@ -223,7 +222,7 @@ fn show_cleanup_metrics(cleanup_manager: &CleanupManager) {
     if !stats.device_stats.is_empty() {
         println!("\n  🖥️  Device Statistics:");
         for (device_type, device_stats) in &stats.device_stats {
-            println!("    {}:", device_type);
+            println!("    {device_type}:");
             println!("      Operations: {}", device_stats.operations);
             println!("      Bytes freed: {} bytes", device_stats.bytes_freed);
             println!("      Efficiency: {:.2} bytes/op", device_stats.average_efficiency);
@@ -233,7 +232,7 @@ fn show_cleanup_metrics(cleanup_manager: &CleanupManager) {
     if !stats.strategy_stats.is_empty() {
         println!("\n  🎯 Strategy Statistics:");
         for (strategy_type, strategy_stats) in &stats.strategy_stats {
-            println!("    {:?}:", strategy_type);
+            println!("    {strategy_type:?}:");
             println!("      Operations: {}", strategy_stats.operations);
             println!("      Bytes freed: {} bytes", strategy_stats.bytes_freed);
             println!("      Efficiency: {:.2} bytes/op", strategy_stats.average_efficiency);

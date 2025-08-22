@@ -5,15 +5,13 @@
 
 use bitnet_core::tensor::core::BitNetTensor;
 use bitnet_core::tensor::dtype::BitNetDType;
-use bitnet_core::tensor::{set_global_memory_pool, TensorMemoryManager};
+use bitnet_core::tensor::set_global_memory_pool;
 use bitnet_core::memory::HybridMemoryPool;
 use bitnet_core::tensor::acceleration::{
-    SimdAccelerator, SimdOptimization, create_simd_accelerator,
-    OperationDispatcher, DispatchStrategy, OperationType, OperationContext,
-    AccelerationBackend, PerformanceRequirements, create_operation_dispatcher,
-    AccelerationBackendImpl, AccelerationMetrics, AutoAccelerationSelector,
+    SimdAccelerator, SimdOptimization, DispatchStrategy, OperationType, OperationContext,
+    AccelerationBackend, PerformanceRequirements,
+    AccelerationBackendImpl,
 };
-use bitnet_core::device::auto_select_device;
 use candle_core::Device;
 use std::sync::Arc;
 
@@ -64,7 +62,7 @@ mod tests {
         assert!(multiplier >= 1.0);
         assert!(multiplier <= 15.0);
         
-        println!("Vector width: {}, Performance multiplier: {:.1}x", vector_width, multiplier);
+        println!("Vector width: {vector_width}, Performance multiplier: {multiplier:.1}x");
     }
     
     #[test]
@@ -115,12 +113,12 @@ mod tests {
         // but the important thing is that it doesn't panic and handles the case properly
         match result {
             Ok((tensor, metrics)) => {
-                println!("SIMD addition succeeded: {:?}", metrics);
+                println!("SIMD addition succeeded: {metrics:?}");
                 assert_eq!(tensor.shape().dims(), &[4, 4]);
                 assert_eq!(tensor.dtype(), BitNetDType::F32);
             },
             Err(e) => {
-                println!("SIMD addition returned expected error: {}", e);
+                println!("SIMD addition returned expected error: {e}");
                 // This is expected for the current placeholder implementation
             }
         }
@@ -145,7 +143,7 @@ mod tests {
         // Test platform support
         for backend in &backends {
             let supported = backend.is_platform_supported();
-            println!("{} platform supported: {}", backend, supported);
+            println!("{backend} platform supported: {supported}");
             
             if *backend == AccelerationBackend::CPU {
                 assert!(supported); // CPU should always be supported
@@ -180,7 +178,7 @@ mod tests {
             let intensity = op.computational_intensity();
             let preferred = op.preferred_backend();
             
-            println!("{:?}: intensity={:.2}, preferred={}", op, intensity, preferred);
+            println!("{op:?}: intensity={intensity:.2}, preferred={preferred}");
             
             // Test that compute-intensive operations prefer GPU/MLX
             match op {
@@ -242,7 +240,7 @@ mod tests {
         
         // Allow some tolerance for the memory calculation
         assert!((memory as i64 - estimated_memory as i64).abs() < estimated_memory as i64 / 10, 
-               "Memory estimation: expected ~{}, got {}", estimated_memory, memory);
+               "Memory estimation: expected ~{estimated_memory}, got {memory}");
         
         println!("Operation context: complexity={:.1}, memory={}MB", 
                  complexity, memory / (1024 * 1024));
@@ -263,7 +261,7 @@ mod tests {
         ];
         
         for strategy in strategies {
-            println!("Testing strategy: {:?}", strategy);
+            println!("Testing strategy: {strategy:?}");
             // Strategy creation and debug formatting should work
             let _cloned = strategy.clone();
         }
@@ -315,17 +313,14 @@ mod tests {
         println!("Preferred backend for {:?}: {}", context.operation_type, preferred);
         
         // Test that compute-intensive operations prefer high-performance backends
-        match context.operation_type {
-            OperationType::MatMul => {
-                assert!(preferred == AccelerationBackend::MLX || preferred == AccelerationBackend::Metal);
-            },
-            _ => {}
+        if context.operation_type == OperationType::MatMul {
+            assert!(preferred == AccelerationBackend::MLX || preferred == AccelerationBackend::Metal);
         }
         
         // Test complexity scoring
         let complexity = context.complexity_score();
         assert!(complexity > 0.0);
-        println!("Operation complexity: {:.1}", complexity);
+        println!("Operation complexity: {complexity:.1}");
         
         Ok(())
     }
@@ -393,8 +388,7 @@ mod benchmark_tests {
         let duration = start.elapsed();
         let avg_time = duration.as_nanos() / iterations;
         
-        println!("SIMD detection benchmark: {} iterations, avg {}ns per detection", 
-                 iterations, avg_time);
+        println!("SIMD detection benchmark: {iterations} iterations, avg {avg_time}ns per detection");
         
         // Should be fast (under 10μs per detection)
         assert!(avg_time < 10_000);
@@ -423,8 +417,7 @@ mod benchmark_tests {
         let duration = start.elapsed();
         let avg_time = duration.as_nanos() / (iterations * backends.len() as u128);
         
-        println!("Backend characteristics benchmark: {} iterations, avg {}ns per backend", 
-                 iterations, avg_time);
+        println!("Backend characteristics benchmark: {iterations} iterations, avg {avg_time}ns per backend");
         
         // Should be extremely fast (under 100ns per backend)
         assert!(avg_time < 1_000);

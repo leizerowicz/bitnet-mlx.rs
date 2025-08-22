@@ -4,7 +4,6 @@
 //! quantization scenarios in BitNet models.
 
 use bitnet_quant::prelude::*;
-use candle_core::{Device, Tensor};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("BitNet Quantization Configuration Demo");
@@ -37,7 +36,7 @@ fn demo_basic_bitnet_config() -> Result<(), Box<dyn std::error::Error>> {
     
     // Create a standard BitNet configuration
     let config = EnhancedQuantizationConfig::bitnet_158();
-    println!("BitNet Config: {:?}", config);
+    println!("BitNet Config: {config:?}");
     
     // Validate the configuration
     config.validate()?;
@@ -45,7 +44,7 @@ fn demo_basic_bitnet_config() -> Result<(), Box<dyn std::error::Error>> {
     
     // Create weight quantization config for BitNet
     let weight_config = EnhancedWeightQuantizationConfig::bitnet();
-    println!("Weight Config: {:?}", weight_config);
+    println!("Weight Config: {weight_config:?}");
     weight_config.validate()?;
     println!("✓ Weight configuration is valid\n");
     
@@ -194,7 +193,7 @@ fn demo_config_validation() -> Result<(), Box<dyn std::error::Error>> {
     let valid_config = EnhancedQuantizationConfig::bitnet_158();
     match valid_config.validate() {
         Ok(()) => println!("✓ Valid configuration passed validation"),
-        Err(e) => println!("✗ Validation failed: {}", e),
+        Err(e) => println!("✗ Validation failed: {e}"),
     }
     
     // Demonstrate validation with invalid configuration
@@ -203,7 +202,7 @@ fn demo_config_validation() -> Result<(), Box<dyn std::error::Error>> {
     
     match invalid_config.validate() {
         Ok(()) => println!("✗ Invalid configuration incorrectly passed validation"),
-        Err(e) => println!("✓ Invalid configuration correctly failed validation: {}", e),
+        Err(e) => println!("✓ Invalid configuration correctly failed validation: {e}"),
     }
     
     // Demonstrate weight config validation
@@ -212,7 +211,7 @@ fn demo_config_validation() -> Result<(), Box<dyn std::error::Error>> {
     
     match invalid_weight_config.validate() {
         Ok(()) => println!("✗ Invalid weight configuration incorrectly passed validation"),
-        Err(e) => println!("✓ Invalid weight configuration correctly failed validation: {}", e),
+        Err(e) => println!("✓ Invalid weight configuration correctly failed validation: {e}"),
     }
     
     println!();

@@ -39,11 +39,8 @@
 //! # }
 //! ```
 
-use std::cmp;
-use crate::memory::MemoryResult;
 use crate::tensor::core::BitNetTensor;
 use crate::tensor::shape::{TensorShape, BroadcastCompatible};
-use crate::tensor::dtype::BitNetDType;
 use super::{TensorOpResult, TensorOpError};
 
 #[cfg(feature = "tracing")]

@@ -195,7 +195,7 @@ impl BitLinearMemoryOptimizer {
         access_pattern: AccessPattern,
     ) -> BitLinearResult<CacheFriendlyTensor> {
         if !self.config.enable_layout_optimization {
-            return Ok(CacheFriendlyTensor::from_tensor(tensor.clone(), MemoryLayout::default())?);
+            return CacheFriendlyTensor::from_tensor(tensor.clone(), MemoryLayout::default());
         }
         
         let optimized = cache_friendly::optimize_for_access_pattern(
@@ -326,14 +326,14 @@ impl BitLinearMemoryOptimizer {
     fn quantize_with_scales(&self, weights: &Tensor, scales: &Tensor) -> BitLinearResult<Tensor> {
         // Simple ternary quantization: {-1, 0, 1}
         let normalized = weights.broadcast_div(scales)
-            .map_err(|e| BitLinearError::TensorError(format!("Scale normalization failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Scale normalization failed: {e}")))?;
         
         // Clamp to [-1, 1] and round to nearest integer
         let clamped = normalized.clamp(-1.0, 1.0)
-            .map_err(|e| BitLinearError::TensorError(format!("Clamping failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Clamping failed: {e}")))?;
         
         let quantized = clamped.round()
-            .map_err(|e| BitLinearError::TensorError(format!("Quantization rounding failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Quantization rounding failed: {e}")))?;
         
         Ok(quantized)
     }

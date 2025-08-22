@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     for value in test_values {
         let result = QuantizationUtils::round_clip(value, -1.0, 1.0);
-        println!("  RoundClip({:.1}, -1, 1) = {:.1}", value, result);
+        println!("  RoundClip({value:.1}, -1, 1) = {result:.1}");
     }
     
     // Demonstrate tensor-based RoundClip
@@ -42,19 +42,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     for (min_val, max_val) in ranges {
         let result = QuantizationUtils::round_clip(value, min_val, max_val);
-        println!("  RoundClip({:.1}, {:.1}, {:.1}) = {:.1}", value, min_val, max_val, result);
+        println!("  RoundClip({value:.1}, {min_val:.1}, {max_val:.1}) = {result:.1}");
     }
     
     // Demonstrate typical quantization use case
     println!("\n4. Typical quantization use case (BitNet 1.58-bit):");
     let weights = vec![0.8f32, -1.2, 0.3, -0.7, 1.5, -2.1, 0.1];
-    println!("  Original weights: {:?}", weights);
+    println!("  Original weights: {weights:?}");
     
     let quantized: Vec<f32> = weights.iter()
         .map(|&w| QuantizationUtils::round_clip(w, -1.0, 1.0))
         .collect();
     
-    println!("  Quantized to {{-1, 0, 1}}: {:?}", quantized);
+    println!("  Quantized to {{-1, 0, 1}}: {quantized:?}");
     
     Ok(())
 }

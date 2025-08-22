@@ -107,7 +107,7 @@ impl BitLinearError {
     /// Create a cache error from lock failure
     pub fn cache_lock_error(lock_type: &str) -> Self {
         let cache_err = crate::bitlinear::cache::CacheError::CorruptionDetected(
-            format!("Failed to acquire {} lock", lock_type)
+            format!("Failed to acquire {lock_type} lock")
         );
         BitLinearError::CacheError(cache_err)
     }
@@ -281,14 +281,14 @@ where
             let base_error = e.into();
             let context = f();
             match base_error {
-                BitLinearError::TensorError(msg) => BitLinearError::TensorError(format!("{}: {}", context, msg)),
-                BitLinearError::QuantizationError(msg) => BitLinearError::QuantizationError(format!("{}: {}", context, msg)),
+                BitLinearError::TensorError(msg) => BitLinearError::TensorError(format!("{context}: {msg}")),
+                BitLinearError::QuantizationError(msg) => BitLinearError::QuantizationError(format!("{context}: {msg}")),
                 BitLinearError::CacheError(cache_err) => {
                     let msg = cache_err.to_string();
-                    let new_cache_err = crate::bitlinear::cache::CacheError::InvalidKey(format!("{}: {}", context, msg));
+                    let new_cache_err = crate::bitlinear::cache::CacheError::InvalidKey(format!("{context}: {msg}"));
                     BitLinearError::CacheError(new_cache_err)
                 },
-                BitLinearError::MemoryError(msg) => BitLinearError::MemoryError(format!("{}: {}", context, msg)),
+                BitLinearError::MemoryError(msg) => BitLinearError::MemoryError(format!("{context}: {msg}")),
                 other => other,
             }
         })

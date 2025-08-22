@@ -4,7 +4,6 @@
 //! subsets of calibration data for efficient quantization parameter optimization.
 
 use crate::calibration::error::{CalibrationError, CalibrationResult};
-use candle_core::Tensor;
 use rand::prelude::*;
 use rand::rngs::StdRng;
 use serde::{Deserialize, Serialize};
@@ -145,8 +144,7 @@ impl RepresentativeSampler for RandomSampler {
 
         if target_samples > total_samples {
             return Err(CalibrationError::sampling(format!(
-                "Cannot select {} samples from {} total samples",
-                target_samples, total_samples
+                "Cannot select {target_samples} samples from {total_samples} total samples"
             )));
         }
 
@@ -226,8 +224,7 @@ impl RepresentativeSampler for StratifiedSampler {
 
         if target_samples > total_samples {
             return Err(CalibrationError::sampling(format!(
-                "Cannot select {} samples from {} total samples",
-                target_samples, total_samples
+                "Cannot select {target_samples} samples from {total_samples} total samples"
             )));
         }
 
@@ -343,8 +340,7 @@ impl RepresentativeSampler for ImportanceSampler {
 
         if target_samples > total_samples {
             return Err(CalibrationError::sampling(format!(
-                "Cannot select {} samples from {} total samples",
-                target_samples, total_samples
+                "Cannot select {target_samples} samples from {total_samples} total samples"
             )));
         }
 
@@ -532,8 +528,7 @@ impl RepresentativeSampler for SystematicSampler {
 
         if target_samples > total_samples {
             return Err(CalibrationError::sampling(format!(
-                "Cannot select {} samples from {} total samples",
-                target_samples, total_samples
+                "Cannot select {target_samples} samples from {total_samples} total samples"
             )));
         }
 

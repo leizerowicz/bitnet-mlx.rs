@@ -10,8 +10,6 @@ use crate::{QuantizationResult, QuantizationError};
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use std::arch::x86_64::*;
 
-#[cfg(target_arch = "aarch64")]
-use std::arch::aarch64::*;
 
 /// SIMD-accelerated ternary quantization operations
 pub struct SimdTernaryOps {

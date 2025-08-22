@@ -435,7 +435,7 @@ impl ProcessingSummary {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sequence::{PaddingStrategy, TruncationStrategy};
+    use crate::sequence::PaddingStrategy;
 
     #[test]
     fn test_sequence_manager_creation() {

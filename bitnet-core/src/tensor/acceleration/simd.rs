@@ -379,7 +379,7 @@ impl AccelerationBackendImpl for SimdAccelerator {
         let start_time = std::time::Instant::now();
         
         // Create result tensor - simplified signature
-        let mut result = BitNetTensor::zeros(a.shape().dims(), a.dtype(), Some(Device::Cpu)).map_err(|e| {
+        let result = BitNetTensor::zeros(a.shape().dims(), a.dtype(), Some(Device::Cpu)).map_err(|e| {
             AccelerationError::OperationFailed {
                 backend: "SIMD".to_string(),
                 operation: "add".to_string(),

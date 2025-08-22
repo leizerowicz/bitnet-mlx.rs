@@ -24,7 +24,7 @@ fn create_activation_tensor(device: &Device, pattern: &str, shape: &[usize]) -> 
             // Simulate GELU activations (smooth, can be negative)
             (0..total_elements).map(|i| {
                 let x = (i as f32 / total_elements as f32 - 0.5) * 4.0;
-                x * 0.5 * (1.0 + (x * 0.7978845608).tanh())
+                x * 0.5 * (1.0 + (x * 0.797_884_6).tanh())
             }).collect()
         }
         "attention_scores" => {
@@ -111,7 +111,7 @@ fn test_absmax_quantize_activations_basic() {
     // Verify ternary values for 1.58-bit precision
     let values = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
     for &val in &values {
-        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {}", val);
+        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {val}");
     }
     
     // Verify shape preservation
@@ -142,7 +142,7 @@ fn test_absmax_quantize_activations_8bit() {
     // Verify values are in valid range
     let values = quantized.values.to_dtype(DType::F32).unwrap().to_vec1::<f32>().unwrap();
     for &val in &values {
-        assert!(val >= -127.0 && val <= 127.0, "Value {} out of 8-bit range", val);
+        assert!((-127.0..=127.0).contains(&val), "Value {val} out of 8-bit range");
     }
 }
 
@@ -188,12 +188,12 @@ fn test_absmax_quantize_activations_sign_preservation() {
     
     // Positive activations should produce non-negative quantized values
     for &val in &pos_values {
-        assert!(val >= 0.0, "Positive activation produced negative quantized value: {}", val);
+        assert!(val >= 0.0, "Positive activation produced negative quantized value: {val}");
     }
     
     // Negative activations should produce non-positive quantized values
     for &val in &neg_values {
-        assert!(val <= 0.0, "Negative activation produced positive quantized value: {}", val);
+        assert!(val <= 0.0, "Negative activation produced positive quantized value: {val}");
     }
     
     // Mixed activations should preserve signs for large values
@@ -201,7 +201,7 @@ fn test_absmax_quantize_activations_sign_preservation() {
     for (&original, &quantized) in original_mixed.iter().zip(mixed_values.iter()) {
         if original.abs() > 2.0 && quantized.abs() > 0.5 {
             assert_eq!(original.signum(), quantized.signum(), 
-                "Sign not preserved: {} -> {}", original, quantized);
+                "Sign not preserved: {original} -> {quantized}");
         }
     }
 }
@@ -229,7 +229,7 @@ fn test_absmax_quantize_activations_different_shapes() {
         let values = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
         for &val in &values {
             assert!(val == -1.0 || val == 0.0 || val == 1.0, 
-                "Non-ternary value: {} for shape {:?}", val, shape);
+                "Non-ternary value: {val} for shape {shape:?}");
         }
         
         // Verify statistics
@@ -259,7 +259,7 @@ fn test_absmax_quantize_activations_threshold_behavior() {
             // Large values should not be quantized to zero
             if original.abs() > abs_max * 0.7 {
                 assert_ne!(quantized_val, 0.0, 
-                    "Large value {} should not be quantized to zero", original);
+                    "Large value {original} should not be quantized to zero");
             }
         }
     }
@@ -287,14 +287,14 @@ fn test_absmax_quantize_activations_edge_cases() {
             let values = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
             for &val in &values {
                 assert!(val == -1.0 || val == 0.0 || val == 1.0, 
-                    "Non-ternary value {} for edge case {}", val, name);
+                    "Non-ternary value {val} for edge case {name}");
             }
             
             // Verify scale factor is reasonable
             assert!(quantized.stats.scale_factor >= 0.0, 
-                "Negative scale factor for edge case {}", name);
+                "Negative scale factor for edge case {name}");
             assert!(quantized.stats.scale_factor.is_finite(), 
-                "Non-finite scale factor for edge case {}", name);
+                "Non-finite scale factor for edge case {name}");
         }
     }
 }
@@ -378,7 +378,7 @@ fn test_dynamic_activation_quantizer_basic() {
     // Verify ternary values for default 1.58-bit precision
     let values = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
     for &val in &values {
-        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {}", val);
+        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Non-ternary value: {val}");
     }
 }
 
@@ -505,7 +505,7 @@ fn test_activation_quantization_memory_efficiency() {
     
     // Should achieve significant compression
     let compression_ratio = original_size as f32 / quantized_size as f32;
-    assert!(compression_ratio > 4.0, "Compression ratio too low: {}", compression_ratio);
+    assert!(compression_ratio > 4.0, "Compression ratio too low: {compression_ratio}");
     
     // Verify compression ratio calculation
     assert_abs_diff_eq!(compression_ratio, quantized.stats.compression_ratio, epsilon = 0.1);

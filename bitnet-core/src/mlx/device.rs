@@ -218,23 +218,25 @@ impl BitNetMlxDevice {
 
 impl Default for BitNetMlxDevice {
     fn default() -> Self {
-        Self::default().unwrap_or_else(|_| {
-            #[cfg(feature = "mlx")]
-            {
-                Self {
+        #[cfg(feature = "mlx")]
+        {
+            // Try to create default device, fallback to CPU if it fails
+            match Self::cpu() {
+                Ok(device) => device,
+                Err(_) => Self {
                     inner: MlxDevice::cpu(),
                     device_info: Some(MlxDeviceInfo::cpu()),
                     initialized: false,
                 }
             }
-            #[cfg(not(feature = "mlx"))]
-            {
-                Self {
-                    device_info: None,
-                    initialized: false,
-                }
+        }
+        #[cfg(not(feature = "mlx"))]
+        {
+            Self {
+                device_info: None,
+                initialized: false,
             }
-        })
+        }
     }
 }
 

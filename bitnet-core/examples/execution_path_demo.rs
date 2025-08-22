@@ -17,13 +17,13 @@ fn main() -> anyhow::Result<()> {
     let available_backends = get_available_backends();
     for backend in &available_backends {
         let available = if is_backend_available(backend) { "✅" } else { "❌" };
-        println!("  {} {}", available, backend);
+        println!("  {available} {backend}");
     }
     println!();
 
     // 2. Show preferred backend
     let preferred = get_preferred_backend();
-    println!("⭐ Preferred Backend: {}\n", preferred);
+    println!("⭐ Preferred Backend: {preferred}\n");
 
     // 3. Demonstrate backend selection for different operations
     println!("🎯 Backend Selection for Different Operations:");
@@ -61,7 +61,7 @@ fn main() -> anyhow::Result<()> {
                 println!("    ✅ Fallback successful: tensor shape {:?}", tensor.dims());
             }
             Err(e) => {
-                println!("    ❌ Fallback failed: {}", e);
+                println!("    ❌ Fallback failed: {e}");
             }
         }
     }
@@ -81,7 +81,7 @@ fn main() -> anyhow::Result<()> {
         let status = if available { "Available" } else { "Not Available" };
         let icon = if available { "✅" } else { "❌" };
         
-        println!("  {} {} - {}", icon, backend, status);
+        println!("  {icon} {backend} - {status}");
         
         // Show additional info for specific backends
         match backend {
@@ -144,6 +144,6 @@ trait PadString {
 
 impl PadString for &str {
     fn pad_to_width(&self, width: usize) -> String {
-        format!("{:width$}", self, width = width)
+        format!("{self:width$}")
     }
 }

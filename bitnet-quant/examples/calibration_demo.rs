@@ -72,7 +72,7 @@ fn main() -> Result<()> {
     let mut dataset = CalibrationDataset::new(config.clone())?;
     
     for (layer_name, tensors) in calibration_data {
-        println!("   Loading layer: {}", layer_name);
+        println!("   Loading layer: {layer_name}");
         dataset.load_tensors(tensors)?;
     }
     println!("   ✓ All layers loaded successfully");
@@ -88,7 +88,7 @@ fn main() -> Result<()> {
     let results = create_mock_calibration_results(&dataset)?;
     let processing_time = processing_start.elapsed();
     
-    println!("   ✓ Processing completed in {:?}", processing_time);
+    println!("   ✓ Processing completed in {processing_time:?}");
     println!("   📈 Results summary:");
     println!("     - Layers processed: {}", results.layer_statistics.len());
     println!("     - Total samples: {}", results.metadata.samples_processed);
@@ -99,7 +99,7 @@ fn main() -> Result<()> {
     println!("\n📊 Layer Statistics:");
     println!("{:-<80}", "");
     for (layer_name, stats) in &results.layer_statistics {
-        println!("🔍 Layer: {}", layer_name);
+        println!("🔍 Layer: {layer_name}");
         println!("   Shape: {:?} ({} elements)", 
                  stats.shape_info.dimensions, stats.shape_info.num_elements);
         println!("   Min/Max: {:.6} / {:.6}", 
@@ -127,7 +127,7 @@ fn main() -> Result<()> {
     // Save calibration results
     let save_key = "demo_model_v1.0";
     // cache.save_calibration_results(save_key, &results)?;
-    println!("   ✓ Results would be saved to cache with key: {}", save_key);
+    println!("   ✓ Results would be saved to cache with key: {save_key}");
 
     // Load calibration results  
     // let loaded_results = cache.load_calibration_results(save_key)?;
@@ -147,7 +147,7 @@ fn main() -> Result<()> {
     println!("{:-<80}", "");
     
     for (layer_name, params) in results.quantization_params.iter().take(3) {
-        println!("Layer '{}' quantization:", layer_name);
+        println!("Layer '{layer_name}' quantization:");
         println!("  // Quantize activations using calibrated parameters");
         println!("  let scale = {}f32;", params.scale);
         println!("  let zero_point = {};", params.zero_point);
@@ -194,7 +194,7 @@ fn create_sample_neural_network_data(device: &Device) -> Result<HashMap<String, 
     ];
 
     for (layer_name, shape) in layer_configs {
-        println!("   Creating data for layer: {} {:?}", layer_name, shape);
+        println!("   Creating data for layer: {layer_name} {shape:?}");
         
         // Create realistic activation patterns for different layer types
         let tensor = if layer_name.starts_with("conv") {

@@ -10,13 +10,13 @@
 //! The dispatch system extends the existing auto_select_device() logic
 //! to provide operation-specific backend selection.
 
-use std::sync::{Arc, RwLock, Mutex};
+use std::sync::{Arc, RwLock};
 use std::collections::HashMap;
 use crate::tensor::core::BitNetTensor;
 use crate::tensor::dtype::BitNetDType;
 use super::{
     AccelerationResult, AccelerationError, AccelerationBackendImpl, 
-    AccelerationMetrics, AutoAccelerationSelector, AccelerationCapabilities
+    AccelerationMetrics, AutoAccelerationSelector
 };
 
 #[cfg(feature = "tracing")]
@@ -207,6 +207,24 @@ impl OperationType {
             OperationType::Normalization | OperationType::Quantization => {
                 AccelerationBackend::SIMD
             },
+        }
+    }
+}
+
+impl std::fmt::Display for OperationType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OperationType::MatMul => write!(f, "MatMul"),
+            OperationType::Add => write!(f, "Add"),
+            OperationType::Mul => write!(f, "Mul"),
+            OperationType::Div => write!(f, "Div"),
+            OperationType::Transpose => write!(f, "Transpose"),
+            OperationType::Reshape => write!(f, "Reshape"),
+            OperationType::Reduction => write!(f, "Reduction"),
+            OperationType::Activation => write!(f, "Activation"),
+            OperationType::Convolution => write!(f, "Convolution"),
+            OperationType::Normalization => write!(f, "Normalization"),
+            OperationType::Quantization => write!(f, "Quantization"),
         }
     }
 }
@@ -630,8 +648,8 @@ impl OperationDispatcher {
         history.insert(operation_key, metrics.clone());
         
         #[cfg(feature = "tracing")]
-        debug!("Recorded performance for {} on {}: {:.2} GFLOPS", 
-               context.operation_type, backend, metrics.throughput_gflops);
+        debug!("Recorded performance for {:?} on {:?}: {:.2} ops/sec", 
+               context.operation_type, backend, metrics.operations_per_second);
     }
 }
 
@@ -649,7 +667,7 @@ pub fn create_operation_dispatcher() -> AccelerationResult<OperationDispatcher> 
     }
     
     #[cfg(feature = "metal")]
-    if let Some(metal_backend) = crate::tensor::acceleration::metal::create_metal_accelerator()? {
+    if let Ok(metal_backend) = crate::tensor::acceleration::metal::create_metal_accelerator() {
         dispatcher.add_backend(AccelerationBackend::Metal, metal_backend)?;
     }
     

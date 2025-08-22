@@ -591,7 +591,7 @@ mod metal_shader_tests {
 
 #[cfg(not(all(target_os = "macos", feature = "metal")))]
 mod non_metal_tests {
-    use super::*;
+    
 
     #[test]
     fn test_unsupported_platform_comprehensive() {

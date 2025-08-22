@@ -494,7 +494,7 @@ fn get_gpu_info() -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::error::{BitNetError, BitNetErrorKind};
+    use crate::error::BitNetError;
 
     #[test]
     fn test_error_severity_ordering() {

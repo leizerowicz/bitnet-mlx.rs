@@ -5,7 +5,6 @@
 
 use bitnet_quant::prelude::*;
 use candle_core::{Device, Tensor, DType};
-use approx::assert_relative_eq;
 
 #[test]
 fn test_one_bit_quantization_basic() {
@@ -18,7 +17,7 @@ fn test_one_bit_quantization_basic() {
     // Check that values are binary {-1, +1}
     let values = quantized.values.to_vec1::<f32>().unwrap();
     for &val in &values {
-        assert!(val == -1.0 || val == 1.0, "Value {} is not binary", val);
+        assert!(val == -1.0 || val == 1.0, "Value {val} is not binary");
     }
     
     // Check precision
@@ -43,7 +42,7 @@ fn test_one_five_eight_bit_quantization_basic() {
     // Check that values are ternary {-1, 0, +1}
     let values = quantized.values.to_vec1::<f32>().unwrap();
     for &val in &values {
-        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Value {} is not ternary", val);
+        assert!(val == -1.0 || val == 0.0 || val == 1.0, "Value {val} is not ternary");
     }
     
     // Check precision
@@ -171,7 +170,7 @@ fn test_multi_bit_quantization() {
         
         // Check that quantization error is reasonable
         let error = input.sub(&dequantized).unwrap().sqr().unwrap().mean_all().unwrap().to_scalar::<f32>().unwrap();
-        assert!(error < 1.0, "Quantization error too high: {}", error);
+        assert!(error < 1.0, "Quantization error too high: {error}");
     }
 }
 
@@ -280,7 +279,7 @@ fn test_threshold_factors() {
         let sparsity = zero_count as f32 / values.len() as f32;
         
         // Lower threshold factors should generally produce higher sparsity
-        assert!(sparsity >= 0.0 && sparsity <= 1.0);
+        assert!((0.0..=1.0).contains(&sparsity));
     }
 }
 
@@ -339,7 +338,7 @@ fn test_quantization_error_bounds() {
         // Higher precision should generally have lower error (with some exceptions for very low precision)
         if matches!(precision, QuantizationPrecision::FourBit | QuantizationPrecision::EightBit) {
             assert!(error <= previous_error || error < 0.1, 
-                "Error increased unexpectedly: {} -> {} for {:?}", previous_error, error, precision);
+                "Error increased unexpectedly: {previous_error} -> {error} for {precision:?}");
         }
         
         previous_error = error;

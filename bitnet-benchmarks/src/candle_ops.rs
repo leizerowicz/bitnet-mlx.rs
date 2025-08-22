@@ -160,7 +160,7 @@ impl CandleOps {
     /// Layer normalization
     pub fn layer_norm(
         tensor: &Tensor,
-        normalized_shape: &[usize],
+        _normalized_shape: &[usize],
         weight: Option<&Tensor>,
         bias: Option<&Tensor>,
         eps: f64,
@@ -168,7 +168,8 @@ impl CandleOps {
         let mean = tensor.mean_keepdim(tensor.rank() - 1)?;
         let var = tensor.var_keepdim(tensor.rank() - 1)?;
         
-        let eps_tensor = Tensor::new(eps as f32, tensor.device())?;
+        // Create eps tensor with the same shape as var for proper broadcasting
+        let eps_tensor = Tensor::full(eps as f32, var.shape(), tensor.device())?;
         let std = (var + eps_tensor)?.sqrt()?;
         
         let normalized = tensor.broadcast_sub(&mean)?.broadcast_div(&std)?;
@@ -197,7 +198,7 @@ impl CandleOps {
                 lhs: a.shape().clone(),
                 rhs: b.shape().clone(),
                 op: "batch_matmul",
-            }.into());
+            });
         }
         
         // Use the built-in matmul which handles batching
@@ -216,7 +217,7 @@ impl CandleOps {
     /// Split tensor along specified dimension
     pub fn split(tensor: &Tensor, split_size: usize, dim: usize) -> Result<Vec<Tensor>> {
         let total_size = tensor.shape().dims()[dim];
-        let num_splits = (total_size + split_size - 1) / split_size; // Ceiling division
+        let num_splits = total_size.div_ceil(split_size); // Ceiling division
         
         let mut results = Vec::new();
         for i in 0..num_splits {
@@ -256,7 +257,10 @@ impl CandleOps {
         let conv_result = input.conv1d(weight, padding, stride, 1, 1)?;
         
         if let Some(bias) = bias {
-            conv_result.broadcast_add(bias)
+            // For 1D convolution, bias should be reshaped to [1, out_channels, 1] to broadcast correctly
+            // with the conv result which has shape [batch, out_channels, width]
+            let bias_reshaped = bias.reshape((1, bias.dims()[0], 1))?;
+            conv_result.broadcast_add(&bias_reshaped)
         } else {
             Ok(conv_result)
         }

@@ -8,8 +8,7 @@ use std::time::Duration;
 use std::thread;
 
 use bitnet_core::memory::{
-    HybridMemoryPool, MemoryPoolConfig, CleanupManager, CleanupConfig, CleanupStrategyType,
-    CleanupPriority, CpuCleanup, DeviceCleanupOps
+    HybridMemoryPool, CleanupManager, CleanupConfig, CleanupStrategyType, CpuCleanup, DeviceCleanupOps
 };
 use bitnet_core::device::get_cpu_device;
 
@@ -240,7 +239,7 @@ fn test_metal_device_cleanup_stub() {
 /// Test cleanup strategy registration
 #[test]
 fn test_cleanup_strategy_registration() {
-    use bitnet_core::memory::cleanup::strategies::{IdleCleanupStrategy, CleanupStrategy};
+    use bitnet_core::memory::cleanup::strategies::IdleCleanupStrategy;
     
     let pool = Arc::new(HybridMemoryPool::new().unwrap());
     let config = CleanupConfig::default();
@@ -459,7 +458,7 @@ fn test_cleanup_benchmarks() {
     let total_duration = start_time.elapsed();
     let avg_duration = total_duration / iterations;
     
-    println!("Average cleanup duration: {:?}", avg_duration);
+    println!("Average cleanup duration: {avg_duration:?}");
     
     // Verify performance is reasonable
     assert!(avg_duration < Duration::from_millis(10), "Cleanup should be fast");

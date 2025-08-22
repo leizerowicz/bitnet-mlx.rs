@@ -26,17 +26,17 @@ fn main() -> Result<()> {
     // Test MSE Calculator
     print!("Testing MSE Calculator... ");
     let mse = calculate_mse(&original, &quantized)?;
-    println!("✅ MSE: {:.6}", mse);
+    println!("✅ MSE: {mse:.6}");
 
     // Test SQNR Calculator  
     print!("Testing SQNR Calculator... ");
     let sqnr = calculate_sqnr(&original, &quantized)?;
-    println!("✅ SQNR: {:.2} dB", sqnr);
+    println!("✅ SQNR: {sqnr:.2} dB");
 
     // Test Cosine Similarity
     print!("Testing Cosine Similarity... ");
     let similarity = calculate_cosine_similarity(&original, &quantized)?;
-    println!("✅ Similarity: {:.4}", similarity);
+    println!("✅ Similarity: {similarity:.4}");
     
     // Create comprehensive metrics
     let metrics = QuantizationMetrics {

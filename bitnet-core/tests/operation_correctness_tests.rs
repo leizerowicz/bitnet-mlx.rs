@@ -5,16 +5,14 @@
 //! memory conversions, and device operations. These tests ensure that operations
 //! produce mathematically correct results and maintain data integrity.
 
-use std::sync::Arc;
-use std::collections::HashMap;
 
 use bitnet_core::memory::HybridMemoryPool;
-use bitnet_core::memory::tensor::{BitNetTensor, BitNetDType, TensorMetadata, TensorHandle};
-use bitnet_core::memory::conversion::{ConversionEngine, ConversionConfig, ConversionContext, ConversionStrategy};
-use bitnet_core::device::{get_cpu_device, auto_select_device, is_metal_available, get_metal_device};
-use bitnet_core::tensor::{create_tensor_f32, create_tensor_i8, zeros, ones, get_shape, reshape, transpose};
+use bitnet_core::memory::tensor::{BitNetTensor, BitNetDType};
+use bitnet_core::memory::conversion::{ConversionContext, ConversionStrategy};
+use bitnet_core::device::{get_cpu_device, is_metal_available, get_metal_device};
+use bitnet_core::tensor::transpose;
 use bitnet_core::execution::{choose_execution_backend, ExecutionBackend, fallback_to_candle, MlxError};
-use candle_core::{Device, Tensor, DType};
+use candle_core::Device;
 
 // MLX availability functions (simplified for testing)
 fn is_mlx_available() -> bool {
@@ -244,15 +242,15 @@ fn test_quantization_value_ranges() {
     
     for (dtype, expected_min, expected_max) in quantized_types {
         let tensor = BitNetTensor::zeros(&[10], dtype, &device, &pool)
-            .expect(&format!("Failed to create tensor with dtype {}", dtype));
+            .unwrap_or_else(|_| panic!("Failed to create tensor with dtype {dtype}"));
         
         // Verify value range is correctly defined
         let value_range = dtype.value_range();
-        assert!(value_range.is_some(), "Quantized type {} should have value range", dtype);
+        assert!(value_range.is_some(), "Quantized type {dtype} should have value range");
         
         let (min_val, max_val) = value_range.unwrap();
-        assert_eq!(min_val, expected_min, "Min value for {} should be {}", dtype, expected_min);
-        assert_eq!(max_val, expected_max, "Max value for {} should be {}", dtype, expected_max);
+        assert_eq!(min_val, expected_min, "Min value for {dtype} should be {expected_min}");
+        assert_eq!(max_val, expected_max, "Max value for {dtype} should be {expected_max}");
         
         // Verify bits per element
         let expected_bits = match dtype {
@@ -264,7 +262,7 @@ fn test_quantization_value_ranges() {
             _ => unreachable!(),
         };
         assert_eq!(dtype.bits_per_element(), expected_bits, 
-                  "Bits per element for {} should be {}", dtype, expected_bits);
+                  "Bits per element for {dtype} should be {expected_bits}");
     }
 }
 
@@ -313,24 +311,22 @@ fn test_quantization_memory_efficiency() {
     
     for (dtype, expected_bits, expected_efficiency) in test_cases {
         let tensor = BitNetTensor::zeros(&shape, dtype, &device, &pool)
-            .expect(&format!("Failed to create tensor with dtype {}", dtype));
+            .unwrap_or_else(|_| panic!("Failed to create tensor with dtype {dtype}"));
         
         // Verify bits per element
         assert_eq!(tensor.dtype().bits_per_element(), expected_bits,
-                  "Dtype {} should have {} bits per element", dtype, expected_bits);
+                  "Dtype {dtype} should have {expected_bits} bits per element");
         
         // Verify memory efficiency
         let efficiency = tensor.dtype().memory_efficiency();
         assert!((efficiency - expected_efficiency).abs() < 0.01,
-               "Dtype {} should have {:.1}x efficiency, got {:.1}x", 
-               dtype, expected_efficiency, efficiency);
+               "Dtype {dtype} should have {expected_efficiency:.1}x efficiency, got {efficiency:.1}x");
         
         // Verify actual memory usage
         let expected_bytes = dtype.bytes_for_elements(element_count);
         let actual_bytes = tensor.size_bytes();
         assert_eq!(actual_bytes, expected_bytes,
-                  "Dtype {} should use {} bytes for {} elements", 
-                  dtype, expected_bytes, element_count);
+                  "Dtype {dtype} should use {expected_bytes} bytes for {element_count} elements");
     }
 }
 
@@ -444,7 +440,7 @@ fn test_conversion_strategy_correctness() {
     // This is actually correct behavior for F32 -> I8 conversion
     let strategy = large_tensor_context.optimal_strategy();
     assert!(matches!(strategy, ConversionStrategy::InPlace | ConversionStrategy::Streaming),
-           "Large tensor conversion should use InPlace or Streaming strategy, got {:?}", strategy);
+           "Large tensor conversion should use InPlace or Streaming strategy, got {strategy:?}");
 }
 
 // =============================================================================
@@ -510,7 +506,7 @@ fn test_broadcasting_correctness() {
                       "Broadcasting addition should be mathematically correct");
         }
         Err(e) => {
-            println!("Broadcasting addition failed (may not be implemented): {}", e);
+            println!("Broadcasting addition failed (may not be implemented): {e}");
             // Broadcasting may not be fully implemented, which is acceptable
         }
     }
@@ -537,7 +533,7 @@ fn test_reduction_operations_correctness() {
             assert_eq!(sum_value, 21.0, "Sum reduction should be mathematically correct");
         }
         Err(e) => {
-            println!("Sum reduction failed (may not be implemented): {}", e);
+            println!("Sum reduction failed (may not be implemented): {e}");
         }
     }
     
@@ -548,11 +544,10 @@ fn test_reduction_operations_correctness() {
             let mean_value = mean_tensor.to_scalar::<f32>().expect("Failed to get mean scalar");
             let expected_mean = 21.0 / 6.0; // 3.5
             assert!(approx_equal(mean_value, expected_mean, 1e-6),
-                   "Mean should be mathematically correct: expected {}, got {}",
-                   expected_mean, mean_value);
+                   "Mean should be mathematically correct: expected {expected_mean}, got {mean_value}");
         }
         Err(e) => {
-            println!("Mean calculation failed (may not be implemented): {}", e);
+            println!("Mean calculation failed (may not be implemented): {e}");
         }
     }
 }
@@ -620,19 +615,19 @@ fn test_execution_backend_selection_correctness() {
         match selected_backend {
             ExecutionBackend::Mlx => {
                 // MLX should be selected for compute-intensive operations on Apple Silicon
-                println!("Selected MLX backend for {}", operation);
+                println!("Selected MLX backend for {operation}");
             }
             ExecutionBackend::CandleMetal => {
                 // Metal should be selected for GPU operations
-                println!("Selected Candle-Metal backend for {}", operation);
+                println!("Selected Candle-Metal backend for {operation}");
             }
             ExecutionBackend::CandleCpu => {
                 // CPU should be selected for CPU-bound operations
-                println!("Selected Candle-CPU backend for {}", operation);
+                println!("Selected Candle-CPU backend for {operation}");
             }
             ExecutionBackend::Auto => {
                 // Auto selection should resolve to a specific backend
-                println!("Auto backend selected for {}", operation);
+                println!("Auto backend selected for {operation}");
             }
         }
         
@@ -658,11 +653,11 @@ fn test_fallback_mechanism_correctness() {
         match fallback_result {
             Ok(fallback_tensor) => {
                 // Verify fallback tensor is valid
-                assert!(fallback_tensor.dims().len() > 0, "Fallback tensor should have valid dimensions");
-                println!("Fallback successful for error: {}", mlx_error);
+                assert!(!fallback_tensor.dims().is_empty(), "Fallback tensor should have valid dimensions");
+                println!("Fallback successful for error: {mlx_error}");
             }
             Err(e) => {
-                println!("Fallback failed for error {}: {}", mlx_error, e);
+                println!("Fallback failed for error {mlx_error}: {e}");
                 // Some fallbacks may fail, which is acceptable
             }
         }
@@ -697,7 +692,7 @@ fn test_operation_accuracy_benchmarks() {
             _ => {
                 // For other types, create zeros tensor (from_data only supports F32)
                 BitNetTensor::zeros(&[2, 2], dtype, &device, &pool)
-                    .expect(&format!("Failed to create {} tensor", dtype))
+                    .unwrap_or_else(|_| panic!("Failed to create {dtype} tensor"))
             }
         };
         
@@ -711,16 +706,15 @@ fn test_operation_accuracy_benchmarks() {
                 Ok(result) => {
                     let result_data = result.flatten_all().unwrap().to_vec1::<f32>().unwrap();
                     assert!(approx_equal_vec(&result_data, &test_data, tolerance),
-                           "Identity operation should preserve values within tolerance for {}",
-                           dtype);
+                           "Identity operation should preserve values within tolerance for {dtype}");
                 }
                 Err(e) => {
-                    println!("Identity operation failed for {}: {}", dtype, e);
+                    println!("Identity operation failed for {dtype}: {e}");
                 }
             }
         }
         
-        println!("Accuracy test passed for {} with tolerance {}", dtype, tolerance);
+        println!("Accuracy test passed for {dtype} with tolerance {tolerance}");
     }
 }
 
@@ -739,11 +733,11 @@ fn test_quantization_accuracy_benchmarks() {
     
     for (dtype, bits) in quantization_tests {
         let tensor = BitNetTensor::zeros(&[100], dtype, &device, &pool)
-            .expect(&format!("Failed to create {} tensor", dtype));
+            .unwrap_or_else(|_| panic!("Failed to create {dtype} tensor"));
         
         // Verify quantization properties
         assert_eq!(tensor.dtype().bits_per_element(), bits,
-                  "Dtype {} should use {} bits per element", dtype, bits);
+                  "Dtype {dtype} should use {bits} bits per element");
         
         if let Some((min_val, max_val)) = tensor.dtype().value_range() {
             let value_range = max_val - min_val;
@@ -759,25 +753,25 @@ fn test_quantization_accuracy_benchmarks() {
             match dtype {
                 BitNetDType::I8 => {
                     assert!(approx_equal(actual_step, 1.0, 0.1),
-                           "I8 quantization step should be ~1.0, got {}", actual_step);
+                           "I8 quantization step should be ~1.0, got {actual_step}");
                 }
                 BitNetDType::I4 => {
                     assert!(approx_equal(actual_step, 1.0, 0.1),
-                           "I4 quantization step should be ~1.0, got {}", actual_step);
+                           "I4 quantization step should be ~1.0, got {actual_step}");
                 }
                 BitNetDType::I2 => {
                     assert!(approx_equal(actual_step, 1.0, 0.1),
-                           "I2 quantization step should be ~1.0, got {}", actual_step);
+                           "I2 quantization step should be ~1.0, got {actual_step}");
                 }
                 BitNetDType::BitNet158 => {
                     assert!(approx_equal(actual_step, 0.67, 0.2),
-                           "BitNet158 quantization step should be ~0.67, got {}", actual_step);
+                           "BitNet158 quantization step should be ~0.67, got {actual_step}");
                 }
                 _ => {}
             }
         }
         
-        println!("Quantization accuracy test passed for {} ({} bits)", dtype, bits);
+        println!("Quantization accuracy test passed for {dtype} ({bits} bits)");
     }
 }
 
@@ -799,7 +793,7 @@ fn test_edge_case_tensor_operations() {
             println!("Empty tensor creation successful");
         }
         Err(e) => {
-            println!("Empty tensor creation failed (may be expected): {}", e);
+            println!("Empty tensor creation failed (may be expected): {e}");
         }
     }
     
@@ -858,19 +852,19 @@ fn test_numerical_edge_cases() {
                         // For non-NaN values, data should be preserved
                         if !special_value.is_nan() {
                             assert_eq!(retrieved_data[0], special_value,
-                                      "Special value {} should be preserved", special_value);
+                                      "Special value {special_value} should be preserved");
                         } else {
                             assert!(retrieved_data[0].is_nan(),
                                    "NaN value should remain NaN");
                         }
                     }
                     Err(e) => {
-                        println!("Candle conversion failed for special value {}: {}", special_value, e);
+                        println!("Candle conversion failed for special value {special_value}: {e}");
                     }
                 }
             }
             Err(e) => {
-                println!("Tensor creation failed for special value {}: {}", special_value, e);
+                println!("Tensor creation failed for special value {special_value}: {e}");
             }
         }
     }
@@ -916,7 +910,7 @@ fn test_concurrent_operation_correctness() {
                         results.push(sum_value);
                     }
                     Err(e) => {
-                        println!("Sum operation failed in thread {}: {}", thread_id, e);
+                        println!("Sum operation failed in thread {thread_id}: {e}");
                     }
                 }
             }
@@ -934,7 +928,7 @@ fn test_concurrent_operation_correctness() {
     }
     
     assert!(total_operations > 0, "Should have completed some concurrent operations");
-    println!("Concurrent operation correctness test passed: {} operations", total_operations);
+    println!("Concurrent operation correctness test passed: {total_operations} operations");
 }
 
 #[test]
@@ -977,7 +971,7 @@ fn test_memory_consistency_under_operations() {
     // Memory should be cleaned up reasonably well
     let memory_growth = final_metrics.current_allocated.saturating_sub(initial_metrics.current_allocated);
     assert!(memory_growth < 1024 * 1024, // Less than 1MB growth
-           "Memory growth should be reasonable: {} bytes", memory_growth);
+           "Memory growth should be reasonable: {memory_growth} bytes");
     
     println!("Memory consistency test passed");
 }
@@ -1008,7 +1002,7 @@ fn test_operation_error_recovery() {
         // Migration may fail, but should not crash
         match migration_result {
             Ok(_) => println!("Device migration succeeded"),
-            Err(e) => println!("Device migration failed gracefully: {}", e),
+            Err(e) => println!("Device migration failed gracefully: {e}"),
         }
         
         // Original tensor should still be usable
@@ -1020,7 +1014,7 @@ fn test_operation_error_recovery() {
     let conversion_result = tensor.to_candle();
     match conversion_result {
         Ok(_) => println!("Conversion succeeded"),
-        Err(e) => println!("Conversion failed gracefully: {}", e),
+        Err(e) => println!("Conversion failed gracefully: {e}"),
     }
     
     // Tensor should still be usable

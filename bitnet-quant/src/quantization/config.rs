@@ -135,20 +135,17 @@ impl QuantizationConfig {
     /// Validate the configuration
     pub fn validate(&self) -> Result<(), ConfigValidationError> {
         // Check precision-strategy compatibility
-        match (self.precision, self.strategy) {
-            (QuantizationPrecision::OneFiveFiveBit, QuantizationStrategy::Asymmetric) => {
-                return Err(ConfigValidationError::IncompatibleSettings(
-                    "1.58-bit quantization should use symmetric strategy".to_string()
-                ));
-            }
-            _ => {}
+        if let (QuantizationPrecision::OneFiveFiveBit, QuantizationStrategy::Asymmetric) = (self.precision, self.strategy) {
+            return Err(ConfigValidationError::IncompatibleSettings(
+                "1.58-bit quantization should use symmetric strategy".to_string()
+            ));
         }
         
         // Validate clipping threshold
         if let Some(threshold) = self.clip_threshold {
             if threshold <= 0.0 || threshold > 10.0 {
                 return Err(ConfigValidationError::InvalidValue(
-                    format!("Clipping threshold {} is out of valid range (0, 10]", threshold)
+                    format!("Clipping threshold {threshold} is out of valid range (0, 10]")
                 ));
             }
         }
@@ -157,7 +154,7 @@ impl QuantizationConfig {
         if let Some(size) = self.calibration_size {
             if size == 0 || size > 100000 {
                 return Err(ConfigValidationError::InvalidValue(
-                    format!("Calibration size {} is out of valid range [1, 100000]", size)
+                    format!("Calibration size {size} is out of valid range [1, 100000]")
                 ));
             }
         }
@@ -282,7 +279,7 @@ impl WeightQuantizationConfig {
         if let Some(size) = self.group_size {
             if size == 0 || size > 4096 {
                 return Err(ConfigValidationError::InvalidValue(
-                    format!("Group size {} is out of valid range [1, 4096]", size)
+                    format!("Group size {size} is out of valid range [1, 4096]")
                 ));
             }
         }
@@ -291,7 +288,7 @@ impl WeightQuantizationConfig {
         if let Some(size) = self.block_size {
             if size == 0 || size > 1024 {
                 return Err(ConfigValidationError::InvalidValue(
-                    format!("Block size {} is out of valid range [1, 1024]", size)
+                    format!("Block size {size} is out of valid range [1, 1024]")
                 ));
             }
         }
@@ -307,7 +304,7 @@ impl WeightQuantizationConfig {
         if let Some(factor) = self.custom_threshold_factor {
             if factor <= 0.0 || factor > 2.0 {
                 return Err(ConfigValidationError::InvalidValue(
-                    format!("Threshold factor {} is out of valid range (0, 2]", factor)
+                    format!("Threshold factor {factor} is out of valid range (0, 2]")
                 ));
             }
         }
@@ -467,7 +464,7 @@ impl ActivationQuantizationConfig {
         if let Some(size) = self.cache_size_mb {
             if size == 0 || size > 8192 {
                 return Err(ConfigValidationError::InvalidValue(
-                    format!("Cache size {} MB is out of valid range [1, 8192]", size)
+                    format!("Cache size {size} MB is out of valid range [1, 8192]")
                 ));
             }
         }
@@ -554,7 +551,7 @@ impl AttentionQuantizationConfig {
         if let Some(threshold) = self.score_clip_threshold {
             if threshold <= 0.0 || threshold > 100.0 {
                 return Err(ConfigValidationError::InvalidValue(
-                    format!("Score clip threshold {} is out of valid range (0, 100]", threshold)
+                    format!("Score clip threshold {threshold} is out of valid range (0, 100]")
                 ));
             }
         }
@@ -563,7 +560,7 @@ impl AttentionQuantizationConfig {
         if let Some(threshold) = self.sparsity_threshold {
             if threshold <= 0.0 || threshold >= 1.0 {
                 return Err(ConfigValidationError::InvalidValue(
-                    format!("Sparsity threshold {} is out of valid range (0, 1)", threshold)
+                    format!("Sparsity threshold {threshold} is out of valid range (0, 1)")
                 ));
             }
         }
@@ -688,7 +685,7 @@ impl PackingConfig {
         if let Some(size) = self.block_size {
             if size == 0 || size > 2048 {
                 return Err(ConfigValidationError::InvalidValue(
-                    format!("Block size {} is out of valid range [1, 2048]", size)
+                    format!("Block size {size} is out of valid range [1, 2048]")
                 ));
             }
         }
@@ -718,7 +715,7 @@ impl PackingConfig {
         if let Some(threads) = self.num_threads {
             if threads == 0 || threads > 256 {
                 return Err(ConfigValidationError::InvalidValue(
-                    format!("Number of threads {} is out of valid range [1, 256]", threads)
+                    format!("Number of threads {threads} is out of valid range [1, 256]")
                 ));
             }
         }
@@ -866,9 +863,9 @@ pub enum ConfigValidationError {
 impl std::fmt::Display for ConfigValidationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ConfigValidationError::InvalidValue(msg) => write!(f, "Invalid configuration value: {}", msg),
-            ConfigValidationError::IncompatibleSettings(msg) => write!(f, "Incompatible configuration: {}", msg),
-            ConfigValidationError::MissingRequired(msg) => write!(f, "Missing required configuration: {}", msg),
+            ConfigValidationError::InvalidValue(msg) => write!(f, "Invalid configuration value: {msg}"),
+            ConfigValidationError::IncompatibleSettings(msg) => write!(f, "Incompatible configuration: {msg}"),
+            ConfigValidationError::MissingRequired(msg) => write!(f, "Missing required configuration: {msg}"),
         }
     }
 }

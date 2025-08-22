@@ -18,14 +18,14 @@ fn main() -> Result<()> {
     println!("\n1. Basic Text Encoding:");
     let text = "hello world from bitnet";
     let tokens = encode_text(&tokenizer, text)?;
-    println!("Text: '{}'", text);
-    println!("Tokens: {:?}", tokens);
+    println!("Text: '{text}'");
+    println!("Tokens: {tokens:?}");
 
     // Demo 2: Token decoding
     println!("\n2. Token Decoding:");
     let decoded_text = decode_tokens(&tokenizer, &tokens)?;
-    println!("Tokens: {:?}", tokens);
-    println!("Decoded: '{}'", decoded_text);
+    println!("Tokens: {tokens:?}");
+    println!("Decoded: '{decoded_text}'");
 
     // Demo 3: Batch encoding
     println!("\n3. Batch Encoding:");
@@ -39,12 +39,12 @@ fn main() -> Result<()> {
     let batch_tokens = encode_batch(&tokenizer, &texts)?;
     println!("Input texts:");
     for (i, text) in texts.iter().enumerate() {
-        println!("  {}: '{}'", i, text);
+        println!("  {i}: '{text}'");
     }
     
     println!("Batch tokens:");
     for (i, tokens) in batch_tokens.iter().enumerate() {
-        println!("  {}: {:?}", i, tokens);
+        println!("  {i}: {tokens:?}");
     }
 
     // Demo 4: Round-trip encoding/decoding for batch
@@ -59,9 +59,9 @@ fn main() -> Result<()> {
     let text_with_unknown = "hello unknown_word world";
     let tokens_with_unk = encode_text(&tokenizer, text_with_unknown)?;
     let decoded_with_unk = decode_tokens(&tokenizer, &tokens_with_unk)?;
-    println!("Text: '{}'", text_with_unknown);
-    println!("Tokens: {:?}", tokens_with_unk);
-    println!("Decoded: '{}'", decoded_with_unk);
+    println!("Text: '{text_with_unknown}'");
+    println!("Tokens: {tokens_with_unk:?}");
+    println!("Decoded: '{decoded_with_unk}'");
 
     println!("\nDemo completed successfully!");
     Ok(())

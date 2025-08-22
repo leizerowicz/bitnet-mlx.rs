@@ -68,7 +68,7 @@ pub use enhanced_config::{
 };
 
 /// Core quantization precision for BitNet models
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum QuantizationPrecision {
     /// 1.58-bit quantization (ternary: -1, 0, +1)
     OneFiveFiveBit,

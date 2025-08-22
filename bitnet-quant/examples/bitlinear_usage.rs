@@ -23,12 +23,12 @@ fn main() -> Result<()> {
     };
     
     let basic_layer = BitLinear::new(basic_config, "ffn_up".to_string())?;
-    println!("   ✓ Created layer: {:?}", basic_layer);
+    println!("   ✓ Created layer: {basic_layer:?}");
     
     // 2. Create test input
     println!("\n2. Creating test input tensor...");
     let device = auto_select_device();
-    println!("   ✓ Using device: {:?}", device);
+    println!("   ✓ Using device: {device:?}");
     
     let batch_size = 4;
     let seq_len = 128;
@@ -120,7 +120,7 @@ fn main() -> Result<()> {
     let diff = output1.sub(&output3)?;
     let abs_diff = diff.abs()?;
     let max_diff = abs_diff.flatten_all()?.max(candle_core::D::Minus1)?.to_scalar::<f32>()?;
-    println!("   ✓ Max difference after weight update: {:.6}", max_diff);
+    println!("   ✓ Max difference after weight update: {max_diff:.6}");
     
     // 7. Cache statistics
     if let Some(cache_stats) = update_layer.cache_stats() {

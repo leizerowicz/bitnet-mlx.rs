@@ -437,7 +437,7 @@ impl PerformanceComparator {
         
         for measurement in &self.measurements {
             let key = (measurement.operation.clone(), measurement.tensor_size);
-            grouped.entry(key).or_insert_with(Vec::new).push(measurement);
+            grouped.entry(key).or_default().push(measurement);
         }
 
         // Generate comparisons for each group

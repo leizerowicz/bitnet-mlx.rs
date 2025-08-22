@@ -89,14 +89,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("----------------------------------");
     
     println!("Available mitigation strategies:");
-    let strategies = vec![
-        MitigationStrategy::IncreaseBitWidth,
+    let strategies = [MitigationStrategy::IncreaseBitWidth,
         MitigationStrategy::AdjustScaleFactor,
         MitigationStrategy::UseAsymmetricQuantization,
         MitigationStrategy::ApplyClipping,
         MitigationStrategy::EnableMixedPrecision,
-        MitigationStrategy::AddRegularization,
-    ];
+        MitigationStrategy::AddRegularization];
 
     for (i, strategy) in strategies.iter().enumerate() {
         println!("  {}. {:?}", i + 1, strategy);
@@ -152,9 +150,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let (avg_mse, avg_sqnr, avg_cosine) = calculate_summary_stats(&layer_metrics);
     println!("✅ Summary across all layers:");
-    println!("  Average MSE: {:.6}", avg_mse);
-    println!("  Average SQNR: {:.2} dB", avg_sqnr);
-    println!("  Average Cosine Similarity: {:.4}", avg_cosine);
+    println!("  Average MSE: {avg_mse:.6}");
+    println!("  Average SQNR: {avg_sqnr:.2} dB");
+    println!("  Average Cosine Similarity: {avg_cosine:.4}");
     
     let problematic_layers: Vec<_> = layer_metrics.iter()
         .filter(|(_, metrics)| calculate_quality_score(metrics, &thresholds) < 0.7)
@@ -162,7 +160,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
         
     if !problematic_layers.is_empty() {
-        println!("  Problematic layers (quality < 70%): {:?}", problematic_layers);
+        println!("  Problematic layers (quality < 70%): {problematic_layers:?}");
     } else {
         println!("  All layers meet minimum quality thresholds ✅");
     }
@@ -178,9 +176,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let safe_div_result3 = safe_divide(10.0, 1e-10);
     
     println!("✅ safe_divide function tests:");
-    println!("  10.0 / 2.0 = {}", safe_div_result1);
-    println!("  10.0 / 0.0 = {} (should be 0.0)", safe_div_result2);
-    println!("  10.0 / 1e-10 = {} (should be 0.0)", safe_div_result3);
+    println!("  10.0 / 2.0 = {safe_div_result1}");
+    println!("  10.0 / 0.0 = {safe_div_result2} (should be 0.0)");
+    println!("  10.0 / 1e-10 = {safe_div_result3} (should be 0.0)");
     
     // Test percentile calculation
     let values = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0];
@@ -189,9 +187,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let p95 = calculate_percentile(&values, 95.0);
     
     println!("✅ percentile calculation tests:");
-    println!("  50th percentile: {}", p50);
-    println!("  90th percentile: {}", p90);
-    println!("  95th percentile: {}", p95);
+    println!("  50th percentile: {p50}");
+    println!("  90th percentile: {p90}");
+    println!("  95th percentile: {p95}");
     println!();
 
     // Test 9: Phase 3.3 module availability

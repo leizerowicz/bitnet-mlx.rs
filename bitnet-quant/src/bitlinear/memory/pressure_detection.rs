@@ -106,7 +106,7 @@ impl MemoryPressureIntegrator {
             let elapsed = now.duration_since(last);
             let check_interval = Duration::from_secs_f64(self.config.check_interval_seconds);
             if elapsed < check_interval {
-                return Ok(self.get_current_pressure()?);
+                return self.get_current_pressure();
             }
         }
 

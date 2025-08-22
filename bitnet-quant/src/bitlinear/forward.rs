@@ -3,7 +3,7 @@
 //! This module implements the forward pass for BitLinear layers, including
 //! optimizations for quantized matrix multiplication and memory-efficient operations.
 
-use candle_core::{Result as CandleResult, Tensor, Shape};
+use candle_core::Tensor;
 use crate::bitlinear::{BitLinear, BitLinearResult, BitLinearError};
 use crate::quantization::QuantizedWeight;
 
@@ -113,7 +113,7 @@ impl BitLinearForward for BitLinear {
             debug!("Adding bias to output");
             
             output.broadcast_add(&bias_guard)
-                .map_err(|e| BitLinearError::DeviceError(format!("Failed to add bias: {}", e)))?
+                .map_err(|e| BitLinearError::DeviceError(format!("Failed to add bias: {e}")))?
         } else {
             output
         };
@@ -154,7 +154,7 @@ impl BitLinear {
         // Standard matrix multiplication: input @ weight_f32.transpose()
         // Note: weight_f32 is [out_features, in_features], so we need transpose for correct shapes
         let weight_transposed = weight_f32.t()
-            .map_err(|e| BitLinearError::DeviceError(format!("Failed to transpose weights: {}", e)))?;
+            .map_err(|e| BitLinearError::DeviceError(format!("Failed to transpose weights: {e}")))?;
         
         // Handle different input shapes
         let input_shape = input.shape();
@@ -163,7 +163,7 @@ impl BitLinear {
         let output = if input_dims.len() == 2 {
             // 2D input: [batch_size, in_features] @ [in_features, out_features] -> [batch_size, out_features]
             input.matmul(&weight_transposed)
-                .map_err(|e| BitLinearError::DeviceError(format!("Matrix multiplication failed: {}", e)))?
+                .map_err(|e| BitLinearError::DeviceError(format!("Matrix multiplication failed: {e}")))?
         } else if input_dims.len() == 3 {
             // 3D input: [batch_size, seq_len, in_features] -> reshape -> matmul -> reshape back
             let batch_size = input_dims[0];
@@ -172,16 +172,16 @@ impl BitLinear {
             
             // Reshape to 2D: [batch_size * seq_len, in_features]
             let input_2d = input.reshape(&[batch_size * seq_len, in_features])
-                .map_err(|e| BitLinearError::DeviceError(format!("Failed to reshape input to 2D: {}", e)))?;
+                .map_err(|e| BitLinearError::DeviceError(format!("Failed to reshape input to 2D: {e}")))?;
             
             // Perform 2D matrix multiplication
             let output_2d = input_2d.matmul(&weight_transposed)
-                .map_err(|e| BitLinearError::DeviceError(format!("Matrix multiplication failed: {}", e)))?;
+                .map_err(|e| BitLinearError::DeviceError(format!("Matrix multiplication failed: {e}")))?;
             
             // Reshape back to 3D: [batch_size, seq_len, out_features]
             let out_features = self.config().out_features;
             output_2d.reshape(&[batch_size, seq_len, out_features])
-                .map_err(|e| BitLinearError::DeviceError(format!("Failed to reshape output back to 3D: {}", e)))?
+                .map_err(|e| BitLinearError::DeviceError(format!("Failed to reshape output back to 3D: {e}")))?
         } else {
             return Err(BitLinearError::ShapeMismatch {
                 expected: vec![1, self.config().in_features],
@@ -211,11 +211,11 @@ impl BitLinear {
     fn convert_quantized_to_f32(&self, quantized_values: &Tensor, scales: &Tensor) -> BitLinearResult<Tensor> {
         // Convert quantized tensor to f32 and apply scaling
         let q_weights_f32 = quantized_values.to_dtype(candle_core::DType::F32)
-            .map_err(|e| BitLinearError::DeviceError(format!("Failed to convert quantized values to f32: {}", e)))?;
+            .map_err(|e| BitLinearError::DeviceError(format!("Failed to convert quantized values to f32: {e}")))?;
         
         // Apply scaling factor element-wise or broadcast if per-tensor scaling
         let scaled_weights = q_weights_f32.broadcast_mul(scales)
-            .map_err(|e| BitLinearError::DeviceError(format!("Failed to apply scaling: {}", e)))?;
+            .map_err(|e| BitLinearError::DeviceError(format!("Failed to apply scaling: {e}")))?;
         
         Ok(scaled_weights)
     }

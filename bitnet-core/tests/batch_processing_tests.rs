@@ -256,7 +256,7 @@ mod memory_conversion_batch_tests {
             assert_eq!(seq.shape(), par.shape());
         }
         
-        println!("Sequential time: {:?}, Parallel time: {:?}", sequential_time, parallel_time);
+        println!("Sequential time: {sequential_time:?}, Parallel time: {parallel_time:?}");
         
         // Note: Parallel might not always be faster for small batches due to overhead
         // This test mainly ensures both approaches work correctly
@@ -487,7 +487,7 @@ mod performance_and_memory_tests {
         assert_eq!(results.len(), 50);
         
         // Performance should be reasonable (this is a rough check)
-        assert!(duration.as_millis() < 5000, "Batch processing took too long: {:?}", duration);
+        assert!(duration.as_millis() < 5000, "Batch processing took too long: {duration:?}");
         
         println!("Processed {} tensors in {:?}", tensors.len(), duration);
     }
@@ -548,8 +548,7 @@ mod performance_and_memory_tests {
             
             assert_eq!(results.len(), tensor_count);
             
-            println!("Batch size {}: processed {} tensors in {:?}", 
-                     batch_size, tensor_count, duration);
+            println!("Batch size {batch_size}: processed {tensor_count} tensors in {duration:?}");
             
             // Verify all conversions are correct
             for result in &results {
@@ -709,11 +708,10 @@ mod integration_tests {
                         assert_eq!(converted.len(), 1);
                         assert_eq!(converted[0].dtype(), *target_dtype);
                         assert_eq!(converted[0].shape(), vec![4, 4]);
-                        println!("Successfully converted {:?} to {:?}", source_dtype, target_dtype);
+                        println!("Successfully converted {source_dtype:?} to {target_dtype:?}");
                     }
                     Err(e) => {
-                        println!("Conversion from {:?} to {:?} failed (expected for some combinations): {}",
-                                source_dtype, target_dtype, e);
+                        println!("Conversion from {source_dtype:?} to {target_dtype:?} failed (expected for some combinations): {e}");
                     }
                 }
             }

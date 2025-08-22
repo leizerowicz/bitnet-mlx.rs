@@ -90,7 +90,7 @@ fn bench_comprehensive_matmul(c: &mut Criterion) {
 
             // CPU Candle benchmark
             group.bench_with_input(
-                BenchmarkId::new("candle_cpu", format!("{}x{}_batch{}", rows, cols, batch_size)),
+                BenchmarkId::new("candle_cpu", format!("{rows}x{cols}_batch{batch_size}")),
                 &(rows, cols, batch_size),
                 |bencher, &(rows, cols, batch_size)| {
                     let device = Device::Cpu;
@@ -108,7 +108,7 @@ fn bench_comprehensive_matmul(c: &mut Criterion) {
             #[cfg(target_os = "macos")]
             if Device::new_metal(0).is_ok() {
                 group.bench_with_input(
-                    BenchmarkId::new("candle_metal", format!("{}x{}_batch{}", rows, cols, batch_size)),
+                    BenchmarkId::new("candle_metal", format!("{rows}x{cols}_batch{batch_size}")),
                     &(rows, cols, batch_size),
                     |bencher, &(rows, cols, batch_size)| {
                         let device = Device::new_metal(0).unwrap();
@@ -163,7 +163,7 @@ fn bench_comprehensive_quantization(c: &mut Criterion) {
 
             // 1.58-bit quantization benchmark
             group.bench_with_input(
-                BenchmarkId::new("quantize_1_58_bit", format!("{}x{}_batch{}", rows, cols, batch_size)),
+                BenchmarkId::new("quantize_1_58_bit", format!("{rows}x{cols}_batch{batch_size}")),
                 &(rows, cols, batch_size),
                 |bencher, &(rows, cols, batch_size)| {
                     let device = Device::Cpu;
@@ -181,7 +181,7 @@ fn bench_comprehensive_quantization(c: &mut Criterion) {
 
             // 8-bit quantization benchmark
             group.bench_with_input(
-                BenchmarkId::new("quantize_8_bit", format!("{}x{}_batch{}", rows, cols, batch_size)),
+                BenchmarkId::new("quantize_8_bit", format!("{rows}x{cols}_batch{batch_size}")),
                 &(rows, cols, batch_size),
                 |bencher, &(rows, cols, batch_size)| {
                     let device = Device::Cpu;
@@ -243,7 +243,7 @@ fn bench_comprehensive_bitlinear(c: &mut Criterion) {
 
             // Candle BitLinear simulation
             group.bench_with_input(
-                BenchmarkId::new("candle_bitlinear", format!("{}x{}_batch{}", input_dim, output_dim, batch_size)),
+                BenchmarkId::new("candle_bitlinear", format!("{input_dim}x{output_dim}_batch{batch_size}")),
                 &(input_dim, output_dim, batch_size),
                 |bencher, &(input_dim, output_dim, batch_size)| {
                     let device = Device::Cpu;
@@ -305,7 +305,7 @@ fn bench_comprehensive_activations(c: &mut Criterion) {
             for activation in &activations {
                 // Candle activation benchmarks
                 group.bench_with_input(
-                    BenchmarkId::new(format!("candle_{}", activation), format!("{}x{}_batch{}", rows, cols, batch_size)),
+                    BenchmarkId::new(format!("candle_{activation}"), format!("{rows}x{cols}_batch{batch_size}")),
                     &(rows, cols, batch_size),
                     |bencher, &(rows, cols, batch_size)| {
                         let device = Device::Cpu;
@@ -580,7 +580,7 @@ fn bench_cross_platform_comparison(c: &mut Criterion) {
 
         // CPU baseline
         group.bench_with_input(
-            BenchmarkId::new("cpu_baseline", format!("{}x{}", rows, cols)),
+            BenchmarkId::new("cpu_baseline", format!("{rows}x{cols}")),
             &(rows, cols),
             |bencher, &(rows, cols)| {
                 let device = Device::Cpu;
@@ -598,7 +598,7 @@ fn bench_cross_platform_comparison(c: &mut Criterion) {
         #[cfg(target_os = "macos")]
         if Device::new_metal(0).is_ok() {
             group.bench_with_input(
-                BenchmarkId::new("metal_macos", format!("{}x{}", rows, cols)),
+                BenchmarkId::new("metal_macos", format!("{rows}x{cols}")),
                 &(rows, cols),
                 |bencher, &(rows, cols)| {
                     let device = Device::new_metal(0).unwrap();
@@ -616,7 +616,7 @@ fn bench_cross_platform_comparison(c: &mut Criterion) {
         // CUDA (if available)
         if Device::new_cuda(0).is_ok() {
             group.bench_with_input(
-                BenchmarkId::new("cuda_gpu", format!("{}x{}", rows, cols)),
+                BenchmarkId::new("cuda_gpu", format!("{rows}x{cols}")),
                 &(rows, cols),
                 |bencher, &(rows, cols)| {
                     let device = Device::new_cuda(0).unwrap();

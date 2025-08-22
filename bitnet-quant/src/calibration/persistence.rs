@@ -7,10 +7,10 @@ use crate::calibration::error::{CalibrationError, CalibrationResult};
 use crate::calibration::config::{PersistenceConfig, StorageFormat};
 use crate::calibration::statistics::LayerStatistics;
 use crate::calibration::histogram::ActivationHistogram;
-use crate::calibration::{CalibrationSummary, QuantizationParameters, CalibrationMetadata};
+use crate::calibration::{CalibrationSummary, QuantizationParameters};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::fs::{File, create_dir_all};
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::time::SystemTime;
@@ -147,7 +147,7 @@ impl CalibrationCache {
         // Create cache directory if it doesn't exist
         if !cache_directory.exists() {
             create_dir_all(&cache_directory)
-                .map_err(|e| CalibrationError::persistence(format!("Failed to create cache directory: {}", e)))?;
+                .map_err(|e| CalibrationError::persistence(format!("Failed to create cache directory: {e}")))?;
         }
 
         Ok(Self {
@@ -207,11 +207,11 @@ impl CalibrationCache {
             let file_path = self.get_cache_file_path(key);
             let mut file = BufWriter::new(
                 File::create(&file_path)
-                    .map_err(|e| CalibrationError::persistence(format!("Failed to create cache file: {}", e)))?
+                    .map_err(|e| CalibrationError::persistence(format!("Failed to create cache file: {e}")))?
             );
             
             file.write_all(&serialized_data)
-                .map_err(|e| CalibrationError::persistence(format!("Failed to write cache file: {}", e)))?;
+                .map_err(|e| CalibrationError::persistence(format!("Failed to write cache file: {e}")))?;
         }
 
         // Update in-memory cache
@@ -244,12 +244,12 @@ impl CalibrationCache {
         if file_path.exists() {
             let mut file = BufReader::new(
                 File::open(&file_path)
-                    .map_err(|e| CalibrationError::persistence(format!("Failed to open cache file: {}", e)))?
+                    .map_err(|e| CalibrationError::persistence(format!("Failed to open cache file: {e}")))?
             );
 
             let mut buffer = Vec::new();
             file.read_to_end(&mut buffer)
-                .map_err(|e| CalibrationError::persistence(format!("Failed to read cache file: {}", e)))?;
+                .map_err(|e| CalibrationError::persistence(format!("Failed to read cache file: {e}")))?;
 
             let mut entry = if self.config.compression_enabled {
                 self.decompress_data(&buffer)?
@@ -287,7 +287,7 @@ impl CalibrationCache {
 
     /// Get cache file path for a key
     fn get_cache_file_path(&self, key: &str) -> PathBuf {
-        let safe_key = key.replace('/', "_").replace('\\', "_");
+        let safe_key = key.replace(['/', '\\'], "_");
         let extension = match self.config.storage_format {
             StorageFormat::Json => "json",
             StorageFormat::Bincode => "bin",
@@ -295,7 +295,7 @@ impl CalibrationCache {
             StorageFormat::Parquet => "parquet",
         };
         
-        self.cache_directory.join(format!("{}.{}", safe_key, extension))
+        self.cache_directory.join(format!("{safe_key}.{extension}"))
     }
 
     /// Serialize data based on storage format
@@ -303,15 +303,15 @@ impl CalibrationCache {
         match self.config.storage_format {
             StorageFormat::Json => {
                 serde_json::to_vec(entry)
-                    .map_err(|e| CalibrationError::persistence(format!("JSON serialization failed: {}", e)))
+                    .map_err(|e| CalibrationError::persistence(format!("JSON serialization failed: {e}")))
             },
             StorageFormat::Bincode => {
                 bincode::serialize(entry)
-                    .map_err(|e| CalibrationError::persistence(format!("Bincode serialization failed: {}", e)))
+                    .map_err(|e| CalibrationError::persistence(format!("Bincode serialization failed: {e}")))
             },
             StorageFormat::MessagePack => {
                 rmp_serde::to_vec(entry)
-                    .map_err(|e| CalibrationError::persistence(format!("MessagePack serialization failed: {}", e)))
+                    .map_err(|e| CalibrationError::persistence(format!("MessagePack serialization failed: {e}")))
             },
             StorageFormat::Parquet => {
                 // Parquet serialization would require more complex implementation
@@ -325,15 +325,15 @@ impl CalibrationCache {
         match self.config.storage_format {
             StorageFormat::Json => {
                 serde_json::from_slice(data)
-                    .map_err(|e| CalibrationError::persistence(format!("JSON deserialization failed: {}", e)))
+                    .map_err(|e| CalibrationError::persistence(format!("JSON deserialization failed: {e}")))
             },
             StorageFormat::Bincode => {
                 bincode::deserialize(data)
-                    .map_err(|e| CalibrationError::persistence(format!("Bincode deserialization failed: {}", e)))
+                    .map_err(|e| CalibrationError::persistence(format!("Bincode deserialization failed: {e}")))
             },
             StorageFormat::MessagePack => {
                 rmp_serde::from_slice(data)
-                    .map_err(|e| CalibrationError::persistence(format!("MessagePack deserialization failed: {}", e)))
+                    .map_err(|e| CalibrationError::persistence(format!("MessagePack deserialization failed: {e}")))
             },
             StorageFormat::Parquet => {
                 Err(CalibrationError::persistence("Parquet format not implemented"))
@@ -350,10 +350,10 @@ impl CalibrationCache {
         use std::io::Write;
         let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::new(self.config.compression_level));
         encoder.write_all(&serialized)
-            .map_err(|e| CalibrationError::persistence(format!("Compression failed: {}", e)))?;
+            .map_err(|e| CalibrationError::persistence(format!("Compression failed: {e}")))?;
         
         let compressed = encoder.finish()
-            .map_err(|e| CalibrationError::persistence(format!("Compression finalization failed: {}", e)))?;
+            .map_err(|e| CalibrationError::persistence(format!("Compression finalization failed: {e}")))?;
         
         let compressed_size = compressed.len();
         let compression_ratio = compressed_size as f32 / original_size as f32;
@@ -375,7 +375,7 @@ impl CalibrationCache {
         let mut decompressed = Vec::new();
         
         decoder.read_to_end(&mut decompressed)
-            .map_err(|e| CalibrationError::persistence(format!("Decompression failed: {}", e)))?;
+            .map_err(|e| CalibrationError::persistence(format!("Decompression failed: {e}")))?;
         
         self.deserialize_data(&decompressed)
     }
@@ -383,10 +383,10 @@ impl CalibrationCache {
     /// Calculate checksum for data integrity
     fn calculate_checksum(&self, data: &CacheData) -> CalibrationResult<String> {
         let serialized = serde_json::to_vec(data)
-            .map_err(|e| CalibrationError::persistence(format!("Checksum calculation failed: {}", e)))?;
+            .map_err(|e| CalibrationError::persistence(format!("Checksum calculation failed: {e}")))?;
         
         let checksum = md5::compute(&serialized);
-        Ok(format!("{:x}", checksum))
+        Ok(format!("{checksum:x}"))
     }
 
     /// Update average access time
@@ -412,7 +412,7 @@ impl CalibrationCache {
 
     /// Cleanup old cache entries
     pub fn cleanup_old_entries(&mut self, max_age_days: u64) -> CalibrationResult<usize> {
-        let cutoff_date = SystemTime::now() - std::time::Duration::from_secs(max_age_days as u64 * 24 * 60 * 60);
+        let cutoff_date = SystemTime::now() - std::time::Duration::from_secs(max_age_days * 24 * 60 * 60);
         let mut removed_count = 0;
 
         // Clean memory cache
@@ -430,11 +430,10 @@ impl CalibrationCache {
             for entry in entries.flatten() {
                 if let Ok(metadata) = entry.metadata() {
                     if let Ok(modified) = metadata.modified() {
-                        if modified < cutoff_date {
-                            if std::fs::remove_file(entry.path()).is_ok() {
+                        if modified < cutoff_date
+                            && std::fs::remove_file(entry.path()).is_ok() {
                                 removed_count += 1;
                             }
-                        }
                     }
                 }
             }
@@ -519,7 +518,7 @@ impl StatisticsPersistence for CalibrationCache {
         let file_path = self.get_cache_file_path(key);
         if file_path.exists() {
             std::fs::remove_file(&file_path)
-                .map_err(|e| CalibrationError::persistence(format!("Failed to remove cache file: {}", e)))?;
+                .map_err(|e| CalibrationError::persistence(format!("Failed to remove cache file: {e}")))?;
             removed = true;
         }
 
@@ -538,7 +537,7 @@ impl StatisticsPersistence for CalibrationCache {
         if let Ok(entries) = std::fs::read_dir(&self.cache_directory) {
             for entry in entries.flatten() {
                 if let Err(e) = std::fs::remove_file(entry.path()) {
-                    return Err(CalibrationError::persistence(format!("Failed to remove cache file: {}", e)));
+                    return Err(CalibrationError::persistence(format!("Failed to remove cache file: {e}")));
                 }
             }
         }
@@ -727,7 +726,7 @@ mod tests {
             enable_checksums: true,
         };
 
-        let mut cache = CalibrationCache::new(config)?;
+        let cache = CalibrationCache::new(config)?;
         
         // Create a dummy entry with custom data
         let large_data = serde_json::json!({

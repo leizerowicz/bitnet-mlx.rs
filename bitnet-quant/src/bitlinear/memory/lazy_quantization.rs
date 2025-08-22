@@ -225,7 +225,7 @@ impl LazyQuantizer {
                 &[1], 
                 weights.dtype(), 
                 weights.device()
-            ).map_err(|e| BitLinearError::TensorError(format!("Scale tensor creation failed: {}", e)))?;
+            ).map_err(|e| BitLinearError::TensorError(format!("Scale tensor creation failed: {e}")))?;
             
             return Ok((weights.clone(), scales));
         }
@@ -401,24 +401,24 @@ impl LazyQuantizer {
     fn quantize_tensor(&self, weights: &Tensor) -> BitLinearResult<(Tensor, Tensor)> {
         // Compute scales using absolute mean method
         let abs_weights = weights.abs()
-            .map_err(|e| BitLinearError::TensorError(format!("Absolute value computation failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Absolute value computation failed: {e}")))?;
         
         let scales = abs_weights.mean_all()
-            .map_err(|e| BitLinearError::TensorError(format!("Scale computation failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Scale computation failed: {e}")))?;
         
         // Add small epsilon to prevent division by zero
         let epsilon = Tensor::full(1e-8f32, scales.shape(), scales.device())
-            .map_err(|e| BitLinearError::TensorError(format!("Epsilon tensor creation failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Epsilon tensor creation failed: {e}")))?;
         let scales_safe = scales.add(&epsilon)
-            .map_err(|e| BitLinearError::TensorError(format!("Safe scale computation failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Safe scale computation failed: {e}")))?;
         
         // Normalize and quantize to {-1, 0, 1}
         let normalized = weights.broadcast_div(&scales_safe)
-            .map_err(|e| BitLinearError::TensorError(format!("Weight normalization failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Weight normalization failed: {e}")))?;
         
         let quantized = normalized.clamp(-1.0f32, 1.0f32)
             .and_then(|t| t.round())
-            .map_err(|e| BitLinearError::TensorError(format!("Quantization failed: {}", e)))?;
+            .map_err(|e| BitLinearError::TensorError(format!("Quantization failed: {e}")))?;
         
         Ok((quantized, scales_safe))
     }

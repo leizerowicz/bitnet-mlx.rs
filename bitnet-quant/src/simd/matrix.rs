@@ -5,7 +5,6 @@
 //! for BitNet's {-1, 0, +1} weight representation.
 
 use super::capabilities::{detect_simd_capabilities, SimdCapabilities};
-use super::utils::prefetch_memory;
 use crate::quantization::utils::QuantizationError;
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]

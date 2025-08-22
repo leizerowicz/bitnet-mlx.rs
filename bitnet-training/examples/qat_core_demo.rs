@@ -38,13 +38,13 @@ fn demo_basic_quantization(device: &Device) -> Result<()> {
     let quantized = straight_through_binary_quantize(&input)?;
     let quantized_vec: Vec<f32> = quantized.to_vec1()?;
     
-    println!("  Input:     {:?}", input_data);
-    println!("  Quantized: {:?}", quantized_vec);
+    println!("  Input:     {input_data:?}");
+    println!("  Quantized: {quantized_vec:?}");
     
     // Verify quantization: all values should be -1 or +1
     for val in &quantized_vec {
         assert!((*val - 1.0).abs() < 1e-6 || (*val + 1.0).abs() < 1e-6, 
-                "Value {} not properly binary quantized", val);
+                "Value {val} not properly binary quantized");
     }
     
     println!("  ✓ All values correctly quantized to {{-1, +1}}");
@@ -65,15 +65,15 @@ fn demo_gradient_preservation(device: &Device) -> Result<()> {
     // In actual training, gradients w.r.t. quantized would be passed to input
     let quantized_vec: Vec<f32> = quantized.to_vec1()?;
     
-    println!("  Input:     {:?}", input_data);
-    println!("  Quantized: {:?}", quantized_vec);
+    println!("  Input:     {input_data:?}");
+    println!("  Quantized: {quantized_vec:?}");
     println!("  STE Concept: Gradients flow through as if quantization didn't happen");
     
     // Demonstrate that quantized values are in ternary set {-1, 0, +1}
     for val in &quantized_vec {
         assert!(val.abs() <= 1.0 && 
                 ((*val + 1.0).abs() < 1e-6 || val.abs() < 1e-6 || (*val - 1.0).abs() < 1e-6),
-                "Value {} not properly ternary quantized", val);
+                "Value {val} not properly ternary quantized");
     }
     
     println!("  ✓ Ternary quantization to {{-1, 0, +1}} successful");
@@ -87,7 +87,7 @@ fn demo_multi_bit_quantization(device: &Device) -> Result<()> {
     let input_data = vec![0.7_f32, -0.3_f32, 0.9_f32, -0.1_f32, 0.0_f32];
     let input = Tensor::from_slice(&input_data, (input_data.len(),), device)?;
     
-    println!("  Input: {:?}", input_data);
+    println!("  Input: {input_data:?}");
     
     // Test different bit widths
     for bits in [1, 2, 3] {
@@ -96,12 +96,12 @@ fn demo_multi_bit_quantization(device: &Device) -> Result<()> {
         
         let max_val = 1.0_f32; // For symmetric quantization in range [-1, +1]
         
-        println!("  {}-bit: {:?}", bits, quantized_vec);
+        println!("  {bits}-bit: {quantized_vec:?}");
         
         // Verify values are within expected quantization levels
         for val in &quantized_vec {
             assert!(val.abs() <= max_val + 0.1, 
-                    "{}-bit quantization produced out-of-range value: {}", bits, val);
+                    "{bits}-bit quantization produced out-of-range value: {val}");
         }
     }
     

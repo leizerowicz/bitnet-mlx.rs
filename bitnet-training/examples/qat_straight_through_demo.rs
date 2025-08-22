@@ -81,8 +81,8 @@ fn demo_soft_quantization(device: &Device) -> Result<()> {
     let output_vec: Vec<f32> = output.to_vec1()?;
 
     println!("  Input: [0.3, -0.7, 0.5, -0.2, 0.0]");
-    println!("  Soft quantized: {:?}", output_vec);
-    println!("  Temperature: {}", temperature);    Ok(())
+    println!("  Soft quantized: {output_vec:?}");
+    println!("  Temperature: {temperature}");    Ok(())
 }
 
 fn demo_bit_precisions(device: &Device) -> Result<()> {
@@ -90,7 +90,7 @@ fn demo_bit_precisions(device: &Device) -> Result<()> {
     
     let input = Tensor::from_slice(&[0.6f32, -0.4f32, 0.8f32, -0.9f32, 0.1f32], (5,), device)?;
     let input_vec: Vec<f32> = input.to_vec1()?;
-    println!("  Input: {:?}", input_vec);
+    println!("  Input: {input_vec:?}");
     
     for bits in [1, 2, 3, 4] {
         let config = STEConfig {
@@ -104,7 +104,7 @@ fn demo_bit_precisions(device: &Device) -> Result<()> {
         let output = ste.forward(&input)?;
         let output_vec: Vec<f32> = output.to_vec1()?;
         
-        println!("  {}-bit: {:?}", bits, output_vec);
+        println!("  {bits}-bit: {output_vec:?}");
     }
     
     Ok(())
@@ -157,7 +157,7 @@ fn demo_statistics_tracking(device: &Device) -> Result<()> {
     let quantized = quantize_with_ste(&test_input, &test_config, device)?;
     let quantized_vec: Vec<f32> = quantized.to_vec1()?;
     
-    println!("  Direct quantization: [0.7, -0.3, 1.1] -> {:?}", quantized_vec);
+    println!("  Direct quantization: [0.7, -0.3, 1.1] -> {quantized_vec:?}");
     
     Ok(())
 }

@@ -658,7 +658,7 @@ impl BatchConverter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::get_cpu_device;
+    
 
     #[test]
     fn test_conversion_config() {

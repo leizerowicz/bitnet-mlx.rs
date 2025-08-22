@@ -25,8 +25,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cpu_device = get_cpu_device();
     
     println!("   Memory pool created");
-    println!("   Primary device: {:?}", device);
-    println!("   CPU device: {:?}", cpu_device);
+    println!("   Primary device: {device:?}");
+    println!("   CPU device: {cpu_device:?}");
     
     // 2. Create tensors with different data types
     println!("\n2. Creating tensors with different data types...");
@@ -34,16 +34,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Full precision tensor
     let f32_tensor = BitNetTensor::zeros(&[4, 4], BitNetDType::F32, &device, &pool)?;
     f32_tensor.set_name(Some("f32_weights".to_string()));
-    println!("   Created F32 tensor: {}", f32_tensor);
+    println!("   Created F32 tensor: {f32_tensor}");
     
     // Quantized tensors
     let i8_tensor = BitNetTensor::zeros(&[8, 8], BitNetDType::I8, &device, &pool)?;
     i8_tensor.set_name(Some("i8_activations".to_string()));
-    println!("   Created I8 tensor: {}", i8_tensor);
+    println!("   Created I8 tensor: {i8_tensor}");
     
     let bitnet_tensor = BitNetTensor::zeros(&[16, 16], BitNetDType::BitNet158, &device, &pool)?;
     bitnet_tensor.set_name(Some("bitnet_weights".to_string()));
-    println!("   Created BitNet 1.58b tensor: {}", bitnet_tensor);
+    println!("   Created BitNet 1.58b tensor: {bitnet_tensor}");
     
     // 3. Demonstrate reference counting
     println!("\n3. Demonstrating reference counting...");
@@ -58,7 +58,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 4. Create and use tensor handles
     println!("\n4. Creating and using tensor handles...");
     let handle = f32_tensor.handle();
-    println!("   Created handle: {}", handle);
+    println!("   Created handle: {handle}");
     println!("   Handle is valid: {}", handle.is_valid());
     
     // Add tags to tensor via handle
@@ -71,7 +71,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
     let data_tensor = BitNetTensor::from_data(data, &[2, 3], &device, &pool)?;
     data_tensor.set_name(Some("input_data".to_string()));
-    println!("   Created tensor from data: {}", data_tensor);
+    println!("   Created tensor from data: {data_tensor}");
     
     // 6. Demonstrate device migration
     println!("\n6. Demonstrating device migration...");
@@ -79,7 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let migrated_tensor = data_tensor.to_device(&cpu_device, &pool)?;
     println!("   Migrated tensor device: {:?}", migrated_tensor.device());
-    println!("   Migration successful: {}", migrated_tensor);
+    println!("   Migration successful: {migrated_tensor}");
     
     // 7. Demonstrate candle interoperability
     println!("\n7. Demonstrating Candle interoperability...");
@@ -88,7 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
              candle_tensor.shape(), candle_tensor.dtype());
     
     let from_candle = BitNetTensor::from_candle(candle_tensor, &pool)?;
-    println!("   Converted back from Candle: {}", from_candle);
+    println!("   Converted back from Candle: {from_candle}");
     
     // 8. Demonstrate tensor reshaping
     println!("\n8. Demonstrating tensor reshaping...");
@@ -109,8 +109,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for dtype in BitNetDType::all_types() {
         let efficiency = dtype.memory_efficiency();
         let description = dtype.description();
-        println!("   {}: {:.1}x more efficient than F32 - {}", 
-                 dtype, efficiency, description);
+        println!("   {dtype}: {efficiency:.1}x more efficient than F32 - {description}");
     }
     
     // 11. Demonstrate tensor lifecycle tracking

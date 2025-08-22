@@ -5,11 +5,11 @@
 
 use bitnet_quant::prelude::*;
 use bitnet_quant::{
-    PrecisionController, PrecisionControlConfig, ConfigurationPreset,
-    EnhancedQuantizationConfigBuilder, AdjustmentStrategy, PrecisionMetric,
+    PrecisionControlConfig, ConfigurationPreset,
+    EnhancedQuantizationConfigBuilder,
     create_enhanced_config, create_precision_controller, QuantizationStats,
 };
-use candle_core::{Tensor, Device, DType};
+use candle_core::{Tensor, Device};
 use std::time::{Duration, Instant};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -43,7 +43,7 @@ fn demo_basic_precision_control(device: &Device) -> Result<(), Box<dyn std::erro
 
     // Create a precision controller with default configuration
     let config = PrecisionControlConfig::default();
-    let mut controller = create_precision_controller(config, device.clone())?;
+    let controller = create_precision_controller(config, device.clone())?;
 
     // Create test weights
     let weights = Tensor::randn(0.0, 1.0, (128, 256), device)?;
@@ -58,7 +58,7 @@ fn demo_basic_precision_control(device: &Device) -> Result<(), Box<dyn std::erro
     
     match validation_result {
         Ok(()) => println!("✅ Precision bounds validation passed"),
-        Err(e) => println!("❌ Precision bounds validation failed: {}", e),
+        Err(e) => println!("❌ Precision bounds validation failed: {e}"),
     }
 
     // Get current precision state
@@ -93,7 +93,7 @@ fn demo_dynamic_precision_adjustment(device: &Device) -> Result<(), Box<dyn std:
     ];
 
     for (scenario_name, error_level) in test_scenarios {
-        println!("\n🧪 Testing: {}", scenario_name);
+        println!("\n🧪 Testing: {scenario_name}");
         
         // Create mock quantization stats
         let stats = QuantizationStats {
@@ -151,7 +151,7 @@ fn demo_configuration_presets(device: &Device) -> Result<(), Box<dyn std::error:
     ];
 
     for (name, preset) in presets {
-        println!("\n🎛️  Testing preset: {}", name);
+        println!("\n🎛️  Testing preset: {name}");
         
         let config = create_enhanced_config(preset)?;
         
@@ -254,7 +254,7 @@ fn demo_precision_validation(device: &Device) -> Result<(), Box<dyn std::error::
     ];
 
     for (test_name, precision, threshold, scale, should_pass) in validation_tests {
-        println!("\n🧪 Testing: {}", test_name);
+        println!("\n🧪 Testing: {test_name}");
         
         let result = controller.validate_precision_bounds(precision, threshold, scale);
         

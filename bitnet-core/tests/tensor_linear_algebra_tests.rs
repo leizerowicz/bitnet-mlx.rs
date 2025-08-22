@@ -448,7 +448,7 @@ mod benchmark_tests {
             let _result = matmul(&a, &b).unwrap();
             let duration = start.elapsed();
             
-            println!("{}x{} matrix multiplication took: {:?}", size, size, duration);
+            println!("{size}x{size} matrix multiplication took: {duration:?}");
             assert!(duration.as_secs() < 10); // Reasonable upper bound
         }
     }
@@ -465,7 +465,7 @@ mod benchmark_tests {
             let _result = dot(&a, &b).unwrap();
             let duration = start.elapsed();
             
-            println!("{} element dot product took: {:?}", size, duration);
+            println!("{size} element dot product took: {duration:?}");
             assert!(duration.as_secs() < 5); // Reasonable upper bound
         }
     }

@@ -302,7 +302,7 @@ fn test_special_tokens_memory_efficiency() {
     // Add a large number of special tokens to test memory handling
     let mut large_token_set = Vec::new();
     for i in 0..1000 {
-        large_token_set.push((format!("[TOKEN_{}]", i), i as u32 + 1000));
+        large_token_set.push((format!("[TOKEN_{i}]"), i as u32 + 1000));
     }
     
     // Convert to the expected format
@@ -335,7 +335,7 @@ fn test_special_tokens_concurrent_access() {
         let tokenizer_clone = Arc::clone(&tokenizer);
         let handle = thread::spawn(move || {
             let mut tok = tokenizer_clone.lock().unwrap();
-            let token_name = format!("[THREAD_{}]", i);
+            let token_name = format!("[THREAD_{i}]");
             add_special_tokens(&mut tok, &[(token_name.as_str(), i as u32 + 2000)]);
         });
         handles.push(handle);
@@ -349,7 +349,7 @@ fn test_special_tokens_concurrent_access() {
     // Verify all tokens were added
     let tok = tokenizer.lock().unwrap();
     for i in 0..10 {
-        let token_name = format!("[THREAD_{}]", i);
+        let token_name = format!("[THREAD_{i}]");
         assert_eq!(get_special_token_id(&tok, &token_name), Some(i as u32 + 2000));
     }
 }
@@ -481,7 +481,7 @@ fn test_special_tokens_performance() {
     let start = std::time::Instant::now();
     
     let tokens: Vec<(String, u32)> = (0..10000)
-        .map(|i| (format!("[PERF_TOKEN_{}]", i), i as u32))
+        .map(|i| (format!("[PERF_TOKEN_{i}]"), i as u32))
         .collect();
     
     let token_refs: Vec<(&str, u32)> = tokens

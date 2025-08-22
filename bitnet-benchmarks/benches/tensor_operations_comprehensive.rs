@@ -8,7 +8,6 @@ use criterion::{
     Throughput, PlotConfiguration, AxisScale, BatchSize
 };
 use std::time::Duration;
-use std::sync::Arc;
 
 use bitnet_core::tensor::{BitNetTensor, BitNetDType};
 use bitnet_core::tensor::ops::{simd_add_f32, simd_mul_f32, simd_sum_f32, simd_add_scalar_f32};
@@ -348,7 +347,7 @@ fn bench_matrix_operations(c: &mut Criterion) {
         
         // Matrix element-wise operations
         group.bench_with_input(
-            BenchmarkId::new("matrix_elementwise_add", format!("{}x{}", rows, cols)),
+            BenchmarkId::new("matrix_elementwise_add", format!("{rows}x{cols}")),
             &(rows, cols),
             |b, &(rows, cols)| {
                 b.iter_batched(
@@ -371,7 +370,7 @@ fn bench_matrix_operations(c: &mut Criterion) {
         // Matrix multiplication (if small enough)
         if rows <= 512 && cols <= 512 {
             group.bench_with_input(
-                BenchmarkId::new("matrix_multiply", format!("{}x{}", rows, cols)),
+                BenchmarkId::new("matrix_multiply", format!("{rows}x{cols}")),
                 &(rows, cols),
                 |b, &(rows, cols)| {
                     b.iter_batched(
@@ -516,7 +515,7 @@ fn bench_dtype_performance(c: &mut Criterion) {
         group.throughput(Throughput::Elements(size as u64));
         
         group.bench_with_input(
-            BenchmarkId::new("elementwise_add", format!("{:?}", dtype)),
+            BenchmarkId::new("elementwise_add", format!("{dtype:?}")),
             dtype,
             |b, &dtype| {
                 b.iter_batched(

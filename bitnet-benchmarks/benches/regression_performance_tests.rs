@@ -140,7 +140,7 @@ fn bench_core_operations_regression(c: &mut Criterion) {
 
             // CPU regression test
             group.bench_with_input(
-                BenchmarkId::new(format!("cpu_{}_regression", operation), format!("{}x{}", rows, cols)),
+                BenchmarkId::new(format!("cpu_{operation}_regression"), format!("{rows}x{cols}")),
                 &(rows, cols),
                 |bencher, &(rows, cols)| {
                     let device = Device::Cpu;
@@ -272,7 +272,7 @@ fn bench_memory_regression(c: &mut Criterion) {
     for (scenario_name, tensor_sizes) in memory_scenarios {
         // CPU memory regression test
         group.bench_function(
-            &format!("cpu_memory_{}", scenario_name),
+            format!("cpu_memory_{scenario_name}"),
             |bencher| {
                 bencher.iter(|| {
                     let device = Device::Cpu;

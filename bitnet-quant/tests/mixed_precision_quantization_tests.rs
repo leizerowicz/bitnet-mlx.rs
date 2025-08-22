@@ -5,16 +5,13 @@
 //! layer-wise quantization with different precision strategies.
 
 use bitnet_quant::quantization::mixed_precision::*;
-use bitnet_quant::quantization::{QuantizationPrecision, QuantizationConfig, QuantizationStrategy};
-use bitnet_quant::quantization::weights::WeightQuantizationConfig;
-use bitnet_quant::quantization::activations::ActivationQuantizationConfig;
+use bitnet_quant::quantization::QuantizationPrecision;
 use bitnet_core::mixed_precision::{
-    MixedPrecisionConfig, MixedPrecisionStrategy, LayerPrecisionSpec, LayerType, ComponentType,
+    MixedPrecisionStrategy, LayerPrecisionSpec, LayerType, ComponentType,
 };
 use bitnet_core::memory::tensor::{BitNetDType, BitNetTensor};
 use bitnet_core::device::get_cpu_device;
-use candle_core::{Device, Tensor, DType, Shape};
-use approx::{assert_relative_eq, assert_abs_diff_eq};
+use candle_core::{Device, Tensor, Shape};
 
 /// Test helper to create BitNet tensors with specific characteristics
 fn create_bitnet_tensor(device: &Device, pattern: &str, shape: &[usize], dtype: BitNetDType) -> BitNetTensor {

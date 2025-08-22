@@ -6,8 +6,8 @@
 
 use std::time::Duration;
 use bitnet_core::memory::{
-    HybridMemoryPool, MemoryPoolConfig, TrackingConfig, TrackingLevel,
-    MemoryPressureLevel, PressureThresholds
+    HybridMemoryPool, MemoryPoolConfig, TrackingConfig,
+    MemoryPressureLevel
 };
 use bitnet_core::device::auto_select_device;
 
@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let device = auto_select_device();
 
     println!("✓ Created memory pool with advanced tracking enabled");
-    println!("✓ Using device: {:?}\n", device);
+    println!("✓ Using device: {device:?}\n");
 
     // Register a pressure callback
     pool.register_pressure_callback(Box::new(|level| {
@@ -120,7 +120,7 @@ fn show_detailed_metrics(pool: &HybridMemoryPool) -> Result<(), Box<dyn std::err
         // Show device usage breakdown
         println!("\n📱 Memory Usage by Device:");
         for (device, usage) in &detailed_metrics.device_usage {
-            println!("  - {}: {} bytes", device, usage);
+            println!("  - {device}: {usage} bytes");
         }
 
         // Show detected patterns
@@ -134,7 +134,7 @@ fn show_detailed_metrics(pool: &HybridMemoryPool) -> Result<(), Box<dyn std::err
                 if pattern.is_problematic {
                     println!("    Severity: {:.1}%", pattern.severity * 100.0);
                     for recommendation in &pattern.recommendations {
-                        println!("    💡 {}", recommendation);
+                        println!("    💡 {recommendation}");
                     }
                 }
             }
@@ -174,7 +174,7 @@ fn demonstrate_profiling(pool: &HybridMemoryPool) -> Result<(), Box<dyn std::err
         
         // Show current pressure level
         let pressure_level = tracker.get_pressure_level();
-        println!("📊 Current memory pressure: {:?}", pressure_level);
+        println!("📊 Current memory pressure: {pressure_level:?}");
         
         match pressure_level {
             MemoryPressureLevel::None => {

@@ -174,7 +174,7 @@ impl HistogramCollector {
         strategy: OptimizationStrategy,
     ) -> CalibrationResult<QuantizationOptimizer> {
         let histogram = self.get_histogram(layer_name)
-            .ok_or_else(|| CalibrationError::histogram(format!("No histogram for layer: {}", layer_name)))?;
+            .ok_or_else(|| CalibrationError::histogram(format!("No histogram for layer: {layer_name}")))?;
         
         Ok(QuantizationOptimizer::new(histogram.clone(), strategy))
     }
@@ -188,10 +188,10 @@ impl HistogramCollector {
     /// Convert tensor to Vec<f32>
     fn tensor_to_vec(&self, tensor: &Tensor) -> CalibrationResult<Vec<f32>> {
         let flattened = tensor.flatten_all()
-            .map_err(|e| CalibrationError::histogram(format!("Failed to flatten tensor: {}", e)))?;
+            .map_err(|e| CalibrationError::histogram(format!("Failed to flatten tensor: {e}")))?;
         
         let values: Vec<f32> = flattened.to_vec1()
-            .map_err(|e| CalibrationError::histogram(format!("Failed to convert tensor: {}", e)))?;
+            .map_err(|e| CalibrationError::histogram(format!("Failed to convert tensor: {e}")))?;
         
         Ok(values)
     }
@@ -561,7 +561,7 @@ impl QuantizationOptimizer {
             clip_range,
             error_estimate,
             confidence,
-            strategy: format!("PercentileClipping({}, {})", lower, upper),
+            strategy: format!("PercentileClipping({lower}, {upper})"),
         })
     }
 
@@ -634,7 +634,7 @@ impl QuantizationOptimizer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use candle_core::{Device, DType};
+    use candle_core::Device;
 
     fn create_test_tensor(data: Vec<f32>, shape: &[usize]) -> CalibrationResult<Tensor> {
         Tensor::from_vec(data, shape, &Device::Cpu)

@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     for &size in &test_sizes {
-        println!("Testing with {} elements:", size);
+        println!("Testing with {size} elements:");
         println!("{}", "=".repeat(40));
 
         for &strategy in &strategies {
@@ -94,11 +94,11 @@ fn test_strategy_performance(
     let speedup = scalar_time.as_nanos() as f64 / simd_time.as_nanos() as f64;
     let compression_ratio = packed.compression_ratio;
 
-    println!("  {:?}:", strategy);
-    println!("    Compression: {:.2}x", compression_ratio);
-    println!("    SIMD time:   {:?}", simd_time);
-    println!("    Scalar time: {:?}", scalar_time);
-    println!("    Speedup:     {:.2}x", speedup);
+    println!("  {strategy:?}:");
+    println!("    Compression: {compression_ratio:.2}x");
+    println!("    SIMD time:   {simd_time:?}");
+    println!("    Scalar time: {scalar_time:?}");
+    println!("    Speedup:     {speedup:.2}x");
     println!("    Memory:      {} -> {} bytes", 
              size, packed.memory_footprint);
 

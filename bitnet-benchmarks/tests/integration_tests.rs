@@ -364,7 +364,7 @@ fn test_performance_regression_candle() {
     let elapsed = start.elapsed();
     
     // Ensure operations complete within reasonable time (adjust threshold as needed)
-    assert!(elapsed < Duration::from_secs(5), "Operations took too long: {:?}", elapsed);
+    assert!(elapsed < Duration::from_secs(5), "Operations took too long: {elapsed:?}");
 }
 
 #[test]

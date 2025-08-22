@@ -108,7 +108,7 @@ fn bench_bitnet_quantization(c: &mut Criterion) {
 
         // Candle BitNet 1.58-bit quantization
         group.bench_with_input(
-            BenchmarkId::new("candle_bitnet_1_58", format!("{}x{}", rows, cols)),
+            BenchmarkId::new("candle_bitnet_1_58", format!("{rows}x{cols}")),
             &(rows, cols),
             |bencher, &(rows, cols)| {
                 let device = Device::Cpu;
@@ -172,7 +172,7 @@ fn bench_int8_quantization(c: &mut Criterion) {
 
         // Symmetric INT8 quantization
         group.bench_with_input(
-            BenchmarkId::new("int8_symmetric", format!("{}x{}", rows, cols)),
+            BenchmarkId::new("int8_symmetric", format!("{rows}x{cols}")),
             &(rows, cols),
             |bencher, &(rows, cols)| {
                 let device = Device::Cpu;
@@ -195,7 +195,7 @@ fn bench_int8_quantization(c: &mut Criterion) {
 
         // Asymmetric INT8 quantization
         group.bench_with_input(
-            BenchmarkId::new("int8_asymmetric", format!("{}x{}", rows, cols)),
+            BenchmarkId::new("int8_asymmetric", format!("{rows}x{cols}")),
             &(rows, cols),
             |bencher, &(rows, cols)| {
                 let device = Device::Cpu;
@@ -244,7 +244,7 @@ fn bench_int4_quantization(c: &mut Criterion) {
 
         // INT4 quantization
         group.bench_with_input(
-            BenchmarkId::new("int4_symmetric", format!("{}x{}", rows, cols)),
+            BenchmarkId::new("int4_symmetric", format!("{rows}x{cols}")),
             &(rows, cols),
             |bencher, &(rows, cols)| {
                 let device = Device::Cpu;
@@ -397,7 +397,7 @@ fn bench_quantized_matmul(c: &mut Criterion) {
 
         // Full precision matrix multiplication
         group.bench_with_input(
-            BenchmarkId::new("fp32_matmul", format!("{}x{}", rows, cols)),
+            BenchmarkId::new("fp32_matmul", format!("{rows}x{cols}")),
             &(rows, cols),
             |bencher, &(rows, cols)| {
                 let device = Device::Cpu;
@@ -413,7 +413,7 @@ fn bench_quantized_matmul(c: &mut Criterion) {
 
         // BitNet 1.58-bit quantized matrix multiplication
         group.bench_with_input(
-            BenchmarkId::new("bitnet_1_58_matmul", format!("{}x{}", rows, cols)),
+            BenchmarkId::new("bitnet_1_58_matmul", format!("{rows}x{cols}")),
             &(rows, cols),
             |bencher, &(rows, cols)| {
                 let device = Device::Cpu;
@@ -434,7 +434,7 @@ fn bench_quantized_matmul(c: &mut Criterion) {
 
         // INT8 quantized matrix multiplication
         group.bench_with_input(
-            BenchmarkId::new("int8_matmul", format!("{}x{}", rows, cols)),
+            BenchmarkId::new("int8_matmul", format!("{rows}x{cols}")),
             &(rows, cols),
             |bencher, &(rows, cols)| {
                 let device = Device::Cpu;

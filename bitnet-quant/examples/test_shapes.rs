@@ -41,7 +41,7 @@ fn main() -> Result<()> {
     // This might work if candle supports broadcasting
     match input.matmul(&weights_transposed) {
         Ok(result) => println!("Direct 3D @ 2D worked! Result shape: {:?}", result.shape()),
-        Err(e) => println!("Direct 3D @ 2D failed: {}", e),
+        Err(e) => println!("Direct 3D @ 2D failed: {e}"),
     }
     
     Ok(())

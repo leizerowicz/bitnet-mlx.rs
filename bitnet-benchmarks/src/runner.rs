@@ -162,11 +162,11 @@ impl BenchmarkRunner {
         match format {
             "json" | "both" => {
                 let json_content = comparator.export_json()?;
-                let json_path = format!("{}/benchmark_results_{}.json", output_dir, timestamp);
+                let json_path = format!("{output_dir}/benchmark_results_{timestamp}.json");
                 fs::write(&json_path, json_content)?;
                 
                 if self.verbose {
-                    println!("JSON results exported to: {}", json_path);
+                    println!("JSON results exported to: {json_path}");
                 }
             }
             _ => {}
@@ -175,11 +175,11 @@ impl BenchmarkRunner {
         match format {
             "csv" | "both" => {
                 let csv_content = comparator.export_csv();
-                let csv_path = format!("{}/benchmark_results_{}.csv", output_dir, timestamp);
+                let csv_path = format!("{output_dir}/benchmark_results_{timestamp}.csv");
                 fs::write(&csv_path, csv_content)?;
                 
                 if self.verbose {
-                    println!("CSV results exported to: {}", csv_path);
+                    println!("CSV results exported to: {csv_path}");
                 }
             }
             _ => {}
@@ -187,11 +187,11 @@ impl BenchmarkRunner {
 
         // Export comparison summary
         let summary = self.generate_comparison_summary(comparisons);
-        let summary_path = format!("{}/comparison_summary_{}.md", output_dir, timestamp);
+        let summary_path = format!("{output_dir}/comparison_summary_{timestamp}.md");
         fs::write(&summary_path, summary)?;
         
         if self.verbose {
-            println!("Summary report exported to: {}", summary_path);
+            println!("Summary report exported to: {summary_path}");
         }
 
         Ok(())
@@ -210,12 +210,12 @@ impl BenchmarkRunner {
         
         for comparison in comparisons {
             by_operation.entry(comparison.operation.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(comparison);
         }
 
         for (operation, results) in by_operation {
-            summary.push_str(&format!("## {}\n\n", operation));
+            summary.push_str(&format!("## {operation}\n\n"));
             summary.push_str("| Tensor Size | Baseline | Comparison | Speedup | Recommendation |\n");
             summary.push_str("|-------------|----------|------------|---------|----------------|\n");
             
@@ -230,7 +230,7 @@ impl BenchmarkRunner {
                     result.recommendation
                 ));
             }
-            summary.push_str("\n");
+            summary.push('\n');
         }
 
         // Overall recommendations
@@ -241,7 +241,7 @@ impl BenchmarkRunner {
         }
 
         for (recommendation, count) in recommendations {
-            summary.push_str(&format!("- {}: {} cases\n", recommendation, count));
+            summary.push_str(&format!("- {recommendation}: {count} cases\n"));
         }
 
         summary
@@ -267,14 +267,14 @@ impl BenchmarkRunner {
         let mut backend_speedups: std::collections::HashMap<String, Vec<f64>> = std::collections::HashMap::new();
         for comparison in comparisons {
             backend_speedups.entry(comparison.comparison_backend.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(comparison.speedup);
         }
 
         println!("\nAverage speedups by backend:");
         for (backend, speedups) in backend_speedups {
             let avg: f64 = speedups.iter().sum::<f64>() / speedups.len() as f64;
-            println!("  {}: {:.2}x", backend, avg);
+            println!("  {backend}: {avg:.2}x");
         }
     }
 
@@ -283,7 +283,7 @@ impl BenchmarkRunner {
         let config = ComparisonConfig::default();
         let config_json = serde_json::to_string_pretty(&config)?;
         fs::write(output_path, config_json)?;
-        println!("Default configuration generated: {}", output_path);
+        println!("Default configuration generated: {output_path}");
         Ok(())
     }
 
@@ -304,7 +304,7 @@ impl BenchmarkRunner {
             for measurement in measurements {
                 if let Some(backend) = measurement.get("backend").and_then(|b| b.as_str()) {
                     by_backend.entry(backend.to_string())
-                        .or_insert_with(Vec::new)
+                        .or_default()
                         .push(measurement);
                 }
             }
@@ -331,12 +331,12 @@ impl BenchmarkRunner {
                         let min_time = execution_times.iter().fold(f64::INFINITY, |a, &b| a.min(b));
                         let max_time = execution_times.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
                         
-                        println!("  Execution time - Avg: {:.4}s, Min: {:.4}s, Max: {:.4}s", avg_time, min_time, max_time);
+                        println!("  Execution time - Avg: {avg_time:.4}s, Min: {min_time:.4}s, Max: {max_time:.4}s");
                     }
                     
                     if !throughputs.is_empty() {
                         let avg_throughput = throughputs.iter().sum::<f64>() / throughputs.len() as f64;
-                        println!("  Average throughput: {:.2} ops/sec", avg_throughput);
+                        println!("  Average throughput: {avg_throughput:.2} ops/sec");
                     }
                 }
             }
