@@ -233,6 +233,11 @@ impl TensorShape {
     }
 
     /// Returns the total number of elements (alias for num_elements)
+    pub fn total_elements(&self) -> usize {
+        self.num_elements()
+    }
+
+    /// Returns the total number of elements (alias for num_elements)
     ///
     /// This method provides compatibility with other tensor libraries
     /// that use the `size()` method name.
@@ -517,6 +522,11 @@ impl TensorShape {
         
         strides.reverse();
         strides
+    }
+
+    /// Computes strides for this shape
+    pub fn compute_strides(&self) -> Vec<isize> {
+        Self::compute_c_contiguous_strides(&self.dims)
     }
 
     /// Checks if given strides represent C-contiguous layout

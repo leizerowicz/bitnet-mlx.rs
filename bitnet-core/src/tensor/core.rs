@@ -6,7 +6,7 @@
 
 use std::sync::Arc;
 use std::fmt;
-use candle_core::{Device, Tensor as CandleTensor, Result as CandleResult};
+use candle_core::Device;
 use crate::memory::{MemoryResult, MemoryError};
 use crate::device::auto_select_device;
 use super::dtype::BitNetDType;
@@ -412,6 +412,51 @@ impl BitNetTensor {
         device: Option<Device>
     ) -> MemoryResult<Self> {
         Self::from_vec(data.to_vec(), shape, dtype, device)
+    }
+    
+    /// Create BitNetTensor from a scalar value
+    pub fn from_scalar(
+        value: f32,
+        device: Device,
+    ) -> MemoryResult<Self> {
+        Self::from_vec(vec![value], &[1], BitNetDType::F32, Some(device))
+    }
+    
+    /// Convert to Candle tensor (alias for to_candle)
+    pub fn to_candle_tensor(&self) -> Result<candle_core::Tensor, TensorOpError> {
+        self.to_candle()
+    }
+    
+    /// Create from Candle tensor (alias for from_candle)
+    pub fn from_candle_tensor(
+        candle_tensor: candle_core::Tensor, 
+        device: Device,
+    ) -> MemoryResult<Self> {
+        Self::from_candle(candle_tensor, &device)
+    }
+    
+    /// Element-wise addition
+    pub fn add(&self, other: &BitNetTensor) -> Result<BitNetTensor, TensorOpError> {
+        use super::ops::arithmetic::add;
+        add(self, other)
+    }
+    
+    /// Element-wise multiplication
+    pub fn mul(&self, other: &BitNetTensor) -> Result<BitNetTensor, TensorOpError> {
+        use super::ops::arithmetic::mul;
+        mul(self, other)
+    }
+    
+    /// Scalar multiplication
+    pub fn mul_scalar(&self, scalar: f32) -> Result<BitNetTensor, TensorOpError> {
+        use super::ops::arithmetic::mul_scalar;
+        mul_scalar(self, scalar as f64)
+    }
+    
+    /// Matrix multiplication
+    pub fn matmul(&self, other: &BitNetTensor) -> Result<BitNetTensor, TensorOpError> {
+        use super::ops::linear_algebra::matmul;
+        matmul(self, other)
     }
     
     /// Clone tensor data (for compatibility)

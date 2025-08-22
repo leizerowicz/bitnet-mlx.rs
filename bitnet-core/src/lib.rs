@@ -21,9 +21,27 @@ pub mod mlx;
 pub use device::*;
 pub use error::*;
 pub use execution::*;
-pub use memory::*;
+// Import memory types but not tensor types to avoid conflicts
+pub use memory::{
+    HybridMemoryPool, MemoryPoolConfig, MemoryHandle, MemoryMetrics,
+    SmallBlockPool, LargeBlockPool, CpuMemoryPool, 
+    TensorHandle, TensorMetadata,
+    ConversionEngine, ConversionConfig, ConversionMetrics, ConversionStats, ConversionEvent,
+    ZeroCopyConverter, StreamingConverter, InPlaceConverter, BatchConverter, ConversionPipeline,
+    MemoryTracker, DetailedMemoryMetrics, MemoryPressureDetector, MemoryPressureLevel,
+    MemoryProfiler, ProfilingReport, LeakReport, AllocationTimeline, PatternAnalyzer,
+    TrackingConfig, TrackingLevel, PressureThresholds, PressureCallback,
+    CleanupManager, CleanupConfig, CleanupResult, CompactionResult, CleanupStrategy,
+    CleanupStrategyType, CleanupPriority, CleanupScheduler, CleanupId, CleanupMetrics,
+    CleanupOperationMetrics, CpuCleanup, MetalCleanup, DeviceCleanupOps,
+    MemoryResult, MemoryError
+};
+#[cfg(feature = "metal")]
+pub use memory::MetalMemoryPool;
+
 pub use mixed_precision::*;
 pub use sequence::*;
+// Use tensor types as primary exports
 pub use tensor::*;
 pub use metal::*;
 pub use tokenizer::*;
@@ -36,7 +54,7 @@ pub use mlx::*;
 pub use candle_core::{Device, DType, Result, Tensor};
 
 // Re-export BitNet tensor types for convenience
-pub use memory::tensor::{BitNetTensor, BitNetDType, TensorHandle, TensorMetadata};
+pub use tensor::{BitNetTensor, BitNetDType, TensorShape, TensorStorage};
 
 // Re-export mixed precision types for convenience
 pub use mixed_precision::{

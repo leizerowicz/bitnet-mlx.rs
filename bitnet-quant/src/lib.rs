@@ -40,6 +40,7 @@ pub mod bitlinear;
 pub mod simd;
 pub mod calibration;
 pub mod metrics;
+pub mod tensor_integration;
 
 // Re-export commonly used items for convenience
 pub use quantization::{
@@ -111,9 +112,39 @@ pub use quantization::enhanced_config::{
 };
 
 pub use metrics::{
-    QuantizationMetrics, LayerErrorAnalysis, ErrorThresholds, MitigationStrategy,
-    MetricsConfig, ExportFormat, MetricsCalculator, MetricsExporter,
-    safe_divide, tensor_to_vec, calculate_percentile,
+    QuantizationMetrics,
+};
+
+/// Tensor integration re-exports
+pub use tensor_integration::{
+    TensorIntegrationError, TensorIntegrationResult, QuantizationAwareTensorOps,
+    TensorIntegrationFactory, GlobalTensorIntegrationConfig,
+};
+
+pub use tensor_integration::bitnet_ops::{
+    BitNetTensorOps, 
+    BitNetQuantizationConfig,
+};
+
+pub use tensor_integration::bitlinear_tensor::{
+    WeightQuantizationTensor, ActivationQuantizationTensor, 
+    BitLinearTensorError, LayerNormIntegration,
+};
+
+pub use tensor_integration::calibration_tensor::{
+    CalibrationTensor, CalibrationConfig, CalibrationDataset,
+    StatisticsCollector, CalibrationError, CalibrationResults,
+};
+
+// pub use tensor_integration::qat_tensor::{
+//     QATensor, QATConfig, StraightThroughEstimator,
+//     GradientEstimation, QATError, TrainingAwareQuantization,
+// };
+
+pub use tensor_integration::precision_tensor::{
+    MixedPrecisionTensor, PrecisionPolicy, PrecisionTensorOps,
+    PrecisionConfig, MixedPrecisionError, LayerType,
+    PerformanceOptimizedPrecision, AccuracyOptimizedPrecision,
 };
 
 /// Prelude module for convenient imports
@@ -182,7 +213,7 @@ pub mod prelude {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use candle_core::{Device, Tensor};
+
 
     #[test]
     fn test_quantization_precision_enum() {
