@@ -129,9 +129,12 @@ impl From<candle_core::Error> for TensorOpError {
 pub mod arithmetic;
 pub mod broadcasting;
 pub mod linear_algebra;
+pub mod advanced_linear_algebra_fixes;
 pub mod reduction;
 pub mod activation;
 pub mod simd;
+pub mod eigendecomposition;
+pub mod numerical_stability;
 
 // Re-exports for convenience
 pub use arithmetic::*;
@@ -140,3 +143,5 @@ pub use linear_algebra::*;
 pub use reduction::*;
 pub use activation::*;
 pub use simd::*;
+pub use eigendecomposition::*;
+pub use numerical_stability::*;

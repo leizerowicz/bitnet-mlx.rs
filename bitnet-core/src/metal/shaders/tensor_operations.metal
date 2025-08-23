@@ -1,285 +1,228 @@
 #include <metal_stdlib>
 using namespace metal;
 
-/// Element-wise addition kernel
-kernel void elementwise_add(
-    device const float* a [[buffer(0)]],
-    device const float* b [[buffer(1)]],
-    device float* output [[buffer(2)]],
-    constant uint& count [[buffer(3)]],
-    uint gid [[thread_position_in_grid]]
-) {
-    if (gid >= count) return;
-    output[gid] = a[gid] + b[gid];
+// Device functions for BitNet operations
+
+// Ternary quantization function
+device int8_t quantize_ternary(float value) {
+    if (value > 0.5) return 1;
+    else if (value < -0.5) return -1;
+    else return 0;
 }
 
-/// Element-wise multiplication kernel
-kernel void elementwise_mul(
-    device const float* a [[buffer(0)]],
-    device const float* b [[buffer(1)]],
-    device float* output [[buffer(2)]],
-    constant uint& count [[buffer(3)]],
-    uint gid [[thread_position_in_grid]]
-) {
-    if (gid >= count) return;
-    output[gid] = a[gid] * b[gid];
+// Activation functions
+device float relu(float x) {
+    return fmax(0.0, x);
 }
 
-/// Element-wise subtraction kernel
-kernel void elementwise_sub(
-    device const float* a [[buffer(0)]],
-    device const float* b [[buffer(1)]],
-    device float* output [[buffer(2)]],
-    constant uint& count [[buffer(3)]],
-    uint gid [[thread_position_in_grid]]
-) {
-    if (gid >= count) return;
-    output[gid] = a[gid] - b[gid];
+device float tanh_activation(float x) {
+    return tanh(x);
 }
 
-/// Element-wise division kernel
-kernel void elementwise_div(
-    device const float* a [[buffer(0)]],
-    device const float* b [[buffer(1)]],
-    device float* output [[buffer(2)]],
-    constant uint& count [[buffer(3)]],
-    uint gid [[thread_position_in_grid]]
-) {
-    if (gid >= count) return;
-    output[gid] = a[gid] / b[gid];
+device float sigmoid(float x) {
+    return 1.0 / (1.0 + exp(-x));
 }
 
-/// Optimized matrix multiplication kernel with shared memory
-kernel void matrix_multiply_optimized(
-    device const float* A [[buffer(0)]],
-    device const float* B [[buffer(1)]],
-    device float* C [[buffer(2)]],
-    constant uint4& dims [[buffer(3)]],
-    uint2 gid [[thread_position_in_grid]],
-    uint2 lid [[thread_position_in_threadgroup]],
-    threadgroup float* shared_A [[threadgroup(0)]],
-    threadgroup float* shared_B [[threadgroup(1)]]
-) {
-    uint M = dims.x;  // rows of A
-    uint K = dims.y;  // cols of A / rows of B  
-    uint N = dims.z;  // cols of B
+device float gelu(float x) {
+    return 0.5 * x * (1.0 + tanh(sqrt(2.0 / M_PI_F) * (x + 0.044715 * x * x * x)));
+}
+
+device float swish(float x) {
+    return x * sigmoid(x);
+}
+
+// Kernel functions
+
+// Basic tensor addition
+kernel void tensor_add(device const float* input_a [[buffer(0)]],
+                      device const float* input_b [[buffer(1)]],
+                      device float* output [[buffer(2)]],
+                      uint id [[thread_position_in_grid]]) {
+    output[id] = input_a[id] + input_b[id];
+}
+
+// Basic tensor multiplication
+kernel void tensor_mul(device const float* input_a [[buffer(0)]],
+                      device const float* input_b [[buffer(1)]],
+                      device float* output [[buffer(2)]],
+                      uint id [[thread_position_in_grid]]) {
+    output[id] = input_a[id] * input_b[id];
+}
+
+// BitNet ternary quantization
+kernel void bitnet_quantize_ternary(device const float* input [[buffer(0)]],
+                                   device int8_t* output [[buffer(1)]],
+                                   uint id [[thread_position_in_grid]]) {
+    output[id] = quantize_ternary(input[id]);
+}
+
+// BitNet dequantization
+kernel void bitnet_dequantize_ternary(device const int8_t* input [[buffer(0)]],
+                                     device float* output [[buffer(1)]],
+                                     uint id [[thread_position_in_grid]]) {
+    output[id] = (float)input[id];
+}
+
+// Matrix multiplication for BitNet
+kernel void bitnet_matmul(device const float* matrix_a [[buffer(0)]],
+                         device const float* matrix_b [[buffer(1)]],
+                         device float* output [[buffer(2)]],
+                         constant uint& rows_a [[buffer(3)]],
+                         constant uint& cols_a [[buffer(4)]],
+                         constant uint& cols_b [[buffer(5)]],
+                         uint2 position [[thread_position_in_grid]]) {
+    uint row = position.y;
+    uint col = position.x;
     
-    uint row = gid.y;
-    uint col = gid.x;
+    if (row >= rows_a || col >= cols_b) return;
     
-    const uint tile_size = 16;
-    
-    float sum = 0.0f;
-    
-    for (uint tile = 0; tile < (K + tile_size - 1) / tile_size; tile++) {
-        // Load tiles into shared memory
-        uint shared_row = lid.y;
-        uint shared_col = lid.x;
-        
-        // Load A tile
-        uint a_row = row;
-        uint a_col = tile * tile_size + shared_col;
-        if (a_row < M && a_col < K) {
-            shared_A[shared_row * tile_size + shared_col] = A[a_row * K + a_col];
-        } else {
-            shared_A[shared_row * tile_size + shared_col] = 0.0f;
-        }
-        
-        // Load B tile
-        uint b_row = tile * tile_size + shared_row;
-        uint b_col = col;
-        if (b_row < K && b_col < N) {
-            shared_B[shared_row * tile_size + shared_col] = B[b_row * N + b_col];
-        } else {
-            shared_B[shared_row * tile_size + shared_col] = 0.0f;
-        }
-        
-        threadgroup_barrier(mem_flags::mem_threadgroup);
-        
-        // Compute partial sum
-        for (uint k = 0; k < tile_size; k++) {
-            sum += shared_A[shared_row * tile_size + k] * shared_B[k * tile_size + shared_col];
-        }
-        
-        threadgroup_barrier(mem_flags::mem_threadgroup);
+    float sum = 0.0;
+    for (uint k = 0; k < cols_a; k++) {
+        sum += matrix_a[row * cols_a + k] * matrix_b[k * cols_b + col];
     }
-    
-    if (row < M && col < N) {
-        C[row * N + col] = sum;
-    }
+    output[row * cols_b + col] = sum;
 }
 
-/// Reduction sum kernel
-kernel void reduction_sum(
-    device const float* input [[buffer(0)]],
-    device float* output [[buffer(1)]],
-    constant uint& count [[buffer(2)]],
-    uint gid [[thread_position_in_grid]],
-    threadgroup float* shared_data [[threadgroup(0)]]
-) {
-    uint tid = gid;
-    uint local_id = gid % 256;
+// BitLinear forward pass
+kernel void bitlinear_forward(device const float* input [[buffer(0)]],
+                             device const int8_t* weight [[buffer(1)]],
+                             device const float* bias [[buffer(2)]],
+                             device float* output [[buffer(3)]],
+                             constant uint& input_size [[buffer(4)]],
+                             constant uint& output_size [[buffer(5)]],
+                             uint id [[thread_position_in_grid]]) {
+    if (id >= output_size) return;
     
-    // Load data into shared memory
-    shared_data[local_id] = (tid < count) ? input[tid] : 0.0f;
-    threadgroup_barrier(mem_flags::mem_threadgroup);
-    
-    // Perform reduction in shared memory
-    for (uint stride = 128; stride > 0; stride >>= 1) {
-        if (local_id < stride) {
-            shared_data[local_id] += shared_data[local_id + stride];
-        }
-        threadgroup_barrier(mem_flags::mem_threadgroup);
+    float sum = 0.0;
+    for (uint i = 0; i < input_size; i++) {
+        sum += input[i] * (float)weight[id * input_size + i];
     }
-    
-    // Write result
-    if (local_id == 0) {
-        output[gid / 256] = shared_data[0];
+    if (bias) {
+        sum += bias[id];
     }
+    output[id] = sum;
 }
 
-/// ReLU activation kernel
-kernel void relu_forward(
-    device const float* input [[buffer(0)]],
-    device float* output [[buffer(1)]],
-    constant uint& count [[buffer(2)]],
-    uint gid [[thread_position_in_grid]]
-) {
-    if (gid >= count) return;
-    output[gid] = max(0.0f, input[gid]);
+// Activation kernels
+kernel void apply_relu(device const float* input [[buffer(0)]],
+                      device float* output [[buffer(1)]],
+                      uint id [[thread_position_in_grid]]) {
+    output[id] = relu(input[id]);
 }
 
-/// GELU activation kernel
-kernel void gelu_forward(
-    device const float* input [[buffer(0)]],
-    device float* output [[buffer(1)]],
-    constant uint& count [[buffer(2)]],
-    uint gid [[thread_position_in_grid]]
-) {
-    if (gid >= count) return;
-    
-    const float sqrt_2_over_pi = 0.7978845608f;
-    const float a = 0.044715f;
-    
-    float x = input[gid];
-    float tanh_arg = sqrt_2_over_pi * (x + a * x * x * x);
-    output[gid] = 0.5f * x * (1.0f + tanh(tanh_arg));
+kernel void apply_tanh(device const float* input [[buffer(0)]],
+                      device float* output [[buffer(1)]],
+                      uint id [[thread_position_in_grid]]) {
+    output[id] = tanh_activation(input[id]);
 }
 
-/// Sigmoid activation kernel  
-kernel void sigmoid_forward(
-    device const float* input [[buffer(0)]],
-    device float* output [[buffer(1)]],
-    constant uint& count [[buffer(2)]],
-    uint gid [[thread_position_in_grid]]
-) {
-    if (gid >= count) return;
-    output[gid] = 1.0f / (1.0f + exp(-input[gid]));
+kernel void apply_sigmoid(device const float* input [[buffer(0)]],
+                         device float* output [[buffer(1)]],
+                         uint id [[thread_position_in_grid]]) {
+    output[id] = sigmoid(input[id]);
 }
 
-/// Softmax kernel (requires two passes - this is the first pass for max finding)
-kernel void softmax_max(
-    device const float* input [[buffer(0)]],
-    device float* max_values [[buffer(1)]],
-    constant uint2& dims [[buffer(2)]],
-    uint2 gid [[thread_position_in_grid]],
-    threadgroup float* shared_max [[threadgroup(0)]]
-) {
-    uint batch_size = dims.x;
-    uint feature_size = dims.y;
+kernel void apply_gelu(device const float* input [[buffer(0)]],
+                      device float* output [[buffer(1)]],
+                      uint id [[thread_position_in_grid]]) {
+    output[id] = gelu(input[id]);
+}
+
+kernel void apply_swish(device const float* input [[buffer(0)]],
+                       device float* output [[buffer(1)]],
+                       uint id [[thread_position_in_grid]]) {
+    output[id] = swish(input[id]);
+}
+
+// Reduction operations
+kernel void reduce_sum(device const float* input [[buffer(0)]],
+                      device float* output [[buffer(1)]],
+                      uint id [[thread_position_in_grid]]) {
+    // Simple implementation - could be optimized with shared memory
+    float sum = 0.0;
+    output[id] = input[id]; // Placeholder for actual reduction logic
+}
+
+kernel void reduce_mean(device const float* input [[buffer(0)]],
+                       device float* output [[buffer(1)]],
+                       constant uint& size [[buffer(2)]],
+                       uint id [[thread_position_in_grid]]) {
+    output[id] = input[id] / (float)size;
+}
+
+// Normalization kernels
+kernel void layer_norm(device const float* input [[buffer(0)]],
+                      device const float* gamma [[buffer(1)]],
+                      device const float* beta [[buffer(2)]],
+                      device float* output [[buffer(3)]],
+                      constant uint& size [[buffer(4)]],
+                      constant float& epsilon [[buffer(5)]],
+                      uint id [[thread_position_in_grid]]) {
+    if (id >= size) return;
     
-    uint batch_idx = gid.y;
-    uint feature_idx = gid.x;
-    uint local_id = feature_idx % 256;
+    // Simple layer normalization - could be optimized
+    float mean = 0.0;
+    float variance = 0.0;
     
-    if (batch_idx >= batch_size) return;
-    
-    // Load maximum for this thread
-    float local_max = -INFINITY;
-    for (uint i = feature_idx; i < feature_size; i += 256) {
-        if (i < feature_size) {
-            local_max = max(local_max, input[batch_idx * feature_size + i]);
-        }
+    // Calculate mean
+    for (uint i = 0; i < size; i++) {
+        mean += input[i];
     }
+    mean /= (float)size;
     
-    shared_max[local_id] = local_max;
-    threadgroup_barrier(mem_flags::mem_threadgroup);
-    
-    // Find maximum across threadgroup
-    for (uint stride = 128; stride > 0; stride >>= 1) {
-        if (local_id < stride) {
-            shared_max[local_id] = max(shared_max[local_id], shared_max[local_id + stride]);
-        }
-        threadgroup_barrier(mem_flags::mem_threadgroup);
+    // Calculate variance
+    for (uint i = 0; i < size; i++) {
+        float diff = input[i] - mean;
+        variance += diff * diff;
     }
+    variance /= (float)size;
     
-    if (local_id == 0) {
-        max_values[batch_idx] = shared_max[0];
-    }
+    // Normalize
+    float normalized = (input[id] - mean) / sqrt(variance + epsilon);
+    output[id] = gamma[id] * normalized + beta[id];
 }
 
-/// Softmax exponential and sum kernel (second pass)
-kernel void softmax_exp_sum(
-    device const float* input [[buffer(0)]],
-    device const float* max_values [[buffer(1)]],
-    device float* output [[buffer(2)]],
-    device float* sum_values [[buffer(3)]],
-    constant uint2& dims [[buffer(4)]],
-    uint2 gid [[thread_position_in_grid]],
-    threadgroup float* shared_sum [[threadgroup(0)]]
-) {
-    uint batch_size = dims.x;
-    uint feature_size = dims.y;
+// Batch normalization
+kernel void batch_norm(device const float* input [[buffer(0)]],
+                      device const float* gamma [[buffer(1)]],
+                      device const float* beta [[buffer(2)]],
+                      device const float* running_mean [[buffer(3)]],
+                      device const float* running_var [[buffer(4)]],
+                      device float* output [[buffer(5)]],
+                      constant float& epsilon [[buffer(6)]],
+                      uint id [[thread_position_in_grid]]) {
+    float normalized = (input[id] - running_mean[id]) / sqrt(running_var[id] + epsilon);
+    output[id] = gamma[id] * normalized + beta[id];
+}
+
+// Convolution kernel (simplified 2D)
+kernel void conv2d(device const float* input [[buffer(0)]],
+                  device const float* weight [[buffer(1)]],
+                  device float* output [[buffer(2)]],
+                  constant uint& input_height [[buffer(3)]],
+                  constant uint& input_width [[buffer(4)]],
+                  constant uint& kernel_height [[buffer(5)]],
+                  constant uint& kernel_width [[buffer(6)]],
+                  constant uint& output_height [[buffer(7)]],
+                  constant uint& output_width [[buffer(8)]],
+                  uint2 position [[thread_position_in_grid]]) {
+    uint out_y = position.y;
+    uint out_x = position.x;
     
-    uint batch_idx = gid.y;
-    uint feature_idx = gid.x;
-    uint local_id = feature_idx % 256;
+    if (out_y >= output_height || out_x >= output_width) return;
     
-    if (batch_idx >= batch_size) return;
-    
-    float max_val = max_values[batch_idx];
-    float local_sum = 0.0f;
-    
-    // Compute exponentials and accumulate sum
-    for (uint i = feature_idx; i < feature_size; i += 256) {
-        if (i < feature_size) {
-            float exp_val = exp(input[batch_idx * feature_size + i] - max_val);
-            output[batch_idx * feature_size + i] = exp_val;
-            local_sum += exp_val;
+    float sum = 0.0;
+    for (uint ky = 0; ky < kernel_height; ky++) {
+        for (uint kx = 0; kx < kernel_width; kx++) {
+            uint in_y = out_y + ky;
+            uint in_x = out_x + kx;
+            
+            if (in_y < input_height && in_x < input_width) {
+                uint input_idx = in_y * input_width + in_x;
+                uint weight_idx = ky * kernel_width + kx;
+                sum += input[input_idx] * weight[weight_idx];
+            }
         }
     }
-    
-    shared_sum[local_id] = local_sum;
-    threadgroup_barrier(mem_flags::mem_threadgroup);
-    
-    // Sum across threadgroup
-    for (uint stride = 128; stride > 0; stride >>= 1) {
-        if (local_id < stride) {
-            shared_sum[local_id] += shared_sum[local_id + stride];
-        }
-        threadgroup_barrier(mem_flags::mem_threadgroup);
-    }
-    
-    if (local_id == 0) {
-        sum_values[batch_idx] = shared_sum[0];
-    }
-}
-
-/// Softmax normalization kernel (third pass)
-kernel void softmax_normalize(
-    device float* output [[buffer(0)]],
-    device const float* sum_values [[buffer(1)]],
-    constant uint2& dims [[buffer(2)]],
-    uint2 gid [[thread_position_in_grid]]
-) {
-    uint batch_size = dims.x;
-    uint feature_size = dims.y;
-    
-    uint batch_idx = gid.y;
-    uint feature_idx = gid.x;
-    
-    if (batch_idx >= batch_size || feature_idx >= feature_size) return;
-    
-    float sum_val = sum_values[batch_idx];
-    output[batch_idx * feature_size + feature_idx] /= sum_val;
+    output[out_y * output_width + out_x] = sum;
 }

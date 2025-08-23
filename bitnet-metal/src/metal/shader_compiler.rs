@@ -585,8 +585,7 @@ pub fn compile_shader_source(_device: &(), _source: &str, _name: &str) -> Result
 #[cfg(test)]
 mod tests {
     use super::*;
-    
-    
+    use tempfile::TempDir;
 
     #[test]
     fn test_shader_compiler_config_default() {

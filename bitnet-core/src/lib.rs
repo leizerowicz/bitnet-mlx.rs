@@ -11,12 +11,15 @@ pub mod memory;
 pub mod mixed_precision;
 pub mod sequence;
 pub mod tensor;
-pub mod metal;
 pub mod tokenizer;
 
 // MLX support (Apple Silicon only)
 #[cfg(feature = "mlx")]
 pub mod mlx;
+
+// Re-export Metal functionality when available
+#[cfg(feature = "metal")]
+pub use bitnet_metal as metal;
 
 pub use device::*;
 pub use error::*;
@@ -43,7 +46,6 @@ pub use mixed_precision::*;
 pub use sequence::*;
 // Use tensor types as primary exports
 pub use tensor::*;
-pub use metal::*;
 pub use tokenizer::*;
 
 // MLX re-exports when feature is enabled

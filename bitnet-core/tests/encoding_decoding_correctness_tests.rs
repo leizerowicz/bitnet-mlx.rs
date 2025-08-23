@@ -306,10 +306,10 @@ mod mlx_quantization_tests {
             let array = Array::from_slice(data, &[data.len() as i32]);
             
             // Quantize
-            let quantized = mlx_quantize(&array, *scale).unwrap();
+            let quantized = mlx_quantize(&array, Some(*scale)).unwrap();
             
             // Dequantize
-            let dequantized = mlx_dequantize(&quantized, *scale).unwrap();
+            let dequantized = mlx_dequantize(&quantized, Some(*scale)).unwrap();
             
             // Verify shapes match
             assert_eq!(array.shape(), dequantized.shape());
@@ -334,8 +334,8 @@ mod mlx_quantization_tests {
         let edge_data = vec![f32::NAN, f32::INFINITY, f32::NEG_INFINITY, 0.0];
         let array = Array::from_slice(&edge_data, &[4]);
         
-        let quantized = mlx_quantize(&array, 1.0).unwrap();
-        let dequantized = mlx_dequantize(&quantized, 1.0).unwrap();
+        let quantized = mlx_quantize(&array, Some(1.0)).unwrap();
+        let dequantized = mlx_dequantize(&quantized, Some(1.0)).unwrap();
         
         let recovered_data = dequantized.as_slice::<f32>();
         
@@ -364,8 +364,8 @@ mod mlx_quantization_tests {
         ];
         
         for scale in precision_scales {
-            let quantized = mlx_quantize(&array, scale).unwrap();
-            let dequantized = mlx_dequantize(&quantized, scale).unwrap();
+            let quantized = mlx_quantize(&array, Some(scale)).unwrap();
+            let dequantized = mlx_dequantize(&quantized, Some(scale)).unwrap();
             
             // Higher precision (smaller scale) should have lower error
             let original_data = array.as_slice::<f32>();

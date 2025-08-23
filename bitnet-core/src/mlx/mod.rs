@@ -48,6 +48,36 @@ pub use regression_testing::{MlxRegressionTester, RegressionTestConfig};
 // Re-export key MLX types
 pub use device::BitNetMlxDevice;
 pub use tensor::MlxTensor;
+
+/// Convenience wrapper for MLX quantization - matches test expectations
+#[cfg(feature = "mlx")]
+pub fn mlx_quantize(array: &Array, scale: Option<f32>) -> Result<Array> {
+    use crate::mlx::operations::BitNetMlxOps;
+    
+    // Convert Array to MlxTensor for processing
+    let device = BitNetMlxDevice::cpu()?;
+    let tensor = MlxTensor::new(array.clone(), device, crate::tensor::dtype::BitNetDType::F32);
+    
+    // Perform quantization
+    let quantized = BitNetMlxOps::quantize_1_58_bit(&tensor, scale)?;
+    
+    Ok(quantized.array().clone())
+}
+
+/// Convenience wrapper for MLX dequantization - matches test expectations  
+#[cfg(feature = "mlx")]
+pub fn mlx_dequantize(array: &Array, scale: Option<f32>) -> Result<Array> {
+    use crate::mlx::operations::BitNetMlxOps;
+    
+    // Convert Array to MlxTensor for processing
+    let device = BitNetMlxDevice::cpu()?;
+    let tensor = MlxTensor::new(array.clone(), device, crate::tensor::dtype::BitNetDType::F32);
+    
+    // Perform dequantization
+    let dequantized = BitNetMlxOps::dequantize_1_58_bit(&tensor, scale)?;
+    
+    Ok(dequantized.array().clone())
+}
 pub use operations::BitNetMlxOps;
 
 #[cfg(test)]
@@ -55,30 +85,6 @@ mod tests;
 
 #[cfg(test)]
 mod optimization_tests;
-
-pub use device::*;
-pub use tensor::*;
-pub use operations::*;
-
-// Type aliases for compatibility (removed duplicates)
-pub use optimization::{
-    MlxMemoryOptimizer, MlxProfiler, MlxKernelFusion, MlxTensorCache,
-    MlxAutoTuner, MlxBatchOptimizer, MemoryStats
-};
-pub use graph::{
-    MlxComputationGraph, GraphBuilder, GraphNode, Operation,
-    ExecutionPlan, MemoryLayoutPlan, FusionOpportunity, FusionPattern
-};
-
-// Re-export the new MLX operation wrappers
-#[cfg(feature = "mlx")]
-pub use operations::{mlx_matmul, mlx_quantize, mlx_dequantize};
-
-#[cfg(not(feature = "mlx"))]
-pub use operations::{mlx_matmul, mlx_quantize, mlx_dequantize};
-
-#[cfg(test)]
-mod tests;
 
 // Re-export the main device type from device module
 // (removed duplicate import)

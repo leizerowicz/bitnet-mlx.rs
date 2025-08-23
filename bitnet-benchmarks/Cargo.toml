@@ -40,6 +40,10 @@ harness = false
 name = "comprehensive_performance_comparison"
 harness = false
 
+[[bench]]
+name = "gpu_performance"
+harness = false
+
 [features]
 default = ["std"]
 std = []

@@ -50,7 +50,6 @@
 //! # }
 //! ```
 
-use std::cmp;
 use candle_core::{Device, Tensor as CandleTensor};
 use crate::tensor::core::BitNetTensor;
 use crate::tensor::dtype::BitNetDType;
@@ -432,56 +431,19 @@ pub fn permute(tensor: &BitNetTensor, dims: &[usize]) -> TensorOpResult<BitNetTe
 /// let (u, s, vt) = svd(&matrix)?;
 /// ```
 pub fn svd(tensor: &BitNetTensor) -> TensorOpResult<(BitNetTensor, BitNetTensor, BitNetTensor)> {
-    validate_svd_input(tensor)?;
+    use super::advanced_linear_algebra_fixes::svd_with_memory_pool;
+    use crate::memory::HybridMemoryPool;
+    use std::sync::Arc;
     
-    #[cfg(feature = "tracing")]
-    debug!("Computing SVD for tensor: {:?}", tensor.shape().dims());
-
-    // For now, we'll implement a basic version using Candle
-    // In a full implementation, this would use optimized LAPACK routines
-    let candle_tensor = tensor.to_candle()?;
-    
-    // Use eigendecomposition approach for SVD approximation
-    // A^T * A = V * Λ * V^T  (for computing V and singular values)
-    // A * A^T = U * Λ * U^T  (for computing U)
-    
-    let at = candle_tensor.t()
-        .map_err(|e| TensorOpError::CandleError {
-            operation: "svd".to_string(),
-            error: format!("Failed to transpose: {}", e),
-        })?;
-    
-    let ata = at.matmul(&candle_tensor)
-        .map_err(|e| TensorOpError::CandleError {
-            operation: "svd".to_string(),
-            error: format!("Failed to compute A^T * A: {}", e),
-        })?;
-    
-    let aat = candle_tensor.matmul(&at)
-        .map_err(|e| TensorOpError::CandleError {
-            operation: "svd".to_string(),
-            error: format!("Failed to compute A * A^T: {}", e),
-        })?;
-
-    // Placeholder implementation - in practice would use proper SVD algorithm
-    let dims = tensor.shape().dims();
-    let min_dim = cmp::min(dims[0], dims[1]);
-    
-    // Create placeholder results with correct shapes
-    let u = eye(dims[0], tensor.dtype(), Some(tensor.device().clone()))?;
-    let s = BitNetTensor::ones(&[min_dim], tensor.dtype(), Some(tensor.device().clone()))?;
-    let vt = eye(dims[1], tensor.dtype(), Some(tensor.device().clone()))?;
-    
-    #[cfg(feature = "tracing")]
-    warn!("SVD implementation is placeholder - using identity matrices");
-    
-    Ok((u, s, vt))
+    // Create a memory pool for enhanced SVD implementation
+    let memory_pool = Arc::new(HybridMemoryPool::new().unwrap());
+    svd_with_memory_pool(tensor, &memory_pool)
 }
 
 /// QR Decomposition
 ///
 /// Decomposes a matrix A into an orthogonal matrix Q and an upper triangular matrix R
-/// such that A = Q * R.
+/// such that A = Q * R using the Modified Gram-Schmidt process.
 ///
 /// # Arguments
 /// * `tensor` - Input matrix tensor (M x N)
@@ -491,29 +453,19 @@ pub fn svd(tensor: &BitNetTensor) -> TensorOpResult<(BitNetTensor, BitNetTensor,
 ///   - Q: Orthogonal matrix [M, min(M,N)]
 ///   - R: Upper triangular matrix [min(M,N), N]
 pub fn qr(tensor: &BitNetTensor) -> TensorOpResult<(BitNetTensor, BitNetTensor)> {
-    validate_qr_input(tensor)?;
+    use super::advanced_linear_algebra_fixes::qr_with_memory_pool;
+    use crate::memory::HybridMemoryPool;
+    use std::sync::Arc;
     
-    #[cfg(feature = "tracing")]
-    debug!("Computing QR decomposition for tensor: {:?}", tensor.shape().dims());
-
-    // Placeholder implementation using Gram-Schmidt process
-    let dims = tensor.shape().dims();
-    let min_dim = cmp::min(dims[0], dims[1]);
-    
-    // Create placeholder results with correct shapes  
-    let q = eye(dims[0], tensor.dtype(), Some(tensor.device().clone()))?;
-    let r = BitNetTensor::zeros(&[min_dim, dims[1]], tensor.dtype(), Some(tensor.device().clone()))?;
-    
-    #[cfg(feature = "tracing")]
-    warn!("QR implementation is placeholder - using identity/zero matrices");
-    
-    Ok((q, r))
+    // Create a memory pool for enhanced QR implementation
+    let memory_pool = Arc::new(HybridMemoryPool::new().unwrap());
+    qr_with_memory_pool(tensor, &memory_pool)
 }
 
 /// Cholesky Decomposition
 ///
 /// Decomposes a positive definite matrix A into a lower triangular matrix L
-/// such that A = L * L^T.
+/// such that A = L * L^T using the Cholesky-Banachiewicz algorithm.
 ///
 /// # Arguments
 /// * `tensor` - Input positive definite matrix (must be square and symmetric)
@@ -521,19 +473,233 @@ pub fn qr(tensor: &BitNetTensor) -> TensorOpResult<(BitNetTensor, BitNetTensor)>
 /// # Returns
 /// * Lower triangular matrix L such that A = L * L^T
 pub fn cholesky(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
-    validate_cholesky_input(tensor)?;
+    use super::advanced_linear_algebra_fixes::cholesky_with_memory_pool;
+    use crate::memory::HybridMemoryPool;
+    use std::sync::Arc;
     
-    #[cfg(feature = "tracing")]
-    debug!("Computing Cholesky decomposition for tensor: {:?}", tensor.shape().dims());
+    // Create a memory pool for enhanced Cholesky implementation
+    let memory_pool = Arc::new(HybridMemoryPool::new().unwrap());
+    cholesky_with_memory_pool(tensor, &memory_pool)
+}
 
-    // Placeholder implementation
+// ============================================================================
+// Helper Functions for Linear Algebra Operations
+// ============================================================================
+
+/// Get a single matrix element from a Candle tensor
+fn get_matrix_element(tensor: &CandleTensor, row: usize, col: usize) -> TensorOpResult<f32> {
+    let narrow_row = tensor.narrow(0, row, 1)
+        .map_err(|e| TensorOpError::CandleError {
+            operation: "get_matrix_element".to_string(),
+            error: format!("Failed to narrow row: {}", e),
+        })?;
+    
+    let element = narrow_row.narrow(1, col, 1)
+        .map_err(|e| TensorOpError::CandleError {
+            operation: "get_matrix_element".to_string(),
+            error: format!("Failed to narrow column: {}", e),
+        })?;
+    
+    element.to_scalar::<f32>()
+        .map_err(|e| TensorOpError::CandleError {
+            operation: "get_matrix_element".to_string(),
+            error: format!("Failed to extract scalar: {}", e),
+        })
+}
+
+/// Construct lower triangular matrix from 2D vector
+fn construct_lower_triangular_matrix(data: &[Vec<f32>], n: usize) -> TensorOpResult<CandleTensor> {
+    let mut flat_data = vec![0.0f32; n * n];
+    
+    for i in 0..n {
+        for j in 0..=i {  // Only lower triangle
+            flat_data[i * n + j] = data[i][j];
+        }
+    }
+    
+    CandleTensor::from_vec(flat_data, (n, n), &Device::Cpu)
+        .map_err(|e| TensorOpError::CandleError {
+            operation: "construct_lower_triangular_matrix".to_string(),
+            error: format!("Failed to construct matrix: {}", e),
+        })
+}
+
+/// Check if matrix is positive definite by examining diagonal elements and attempting Cholesky
+fn is_positive_definite_check(tensor: &CandleTensor) -> TensorOpResult<bool> {
+    let dims = tensor.dims2()
+        .map_err(|e| TensorOpError::CandleError {
+            operation: "is_positive_definite_check".to_string(),
+            error: format!("Failed to get dimensions: {}", e),
+        })?;
+    
+    let n = dims.0;
+    
+    // Quick check: all diagonal elements should be positive
+    for i in 0..n {
+        let diag_element = get_matrix_element(tensor, i, i)?;
+        if diag_element <= 0.0 {
+            return Ok(false);
+        }
+    }
+    
+    // Additional symmetry check (optional but good practice)
+    for i in 0..n {
+        for j in i + 1..n {
+            let a_ij = get_matrix_element(tensor, i, j)?;
+            let a_ji = get_matrix_element(tensor, j, i)?;
+            if (a_ij - a_ji).abs() > 1e-10 {
+                #[cfg(feature = "tracing")]
+                warn!("Matrix is not symmetric at ({}, {}) vs ({}, {}): {} vs {}", i, j, j, i, a_ij, a_ji);
+            }
+        }
+    }
+    
+    Ok(true)
+}
+
+/// Extract column from a Candle tensor
+fn extract_column(tensor: &CandleTensor, col: usize) -> TensorOpResult<CandleTensor> {
+    tensor.narrow(1, col, 1)?.squeeze(1)
+        .map_err(|e| TensorOpError::CandleError {
+            operation: "extract_column".to_string(),
+            error: format!("Failed to extract column {}: {}", col, e),
+        })
+}
+
+/// Compute dot product between two Candle tensors
+fn dot_product_candle(a: &CandleTensor, b: &CandleTensor) -> TensorOpResult<f32> {
+    let product = (a * b)?;
+    let sum = product.sum_all()?;
+    sum.to_scalar::<f32>()
+        .map_err(|e| TensorOpError::CandleError {
+            operation: "dot_product_candle".to_string(),
+            error: format!("Failed to compute dot product: {}", e),
+        })
+}
+
+/// Subtract scaled vector: a - scale * b
+fn subtract_scaled_candle(a: &CandleTensor, b: &CandleTensor, scale: f32) -> TensorOpResult<CandleTensor> {
+    let scale_tensor = CandleTensor::full(scale, b.shape(), b.device())?;
+    let scaled_b = b.mul(&scale_tensor)?;
+    (a - &scaled_b)
+        .map_err(|e| TensorOpError::CandleError {
+            operation: "subtract_scaled_candle".to_string(),
+            error: format!("Failed to subtract scaled vector: {}", e),
+        })
+}
+
+/// Compute L2 norm of a Candle tensor
+fn compute_norm_candle(tensor: &CandleTensor) -> TensorOpResult<f32> {
+    let squared = (tensor * tensor)?;
+    let sum = squared.sum_all()?;
+    let sum_scalar = sum.to_scalar::<f32>()?;
+    Ok(sum_scalar.sqrt())
+}
+
+/// Scale vector by scalar: scale * tensor
+fn scale_vector_candle(tensor: &CandleTensor, scale: f32) -> TensorOpResult<CandleTensor> {
+    let scale_tensor = CandleTensor::full(scale, tensor.shape(), tensor.device())?;
+    tensor.mul(&scale_tensor)
+        .map_err(|e| TensorOpError::CandleError {
+            operation: "scale_vector_candle".to_string(),
+            error: format!("Failed to scale vector: {}", e),
+        })
+}
+
+/// Construct matrix from column vectors
+fn construct_matrix_from_columns(
+    columns: &[CandleTensor],
+    rows: usize,
+    cols: usize,
+) -> TensorOpResult<CandleTensor> {
+    if columns.is_empty() {
+        return Err(TensorOpError::InternalError {
+            reason: "No columns provided".to_string(),
+        });
+    }
+    
+    let mut matrix_data = vec![0.0f32; rows * cols];
+    
+    for (col_idx, column) in columns.iter().enumerate() {
+        if col_idx >= cols {
+            break;
+        }
+        
+        // Extract column data
+        for row_idx in 0..rows {
+            if row_idx < column.dim(0)? {
+                let element = column.narrow(0, row_idx, 1)?.to_scalar::<f32>()?;
+                matrix_data[row_idx * cols + col_idx] = element;
+            }
+        }
+    }
+    
+    CandleTensor::from_vec(matrix_data, (rows, cols), &Device::Cpu)
+        .map_err(|e| TensorOpError::CandleError {
+            operation: "construct_matrix_from_columns".to_string(),
+            error: format!("Failed to construct matrix: {}", e),
+        })
+}
+
+/// Construct upper triangular matrix from 2D vector data
+fn construct_upper_triangular_matrix(data: &[Vec<f32>], rows: usize, cols: usize) -> TensorOpResult<CandleTensor> {
+    let mut flat_data = vec![0.0f32; rows * cols];
+    
+    for i in 0..rows {
+        for j in i..cols {  // Only upper triangle
+            if i < data.len() && j < data[i].len() {
+                flat_data[i * cols + j] = data[i][j];
+            }
+        }
+    }
+    
+    CandleTensor::from_vec(flat_data, (rows, cols), &Device::Cpu)
+        .map_err(|e| TensorOpError::CandleError {
+            operation: "construct_upper_triangular_matrix".to_string(),
+            error: format!("Failed to construct upper triangular matrix: {}", e),
+        })
+}
+
+/// Expand 1D tensor to 2D column vector
+fn expand_to_2d(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
     let dims = tensor.shape().dims();
-    let result = eye(dims[0], tensor.dtype(), Some(tensor.device().clone()))?;
+    if dims.len() != 1 {
+        return Err(TensorOpError::ShapeMismatch {
+            expected: vec![1], // Expected 1D
+            actual: vec![dims.len()],
+            operation: "expand_to_2d".to_string(),
+        });
+    }
     
-    #[cfg(feature = "tracing")]
-    warn!("Cholesky implementation is placeholder - using identity matrix");
+    tensor.reshape(&[dims[0], 1])
+        .map_err(|e| TensorOpError::InternalError {
+            reason: format!("Failed to expand tensor to 2D: {}", e),
+        })
+}
+
+/// Squeeze 2D tensor to 1D vector
+fn squeeze_to_1d(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
+    let dims = tensor.shape().dims();
+    if dims.len() != 2 {
+        return Err(TensorOpError::ShapeMismatch {
+            expected: vec![2], // Expected 2D
+            actual: vec![dims.len()],
+            operation: "squeeze_to_1d".to_string(),
+        });
+    }
     
-    Ok(result)
+    if dims[1] != 1 {
+        return Err(TensorOpError::ShapeMismatch {
+            expected: vec![dims[0], 1], // Expected column vector
+            actual: dims.to_vec(),
+            operation: "squeeze_to_1d".to_string(),
+        });
+    }
+    
+    tensor.reshape(&[dims[0]])
+        .map_err(|e| TensorOpError::InternalError {
+            reason: format!("Failed to squeeze tensor to 1D: {}", e),
+        })
 }
 
 /// Eigenvalue decomposition
@@ -570,7 +736,13 @@ pub fn eig(tensor: &BitNetTensor) -> TensorOpResult<(BitNetTensor, BitNetTensor)
 pub fn eye(size: usize, dtype: BitNetDType, device: Option<Device>) -> TensorOpResult<BitNetTensor> {
     let device_to_use = device.unwrap_or_else(|| crate::device::auto_select_device());
     
-    let candle_tensor = CandleTensor::eye(size, candle_core::DType::F32, &device_to_use)
+    let candle_dtype = match dtype {
+        BitNetDType::F32 => candle_core::DType::F32,
+        BitNetDType::F16 => candle_core::DType::F16,
+        _ => candle_core::DType::F32, // Default to F32 for quantized types
+    };
+    
+    let candle_tensor = CandleTensor::eye(size, candle_dtype, &device_to_use)
         .map_err(|e| TensorOpError::CandleError {
             operation: "eye".to_string(),
             error: e.to_string(),
@@ -1054,6 +1226,14 @@ mod tests {
 
     #[test]
     fn test_dot_product() {
+        use crate::memory::HybridMemoryPool;
+        use crate::tensor::memory_integration::set_global_memory_pool;
+        use std::sync::Arc;
+        
+        // Create and set global memory pool for tests
+        let memory_pool = Arc::new(HybridMemoryPool::new().unwrap());
+        set_global_memory_pool(Arc::downgrade(&memory_pool));
+        
         let a = BitNetTensor::ones(&[100], BitNetDType::F32, None).unwrap();
         let b = BitNetTensor::ones(&[100], BitNetDType::F32, None).unwrap();
         
@@ -1085,6 +1265,14 @@ mod tests {
 
     #[test]
     fn test_matmul_strategy_selection() {
+        use crate::memory::HybridMemoryPool;
+        use crate::tensor::memory_integration::set_global_memory_pool;
+        use std::sync::Arc;
+        
+        // Create and set global memory pool for tests
+        let memory_pool = Arc::new(HybridMemoryPool::new().unwrap());
+        set_global_memory_pool(Arc::downgrade(&memory_pool));
+        
         let a = BitNetTensor::ones(&[64, 64], BitNetDType::F32, None).unwrap();
         let b = BitNetTensor::ones(&[64, 64], BitNetDType::F32, None).unwrap();
         
@@ -1103,5 +1291,194 @@ mod tests {
         
         // Should fail due to incompatible dimensions
         assert!(matmul(&a, &b).is_err());
+    }
+
+    #[test]
+    fn test_cholesky_basic() {
+        use crate::tensor::BitNetTensor;
+        use crate::tensor::dtype::BitNetDType;
+        use crate::memory::HybridMemoryPool;
+        use crate::tensor::memory_integration::set_global_memory_pool;
+        use std::sync::Arc;
+        
+        // Create and set global memory pool for tests
+        let memory_pool = Arc::new(HybridMemoryPool::new().unwrap());
+        set_global_memory_pool(Arc::downgrade(&memory_pool));
+        
+        // Create a simple 2x2 positive definite matrix
+        // [[2, 1], [1, 2]] is positive definite
+        let data = vec![2.0f32, 1.0f32, 1.0f32, 2.0f32];
+        let matrix = BitNetTensor::from_vec(data, &[2, 2], BitNetDType::F32, None).unwrap();
+        
+        let result = cholesky(&matrix);
+        assert!(result.is_ok(), "Cholesky decomposition should succeed for positive definite matrix");
+    }
+
+    #[test]
+    fn test_cholesky_identity() {
+        use crate::tensor::BitNetTensor;
+        use crate::tensor::dtype::BitNetDType;
+        use crate::memory::HybridMemoryPool;
+        use crate::tensor::memory_integration::set_global_memory_pool;
+        use std::sync::Arc;
+        
+        // Create and set global memory pool for tests
+        let memory_pool = Arc::new(HybridMemoryPool::new().unwrap());
+        set_global_memory_pool(Arc::downgrade(&memory_pool));
+        
+        // Identity matrix should decompose to itself
+        let data = vec![1.0f32, 0.0f32, 0.0f32, 1.0f32];
+        let matrix = BitNetTensor::from_vec(data, &[2, 2], BitNetDType::F32, None).unwrap();
+        
+        let result = cholesky(&matrix);
+        assert!(result.is_ok(), "Cholesky of identity should succeed");
+        
+        if let Ok(l) = result {
+            // L should be approximately identity
+            let l_data = l.to_candle().unwrap().to_vec1::<f32>().unwrap();
+            assert!((l_data[0] - 1.0f32).abs() < 1e-6, "L[0,0] should be 1.0");
+            assert!(l_data[1].abs() < 1e-6, "L[0,1] should be 0.0");
+            assert!(l_data[2].abs() < 1e-6, "L[1,0] should be 0.0");
+            assert!((l_data[3] - 1.0f32).abs() < 1e-6, "L[1,1] should be 1.0");
+        }
+    }
+
+    #[test]
+    fn test_cholesky_fails_for_non_positive_definite() {
+        use crate::tensor::BitNetTensor;
+        use crate::tensor::dtype::BitNetDType;
+        use crate::memory::HybridMemoryPool;
+        use crate::tensor::memory_integration::set_global_memory_pool;
+        use std::sync::Arc;
+        
+        // Create and set global memory pool for tests
+        let memory_pool = Arc::new(HybridMemoryPool::new().unwrap());
+        set_global_memory_pool(Arc::downgrade(&memory_pool));
+        
+        // Create a non-positive definite matrix
+        // [[1, 2], [2, 1]] has eigenvalues 3 and -1, so not positive definite
+        let data = vec![1.0f32, 2.0f32, 2.0f32, 1.0f32];
+        let matrix = BitNetTensor::from_vec(data, &[2, 2], BitNetDType::F32, None).unwrap();
+        
+        let result = cholesky(&matrix);
+        assert!(result.is_err(), "Cholesky should fail for non-positive definite matrix");
+    }
+
+    #[test]
+    fn test_svd_basic() {
+        use crate::tensor::BitNetTensor;
+        use crate::tensor::dtype::BitNetDType;
+        use crate::memory::HybridMemoryPool;
+        use crate::tensor::memory_integration::set_global_memory_pool;
+        use std::sync::Arc;
+        
+        // Create and set global memory pool for tests
+        let memory_pool = Arc::new(HybridMemoryPool::new().unwrap());
+        set_global_memory_pool(Arc::downgrade(&memory_pool));
+        
+        // Create a simple 3x2 matrix for SVD
+        let data = vec![1.0f32, 0.0f32, 0.0f32, 1.0f32, 1.0f32, 1.0f32];
+        let matrix = BitNetTensor::from_vec(data, &[3, 2], BitNetDType::F32, None).unwrap();
+        
+        let result = svd(&matrix);
+        if let Err(e) = &result {
+            println!("SVD failed with error: {:?}", e);
+        }
+        assert!(result.is_ok(), "SVD should succeed for valid matrix");
+        
+        if let Ok((u, s, vt)) = result {
+            // Basic shape checks
+            assert_eq!(u.shape().dims(), &[3, 2], "U should have correct shape");
+            assert_eq!(s.shape().dims(), &[2], "S should have correct shape");
+            assert_eq!(vt.shape().dims(), &[2, 2], "VT should have correct shape");
+        }
+    }
+
+    #[test]
+    fn test_qr_basic() {
+        use crate::tensor::BitNetTensor;
+        use crate::tensor::dtype::BitNetDType;
+        use crate::memory::HybridMemoryPool;
+        use crate::tensor::memory_integration::set_global_memory_pool;
+        use std::sync::Arc;
+        
+        // Create and set global memory pool for tests
+        let memory_pool = Arc::new(HybridMemoryPool::new().unwrap());
+        set_global_memory_pool(Arc::downgrade(&memory_pool));
+        
+        // Create a simple 3x2 matrix for QR
+        let data = vec![1.0f32, 0.0f32, 1.0f32, 1.0f32, 0.0f32, 1.0f32];
+        let matrix = BitNetTensor::from_vec(data, &[3, 2], BitNetDType::F32, None).unwrap();
+        
+        let result = qr(&matrix);
+        assert!(result.is_ok(), "QR decomposition should succeed");
+        
+        if let Ok((q, r)) = result {
+            // Basic shape checks
+            assert_eq!(q.shape().dims(), &[3, 2], "Q should have correct shape");
+            assert_eq!(r.shape().dims(), &[2, 2], "R should have correct shape");
+        }
+    }
+
+    #[test]
+    fn test_qr_orthogonal_columns() {
+        use crate::tensor::BitNetTensor;
+        use crate::tensor::dtype::BitNetDType;
+        use crate::memory::HybridMemoryPool;
+        use crate::tensor::memory_integration::set_global_memory_pool;
+        use std::sync::Arc;
+        
+        // Create and set global memory pool for tests
+        let memory_pool = Arc::new(HybridMemoryPool::new().unwrap());
+        set_global_memory_pool(Arc::downgrade(&memory_pool));
+        
+        // Create a 3x2 matrix
+        let data = vec![1.0f32, 1.0, 0.0, 1.0, 0.0, 0.0];
+        let matrix = BitNetTensor::from_vec(data, &[3, 2], BitNetDType::F32, None).unwrap();
+        
+        let result = qr(&matrix);
+        assert!(result.is_ok(), "QR decomposition should succeed");
+        
+        if let Ok((q, _r)) = result {
+            // Check that Q has orthogonal columns (Q^T * Q should be identity-like)
+            let qt = q.transpose().unwrap();
+            let qtq = matmul(&qt, &q).unwrap();
+            let qtq_data = qtq.to_candle().unwrap().to_vec1::<f32>().unwrap();
+            
+            // Check diagonal elements are approximately 1
+            assert!((qtq_data[0] - 1.0).abs() < 1e-5, "Q^T*Q[0,0] should be 1.0");
+            assert!((qtq_data[3] - 1.0).abs() < 1e-5, "Q^T*Q[1,1] should be 1.0");
+            // Off-diagonal elements should be approximately 0
+            assert!(qtq_data[1].abs() < 1e-5, "Q^T*Q[0,1] should be 0.0");
+            assert!(qtq_data[2].abs() < 1e-5, "Q^T*Q[1,0] should be 0.0");
+        }
+    }
+
+    #[test]
+    fn test_eye_creation() {
+        use crate::tensor::BitNetTensor;
+        use crate::tensor::dtype::BitNetDType;
+        use crate::memory::HybridMemoryPool;
+        use crate::tensor::memory_integration::set_global_memory_pool;
+        use std::sync::Arc;
+        
+        // Create and set global memory pool for tests
+        let memory_pool = Arc::new(HybridMemoryPool::new().unwrap());
+        set_global_memory_pool(Arc::downgrade(&memory_pool));
+        
+        let eye = BitNetTensor::eye(3, BitNetDType::F32, None).unwrap();
+        assert_eq!(eye.shape().dims(), &[3, 3], "Eye matrix should have correct shape");
+        
+        let eye_data = eye.to_candle().unwrap().to_vec2::<f32>().unwrap();
+        
+        // Check diagonal elements are 1.0
+        assert!((eye_data[0][0] - 1.0).abs() < 1e-6, "Eye[0,0] should be 1.0");
+        assert!((eye_data[1][1] - 1.0).abs() < 1e-6, "Eye[1,1] should be 1.0");
+        assert!((eye_data[2][2] - 1.0).abs() < 1e-6, "Eye[2,2] should be 1.0");
+        
+        // Check off-diagonal elements are 0.0
+        assert!(eye_data[0][1].abs() < 1e-6, "Eye[0,1] should be 0.0");
+        assert!(eye_data[0][2].abs() < 1e-6, "Eye[0,2] should be 0.0");
+        assert!(eye_data[1][0].abs() < 1e-6, "Eye[1,0] should be 0.0");
     }
 }

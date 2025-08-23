@@ -125,7 +125,7 @@ mod tests {
         let array = Array::from_slice(&[1.0, 2.5, 3.7, 4.2], &[2, 2]);
         let scale = 0.5;
 
-        let result = mlx_quantize(&array, scale);
+        let result = mlx_quantize(&array, Some(scale));
         assert!(result.is_ok());
 
         let quantized = result.unwrap();
@@ -147,7 +147,7 @@ mod tests {
         let quantized = Array::from_slice(&[2.0, 5.0, 7.0, 8.0], &[2, 2]);
         let scale = 0.5;
 
-        let result = mlx_dequantize(&quantized, scale);
+        let result = mlx_dequantize(&quantized, Some(scale));
         assert!(result.is_ok());
 
         let dequantized = result.unwrap();
@@ -170,10 +170,10 @@ mod tests {
         let scale = 1.0; // Use scale of 1.0 for exact round-trip
 
         // Quantize
-        let quantized = mlx_quantize(&original, scale).unwrap();
+        let quantized = mlx_quantize(&original, Some(scale)).unwrap();
         
         // Dequantize
-        let dequantized = mlx_dequantize(&quantized, scale).unwrap();
+        let dequantized = mlx_dequantize(&quantized, Some(scale)).unwrap();
 
         assert_eq!(dequantized.shape(), &[2, 2]);
         
@@ -207,13 +207,13 @@ mod tests {
         let array = Array::from_slice(&[1.0, 2.0, 3.0, 4.0], &[2, 2]);
 
         // Test with scale = 2.0
-        let result1 = mlx_quantize(&array, 2.0).unwrap();
+        let result1 = mlx_quantize(&array, Some(2.0)).unwrap();
         let data1 = result1.as_slice::<f32>();
         // Expected: round([0.5, 1.0, 1.5, 2.0]) = [1, 1, 2, 2]
         assert_eq!(data1, vec![1.0, 1.0, 2.0, 2.0]);
 
         // Test with scale = 0.25
-        let result2 = mlx_quantize(&array, 0.25).unwrap();
+        let result2 = mlx_quantize(&array, Some(0.25)).unwrap();
         let data2 = result2.as_slice::<f32>();
         // Expected: round([4.0, 8.0, 12.0, 16.0]) = [4, 8, 12, 16]
         assert_eq!(data2, vec![4.0, 8.0, 12.0, 16.0]);

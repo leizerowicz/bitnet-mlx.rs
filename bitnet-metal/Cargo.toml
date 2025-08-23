@@ -12,7 +12,7 @@ keywords = ["bitnet", "metal", "gpu", "apple-silicon", "acceleration"]
 categories = ["science", "graphics"]
 
 [features]
-default = ["std", "mps", "unified-memory"]
+default = ["std", "mps", "unified-memory", "metal"]
 std = []
 # Enable Metal Performance Shaders integration
 mps = ["dep:objc", "dep:cocoa"]
@@ -25,14 +25,13 @@ mlx = ["dep:mlx-rs"]
 # Enable MLX-Metal interoperability
 mlx-metal = ["mlx", "mps"]
 # Enable full Apple Silicon optimization (Metal + MLX + ANE)
-apple-silicon = ["mps", "mlx", "ane", "unified-memory"]
+apple-silicon = ["mps", "mlx", "ane", "unified-memory", "metal"]
+# Enable Metal GPU support (macOS only)
+metal = ["dep:metal"]
 
 [dependencies]
-bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.4.0" }
-bitnet-quant = { path = "../bitnet-quant", version = ">=0.1.0, <0.3.0" }
-
 # Metal bindings
-metal = "0.27.0"
+metal = { workspace = true, optional = true }
 objc = { workspace = true, optional = true }
 cocoa = { workspace = true, optional = true }
 
@@ -55,6 +54,7 @@ mach = "0.3"
 [dev-dependencies]
 criterion.workspace = true
 proptest.workspace = true
+tempfile = "3.0"
 
 # macOS-specific dependencies (now compatible with resolved cocoa versions)
 [target.'cfg(target_os = "macos")'.dependencies]

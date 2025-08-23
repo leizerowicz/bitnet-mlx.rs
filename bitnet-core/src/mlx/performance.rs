@@ -6,7 +6,8 @@
 #[cfg(feature = "mlx")]
 use mlx_rs::{Array, ops};
 
-use crate::mlx::{MlxTensor, BitNetMlxDevice, MlxProfiler, MemoryStats};
+use crate::mlx::{MlxTensor, BitNetMlxDevice};
+use crate::mlx::optimization::{MlxProfiler, MemoryStats};
 use anyhow::Result;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};

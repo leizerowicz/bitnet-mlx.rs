@@ -459,6 +459,12 @@ impl BitNetTensor {
         matmul(self, other)
     }
     
+    /// Create an identity matrix
+    pub fn eye(size: usize, dtype: BitNetDType, device: Option<Device>) -> Result<BitNetTensor, TensorOpError> {
+        use super::ops::linear_algebra::eye;
+        eye(size, dtype, device)
+    }
+    
     /// Clone tensor data (for compatibility)
     pub fn clone(&self) -> Self {
         Clone::clone(self)
