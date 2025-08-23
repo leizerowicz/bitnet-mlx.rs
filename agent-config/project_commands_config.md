@@ -15,6 +15,8 @@ bitnet-rust/
 
 ## Essential Build Commands
 
+## Essential Build Commands
+
 ### Initial Setup
 ```bash
 # Clone and setup
@@ -29,6 +31,32 @@ cargo build --release --features apple-silicon
 
 # Build with specific MLX features
 cargo build --release --features "mlx,mlx-inference,mlx-training"
+
+# Install system dependencies (macOS)
+brew install pkg-config
+xcode-select --install
+
+# Install Rust toolchain with specific version
+rustup toolchain install stable
+rustup default stable
+rustup component add clippy rustfmt
+```
+
+### Development Environment Setup
+```bash
+# Install development tools
+cargo install cargo-watch cargo-audit cargo-machete cargo-bloat
+cargo install criterion-table  # For benchmark result formatting
+cargo install grcov           # For code coverage analysis
+
+# Setup pre-commit hooks
+cargo install pre-commit
+pre-commit install
+
+# Configure development environment  
+export RUST_LOG=debug
+export RUSTFLAGS="-C target-cpu=native"  # Enable CPU-specific optimizations
+export MLX_ENABLE_VALIDATION=1            # Enable MLX validation (Apple Silicon)
 ```
 
 ### Development Builds
@@ -320,22 +348,128 @@ cargo +nightly test --workspace
 grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./coverage/
 ```
 
-## Troubleshooting Commands
+## Advanced Development Workflows
 
-### Common Issues
+### Feature Development Workflow
 ```bash
-# Fix registry issues
-cargo clean
-rm -rf ~/.cargo/registry/cache
-cargo update
+# Create feature branch
+git checkout -b feature/new-optimization
+git push -u origin feature/new-optimization
 
-# Fix build cache
-cargo clean --package bitnet-core
+# Development with hot reload
+cargo watch -x "build --package bitnet-core --release"
+cargo watch -x "test --package bitnet-core" -x "clippy"
+
+# Run specific benchmark during development
+cargo watch -x "bench --package bitnet-core memory_pool_"
+
+# Validate changes before commit
+./scripts/validate-changes.sh
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo fmt --all --check
+```
+
+### Performance Optimization Workflow
+```bash
+# Profile-guided optimization
+export RUSTFLAGS="-C profile-generate=/tmp/pgo-data"
+cargo build --release --workspace
+cargo run --example performance_test --package bitnet-core --release
+export RUSTFLAGS="-C profile-use=/tmp/pgo-data"
+cargo build --release --workspace
+
+# Detailed performance analysis
+cargo build --release --package bitnet-core
+perf record --call-graph=dwarf ./target/release/examples/mlx_acceleration_demo
+perf report --stdio > performance_analysis.txt
+
+# Memory profiling with Valgrind (Linux)
 cargo build --package bitnet-core
+valgrind --tool=memcheck --leak-check=full ./target/debug/examples/memory_tracking_demo
 
-# Reset toolchain
-rustup update stable
-rustup default stable
+# Apple Silicon profiling with Instruments
+cargo build --release --package bitnet-core --features mlx
+xcrun xctrace record --template "Allocations" --launch ./target/release/examples/mlx_acceleration_demo
+```
+
+### Cross-Platform Validation
+```bash
+# x86_64 validation
+RUSTFLAGS="-C target-cpu=x86-64" cargo test --workspace --release
+RUSTFLAGS="-C target-cpu=x86-64" cargo bench --workspace
+
+# ARM64 validation (Apple Silicon)
+RUSTFLAGS="-C target-cpu=apple-m1" cargo test --workspace --release --features mlx
+RUSTFLAGS="-C target-cpu=apple-m1" cargo bench --workspace --features mlx
+
+# Feature compatibility testing
+cargo test --workspace --no-default-features
+cargo test --workspace --all-features
+cargo test --workspace --features "mlx,metal,parallel"
+```
+
+### Production Deployment Commands
+```bash
+# Production build with optimizations
+RUSTFLAGS="-C target-cpu=native -C lto=fat -C panic=abort" cargo build --release --workspace
+
+# Create production containers
+docker build -t bitnet-rust:latest .
+docker build -t bitnet-rust:apple-silicon --build-arg FEATURES="mlx,metal" .
+
+# Kubernetes deployment
+kubectl apply -f deployment/k8s/
+kubectl rollout status deployment/bitnet-inference
+
+# Performance validation in production
+kubectl exec -it deployment/bitnet-inference -- cargo run --package bitnet-benchmarks -- validate --quick
+```
+
+## Advanced Performance Commands
+
+### Memory Analysis and Optimization
+```bash
+# Detailed memory analysis
+cargo run --example memory_tracking_demo --package bitnet-core --release 2>&1 | tee memory_analysis.log
+
+# Memory leak detection
+cargo test --package bitnet-core --release memory_ 2>&1 | grep -E "(LEAK|ERROR)"
+
+# Memory fragmentation analysis
+cargo run --example cleanup_system_demo --package bitnet-core --release --features detailed-metrics
+
+# Memory pressure testing
+cargo run --example memory_pressure_test --package bitnet-core --release --features stress-testing
+```
+
+### GPU and Acceleration Analysis  
+```bash
+# Metal GPU performance deep dive
+cargo run --example metal_performance_analysis --package bitnet-metal --release
+
+# MLX acceleration validation (Apple Silicon)
+cargo run --example mlx_comprehensive_test --package bitnet-core --release --features mlx
+
+# Cross-acceleration comparison
+cargo run --package bitnet-benchmarks -- acceleration-comparison --output acceleration_report.json
+
+# GPU memory utilization
+cargo run --example gpu_memory_analysis --package bitnet-metal --release --features memory-profiling
+```
+
+### Quantization and Model Analysis
+```bash
+# Quantization accuracy analysis
+cargo run --example quantization_accuracy_test --package bitnet-quant --release
+
+# Model conversion and validation
+cargo run --package bitnet-cli -- model convert --input model.safetensors --output model.bitnet --validate
+
+# QAT training validation
+cargo run --example qat_training_demo --package bitnet-training --release --features validation
+
+# BitLinear layer performance
+cargo run --example bitlinear_performance_test --package bitnet-quant --release
 ```
 
 ### Performance Issues

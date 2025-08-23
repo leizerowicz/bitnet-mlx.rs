@@ -40,6 +40,45 @@ The BitNet-Rust project is a production-ready implementation of BitNet neural ne
 - Ensure thread safety for concurrent workloads
 - Validate with comprehensive testing and benchmarking
 
+## Core Architecture Knowledge
+### Workspace Structure
+```
+bitnet-core/
+├── src/
+│   ├── device/          # Device abstraction layer (CPU/Metal/MLX)
+│   ├── memory/          # HybridMemoryPool, metrics, conversion engines
+│   ├── tensor/          # Core tensor operations and broadcasting
+│   ├── mlx/            # MLX Apple Silicon acceleration (feature gated)
+│   ├── mixed_precision/ # Precision control and validation
+│   ├── execution/       # Execution context and device management
+│   ├── sequence/        # Sequence operations for NLP
+│   └── tokenizer/       # Tokenization utilities
+├── examples/           # Performance demos and validation
+└── tests/             # Integration and performance tests
+```
+
+### Key Dependencies and Integration Points
+- **External Crates**: `candle-core`, `mlx-rs` (Apple Silicon), `metal` (GPU), `rayon` (parallelism)
+- **Internal Dependencies**: `bitnet-metal` (GPU shaders), workspace utilities
+- **Feature Flags**: `mlx`, `metal`, `apple-silicon`, `parallel`, `validation`
+
+### Critical Implementation Details
+- **Memory Pool Architecture**: SmallBlockPool (≤64KB) + LargeBlockPool (>64KB) with automatic compaction
+- **Device Selection Logic**: Automatic device selection based on availability (MLX → Metal → CPU)
+- **Zero-Copy Patterns**: Memory mapping, unified memory architecture exploitation, in-place operations
+- **Error Handling Strategy**: `BitNetError` enum with detailed context, graceful degradation patterns
+
+### Performance Monitoring Integration
+- **Real-time Metrics**: Memory allocation/deallocation tracking, device utilization, operation timings
+- **Benchmarking Integration**: Criterion-based performance testing, regression detection, platform comparison
+- **Production Monitoring**: Memory pressure detection, performance anomaly detection, resource utilization
+
+### Production Deployment Considerations
+- **Thread Safety**: All core operations are Arc-wrapped and thread-safe for concurrent workloads
+- **Resource Management**: Automatic cleanup, leak detection, memory pressure handling
+- **Validation**: 100% test coverage for core paths, edge case handling, numerical stability checks
+- **Documentation**: Complete API documentation with performance characteristics and safety requirements
+
 ## Code Standards
 - Use `#[inline]` for hot-path functions
 - Implement proper error handling with descriptive messages
@@ -47,6 +86,10 @@ The BitNet-Rust project is a production-ready implementation of BitNet neural ne
 - Add comprehensive unit tests with edge cases
 - Use criterion for performance benchmarking
 - Follow Rust API guidelines for public interfaces
+- Document performance characteristics in rustdoc comments
+- Include usage examples demonstrating optimal patterns
+- Validate numerical stability with reference implementations
+- Ensure graceful degradation when features unavailable
 
 ## Current Priorities
 1. Complete production-ready linear algebra implementations
