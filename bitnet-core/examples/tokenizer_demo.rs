@@ -1,11 +1,11 @@
 //! Tokenizer Demo
-//! 
+//!
 //! This example demonstrates the usage of the text encoding/decoding functions
 //! provided by the BitNet tokenizer module.
 
-use bitnet_core::tokenizer::{encode_text, decode_tokens, encode_batch, create_simple_tokenizer};
-use std::collections::HashMap;
 use anyhow::Result;
+use bitnet_core::tokenizer::{create_simple_tokenizer, decode_tokens, encode_batch, encode_text};
+use std::collections::HashMap;
 
 fn main() -> Result<()> {
     println!("BitNet Tokenizer Demo");
@@ -33,15 +33,15 @@ fn main() -> Result<()> {
         "hello world",
         "bitnet is awesome",
         "machine learning rocks",
-        "hello bitnet"
+        "hello bitnet",
     ];
-    
+
     let batch_tokens = encode_batch(&tokenizer, &texts)?;
     println!("Input texts:");
     for (i, text) in texts.iter().enumerate() {
         println!("  {i}: '{text}'");
     }
-    
+
     println!("Batch tokens:");
     for (i, tokens) in batch_tokens.iter().enumerate() {
         println!("  {i}: {tokens:?}");
@@ -81,7 +81,7 @@ fn create_demo_tokenizer() -> bitnet_core::tokenizer::Tokenizer {
     vocab.insert("learning".to_string(), 7);
     vocab.insert("rocks".to_string(), 8);
     vocab.insert("<unk>".to_string(), 9); // Unknown token
-    
+
     // Create tokenizer using the new public constructor
     create_simple_tokenizer(vocab)
 }

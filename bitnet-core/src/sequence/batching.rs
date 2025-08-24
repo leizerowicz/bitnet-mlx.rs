@@ -3,11 +3,7 @@
 //! This module provides functionality for efficiently batching variable-length
 //! sequences with dynamic padding and memory optimization.
 
-use super::{
-    SequenceConfig,
-    padding::pad_sequences_to_length,
-    ProcessedSequence, SequenceResult,
-};
+use super::{padding::pad_sequences_to_length, ProcessedSequence, SequenceConfig, SequenceResult};
 use serde::{Deserialize, Serialize};
 
 /// A batch of processed sequences with uniform length
@@ -48,7 +44,10 @@ impl SequenceBatch {
     /// Create a new sequence batch
     pub fn new(sequences: Vec<ProcessedSequence>) -> Self {
         let metadata = BatchMetadata::from_sequences(&sequences);
-        Self { sequences, metadata }
+        Self {
+            sequences,
+            metadata,
+        }
     }
 
     /// Get the sequences in the batch
@@ -78,12 +77,18 @@ impl SequenceBatch {
 
     /// Get all token sequences as a 2D vector
     pub fn token_ids(&self) -> Vec<Vec<u32>> {
-        self.sequences.iter().map(|seq| seq.tokens.clone()).collect()
+        self.sequences
+            .iter()
+            .map(|seq| seq.tokens.clone())
+            .collect()
     }
 
     /// Get all attention masks as a 2D vector
     pub fn attention_masks(&self) -> Vec<Vec<u8>> {
-        self.sequences.iter().map(|seq| seq.attention_mask.clone()).collect()
+        self.sequences
+            .iter()
+            .map(|seq| seq.attention_mask.clone())
+            .collect()
     }
 
     /// Get the maximum sequence length in the batch
@@ -153,16 +158,18 @@ impl SequenceBatch {
 
     /// Get memory usage estimate for the batch
     pub fn memory_usage(&self) -> usize {
-        let token_bytes: usize = self.sequences
+        let token_bytes: usize = self
+            .sequences
             .iter()
             .map(|seq| seq.tokens.len() * std::mem::size_of::<u32>())
             .sum();
-        
-        let mask_bytes: usize = self.sequences
+
+        let mask_bytes: usize = self
+            .sequences
             .iter()
             .map(|seq| seq.attention_mask.len() * std::mem::size_of::<u8>())
             .sum();
-        
+
         token_bytes + mask_bytes
     }
 }
@@ -176,19 +183,20 @@ impl BatchMetadata {
 
         let batch_size = sequences.len();
         let lengths: Vec<usize> = sequences.iter().map(|seq| seq.current_length).collect();
-        let original_lengths: Vec<usize> = sequences.iter().map(|seq| seq.original_length).collect();
-        
+        let original_lengths: Vec<usize> =
+            sequences.iter().map(|seq| seq.original_length).collect();
+
         let max_length = lengths.iter().max().copied().unwrap_or(0);
         let min_length = lengths.iter().min().copied().unwrap_or(0);
         let uniform_length = max_length == min_length;
-        
+
         let total_original_tokens: usize = original_lengths.iter().sum();
         let total_tokens: usize = lengths.iter().sum();
         let total_padding: usize = sequences.iter().map(|seq| seq.padding_added).sum();
-        
+
         let avg_original_length = total_original_tokens as f32 / batch_size as f32;
         let avg_final_length = total_tokens as f32 / batch_size as f32;
-        
+
         let padding_efficiency = if total_tokens > 0 {
             (total_tokens - total_padding) as f32 / total_tokens as f32
         } else {
@@ -298,10 +306,8 @@ impl BatchProcessor {
         }
 
         // Sort by length if requested
-        let mut indexed_sequences: Vec<(usize, Vec<u32>)> = sequences
-            .into_iter()
-            .enumerate()
-            .collect();
+        let mut indexed_sequences: Vec<(usize, Vec<u32>)> =
+            sequences.into_iter().enumerate().collect();
 
         if self.options.sort_by_length {
             indexed_sequences.sort_by_key(|(_, seq)| seq.len());
@@ -330,14 +336,17 @@ impl BatchProcessor {
     }
 
     /// Group sequences by similar lengths
-    fn group_by_length(&self, sequences: Vec<(usize, Vec<u32>)>) -> SequenceResult<Vec<Vec<(usize, Vec<u32>)>>> {
+    fn group_by_length(
+        &self,
+        sequences: Vec<(usize, Vec<u32>)>,
+    ) -> SequenceResult<Vec<Vec<(usize, Vec<u32>)>>> {
         let mut groups = Vec::new();
         let mut current_group = Vec::new();
         let mut current_length_range = None;
 
         for (idx, sequence) in sequences {
             let seq_len = sequence.len();
-            
+
             match current_length_range {
                 None => {
                     // Start first group
@@ -354,7 +363,8 @@ impl BatchProcessor {
                             groups.push(current_group);
                             current_group = Vec::new();
                         }
-                        current_length_range = Some((seq_len, seq_len + self.options.length_tolerance));
+                        current_length_range =
+                            Some((seq_len, seq_len + self.options.length_tolerance));
                         current_group.push((idx, sequence));
                     }
                 }
@@ -370,19 +380,23 @@ impl BatchProcessor {
     }
 
     /// Create batches from a group of similar-length sequences
-    fn create_batches_from_group(&self, group: Vec<(usize, Vec<u32>)>) -> SequenceResult<Vec<SequenceBatch>> {
+    fn create_batches_from_group(
+        &self,
+        group: Vec<(usize, Vec<u32>)>,
+    ) -> SequenceResult<Vec<SequenceBatch>> {
         let mut batches = Vec::new();
         let sequences: Vec<Vec<u32>> = group.into_iter().map(|(_, seq)| seq).collect();
 
         for chunk in sequences.chunks(self.options.max_batch_size) {
             let batch_sequences = chunk.to_vec();
-            
+
             // Check memory constraint if specified
             if let Some(max_memory) = self.options.max_memory_per_batch {
                 let estimated_memory = self.estimate_batch_memory(&batch_sequences);
                 if estimated_memory > max_memory {
                     // Split into smaller batches
-                    let smaller_batches = self.split_for_memory_constraint(batch_sequences, max_memory)?;
+                    let smaller_batches =
+                        self.split_for_memory_constraint(batch_sequences, max_memory)?;
                     batches.extend(smaller_batches);
                     continue;
                 }
@@ -399,10 +413,12 @@ impl BatchProcessor {
     /// Process a batch of sequences into a SequenceBatch
     fn process_batch_sequences(&self, sequences: Vec<Vec<u32>>) -> SequenceResult<SequenceBatch> {
         let pad_token = self.config.pad_token_id.unwrap_or(0);
-        
+
         // Determine target length based on padding strategy
         let lengths: Vec<usize> = sequences.iter().map(|s| s.len()).collect();
-        let target_length = self.config.padding_strategy
+        let target_length = self
+            .config
+            .padding_strategy
             .calculate_target_length(&lengths, self.config.max_length);
 
         // Pad sequences to uniform length
@@ -440,7 +456,9 @@ impl BatchProcessor {
     /// Estimate memory usage for a batch of sequences
     fn estimate_batch_memory(&self, sequences: &[Vec<u32>]) -> usize {
         let lengths: Vec<usize> = sequences.iter().map(|s| s.len()).collect();
-        let target_length = self.config.padding_strategy
+        let target_length = self
+            .config
+            .padding_strategy
             .calculate_target_length(&lengths, self.config.max_length)
             .unwrap_or_else(|| lengths.iter().max().copied().unwrap_or(0));
 
@@ -466,14 +484,14 @@ impl BatchProcessor {
 
         for sequence in sequences {
             current_batch.push(sequence);
-            
+
             let estimated_memory = self.estimate_batch_memory(&current_batch);
             if estimated_memory > max_memory && current_batch.len() > 1 {
                 // Remove the last sequence and process current batch
                 let last_sequence = current_batch.pop().unwrap();
                 let batch = self.process_batch_sequences(current_batch)?;
                 batches.push(batch);
-                
+
                 // Start new batch with the sequence that didn't fit
                 current_batch = vec![last_sequence];
             }
@@ -516,19 +534,19 @@ impl DynamicBatchSampler {
     /// Sample batches from sequences with dynamic sizing
     pub fn sample_batches(&self, sequences: Vec<Vec<u32>>) -> SequenceResult<Vec<Vec<Vec<u32>>>> {
         let mut sequences = sequences;
-        
+
         // Shuffle if requested
         if self.shuffle {
             // Simple shuffle implementation
             use std::collections::hash_map::DefaultHasher;
             use std::hash::{Hash, Hasher};
-            
+
             let seed = self.seed.unwrap_or_else(|| {
                 let mut hasher = DefaultHasher::new();
                 std::time::SystemTime::now().hash(&mut hasher);
                 hasher.finish()
             });
-            
+
             // Fisher-Yates shuffle with deterministic seed
             for i in (1..sequences.len()).rev() {
                 let j = (seed.wrapping_mul(i as u64 + 1) % (i as u64 + 1)) as usize;
@@ -542,18 +560,18 @@ impl DynamicBatchSampler {
 
         for sequence in sequences {
             let seq_len = sequence.len();
-            
+
             // Check if adding this sequence would exceed limits
             let would_exceed_tokens = current_tokens + seq_len > self.max_tokens_per_batch;
             let would_exceed_sequences = current_batch.len() >= self.max_sequences_per_batch;
-            
+
             if (would_exceed_tokens || would_exceed_sequences) && !current_batch.is_empty() {
                 // Finalize current batch
                 batches.push(current_batch);
                 current_batch = Vec::new();
                 current_tokens = 0;
             }
-            
+
             current_batch.push(sequence);
             current_tokens += seq_len;
         }
@@ -578,7 +596,7 @@ mod tests {
             ProcessedSequence::new(vec![1, 2, 3, 0], 3, vec![1, 1, 1, 0], false, true, 0, 1),
             ProcessedSequence::new(vec![4, 5, 0, 0], 2, vec![1, 1, 0, 0], false, true, 0, 2),
         ];
-        
+
         let batch = SequenceBatch::new(sequences);
         assert_eq!(batch.len(), 2);
         assert_eq!(batch.max_length(), 4);
@@ -594,10 +612,10 @@ mod tests {
             ProcessedSequence::new(vec![5, 6], 2, vec![1, 1], false, false, 0, 0),
             ProcessedSequence::new(vec![7, 8], 2, vec![1, 1], false, false, 0, 0),
         ];
-        
+
         let batch = SequenceBatch::new(sequences);
         let split_batches = batch.split(2);
-        
+
         assert_eq!(split_batches.len(), 2);
         assert_eq!(split_batches[0].len(), 2);
         assert_eq!(split_batches[1].len(), 2);
@@ -606,15 +624,15 @@ mod tests {
     #[test]
     fn test_dynamic_batch_sampler() {
         let sequences = vec![
-            vec![1, 2, 3],      // 3 tokens
-            vec![4, 5, 6, 7],   // 4 tokens
-            vec![8, 9],         // 2 tokens
-            vec![10, 11, 12],   // 3 tokens
+            vec![1, 2, 3],    // 3 tokens
+            vec![4, 5, 6, 7], // 4 tokens
+            vec![8, 9],       // 2 tokens
+            vec![10, 11, 12], // 3 tokens
         ];
-        
+
         let sampler = DynamicBatchSampler::new(8, 3); // Max 8 tokens or 3 sequences per batch
         let batches = sampler.sample_batches(sequences).unwrap();
-        
+
         // Should create batches that respect token and sequence limits
         for batch in &batches {
             let total_tokens: usize = batch.iter().map(|seq| seq.len()).sum();
@@ -628,17 +646,13 @@ mod tests {
         let config = SequenceConfig::new()
             .with_padding_strategy(PaddingStrategy::LongestInBatch)
             .with_pad_token_id(0);
-        
+
         let processor = BatchProcessor::new(&config);
-        let sequences = vec![
-            vec![1, 2, 3],
-            vec![4, 5, 6, 7, 8],
-            vec![9, 10],
-        ];
-        
+        let sequences = vec![vec![1, 2, 3], vec![4, 5, 6, 7, 8], vec![9, 10]];
+
         let batches = processor.create_batches(sequences).unwrap();
         assert!(!batches.is_empty());
-        
+
         // All sequences in a batch should have the same length
         for batch in &batches {
             let lengths: Vec<usize> = batch.token_ids().iter().map(|seq| seq.len()).collect();

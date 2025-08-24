@@ -1,13 +1,13 @@
 //! MLX-specific optimization utilities for BitNet
-//! 
+//!
 //! This module provides advanced optimization utilities specifically designed
 //! for MLX operations, including memory management, performance profiling,
 //! kernel fusion, and auto-tuning capabilities.
 
 #[cfg(feature = "mlx")]
-use mlx_rs::{Array, ops};
+use mlx_rs::{ops, Array};
 
-use crate::mlx::{MlxTensor, BitNetMlxDevice};
+use crate::mlx::{BitNetMlxDevice, MlxTensor};
 use anyhow::Result;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -50,7 +50,7 @@ impl MlxMemoryOptimizer {
         device: &BitNetMlxDevice,
     ) -> Result<Array> {
         let key = self.create_pool_key(shape, dtype, device);
-        
+
         // Try to get from pool first
         if let Some(pool) = self.memory_pool.get_mut(&key) {
             if let Some(array) = pool.pop() {
@@ -58,17 +58,17 @@ impl MlxMemoryOptimizer {
                 return Ok(array);
             }
         }
-        
+
         // Create new array if not in pool
         self.allocation_stats.pool_misses += 1;
         self.allocation_stats.total_allocations += 1;
-        
+
         let array = match dtype {
             mlx_rs::Dtype::Float32 => ops::zeros::<f32>(shape)?,
             mlx_rs::Dtype::Float16 => ops::zeros::<f32>(shape)?, // Fallback to f32
             _ => ops::zeros::<f32>(shape)?,
         };
-        
+
         Ok(array)
     }
 
@@ -77,14 +77,14 @@ impl MlxMemoryOptimizer {
         let shape = array.shape();
         let dtype = array.dtype();
         let key = self.create_pool_key(shape, dtype, device);
-        
+
         let pool = self.memory_pool.entry(key).or_insert_with(Vec::new);
-        
+
         // Only add to pool if we haven't exceeded the max size
         if pool.len() < self.max_pool_size {
             pool.push(array);
         }
-        
+
         self.allocation_stats.total_deallocations += 1;
     }
 
@@ -99,7 +99,12 @@ impl MlxMemoryOptimizer {
     }
 
     /// Create a unique key for the memory pool
-    fn create_pool_key(&self, shape: &[i32], dtype: mlx_rs::Dtype, device: &BitNetMlxDevice) -> String {
+    fn create_pool_key(
+        &self,
+        shape: &[i32],
+        dtype: mlx_rs::Dtype,
+        device: &BitNetMlxDevice,
+    ) -> String {
         format!("{:?}_{:?}_{}", shape, dtype, device.device_type())
     }
 
@@ -107,13 +112,13 @@ impl MlxMemoryOptimizer {
     pub fn optimize_batch_layout(&self, tensors: &[&MlxTensor]) -> Result<Vec<Array>> {
         // Group tensors by device and dtype for optimal memory layout
         let mut optimized = Vec::new();
-        
+
         for tensor in tensors {
             // For now, just clone the arrays - in a real implementation,
             // this would reorganize memory layout for better cache performance
             optimized.push(tensor.array().clone());
         }
-        
+
         Ok(optimized)
     }
 }
@@ -144,7 +149,10 @@ impl MlxProfiler {
     pub fn end_operation(&mut self) -> Option<Duration> {
         if let Some((name, start_time)) = self.current_operation.take() {
             let duration = start_time.elapsed();
-            self.operation_times.entry(name).or_insert_with(Vec::new).push(duration);
+            self.operation_times
+                .entry(name)
+                .or_insert_with(Vec::new)
+                .push(duration);
             Some(duration)
         } else {
             None
@@ -162,7 +170,7 @@ impl MlxProfiler {
     /// Get all operation statistics
     pub fn get_all_stats(&self) -> HashMap<String, (Duration, Duration, usize)> {
         let mut stats = HashMap::new();
-        
+
         for (name, times) in &self.operation_times {
             if !times.is_empty() {
                 let total: Duration = times.iter().sum();
@@ -172,7 +180,7 @@ impl MlxProfiler {
                 stats.insert(name.clone(), (avg, max - min, times.len()));
             }
         }
-        
+
         stats
     }
 
@@ -204,7 +212,7 @@ impl MlxKernelFusion {
         let mut fusion = Self {
             fusion_patterns: Vec::new(),
         };
-        
+
         // Add common fusion patterns
         fusion.add_default_patterns();
         fusion
@@ -219,8 +227,10 @@ impl MlxKernelFusion {
             fused_implementation: |arrays| {
                 if arrays.len() >= 3 {
                     // Fused: (a + b) * c
-                    let sum = ops::add(arrays[0], arrays[1]).map_err(|e| anyhow::anyhow!("MLX add failed: {:?}", e))?;
-                    ops::multiply(&sum, arrays[2]).map_err(|e| anyhow::anyhow!("MLX multiply failed: {:?}", e))
+                    let sum = ops::add(arrays[0], arrays[1])
+                        .map_err(|e| anyhow::anyhow!("MLX add failed: {:?}", e))?;
+                    ops::multiply(&sum, arrays[2])
+                        .map_err(|e| anyhow::anyhow!("MLX multiply failed: {:?}", e))
                 } else {
                     Err(anyhow::anyhow!("Insufficient arrays for add_mul fusion"))
                 }
@@ -234,17 +244,25 @@ impl MlxKernelFusion {
             fused_implementation: |arrays| {
                 if arrays.len() >= 3 {
                     // Fused: (a @ b) + bias
-                    let matmul_result = ops::matmul(arrays[0], arrays[1]).map_err(|e| anyhow::anyhow!("MLX matmul failed: {:?}", e))?;
-                    ops::add(&matmul_result, arrays[2]).map_err(|e| anyhow::anyhow!("MLX add failed: {:?}", e))
+                    let matmul_result = ops::matmul(arrays[0], arrays[1])
+                        .map_err(|e| anyhow::anyhow!("MLX matmul failed: {:?}", e))?;
+                    ops::add(&matmul_result, arrays[2])
+                        .map_err(|e| anyhow::anyhow!("MLX add failed: {:?}", e))
                 } else {
-                    Err(anyhow::anyhow!("Insufficient arrays for matmul_add_bias fusion"))
+                    Err(anyhow::anyhow!(
+                        "Insufficient arrays for matmul_add_bias fusion"
+                    ))
                 }
             },
         });
     }
 
     /// Try to fuse operations
-    pub fn try_fuse(&self, operation_sequence: &[String], arrays: &[&Array]) -> Option<Result<Array>> {
+    pub fn try_fuse(
+        &self,
+        operation_sequence: &[String],
+        arrays: &[&Array],
+    ) -> Option<Result<Array>> {
         for pattern in &self.fusion_patterns {
             if self.matches_pattern(&pattern.operations, operation_sequence) {
                 return Some((pattern.fused_implementation)(arrays));
@@ -258,7 +276,7 @@ impl MlxKernelFusion {
         if pattern.len() != sequence.len() {
             return false;
         }
-        
+
         pattern.iter().zip(sequence.iter()).all(|(p, s)| p == s)
     }
 
@@ -290,7 +308,7 @@ impl MlxTensorCache {
     /// Get a tensor from cache
     pub fn get(&mut self, key: &str) -> Option<Array> {
         self.cleanup_expired();
-        
+
         if let Some((array, _)) = self.cache.get(key) {
             Some(array.clone())
         } else {
@@ -301,7 +319,7 @@ impl MlxTensorCache {
     /// Put a tensor in cache
     pub fn put(&mut self, key: String, array: Array) {
         self.cleanup_expired();
-        
+
         // Remove oldest entries if cache is full
         while self.cache.len() >= self.max_size {
             if let Some(oldest_key) = self.find_oldest_key() {
@@ -310,19 +328,21 @@ impl MlxTensorCache {
                 break;
             }
         }
-        
+
         self.cache.insert(key, (array, Instant::now()));
     }
 
     /// Remove expired entries
     fn cleanup_expired(&mut self) {
         let now = Instant::now();
-        self.cache.retain(|_, (_, timestamp)| now.duration_since(*timestamp) < self.ttl);
+        self.cache
+            .retain(|_, (_, timestamp)| now.duration_since(*timestamp) < self.ttl);
     }
 
     /// Find the oldest cache entry
     fn find_oldest_key(&self) -> Option<String> {
-        self.cache.iter()
+        self.cache
+            .iter()
             .min_by_key(|(_, (_, timestamp))| timestamp)
             .map(|(key, _)| key.clone())
     }
@@ -366,7 +386,7 @@ impl MlxAutoTuner {
         F: Fn(&str) -> Result<Duration>,
     {
         let mut results = Vec::new();
-        
+
         for config in &configs {
             match benchmark_fn(config) {
                 Ok(duration) => {
@@ -378,15 +398,20 @@ impl MlxAutoTuner {
                 }
             }
         }
-        
+
         // Find the best configuration (shortest duration)
         if let Some((best_config, _)) = results.iter().min_by_key(|(_, duration)| duration) {
             let best_config_clone = best_config.clone();
-            self.benchmark_results.insert(operation_name.to_string(), results);
-            self.optimal_configs.insert(operation_name.to_string(), best_config_clone.clone());
+            self.benchmark_results
+                .insert(operation_name.to_string(), results);
+            self.optimal_configs
+                .insert(operation_name.to_string(), best_config_clone.clone());
             Ok(best_config_clone)
         } else {
-            Err(anyhow::anyhow!("No valid configurations found for {}", operation_name))
+            Err(anyhow::anyhow!(
+                "No valid configurations found for {}",
+                operation_name
+            ))
         }
     }
 
@@ -430,7 +455,7 @@ impl MlxBatchOptimizer {
     {
         let mut best_batch_size = 1;
         let mut best_throughput = 0.0;
-        
+
         for batch_size in (1..=max_batch_size).step_by(max_batch_size / 10) {
             match benchmark_fn(batch_size) {
                 Ok(duration) => {
@@ -446,8 +471,9 @@ impl MlxBatchOptimizer {
                 }
             }
         }
-        
-        self.optimal_batch_sizes.insert(operation_name.to_string(), best_batch_size);
+
+        self.optimal_batch_sizes
+            .insert(operation_name.to_string(), best_batch_size);
         Ok(best_batch_size)
     }
 
@@ -468,12 +494,12 @@ impl MlxBatchOptimizer {
     {
         let batch_size = self.get_optimal_batch_size(operation_name).unwrap_or(32);
         let mut results = Vec::new();
-        
+
         for chunk in inputs.chunks(batch_size) {
             let batch_results = process_fn(chunk)?;
             results.extend(batch_results);
         }
-        
+
         Ok(results)
     }
 }

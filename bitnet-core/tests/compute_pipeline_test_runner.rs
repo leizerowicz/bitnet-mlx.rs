@@ -12,36 +12,36 @@ mod test_runner {
     #[test]
     fn run_comprehensive_compute_pipeline_tests() {
         println!("🚀 Starting Comprehensive Compute Pipeline Test Suite");
-        println!("=" .repeat(60));
-        
+        println!("=".repeat(60));
+
         let start_time = Instant::now();
         let mut test_results = TestResults::new();
-        
+
         // Phase 1: Basic Infrastructure Tests
         println!("\n📋 Phase 1: Basic Infrastructure Tests");
         println!("-".repeat(40));
         run_infrastructure_tests(&mut test_results);
-        
+
         // Phase 2: Core Compute Pipeline Tests
         println!("\n⚙️ Phase 2: Core Compute Pipeline Tests");
         println!("-".repeat(40));
         run_core_pipeline_tests(&mut test_results);
-        
+
         // Phase 3: BitNet-Specific Tests
         println!("\n🧠 Phase 3: BitNet-Specific Compute Tests");
         println!("-".repeat(40));
         run_bitnet_specific_tests(&mut test_results);
-        
+
         // Phase 4: Integration Tests
         println!("\n🔗 Phase 4: System Integration Tests");
         println!("-".repeat(40));
         run_integration_tests(&mut test_results);
-        
+
         // Phase 5: Performance and Benchmarks
         println!("\n🏃 Phase 5: Performance and Benchmark Tests");
         println!("-".repeat(40));
         run_performance_tests(&mut test_results);
-        
+
         // Final Report
         let total_time = start_time.elapsed();
         print_final_report(&test_results, total_time);
@@ -143,8 +143,11 @@ mod test_runner {
         }
 
         phase_result.duration = start_time.elapsed();
-        println!("  ✅ Infrastructure tests completed in {:?}", phase_result.duration);
-        
+        println!(
+            "  ✅ Infrastructure tests completed in {:?}",
+            phase_result.duration
+        );
+
         results.add_phase(phase_result.clone());
         phase_result
     }
@@ -194,8 +197,11 @@ mod test_runner {
         }
 
         phase_result.duration = start_time.elapsed();
-        println!("  ✅ Core pipeline tests completed in {:?}", phase_result.duration);
-        
+        println!(
+            "  ✅ Core pipeline tests completed in {:?}",
+            phase_result.duration
+        );
+
         results.add_phase(phase_result.clone());
         phase_result
     }
@@ -245,8 +251,11 @@ mod test_runner {
         }
 
         phase_result.duration = start_time.elapsed();
-        println!("  ✅ BitNet specific tests completed in {:?}", phase_result.duration);
-        
+        println!(
+            "  ✅ BitNet specific tests completed in {:?}",
+            phase_result.duration
+        );
+
         results.add_phase(phase_result.clone());
         phase_result
     }
@@ -291,8 +300,11 @@ mod test_runner {
         }
 
         phase_result.duration = start_time.elapsed();
-        println!("  ✅ Integration tests completed in {:?}", phase_result.duration);
-        
+        println!(
+            "  ✅ Integration tests completed in {:?}",
+            phase_result.duration
+        );
+
         results.add_phase(phase_result.clone());
         phase_result
     }
@@ -337,8 +349,11 @@ mod test_runner {
         }
 
         phase_result.duration = start_time.elapsed();
-        println!("  ✅ Performance tests completed in {:?}", phase_result.duration);
-        
+        println!(
+            "  ✅ Performance tests completed in {:?}",
+            phase_result.duration
+        );
+
         results.add_phase(phase_result.clone());
         phase_result
     }
@@ -348,7 +363,7 @@ mod test_runner {
             TestResult::Passed => phase.passed += 1,
             TestResult::Failed => phase.failed += 1,
             TestResult::Skipped => phase.skipped += 1,
-            TestResult::Warning => {}, // Warnings don't count as separate tests
+            TestResult::Warning => {} // Warnings don't count as separate tests
         }
     }
 
@@ -394,7 +409,7 @@ mod test_runner {
     fn test_command_buffer_management(device: &metal::Device) -> TestResult {
         let command_queue = create_command_queue(device);
         let manager = create_command_buffer_manager(device, &command_queue);
-        
+
         match manager.create_command_buffer(CommandBufferPriority::Normal) {
             Ok(cb_id) => {
                 let _ = manager.return_command_buffer(cb_id);
@@ -411,7 +426,7 @@ mod test_runner {
     fn test_synchronization_primitives(device: &metal::Device) -> TestResult {
         let command_queue = create_command_queue(device);
         let synchronizer = create_synchronizer(device, &command_queue);
-        
+
         match synchronizer.create_sync_point() {
             Ok(_) => {
                 println!("    ✅ Synchronization primitives working");
@@ -433,7 +448,7 @@ mod test_runner {
     fn test_compute_encoder_operations(device: &metal::Device) -> TestResult {
         let command_queue = create_command_queue(device);
         let manager = create_command_buffer_manager(device, &command_queue);
-        
+
         match manager.create_command_buffer(CommandBufferPriority::Normal) {
             Ok(cb_id) => {
                 if manager.begin_encoding(cb_id).is_ok() {
@@ -468,18 +483,18 @@ mod test_runner {
                 let command_queue = create_command_queue(device);
                 let command_buffer = command_queue.new_command_buffer();
                 let encoder = command_buffer.new_compute_command_encoder();
-                
+
                 // Test buffer binding
                 set_compute_buffer(&encoder, &buffer, 0, 0);
-                
+
                 // Test parameter setting
                 let params = [256u32];
                 set_compute_bytes(&encoder, &params, 1);
-                
+
                 encoder.end_encoding();
                 command_buffer.commit();
                 command_buffer.wait_until_completed();
-                
+
                 println!("    ✅ Buffer binding and parameters working");
                 TestResult::Passed
             }
@@ -494,21 +509,21 @@ mod test_runner {
         let command_queue = create_command_queue(device);
         let command_buffer = command_queue.new_command_buffer();
         let encoder = command_buffer.new_compute_command_encoder();
-        
+
         // Test dispatch operations
         let threads = metal::MTLSize::new(256, 1, 1);
         let threadgroup = metal::MTLSize::new(32, 1, 1);
-        
+
         dispatch_compute(&encoder, threads, threadgroup);
-        
+
         let threadgroups = metal::MTLSize::new(8, 1, 1);
         let threadgroup_size = metal::MTLSize::new(32, 1, 1);
         dispatch_threadgroups(&encoder, threadgroups, threadgroup_size);
-        
+
         encoder.end_encoding();
         command_buffer.commit();
         command_buffer.wait_until_completed();
-        
+
         println!("    ✅ Dispatch operations working");
         TestResult::Passed
     }
@@ -516,7 +531,7 @@ mod test_runner {
     fn test_error_handling(device: &metal::Device) -> TestResult {
         let command_queue = create_command_queue(device);
         let manager = create_command_buffer_manager(device, &command_queue);
-        
+
         // Test invalid command buffer operations
         let invalid_result = manager.begin_encoding(99999);
         if invalid_result.is_err() {
@@ -544,18 +559,16 @@ mod test_runner {
 
     fn test_bitlinear_operations(device: &metal::Device) -> TestResult {
         match BitNetShaders::new(device.clone()) {
-            Ok(shaders) => {
-                match shaders.get_pipeline(BitNetShaderFunction::BitLinearForward) {
-                    Ok(_) => {
-                        println!("    ✅ BitLinear operations available");
-                        TestResult::Passed
-                    }
-                    Err(_) => {
-                        println!("    ⚠️ BitLinear operations not available (shader missing)");
-                        TestResult::Warning
-                    }
+            Ok(shaders) => match shaders.get_pipeline(BitNetShaderFunction::BitLinearForward) {
+                Ok(_) => {
+                    println!("    ✅ BitLinear operations available");
+                    TestResult::Passed
                 }
-            }
+                Err(_) => {
+                    println!("    ⚠️ BitLinear operations not available (shader missing)");
+                    TestResult::Warning
+                }
+            },
             Err(_) => {
                 println!("    ⚠️ BitNet shaders not available");
                 TestResult::Warning
@@ -565,18 +578,16 @@ mod test_runner {
 
     fn test_quantization_operations(device: &metal::Device) -> TestResult {
         match BitNetShaders::new(device.clone()) {
-            Ok(shaders) => {
-                match shaders.get_pipeline(BitNetShaderFunction::QuantizeWeights1Bit) {
-                    Ok(_) => {
-                        println!("    ✅ Quantization operations available");
-                        TestResult::Passed
-                    }
-                    Err(_) => {
-                        println!("    ⚠️ Quantization operations not available (shader missing)");
-                        TestResult::Warning
-                    }
+            Ok(shaders) => match shaders.get_pipeline(BitNetShaderFunction::QuantizeWeights1Bit) {
+                Ok(_) => {
+                    println!("    ✅ Quantization operations available");
+                    TestResult::Passed
                 }
-            }
+                Err(_) => {
+                    println!("    ⚠️ Quantization operations not available (shader missing)");
+                    TestResult::Warning
+                }
+            },
             Err(_) => {
                 println!("    ⚠️ BitNet shaders not available");
                 TestResult::Warning
@@ -586,18 +597,16 @@ mod test_runner {
 
     fn test_activation_functions(device: &metal::Device) -> TestResult {
         match BitNetShaders::new(device.clone()) {
-            Ok(shaders) => {
-                match shaders.get_pipeline(BitNetShaderFunction::ReluForward) {
-                    Ok(_) => {
-                        println!("    ✅ Activation functions available");
-                        TestResult::Passed
-                    }
-                    Err(_) => {
-                        println!("    ⚠️ Activation functions not available (shader missing)");
-                        TestResult::Warning
-                    }
+            Ok(shaders) => match shaders.get_pipeline(BitNetShaderFunction::ReluForward) {
+                Ok(_) => {
+                    println!("    ✅ Activation functions available");
+                    TestResult::Passed
                 }
-            }
+                Err(_) => {
+                    println!("    ⚠️ Activation functions not available (shader missing)");
+                    TestResult::Warning
+                }
+            },
             Err(_) => {
                 println!("    ⚠️ BitNet shaders not available");
                 TestResult::Warning
@@ -607,18 +616,16 @@ mod test_runner {
 
     fn test_mixed_precision_operations(device: &metal::Device) -> TestResult {
         match BitNetShaders::new(device.clone()) {
-            Ok(shaders) => {
-                match shaders.get_pipeline(BitNetShaderFunction::MixedPrecisionMatmul) {
-                    Ok(_) => {
-                        println!("    ✅ Mixed precision operations available");
-                        TestResult::Passed
-                    }
-                    Err(_) => {
-                        println!("    ⚠️ Mixed precision operations not available (shader missing)");
-                        TestResult::Warning
-                    }
+            Ok(shaders) => match shaders.get_pipeline(BitNetShaderFunction::MixedPrecisionMatmul) {
+                Ok(_) => {
+                    println!("    ✅ Mixed precision operations available");
+                    TestResult::Passed
                 }
-            }
+                Err(_) => {
+                    println!("    ⚠️ Mixed precision operations not available (shader missing)");
+                    TestResult::Warning
+                }
+            },
             Err(_) => {
                 println!("    ⚠️ BitNet shaders not available");
                 TestResult::Warning
@@ -631,27 +638,25 @@ mod test_runner {
         let pool = create_buffer_pool(device);
         let command_queue = create_command_queue(device);
         let manager = create_command_buffer_manager(device, &command_queue);
-        
+
         match pool.get_buffer(1024, metal::MTLResourceOptions::StorageModeShared) {
-            Ok(buffer) => {
-                match manager.create_command_buffer(CommandBufferPriority::Normal) {
-                    Ok(cb_id) => {
-                        if manager.add_resource(cb_id, buffer.clone()).is_ok() {
-                            let _ = pool.return_buffer(buffer);
-                            let _ = manager.return_command_buffer(cb_id);
-                            println!("    ✅ Memory integration working");
-                            TestResult::Passed
-                        } else {
-                            println!("    ❌ Memory integration failed");
-                            TestResult::Failed
-                        }
-                    }
-                    Err(_) => {
+            Ok(buffer) => match manager.create_command_buffer(CommandBufferPriority::Normal) {
+                Ok(cb_id) => {
+                    if manager.add_resource(cb_id, buffer.clone()).is_ok() {
+                        let _ = pool.return_buffer(buffer);
+                        let _ = manager.return_command_buffer(cb_id);
+                        println!("    ✅ Memory integration working");
+                        TestResult::Passed
+                    } else {
                         println!("    ❌ Memory integration failed");
                         TestResult::Failed
                     }
                 }
-            }
+                Err(_) => {
+                    println!("    ❌ Memory integration failed");
+                    TestResult::Failed
+                }
+            },
             Err(_) => {
                 println!("    ❌ Memory integration failed");
                 TestResult::Failed
@@ -660,30 +665,26 @@ mod test_runner {
     }
 
     fn test_tensor_integration(device: &metal::Device) -> TestResult {
-        use bitnet_core::{Device, DType, Tensor};
-        
+        use bitnet_core::{DType, Device, Tensor};
+
         let bitnet_device = Device::Metal(device.clone());
         match Tensor::zeros(&[4, 4], DType::F32, &bitnet_device) {
-            Ok(tensor) => {
-                match tensor.to_vec1::<f32>() {
-                    Ok(data) => {
-                        match create_buffer(device, &data) {
-                            Ok(_buffer) => {
-                                println!("    ✅ Tensor integration working");
-                                TestResult::Passed
-                            }
-                            Err(_) => {
-                                println!("    ❌ Tensor integration failed");
-                                TestResult::Failed
-                            }
-                        }
+            Ok(tensor) => match tensor.to_vec1::<f32>() {
+                Ok(data) => match create_buffer(device, &data) {
+                    Ok(_buffer) => {
+                        println!("    ✅ Tensor integration working");
+                        TestResult::Passed
                     }
                     Err(_) => {
                         println!("    ❌ Tensor integration failed");
                         TestResult::Failed
                     }
+                },
+                Err(_) => {
+                    println!("    ❌ Tensor integration failed");
+                    TestResult::Failed
                 }
-            }
+            },
             Err(_) => {
                 println!("    ❌ Tensor integration failed");
                 TestResult::Failed
@@ -696,35 +697,33 @@ mod test_runner {
         let pool = create_buffer_pool(device);
         let command_queue = create_command_queue(device);
         let manager = create_command_buffer_manager(device, &command_queue);
-        
+
         // Test compatibility between systems
         match pool.get_buffer(512, metal::MTLResourceOptions::StorageModeShared) {
-            Ok(buffer) => {
-                match manager.create_command_buffer(CommandBufferPriority::Normal) {
-                    Ok(cb_id) => {
-                        if manager.begin_encoding(cb_id).is_ok() {
-                            if let Ok(encoder) = manager.create_compute_encoder(cb_id) {
-                                set_compute_buffer(&encoder, &buffer, 0, 0);
-                                encoder.end_encoding();
-                                let _ = manager.commit_and_wait(cb_id);
-                                let _ = pool.return_buffer(buffer);
-                                println!("    ✅ Cross-system compatibility working");
-                                TestResult::Passed
-                            } else {
-                                println!("    ❌ Cross-system compatibility failed");
-                                TestResult::Failed
-                            }
+            Ok(buffer) => match manager.create_command_buffer(CommandBufferPriority::Normal) {
+                Ok(cb_id) => {
+                    if manager.begin_encoding(cb_id).is_ok() {
+                        if let Ok(encoder) = manager.create_compute_encoder(cb_id) {
+                            set_compute_buffer(&encoder, &buffer, 0, 0);
+                            encoder.end_encoding();
+                            let _ = manager.commit_and_wait(cb_id);
+                            let _ = pool.return_buffer(buffer);
+                            println!("    ✅ Cross-system compatibility working");
+                            TestResult::Passed
                         } else {
                             println!("    ❌ Cross-system compatibility failed");
                             TestResult::Failed
                         }
-                    }
-                    Err(_) => {
+                    } else {
                         println!("    ❌ Cross-system compatibility failed");
                         TestResult::Failed
                     }
                 }
-            }
+                Err(_) => {
+                    println!("    ❌ Cross-system compatibility failed");
+                    TestResult::Failed
+                }
+            },
             Err(_) => {
                 println!("    ❌ Cross-system compatibility failed");
                 TestResult::Failed
@@ -742,28 +741,28 @@ mod test_runner {
     fn test_throughput_benchmarks(device: &metal::Device) -> TestResult {
         let command_queue = create_command_queue(device);
         let test_data = vec![1.0f32; 1024];
-        
+
         match create_buffer(device, &test_data) {
             Ok(buffer) => {
                 let start_time = Instant::now();
-                
+
                 for _ in 0..10 {
                     let command_buffer = command_queue.new_command_buffer();
                     let encoder = command_buffer.new_compute_command_encoder();
-                    
+
                     set_compute_buffer(&encoder, &buffer, 0, 0);
                     let threads = metal::MTLSize::new(1024, 1, 1);
                     let threadgroup = metal::MTLSize::new(32, 1, 1);
                     dispatch_compute(&encoder, threads, threadgroup);
-                    
+
                     encoder.end_encoding();
                     command_buffer.commit();
                     command_buffer.wait_until_completed();
                 }
-                
+
                 let elapsed = start_time.elapsed();
                 let ops_per_sec = 10.0 / elapsed.as_secs_f64();
-                
+
                 println!("    ✅ Throughput: {:.1} ops/sec", ops_per_sec);
                 TestResult::Passed
             }
@@ -777,30 +776,31 @@ mod test_runner {
     fn test_latency_benchmarks(device: &metal::Device) -> TestResult {
         let command_queue = create_command_queue(device);
         let test_data = vec![1.0f32; 256];
-        
+
         match create_buffer(device, &test_data) {
             Ok(buffer) => {
                 let mut latencies = Vec::new();
-                
+
                 for _ in 0..5 {
                     let start_time = Instant::now();
-                    
+
                     let command_buffer = command_queue.new_command_buffer();
                     let encoder = command_buffer.new_compute_command_encoder();
-                    
+
                     set_compute_buffer(&encoder, &buffer, 0, 0);
                     let threads = metal::MTLSize::new(256, 1, 1);
                     let threadgroup = metal::MTLSize::new(32, 1, 1);
                     dispatch_compute(&encoder, threads, threadgroup);
-                    
+
                     encoder.end_encoding();
                     command_buffer.commit();
                     command_buffer.wait_until_completed();
-                    
+
                     latencies.push(start_time.elapsed());
                 }
-                
-                let avg_latency = latencies.iter().sum::<std::time::Duration>() / latencies.len() as u32;
+
+                let avg_latency =
+                    latencies.iter().sum::<std::time::Duration>() / latencies.len() as u32;
                 println!("    ✅ Average latency: {:.2}ms", avg_latency.as_millis());
                 TestResult::Passed
             }
@@ -814,25 +814,25 @@ mod test_runner {
     fn test_scaling_performance(device: &metal::Device) -> TestResult {
         let command_queue = create_command_queue(device);
         let sizes = [256, 512, 1024, 2048];
-        
+
         for &size in &sizes {
             let test_data = vec![1.0f32; size];
             match create_buffer(device, &test_data) {
                 Ok(buffer) => {
                     let start_time = Instant::now();
-                    
+
                     let command_buffer = command_queue.new_command_buffer();
                     let encoder = command_buffer.new_compute_command_encoder();
-                    
+
                     set_compute_buffer(&encoder, &buffer, 0, 0);
                     let threads = metal::MTLSize::new(size as u64, 1, 1);
                     let threadgroup = metal::MTLSize::new(32, 1, 1);
                     dispatch_compute(&encoder, threads, threadgroup);
-                    
+
                     encoder.end_encoding();
                     command_buffer.commit();
                     command_buffer.wait_until_completed();
-                    
+
                     let elapsed = start_time.elapsed();
                     let throughput = (size as f64) / elapsed.as_secs_f64() / 1e6;
                     println!("      Size {}: {:.1}M elem/sec", size, throughput);
@@ -843,18 +843,18 @@ mod test_runner {
                 }
             }
         }
-        
+
         println!("    ✅ Scaling performance tested");
         TestResult::Passed
     }
 
     fn test_memory_efficiency(device: &metal::Device) -> TestResult {
         let pool = create_buffer_pool(device);
-        
+
         // Test memory efficiency with multiple allocations
         let mut buffers = Vec::new();
         let sizes = [512, 1024, 2048];
-        
+
         // Allocate buffers
         for &size in &sizes {
             for _ in 0..3 {
@@ -867,12 +867,12 @@ mod test_runner {
                 }
             }
         }
-        
+
         // Return buffers
         for buffer in buffers {
             let _ = pool.return_buffer(buffer);
         }
-        
+
         // Check pool statistics
         let stats = pool.get_stats();
         let efficiency = if stats.total_allocations > 0 {
@@ -880,8 +880,11 @@ mod test_runner {
         } else {
             0.0
         };
-        
-        println!("    ✅ Memory efficiency: {:.1}% cache hit rate", efficiency);
+
+        println!(
+            "    ✅ Memory efficiency: {:.1}% cache hit rate",
+            efficiency
+        );
         TestResult::Passed
     }
 
@@ -889,20 +892,20 @@ mod test_runner {
         println!("\n" + &"=".repeat(60));
         println!("🏁 COMPUTE PIPELINE TEST SUITE COMPLETE");
         println!("=".repeat(60));
-        
+
         println!("\n📊 OVERALL RESULTS:");
         println!("  ✅ Passed:   {}", results.passed);
         println!("  ❌ Failed:   {}", results.failed);
         println!("  ⏭️ Skipped:  {}", results.skipped);
         println!("  ⚠️ Warnings: {}", results.warnings);
         println!("  ⏱️ Total Time: {:?}", total_time);
-        
+
         let total_tests = results.passed + results.failed + results.skipped;
         if total_tests > 0 {
             let success_rate = (results.passed as f64 / total_tests as f64) * 100.0;
             println!("  📈 Success Rate: {:.1}%", success_rate);
         }
-        
+
         println!("\n📋 PHASE BREAKDOWN:");
         for phase in &results.phase_results {
             let phase_total = phase.passed + phase.failed + phase.skipped;
@@ -911,12 +914,14 @@ mod test_runner {
             } else {
                 0.0
             };
-            
+
             println!("  {} Phase:", phase.name);
-            println!("    ✅ {}, ❌ {}, ⏭️ {} ({:.1}% success) - {:?}",
-                   phase.passed, phase.failed, phase.skipped, phase_success, phase.duration);
+            println!(
+                "    ✅ {}, ❌ {}, ⏭️ {} ({:.1}% success) - {:?}",
+                phase.passed, phase.failed, phase.skipped, phase_success, phase.duration
+            );
         }
-        
+
         println!("\n🎯 RECOMMENDATIONS:");
         if results.failed > 0 {
             println!("  • Review failed tests and fix underlying issues");
@@ -930,7 +935,7 @@ mod test_runner {
         if results.failed == 0 && results.warnings == 0 {
             println!("  • All tests passed! Compute pipeline is working correctly");
         }
-        
+
         println!("\n" + &"=".repeat(60));
     }
 }

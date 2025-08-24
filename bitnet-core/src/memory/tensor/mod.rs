@@ -57,6 +57,6 @@ pub mod tensor;
 
 // Re-exports
 pub use dtype::BitNetDType;
-pub use handle::{TensorHandle, TensorData};
+pub use handle::{TensorData, TensorHandle};
 pub use metadata::TensorMetadata;
 pub use tensor::BitNetTensor;

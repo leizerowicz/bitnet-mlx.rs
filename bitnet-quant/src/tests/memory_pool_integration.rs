@@ -49,7 +49,7 @@ impl MemoryPoolIntegrationResults {
     }
 
     pub fn has_critical_issues(&self) -> bool {
-        self.memory_leaks_detected > 0 || 
+        self.memory_leaks_detected > 0 ||
         self.concurrent_test_results.thread_safety_violations > 0 ||
         self.resource_cleanup_score < 0.9
     }
@@ -85,7 +85,7 @@ pub fn run_memory_pool_integration_tests(device: &Device) -> QuantizationResult<
 
     // Calculate performance metrics
     results.performance_metrics = calculate_pool_performance_metrics(&pool)?;
-    
+
     // Calculate overall resource cleanup score
     results.resource_cleanup_score = calculate_cleanup_score(&pool);
 
@@ -116,17 +116,17 @@ fn test_basic_quantization_with_pool(
         let quantizer = create_ternary_quantizer(TernaryMethod::OptimalThreshold, Some(0.7))?;
 
         let initial_stats = pool.get_stats();
-        
+
         // Perform quantization
         let quantization_result = quantizer.quantize(&tensor);
-        
+
         match quantization_result {
             Ok(result) => {
                 // Verify the quantization worked
                 if !validate_quantization_with_memory(&result, &initial_stats, pool) {
                     all_passed = false;
                 }
-                
+
                 // Test dequantization
                 if quantizer.dequantize(&result).is_err() {
                     all_passed = false;
@@ -165,19 +165,19 @@ fn test_memory_leak_detection(
     // Perform multiple quantization cycles
     for i in 0..10 {
         let tensor = generate_test_tensor(
-            TestPattern::NormalDistribution, 
-            &[64], 
+            TestPattern::NormalDistribution,
+            &[64],
             device
         )?;
-        
+
         let quantizer = create_ternary_quantizer(
-            TernaryMethod::AdaptiveThreshold, 
+            TernaryMethod::AdaptiveThreshold,
             Some(0.5 + (i as f32) * 0.05)
         )?;
 
         // Quantize and immediately drop results
         let _ = quantizer.quantize(&tensor)?;
-        
+
         // Force cleanup
         if i % 3 == 0 {
             pool.cleanup();
@@ -187,7 +187,7 @@ fn test_memory_leak_detection(
     // Check for memory leaks
     let final_stats = pool.get_stats();
     let leaked_bytes = final_stats.total_allocated_bytes.saturating_sub(initial_stats.total_allocated_bytes);
-    
+
     if leaked_bytes == 0 && harness.verify_no_leaks() {
         results.pool_tests_passed += 1;
     } else {
@@ -250,8 +250,8 @@ fn test_large_tensor_quantization(
 
     for shape in large_shapes {
         let tensor = generate_test_tensor(
-            TestPattern::SparseWeights, 
-            &shape, 
+            TestPattern::SparseWeights,
+            &shape,
             device
         )?;
 
@@ -263,7 +263,7 @@ fn test_large_tensor_quantization(
                 if result.values.elem_count() != tensor.elem_count() {
                     all_passed = false;
                 }
-                
+
                 // Test dequantization of large tensor
                 if quantizer.dequantize(&result).is_err() {
                     all_passed = false;
@@ -279,7 +279,7 @@ fn test_large_tensor_quantization(
     // Check memory usage didn't explode
     let final_stats = pool.get_stats();
     let memory_growth = final_stats.peak_memory_usage_bytes as f64 / initial_stats.peak_memory_usage_bytes as f64;
-    
+
     if memory_growth > 10.0 { // More than 10x growth indicates a problem
         all_passed = false;
     }
@@ -311,7 +311,7 @@ fn test_memory_pressure_scenarios(
             &[128, 128],
             device
         )?;
-        
+
         match quantizer.quantize(&tensor) {
             Ok(result) => {
                 tensors.push(tensor);
@@ -382,9 +382,9 @@ fn test_allocation_strategies(
                     &[256, 256],
                     device
                 )?;
-                
+
                 let quantizer = create_ternary_quantizer(TernaryMethod::AdaptiveThreshold, Some(0.7))?;
-                
+
                 if quantizer.quantize(&tensor).is_err() {
                     all_strategies_work = false;
                 }
@@ -414,7 +414,7 @@ fn test_resource_cleanup(
     results.pool_tests_run += 1;
 
     let initial_stats = pool.get_stats();
-    
+
     // Allocate and deallocate many tensors
     for _ in 0..50 {
         let tensor = generate_test_tensor(
@@ -429,9 +429,9 @@ fn test_resource_cleanup(
 
     // Force cleanup
     pool.cleanup();
-    
+
     let final_stats = pool.get_stats();
-    
+
     // Check that memory usage returned close to initial levels
     let memory_efficiency = if final_stats.total_allocated_bytes <= initial_stats.total_allocated_bytes + 1024 {
         1.0
@@ -454,7 +454,7 @@ fn validate_quantization_with_memory(
     pool: &HybridMemoryPool
 ) -> bool {
     let current_stats = pool.get_stats();
-    
+
     // Check that quantization succeeded
     result.values.elem_count() > 0 &&
     result.stats.scale_factor > 0.0 &&
@@ -466,7 +466,7 @@ fn calculate_pool_performance_metrics(
     pool: &HybridMemoryPool
 ) -> QuantizationResult<PoolPerformanceMetrics> {
     let stats = pool.get_stats();
-    
+
     Ok(PoolPerformanceMetrics {
         average_allocation_time_ns: stats.average_allocation_time_ns,
         average_deallocation_time_ns: stats.average_deallocation_time_ns,
@@ -480,12 +480,12 @@ fn calculate_fragmentation_ratio(stats: &MemoryStats) -> f64 {
     if stats.total_capacity_bytes == 0 {
         return 0.0;
     }
-    
+
     let free_bytes = stats.total_capacity_bytes - stats.total_allocated_bytes;
     let fragmentation = if stats.largest_free_block_bytes == 0 { 1.0 } else {
         1.0 - (stats.largest_free_block_bytes as f64 / free_bytes as f64)
     };
-    
+
     fragmentation.max(0.0).min(1.0)
 }
 
@@ -493,25 +493,25 @@ fn calculate_efficiency_score(stats: &MemoryStats) -> f64 {
     if stats.total_allocations == 0 {
         return 1.0;
     }
-    
+
     let success_rate = 1.0 - (stats.failed_allocations as f64 / stats.total_allocations as f64);
     let fragmentation_penalty = 1.0 - calculate_fragmentation_ratio(stats);
-    
+
     (success_rate + fragmentation_penalty) / 2.0
 }
 
 fn calculate_cleanup_score(pool: &HybridMemoryPool) -> f64 {
     let stats = pool.get_stats();
-    
+
     // Score based on how well the pool manages memory
     let allocation_success_rate = if stats.total_allocations == 0 { 1.0 } else {
         1.0 - (stats.failed_allocations as f64 / stats.total_allocations as f64)
     };
-    
+
     let memory_utilization = if stats.total_capacity_bytes == 0 { 1.0 } else {
         1.0 - (stats.total_allocated_bytes as f64 / stats.total_capacity_bytes as f64).min(1.0)
     };
-    
+
     // Weighted average favoring allocation success
     0.7 * allocation_success_rate + 0.3 * memory_utilization
 }
@@ -524,7 +524,7 @@ mod tests {
     fn test_memory_pool_integration() {
         let device = create_test_device();
         let results = run_memory_pool_integration_tests(&device).unwrap();
-        
+
         assert!(results.pool_tests_run > 0);
         assert!(results.success_rate() > 0.5); // At least half should pass
         assert!(!results.has_critical_issues());
@@ -535,7 +535,7 @@ mod tests {
         let device = create_test_device();
         let pool = Arc::new(HybridMemoryPool::new(device.clone()));
         let mut results = MemoryPoolIntegrationResults::default();
-        
+
         test_basic_quantization_with_pool(&pool, &device, &mut results).unwrap();
         assert!(results.pool_tests_run > 0);
     }
@@ -545,7 +545,7 @@ mod tests {
         let device = create_test_device();
         let pool = Arc::new(HybridMemoryPool::new(device.clone()));
         let mut results = MemoryPoolIntegrationResults::default();
-        
+
         test_memory_leak_detection(&pool, &device, &mut results).unwrap();
         assert_eq!(results.memory_leaks_detected, 0);
     }

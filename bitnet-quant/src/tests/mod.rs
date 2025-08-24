@@ -61,7 +61,7 @@ pub use numerical_stability::NumericalStabilityResults;
 pub use performance_regression::PerformanceRegressionResults;
 
 use crate::quantization::{
-    QuantizationError, TernaryMethod, WeightQuantizer, 
+    QuantizationError, TernaryMethod, WeightQuantizer,
     QuantizationResult, WeightQuantizationConfig
 };
 use candle_core::{Device, Tensor};
@@ -241,7 +241,7 @@ impl TestSuiteResults {
             self.round_trip_accuracy.overall_success_rate +
             self.scaling_factor_validation.overall_success_rate
         ) / 3.0;
-        
+
         total_tests += 3;
         passed_tests += (core_success_rate * 3.0) as usize;
 

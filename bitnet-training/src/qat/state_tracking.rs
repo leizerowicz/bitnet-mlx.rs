@@ -3,13 +3,10 @@
 
 use candle_core::Device;
 use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
 use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 
-use super::{
-    straight_through::STEStatistics,
-    regularization::RegularizationStats,
-};
+use super::{regularization::RegularizationStats, straight_through::STEStatistics};
 
 /// Comprehensive QAT training state
 #[derive(Debug, Clone)]
@@ -18,30 +15,30 @@ pub struct QATTrainingState {
     pub epoch: usize,
     pub step: usize,
     pub learning_rate: f32,
-    
+
     // Loss tracking
     pub current_loss: f32,
     pub loss_history: Vec<f32>,
     pub validation_loss: Option<f32>,
     pub validation_history: Vec<f32>,
-    
+
     // Quantization metrics
     pub quantization_error: f32,
     pub ste_statistics: HashMap<String, STEStatistics>,
-    
+
     // Regularization state
     pub regularization_stats: Option<RegularizationStats>,
-    
+
     // Training performance
     pub training_time: f64, // seconds
     pub samples_processed: usize,
     pub throughput: f32, // samples per second
-    
+
     // Model performance
     pub validation_accuracy: Option<f32>,
     pub quantized_model_size: Option<usize>, // bytes
     pub compression_ratio: Option<f32>,
-    
+
     // Checkpointing info
     pub last_checkpoint_step: usize,
     pub checkpoint_path: Option<String>,
@@ -54,7 +51,7 @@ impl QATTrainingState {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
-            
+
         Self {
             epoch: 0,
             step: 0,
@@ -95,7 +92,7 @@ impl QATTrainingState {
         self.loss_history.push(loss);
         self.samples_processed += samples_this_step;
         self.training_time += step_time;
-        
+
         // Update throughput
         if self.training_time > 0.0 {
             self.throughput = self.samples_processed as f32 / self.training_time as f32;
@@ -118,7 +115,7 @@ impl QATTrainingState {
         } else {
             0.0
         };
-        
+
         self.ste_statistics = stats;
     }
 
@@ -133,7 +130,11 @@ impl QATTrainingState {
             epoch: self.epoch,
             step: self.step,
             current_loss: self.current_loss,
-            best_validation_loss: self.validation_history.iter().min_by(|a, b| a.partial_cmp(b).unwrap()).copied(),
+            best_validation_loss: self
+                .validation_history
+                .iter()
+                .min_by(|a, b| a.partial_cmp(b).unwrap())
+                .copied(),
             average_quantization_error: self.quantization_error,
             training_time: self.training_time,
             throughput: self.throughput,
@@ -141,6 +142,37 @@ impl QATTrainingState {
             validation_accuracy: self.validation_accuracy,
             compression_ratio: self.compression_ratio,
         }
+    }
+
+    /// Record loss value for tracking
+    pub fn record_loss(&mut self, loss: f32) {
+        self.current_loss = loss;
+        self.loss_history.push(loss);
+    }
+
+    /// Get loss history
+    pub fn get_loss_history(&self) -> &Vec<f32> {
+        &self.loss_history
+    }
+
+    /// Check if training is converging based on loss trend
+    pub fn is_converging(&self) -> bool {
+        if self.loss_history.len() < 5 {
+            return false;
+        }
+
+        // Simple convergence check: look at loss trend over last 5 steps
+        let recent_losses: Vec<f32> = self.loss_history.iter().rev().take(5).copied().collect();
+        let mut decreasing_trend = 0;
+
+        for i in 1..recent_losses.len() {
+            if recent_losses[i] < recent_losses[i - 1] {
+                decreasing_trend += 1;
+            }
+        }
+
+        // Consider converging if at least 3 out of 4 recent steps show improvement
+        decreasing_trend >= 3
     }
 }
 
@@ -163,11 +195,11 @@ pub struct TrainingMetrics {
 pub struct QATStateTracker {
     state: QATTrainingState,
     device: Device,
-    
+
     // Configuration
     checkpoint_frequency: usize,
     max_history_length: usize,
-    
+
     // Statistics tracking
     layer_statistics: HashMap<String, Vec<f32>>,
     performance_history: Vec<TrainingMetrics>,
@@ -186,25 +218,29 @@ impl QATStateTracker {
     }
 
     /// Update training state
-    pub fn update(&mut self, 
-        epoch: usize, 
-        step: usize, 
-        learning_rate: f32, 
+    pub fn update(
+        &mut self,
+        epoch: usize,
+        step: usize,
+        learning_rate: f32,
         loss: f32,
         samples: usize,
-        step_time: f64
+        step_time: f64,
     ) {
-        self.state.update_training_metrics(epoch, step, learning_rate, loss, samples, step_time);
-        
+        self.state
+            .update_training_metrics(epoch, step, learning_rate, loss, samples, step_time);
+
         // Trim history if too long
         if self.state.loss_history.len() > self.max_history_length {
-            self.state.loss_history.truncate(self.max_history_length / 2);
+            self.state
+                .loss_history
+                .truncate(self.max_history_length / 2);
         }
-        
+
         // Update performance history
         let metrics = self.state.get_summary();
         self.performance_history.push(metrics);
-        
+
         // Trim performance history
         if self.performance_history.len() > 1000 {
             self.performance_history.truncate(500);
@@ -213,7 +249,8 @@ impl QATStateTracker {
 
     /// Update with validation results
     pub fn update_validation(&mut self, validation_loss: f32, accuracy: Option<f32>) {
-        self.state.update_validation_metrics(validation_loss, accuracy);
+        self.state
+            .update_validation_metrics(validation_loss, accuracy);
     }
 
     /// Update quantization statistics
@@ -269,9 +306,13 @@ impl CheckpointManager {
     }
 
     /// Save training state (simplified - in practice would use proper serialization)
-    pub fn save_state(&self, state: &QATTrainingState, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn save_state(
+        &self,
+        state: &QATTrainingState,
+        filename: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let path = Path::new(&self.checkpoint_dir).join(filename);
-        
+
         // Create directory if it doesn't exist
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
@@ -302,10 +343,13 @@ impl CheckpointManager {
     }
 
     /// Load training state (simplified)
-    pub fn load_state(&self, filename: &str) -> Result<QATTrainingState, Box<dyn std::error::Error>> {
+    pub fn load_state(
+        &self,
+        filename: &str,
+    ) -> Result<QATTrainingState, Box<dyn std::error::Error>> {
         let path = Path::new(&self.checkpoint_dir).join(filename);
         let _content = std::fs::read_to_string(path)?;
-        
+
         // In a real implementation, we would deserialize from JSON/bincode
         // For now, return a new state
         Ok(QATTrainingState::new())
@@ -315,7 +359,7 @@ impl CheckpointManager {
     pub fn list_checkpoints(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let dir = std::fs::read_dir(&self.checkpoint_dir)?;
         let mut checkpoints = Vec::new();
-        
+
         for entry in dir {
             let entry = entry?;
             if let Some(filename) = entry.file_name().to_str() {
@@ -324,7 +368,7 @@ impl CheckpointManager {
                 }
             }
         }
-        
+
         checkpoints.sort();
         Ok(checkpoints)
     }

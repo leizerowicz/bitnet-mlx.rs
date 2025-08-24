@@ -5,18 +5,23 @@
 //! and performance optimization.
 
 use bitnet_core::{
-    mixed_precision::{
-        MixedPrecisionConfig, LayerPrecisionConfig, ComponentPrecisionConfig,
-        LayerType, ComponentType, MixedPrecisionStrategy,
-        layer_precision::{LayerPrecisionSpec, LayerPrecisionManager},
-        precision_manager::{PrecisionManager, OptimizationObjective},
-        conversion::{PrecisionConverter, ConversionConfig, ConversionStrategy},
-        validation::PrecisionValidator,
-        policy::{PolicyEngine, PrecisionPolicy, PolicyRule, PolicyAction,
-                PolicyCondition, ConditionType, ConditionOperator, ConditionValue},
-    },
-    memory::{HybridMemoryPool, tensor::{BitNetTensor, BitNetDType}},
     device::get_cpu_device,
+    memory::{
+        tensor::{BitNetDType, BitNetTensor},
+        HybridMemoryPool,
+    },
+    mixed_precision::{
+        conversion::{ConversionConfig, ConversionStrategy, PrecisionConverter},
+        layer_precision::{LayerPrecisionManager, LayerPrecisionSpec},
+        policy::{
+            ConditionOperator, ConditionType, ConditionValue, PolicyAction, PolicyCondition,
+            PolicyEngine, PolicyRule, PrecisionPolicy,
+        },
+        precision_manager::{OptimizationObjective, PrecisionManager},
+        validation::PrecisionValidator,
+        ComponentPrecisionConfig, ComponentType, LayerPrecisionConfig, LayerType,
+        MixedPrecisionConfig, MixedPrecisionStrategy,
+    },
 };
 use std::collections::HashMap;
 
@@ -57,15 +62,24 @@ fn demo_basic_configuration() -> Result<(), Box<dyn std::error::Error>> {
     let aggressive_config = MixedPrecisionConfig::aggressive();
 
     println!("Conservative strategy:");
-    println!("  - Default layer precision: {:?}", conservative_config.default_layer_precision);
+    println!(
+        "  - Default layer precision: {:?}",
+        conservative_config.default_layer_precision
+    );
     println!("  - Strategy: {:?}", conservative_config.strategy);
 
     println!("\nBalanced strategy:");
-    println!("  - Default layer precision: {:?}", balanced_config.default_layer_precision);
+    println!(
+        "  - Default layer precision: {:?}",
+        balanced_config.default_layer_precision
+    );
     println!("  - Strategy: {:?}", balanced_config.strategy);
 
     println!("\nAggressive strategy:");
-    println!("  - Default layer precision: {:?}", aggressive_config.default_layer_precision);
+    println!(
+        "  - Default layer precision: {:?}",
+        aggressive_config.default_layer_precision
+    );
     println!("  - Strategy: {:?}", aggressive_config.strategy);
 
     // Create custom configuration
@@ -74,11 +88,11 @@ fn demo_basic_configuration() -> Result<(), Box<dyn std::error::Error>> {
             "transformer_layer_0".to_string(),
             LayerPrecisionConfig::new(LayerType::Attention, BitNetDType::F16)
                 .with_component_override(ComponentType::Weights, BitNetDType::I8)
-                .with_component_override(ComponentType::Bias, BitNetDType::F16)
+                .with_component_override(ComponentType::Bias, BitNetDType::F16),
         )
         .with_component_config(
             ComponentType::Activations,
-            ComponentPrecisionConfig::new(ComponentType::Activations, BitNetDType::I8)
+            ComponentPrecisionConfig::new(ComponentType::Activations, BitNetDType::I8),
         );
 
     println!("\nCustom configuration created with layer-specific settings");
@@ -114,24 +128,24 @@ fn demo_layer_precision_management(
             BitNetDType::F16,
             BitNetDType::F16,
             BitNetDType::I8,
-        ).with_component_precision(ComponentType::Weights, BitNetDType::I8),
-
+        )
+        .with_component_precision(ComponentType::Weights, BitNetDType::I8),
         LayerPrecisionSpec::new(
             "attention_0".to_string(),
             LayerType::Attention,
             BitNetDType::I8,
             BitNetDType::I8,
             BitNetDType::I8,
-        ).with_component_precision(ComponentType::AttentionScores, BitNetDType::F16),
-
+        )
+        .with_component_precision(ComponentType::AttentionScores, BitNetDType::F16),
         LayerPrecisionSpec::new(
             "linear_0".to_string(),
             LayerType::Linear,
             BitNetDType::I8,
             BitNetDType::I8,
             BitNetDType::BitNet158,
-        ).with_dynamic_adjustment(),
-
+        )
+        .with_dynamic_adjustment(),
         LayerPrecisionSpec::new(
             "output".to_string(),
             LayerType::Output,
@@ -145,8 +159,11 @@ fn demo_layer_precision_management(
         println!("Registering layer: {}", layer_spec.layer_id);
         println!("  - Type: {:?}", layer_spec.layer_type);
         println!("  - Weight precision: {:?}", layer_spec.weight_precision);
-        println!("  - Input/Output: {:?} -> {:?}", layer_spec.input_precision, layer_spec.output_precision);
-        
+        println!(
+            "  - Input/Output: {:?} -> {:?}",
+            layer_spec.input_precision, layer_spec.output_precision
+        );
+
         layer_manager.register_layer(layer_spec)?;
     }
 
@@ -156,7 +173,10 @@ fn demo_layer_precision_management(
 
     // Query layers by precision
     let bitnet_layers = layer_manager.get_layers_by_precision(BitNetDType::BitNet158);
-    println!("Found {} layers using BitNet 1.58 precision", bitnet_layers.len());
+    println!(
+        "Found {} layers using BitNet 1.58 precision",
+        bitnet_layers.len()
+    );
 
     // Optimize for memory efficiency
     println!("\nOptimizing for 50% memory reduction...");
@@ -169,7 +189,10 @@ fn demo_layer_precision_management(
     // Analyze precision impact
     let analysis = layer_manager.analyze_precision_impact();
     println!("\nPrecision Impact Analysis:");
-    println!("  - Average memory savings: {:.2}%", analysis.average_memory_savings * 100.0);
+    println!(
+        "  - Average memory savings: {:.2}%",
+        analysis.average_memory_savings * 100.0
+    );
     println!("  - Total layers: {}", analysis.total_layers);
     println!("  - Precision distribution:");
     for (precision, count) in &analysis.precision_distribution {
@@ -210,7 +233,7 @@ fn demo_precision_conversion(
 
     for (name, strategy) in strategies {
         println!("\n{name} conversion strategy:");
-        
+
         let config = ConversionConfig {
             strategy,
             preserve_metadata: true,
@@ -228,13 +251,22 @@ fn demo_precision_conversion(
         for target_precision in target_precisions {
             match converter.convert_tensor(&f32_tensor, target_precision) {
                 Ok(converted_tensor) => {
-                    let compression_ratio = f32_tensor.size_bytes() as f32 / converted_tensor.size_bytes() as f32;
-                    println!("  - {} -> {:?}: {:.2}x compression", 
-                        f32_tensor.dtype(), target_precision, compression_ratio);
+                    let compression_ratio =
+                        f32_tensor.size_bytes() as f32 / converted_tensor.size_bytes() as f32;
+                    println!(
+                        "  - {} -> {:?}: {:.2}x compression",
+                        f32_tensor.dtype(),
+                        target_precision,
+                        compression_ratio
+                    );
                 }
                 Err(e) => {
-                    println!("  - {} -> {:?}: Failed ({})", 
-                        f32_tensor.dtype(), target_precision, e);
+                    println!(
+                        "  - {} -> {:?}: Failed ({})",
+                        f32_tensor.dtype(),
+                        target_precision,
+                        e
+                    );
                 }
             }
         }
@@ -242,8 +274,14 @@ fn demo_precision_conversion(
         // Show conversion statistics
         let stats = converter.get_stats();
         println!("  - Total conversions: {}", stats.total_conversions);
-        println!("  - Average time: {:.2}ms", stats.average_conversion_time_ms());
-        println!("  - Memory efficiency: {:.2}MB saved", stats.memory_efficiency());
+        println!(
+            "  - Average time: {:.2}ms",
+            stats.average_conversion_time_ms()
+        );
+        println!(
+            "  - Memory efficiency: {:.2}MB saved",
+            stats.memory_efficiency()
+        );
     }
 
     println!();
@@ -273,7 +311,7 @@ fn demo_policy_based_precision() -> Result<(), Box<dyn std::error::Error>> {
             ConditionOperator::GreaterThan,
             ConditionValue::Float(80.0), // 80MB threshold
         ))
-        .with_weight(1.0)
+        .with_weight(1.0),
     );
 
     // Create a policy for accuracy-critical layers
@@ -292,7 +330,7 @@ fn demo_policy_based_precision() -> Result<(), Box<dyn std::error::Error>> {
             ConditionType::LayerType,
             ConditionOperator::Equal,
             ConditionValue::LayerType(LayerType::Attention),
-        ))
+        )),
     )
     .add_rule(
         PolicyRule::new(
@@ -303,7 +341,7 @@ fn demo_policy_based_precision() -> Result<(), Box<dyn std::error::Error>> {
             ConditionType::LayerType,
             ConditionOperator::Equal,
             ConditionValue::LayerType(LayerType::Output),
-        ))
+        )),
     );
 
     policy_engine.add_policy(memory_critical_policy);
@@ -311,13 +349,16 @@ fn demo_policy_based_precision() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Created custom policies:");
     for policy in policy_engine.list_policies() {
-        println!("  - {}: {} (priority: {})", policy.id, policy.name, policy.priority);
+        println!(
+            "  - {}: {} (priority: {})",
+            policy.id, policy.name, policy.priority
+        );
         println!("    Rules: {}", policy.rules.len());
     }
 
     // Simulate policy application
     println!("\nSimulating policy applications:");
-    
+
     // Test scenarios
     let scenarios = vec![
         ("Low memory, linear layer", LayerType::Linear, 30.0),
@@ -331,7 +372,7 @@ fn demo_policy_based_precision() -> Result<(), Box<dyn std::error::Error>> {
         println!("\nScenario: {scenario_name}");
         println!("  - Layer type: {layer_type:?}");
         println!("  - Memory usage: {memory_usage:.1}MB");
-        
+
         // This would normally be called by the precision manager
         // For demo purposes, we'll show what policies would apply
         println!("  - Applicable policies: [simulated]");
@@ -365,7 +406,6 @@ fn demo_validation_and_optimization() -> Result<(), Box<dyn std::error::Error>> 
             BitNetDType::I8,
             BitNetDType::BitNet158,
         ),
-        
         // Potentially problematic specification
         LayerPrecisionSpec::new(
             "aggressive_layer".to_string(),
@@ -374,7 +414,6 @@ fn demo_validation_and_optimization() -> Result<(), Box<dyn std::error::Error>> 
             BitNetDType::I4,
             BitNetDType::I1,
         ),
-        
         // Invalid specification (normalization with integer precision)
         LayerPrecisionSpec::new(
             "invalid_layer".to_string(),
@@ -416,7 +455,10 @@ fn demo_validation_and_optimization() -> Result<(), Box<dyn std::error::Error>> 
                 if !result.suggestions.is_empty() {
                     println!("  💡 Suggestions:");
                     for suggestion in &result.suggestions {
-                        println!("    - {} ({})", suggestion.description, suggestion.expected_benefit);
+                        println!(
+                            "    - {} ({})",
+                            suggestion.description, suggestion.expected_benefit
+                        );
                     }
                 }
             }
@@ -430,7 +472,14 @@ fn demo_validation_and_optimization() -> Result<(), Box<dyn std::error::Error>> 
     println!("\nCross-layer validation:");
     match validator.validate_multiple_layers(&test_specs) {
         Ok(result) => {
-            println!("  - Overall validation: {}", if result.passed { "✅ Passed" } else { "❌ Failed" });
+            println!(
+                "  - Overall validation: {}",
+                if result.passed {
+                    "✅ Passed"
+                } else {
+                    "❌ Failed"
+                }
+            );
             println!("  - Total issues: {}", result.issues.len());
             println!("  - Total warnings: {}", result.warnings.len());
             println!("  - Total suggestions: {}", result.suggestions.len());
@@ -454,14 +503,30 @@ fn demo_validation_and_optimization() -> Result<(), Box<dyn std::error::Error>> 
 
     // Demonstrate different optimization objectives
     let objectives = vec![
-        ("Memory efficiency", OptimizationObjective::Memory { target_reduction: 0.5 }),
-        ("Speed optimization", OptimizationObjective::Speed { target_speedup: 2.0 }),
-        ("Accuracy preservation", OptimizationObjective::Accuracy { min_accuracy: 0.95 }),
-        ("Balanced optimization", OptimizationObjective::Balanced { 
-            memory_weight: 0.4, 
-            speed_weight: 0.3, 
-            accuracy_weight: 0.3 
-        }),
+        (
+            "Memory efficiency",
+            OptimizationObjective::Memory {
+                target_reduction: 0.5,
+            },
+        ),
+        (
+            "Speed optimization",
+            OptimizationObjective::Speed {
+                target_speedup: 2.0,
+            },
+        ),
+        (
+            "Accuracy preservation",
+            OptimizationObjective::Accuracy { min_accuracy: 0.95 },
+        ),
+        (
+            "Balanced optimization",
+            OptimizationObjective::Balanced {
+                memory_weight: 0.4,
+                speed_weight: 0.3,
+                accuracy_weight: 0.3,
+            },
+        ),
     ];
 
     for (name, objective) in objectives {
@@ -476,12 +541,21 @@ fn demo_validation_and_optimization() -> Result<(), Box<dyn std::error::Error>> 
     match precision_manager.analyze_configuration() {
         Ok(analysis) => {
             println!("\nFinal Configuration Analysis:");
-            println!("  - Memory savings: {:.1}%", analysis.memory_savings * 100.0);
-            println!("  - Accuracy impact: {:.1}%", analysis.accuracy_impact * 100.0);
-            println!("  - Conversion overhead: {:.2}ms", analysis.conversion_overhead);
+            println!(
+                "  - Memory savings: {:.1}%",
+                analysis.memory_savings * 100.0
+            );
+            println!(
+                "  - Accuracy impact: {:.1}%",
+                analysis.accuracy_impact * 100.0
+            );
+            println!(
+                "  - Conversion overhead: {:.2}ms",
+                analysis.conversion_overhead
+            );
             println!("  - Total layers: {}", analysis.total_layers);
             println!("  - Recommendations: {}", analysis.recommendations.len());
-            
+
             for rec in &analysis.recommendations {
                 println!("    - {}: {}", rec.recommendation_type, rec.description);
             }

@@ -3,17 +3,17 @@
 //! This module provides the core BitNetTensor implementation with automatic
 //! reference counting, lifecycle management, and device-aware operations.
 
-use crate::memory::tensor::{BitNetDType, TensorMetadata, TensorHandle, TensorData};
 use crate::memory::tensor::handle::TensorHandleError;
-use crate::memory::{HybridMemoryPool, MemoryHandle, MemoryError};
+use crate::memory::tensor::{BitNetDType, TensorData, TensorHandle, TensorMetadata};
+use crate::memory::{HybridMemoryPool, MemoryError, MemoryHandle};
 use candle_core::{Device, Tensor};
-use std::sync::{Arc, RwLock, Mutex, Weak};
-use std::collections::HashMap;
-use thiserror::Error;
 use once_cell::sync::Lazy;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, RwLock, Weak};
+use thiserror::Error;
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, error};
+use tracing::{debug, error, info};
 
 /// Errors that can occur during BitNet tensor operations
 #[derive(Error, Debug)]
@@ -32,7 +32,10 @@ pub enum BitNetTensorError {
 
     /// Shape mismatch error
     #[error("Shape mismatch: expected {expected:?}, got {actual:?}")]
-    ShapeMismatch { expected: Vec<usize>, actual: Vec<usize> },
+    ShapeMismatch {
+        expected: Vec<usize>,
+        actual: Vec<usize>,
+    },
 
     /// Data type conversion error
     #[error("Data type conversion error: cannot convert {from} to {to}")]
@@ -79,14 +82,11 @@ struct TensorRegistry {
 }
 
 /// Global tensor registry instance
-static GLOBAL_TENSOR_REGISTRY: Lazy<Arc<RwLock<TensorRegistry>>> = Lazy::new(|| {
-    Arc::new(RwLock::new(TensorRegistry::default()))
-});
+static GLOBAL_TENSOR_REGISTRY: Lazy<Arc<RwLock<TensorRegistry>>> =
+    Lazy::new(|| Arc::new(RwLock::new(TensorRegistry::default())));
 
 /// Global tensor ID counter
-static GLOBAL_TENSOR_ID_COUNTER: Lazy<Arc<Mutex<u64>>> = Lazy::new(|| {
-    Arc::new(Mutex::new(1))
-});
+static GLOBAL_TENSOR_ID_COUNTER: Lazy<Arc<Mutex<u64>>> = Lazy::new(|| Arc::new(Mutex::new(1)));
 
 impl TensorRegistry {
     fn register_tensor(&mut self, tensor_id: u64, tensor_data: &Arc<TensorData>) {
@@ -107,7 +107,8 @@ impl TensorRegistry {
     }
 
     fn cleanup_dead_references(&mut self) {
-        self.tensors.retain(|_, weak_ref| weak_ref.strong_count() > 0);
+        self.tensors
+            .retain(|_, weak_ref| weak_ref.strong_count() > 0);
     }
 }
 
@@ -121,22 +122,25 @@ impl BitNetTensor {
     ) -> BitNetTensorResult<Self> {
         let element_count: usize = shape.iter().product();
         let size_bytes = dtype.bytes_for_elements(element_count);
-        
+
         #[cfg(feature = "tracing")]
-        debug!("Creating zeros tensor: shape={:?}, dtype={}, size={} bytes", shape, dtype, size_bytes);
+        debug!(
+            "Creating zeros tensor: shape={:?}, dtype={}, size={} bytes",
+            shape, dtype, size_bytes
+        );
 
         // Allocate memory
         let memory_handle = pool.allocate(size_bytes, 16, device)?;
-        
+
         // Create tensor and initialize with zeros
         let tensor = Self::from_memory_handle(memory_handle, shape.to_vec(), dtype, None, pool)?;
-        
+
         // Initialize memory with zeros
         unsafe {
             let ptr = tensor.data.memory_handle.as_ptr() as *mut u8;
             std::ptr::write_bytes(ptr, 0, size_bytes);
         }
-        
+
         Ok(tensor)
     }
 
@@ -149,22 +153,25 @@ impl BitNetTensor {
     ) -> BitNetTensorResult<Self> {
         let element_count: usize = shape.iter().product();
         let size_bytes = dtype.bytes_for_elements(element_count);
-        
+
         #[cfg(feature = "tracing")]
-        debug!("Creating ones tensor: shape={:?}, dtype={}, size={} bytes", shape, dtype, size_bytes);
+        debug!(
+            "Creating ones tensor: shape={:?}, dtype={}, size={} bytes",
+            shape, dtype, size_bytes
+        );
 
         // Allocate memory
         let memory_handle = pool.allocate(size_bytes, 16, device)?;
-        
+
         // Create tensor and initialize with ones
         let tensor = Self::from_memory_handle(memory_handle, shape.to_vec(), dtype, None, pool)?;
-        
+
         // Initialize memory with ones based on dtype
         unsafe {
             let ptr = tensor.data.memory_handle.as_ptr() as *mut u8;
             Self::initialize_ones(ptr, element_count, dtype);
         }
-        
+
         Ok(tensor)
     }
 
@@ -185,22 +192,25 @@ impl BitNetTensor {
 
         let dtype = BitNetDType::F32;
         let size_bytes = dtype.bytes_for_elements(element_count);
-        
+
         #[cfg(feature = "tracing")]
-        debug!("Creating tensor from data: shape={:?}, dtype={}, size={} bytes", shape, dtype, size_bytes);
+        debug!(
+            "Creating tensor from data: shape={:?}, dtype={}, size={} bytes",
+            shape, dtype, size_bytes
+        );
 
         // Allocate memory
         let memory_handle = pool.allocate(size_bytes, 16, device)?;
-        
+
         // Create tensor
         let tensor = Self::from_memory_handle(memory_handle, shape.to_vec(), dtype, None, pool)?;
-        
+
         // Copy data to memory handle
         unsafe {
             let ptr = tensor.data.memory_handle.as_ptr() as *mut f32;
             std::ptr::copy_nonoverlapping(data.as_ptr(), ptr, data.len());
         }
-        
+
         Ok(tensor)
     }
 
@@ -215,13 +225,15 @@ impl BitNetTensor {
         // Use global registry and ID counter
         let registry = Arc::clone(&GLOBAL_TENSOR_REGISTRY);
         let next_id = Arc::clone(&GLOBAL_TENSOR_ID_COUNTER);
-        
+
         // Get next tensor ID
         let tensor_id = {
-            let mut id_counter = next_id.lock()
-                .map_err(|_| BitNetTensorError::ConcurrentAccess {
-                    reason: "Failed to acquire ID counter lock".to_string()
-                })?;
+            let mut id_counter =
+                next_id
+                    .lock()
+                    .map_err(|_| BitNetTensorError::ConcurrentAccess {
+                        reason: "Failed to acquire ID counter lock".to_string(),
+                    })?;
             let id = *id_counter;
             *id_counter += 1;
             id
@@ -248,9 +260,10 @@ impl BitNetTensor {
 
         // Register tensor
         {
-            let mut reg = registry.write()
+            let mut reg = registry
+                .write()
                 .map_err(|_| BitNetTensorError::ConcurrentAccess {
-                    reason: "Failed to acquire registry write lock".to_string()
+                    reason: "Failed to acquire registry write lock".to_string(),
                 })?;
             reg.register_tensor(tensor_id, &tensor_data);
         }
@@ -266,23 +279,24 @@ impl BitNetTensor {
     }
 
     /// Creates a tensor from a candle tensor
-    pub fn from_candle(
-        tensor: Tensor,
-        pool: &HybridMemoryPool,
-    ) -> BitNetTensorResult<Self> {
+    pub fn from_candle(tensor: Tensor, pool: &HybridMemoryPool) -> BitNetTensorResult<Self> {
         let shape = tensor.shape().dims().to_vec();
         let candle_dtype = tensor.dtype();
         let device = tensor.device().clone();
-        
+
         // Convert candle dtype to BitNet dtype
-        let dtype = BitNetDType::from_candle_dtype(candle_dtype)
-            .ok_or_else(|| BitNetTensorError::DTypeConversionError {
+        let dtype = BitNetDType::from_candle_dtype(candle_dtype).ok_or_else(|| {
+            BitNetTensorError::DTypeConversionError {
                 from: format!("{:?}", candle_dtype),
                 to: "BitNetDType".to_string(),
-            })?;
+            }
+        })?;
 
         #[cfg(feature = "tracing")]
-        debug!("Converting candle tensor: shape={:?}, dtype={:?} -> {}", shape, candle_dtype, dtype);
+        debug!(
+            "Converting candle tensor: shape={:?}, dtype={:?} -> {}",
+            shape, candle_dtype, dtype
+        );
 
         // Create a new tensor and copy data
         let bitnet_tensor = match dtype {
@@ -297,23 +311,29 @@ impl BitNetTensor {
                 Self::zeros(&shape, dtype, &device, pool)?
             }
         };
-        
+
         Ok(bitnet_tensor)
     }
 
     /// Converts the tensor to a candle tensor
     pub fn to_candle(&self) -> BitNetTensorResult<Tensor> {
-        let metadata = self.data.metadata.read()
-            .map_err(|_| BitNetTensorError::ConcurrentAccess {
-                reason: "Failed to acquire metadata read lock".to_string()
-            })?;
+        let metadata =
+            self.data
+                .metadata
+                .read()
+                .map_err(|_| BitNetTensorError::ConcurrentAccess {
+                    reason: "Failed to acquire metadata read lock".to_string(),
+                })?;
 
         let candle_dtype = metadata.dtype.to_candle_dtype();
         let device = self.data.memory_handle.device();
         let shape = &metadata.shape;
 
         #[cfg(feature = "tracing")]
-        debug!("Converting to candle tensor: shape={:?}, dtype={}", shape, metadata.dtype);
+        debug!(
+            "Converting to candle tensor: shape={:?}, dtype={}",
+            shape, metadata.dtype
+        );
 
         // Create tensor and copy data from BitNet tensor
         let tensor = match metadata.dtype {
@@ -331,14 +351,18 @@ impl BitNetTensor {
                 Tensor::zeros(shape.as_slice(), candle_dtype, &device)?
             }
         };
-        
+
         Ok(tensor)
     }
 
     /// Migrates the tensor to a different device
-    pub fn to_device(&self, target_device: &Device, pool: &HybridMemoryPool) -> BitNetTensorResult<Self> {
+    pub fn to_device(
+        &self,
+        target_device: &Device,
+        pool: &HybridMemoryPool,
+    ) -> BitNetTensorResult<Self> {
         let current_device = self.data.memory_handle.device();
-        
+
         // Check if already on target device
         if std::mem::discriminant(&current_device) == std::mem::discriminant(target_device) {
             #[cfg(feature = "tracing")]
@@ -347,24 +371,37 @@ impl BitNetTensor {
         }
 
         #[cfg(feature = "tracing")]
-        info!("Migrating tensor from {:?} to {:?}", current_device, target_device);
+        info!(
+            "Migrating tensor from {:?} to {:?}",
+            current_device, target_device
+        );
 
         // Mark as migrating
         {
-            let mut metadata = self.data.metadata.write()
-                .map_err(|_| BitNetTensorError::ConcurrentAccess {
-                    reason: "Failed to acquire metadata write lock".to_string()
-                })?;
+            let mut metadata =
+                self.data
+                    .metadata
+                    .write()
+                    .map_err(|_| BitNetTensorError::ConcurrentAccess {
+                        reason: "Failed to acquire metadata write lock".to_string(),
+                    })?;
             metadata.set_migrating(true);
         }
 
         // Get current metadata
         let (shape, dtype, _name) = {
-            let metadata = self.data.metadata.read()
-                .map_err(|_| BitNetTensorError::ConcurrentAccess {
-                    reason: "Failed to acquire metadata read lock".to_string()
-                })?;
-            (metadata.shape.clone(), metadata.dtype, metadata.name.clone())
+            let metadata =
+                self.data
+                    .metadata
+                    .read()
+                    .map_err(|_| BitNetTensorError::ConcurrentAccess {
+                        reason: "Failed to acquire metadata read lock".to_string(),
+                    })?;
+            (
+                metadata.shape.clone(),
+                metadata.dtype,
+                metadata.name.clone(),
+            )
         };
 
         // Create new tensor on target device
@@ -375,7 +412,7 @@ impl BitNetTensor {
             let src_ptr = self.data.memory_handle.as_ptr();
             let dst_ptr = new_tensor.data.memory_handle.as_ptr() as *mut u8;
             let size_bytes = self.size_bytes();
-            
+
             // For now, use simple memory copy
             // TODO: Implement device-specific optimized copy operations
             std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, size_bytes);
@@ -383,10 +420,13 @@ impl BitNetTensor {
 
         // Update migration status
         {
-            let mut metadata = self.data.metadata.write()
-                .map_err(|_| BitNetTensorError::ConcurrentAccess {
-                    reason: "Failed to acquire metadata write lock".to_string()
-                })?;
+            let mut metadata =
+                self.data
+                    .metadata
+                    .write()
+                    .map_err(|_| BitNetTensorError::ConcurrentAccess {
+                        reason: "Failed to acquire metadata write lock".to_string(),
+                    })?;
             metadata.set_migrating(false);
         }
 
@@ -461,7 +501,7 @@ impl BitNetTensor {
     pub fn reshape(&self, new_shape: &[usize]) -> BitNetTensorResult<Self> {
         let current_elements = self.element_count();
         let new_elements: usize = new_shape.iter().product();
-        
+
         if current_elements != new_elements {
             return Err(BitNetTensorError::ShapeMismatch {
                 expected: vec![current_elements],
@@ -473,9 +513,9 @@ impl BitNetTensor {
         let dtype = self.dtype();
         let device = self.device();
         let pool = HybridMemoryPool::new()?; // TODO: This is a temporary workaround
-        
+
         let new_tensor = Self::zeros(new_shape, dtype, &device, &pool)?;
-        
+
         // Copy data from current tensor to new tensor (reshape doesn't change data layout)
         unsafe {
             let src_ptr = self.data.memory_handle.as_ptr();
@@ -483,7 +523,7 @@ impl BitNetTensor {
             let size_bytes = self.size_bytes();
             std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, size_bytes);
         }
-        
+
         Ok(new_tensor)
     }
 
@@ -493,10 +533,10 @@ impl BitNetTensor {
         let dtype = self.dtype();
         let device = self.device();
         let name = self.name();
-        
+
         let new_tensor = Self::zeros(&shape, dtype, &device, pool)?;
         new_tensor.set_name(name);
-        
+
         // Copy data from current tensor to new tensor
         unsafe {
             let src_ptr = self.data.memory_handle.as_ptr();
@@ -504,7 +544,7 @@ impl BitNetTensor {
             let size_bytes = self.size_bytes();
             std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, size_bytes);
         }
-        
+
         Ok(new_tensor)
     }
 
@@ -594,22 +634,25 @@ impl Drop for BitNetTensor {
         // Only cleanup if this is the last reference
         if Arc::strong_count(&self.data) == 1 {
             let tensor_id = self.data.tensor_id;
-            
+
             #[cfg(feature = "tracing")]
             debug!("Dropping BitNet tensor with ID {}", tensor_id);
-            
+
             // Unregister from registry
             if let Ok(mut registry) = self.registry.write() {
                 registry.unregister_tensor(tensor_id);
                 registry.cleanup_dead_references();
             }
-            
+
             // Force cleanup of the memory handle by triggering pool cleanup
-            if let Some(pool) = crate::memory::tensor::handle::GLOBAL_MEMORY_POOL.lock().ok()
-                .and_then(|guard| guard.as_ref().and_then(|weak| weak.upgrade())) {
+            if let Some(pool) = crate::memory::tensor::handle::GLOBAL_MEMORY_POOL
+                .lock()
+                .ok()
+                .and_then(|guard| guard.as_ref().and_then(|weak| weak.upgrade()))
+            {
                 let _ = pool.cleanup_orphaned_handles();
             }
-            
+
             #[cfg(feature = "tracing")]
             info!("BitNet tensor {} dropped and cleaned up", tensor_id);
         }
@@ -626,7 +669,7 @@ pub fn clear_global_tensor_state() {
         #[cfg(feature = "tracing")]
         tracing::debug!("Cleared {} tensors from global tensor registry", count);
     }
-    
+
     // Reset the global tensor ID counter
     if let Ok(mut counter) = GLOBAL_TENSOR_ID_COUNTER.lock() {
         *counter = 1;
@@ -638,7 +681,12 @@ pub fn clear_global_tensor_state() {
 impl std::fmt::Display for BitNetTensor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let metadata = self.data.metadata.read().unwrap();
-        write!(f, "BitNetTensor({}): {}", self.data.tensor_id, metadata.description())
+        write!(
+            f,
+            "BitNetTensor({}): {}",
+            self.data.tensor_id,
+            metadata.description()
+        )
     }
 }
 
@@ -655,9 +703,9 @@ mod tests {
     fn test_tensor_creation() {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
-        
+
         let tensor = BitNetTensor::zeros(&[2, 3], BitNetDType::F32, &device, &pool).unwrap();
-        
+
         assert_eq!(tensor.shape(), vec![2, 3]);
         assert_eq!(tensor.dtype(), BitNetDType::F32);
         assert_eq!(tensor.element_count(), 6);
@@ -669,9 +717,9 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         let data = vec![1.0, 2.0, 3.0, 4.0];
-        
+
         let tensor = BitNetTensor::from_data(data, &[2, 2], &device, &pool).unwrap();
-        
+
         assert_eq!(tensor.shape(), vec![2, 2]);
         assert_eq!(tensor.element_count(), 4);
     }
@@ -680,10 +728,10 @@ mod tests {
     fn test_tensor_handle() {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
-        
+
         let tensor = BitNetTensor::zeros(&[3, 3], BitNetDType::F32, &device, &pool).unwrap();
         let handle = tensor.handle();
-        
+
         assert!(handle.is_valid());
         assert_eq!(handle.tensor_id().unwrap(), tensor.id());
         assert_eq!(handle.shape().unwrap(), tensor.shape());
@@ -693,10 +741,10 @@ mod tests {
     fn test_tensor_cloning() {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
-        
+
         let tensor1 = BitNetTensor::zeros(&[2, 2], BitNetDType::F32, &device, &pool).unwrap();
         let tensor2 = tensor1.clone();
-        
+
         assert_eq!(tensor1.id(), tensor2.id());
         assert_eq!(tensor1.ref_count(), 2);
         assert_eq!(tensor2.ref_count(), 2);
@@ -706,10 +754,10 @@ mod tests {
     fn test_tensor_reshape() {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
-        
+
         let tensor = BitNetTensor::zeros(&[2, 3], BitNetDType::F32, &device, &pool).unwrap();
         let reshaped = tensor.reshape(&[3, 2]).unwrap();
-        
+
         assert_eq!(reshaped.shape(), vec![3, 2]);
         assert_eq!(reshaped.element_count(), 6);
     }
@@ -718,10 +766,10 @@ mod tests {
     fn test_invalid_reshape() {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
-        
+
         let tensor = BitNetTensor::zeros(&[2, 3], BitNetDType::F32, &device, &pool).unwrap();
         let result = tensor.reshape(&[2, 2]); // Different number of elements
-        
+
         assert!(result.is_err());
     }
 }

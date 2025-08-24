@@ -3,7 +3,7 @@
 //! This module provides functions for truncating sequences to fit within
 //! specified length constraints, supporting various truncation strategies.
 
-use super::{TruncationStrategy, SequenceError, SequenceResult};
+use super::{SequenceError, SequenceResult, TruncationStrategy};
 use serde::{Deserialize, Serialize};
 
 /// Options for sequence truncation
@@ -44,7 +44,10 @@ impl TruncationOptions {
 /// let truncated = truncate_sequence(sequence, &options).unwrap();
 /// assert_eq!(truncated, vec![1, 2, 3, 4]);
 /// ```
-pub fn truncate_sequence(sequence: Vec<u32>, options: &TruncationOptions) -> SequenceResult<Vec<u32>> {
+pub fn truncate_sequence(
+    sequence: Vec<u32>,
+    options: &TruncationOptions,
+) -> SequenceResult<Vec<u32>> {
     if sequence.len() <= options.max_length {
         return Ok(sequence);
     }
@@ -55,9 +58,7 @@ pub fn truncate_sequence(sequence: Vec<u32>, options: &TruncationOptions) -> Seq
             let start_idx = sequence.len() - options.max_length;
             Ok(sequence[start_idx..].to_vec())
         }
-        TruncationStrategy::TruncateRight => {
-            Ok(sequence[..options.max_length].to_vec())
-        }
+        TruncationStrategy::TruncateRight => Ok(sequence[..options.max_length].to_vec()),
         TruncationStrategy::LongestFirst => {
             // For single sequence, this is equivalent to TruncateRight
             Ok(sequence[..options.max_length].to_vec())
@@ -85,9 +86,7 @@ pub fn truncate_sequences(
     options: &TruncationOptions,
 ) -> SequenceResult<Vec<Vec<u32>>> {
     match options.strategy {
-        TruncationStrategy::LongestFirst => {
-            truncate_longest_first(sequences, options.max_length)
-        }
+        TruncationStrategy::LongestFirst => truncate_longest_first(sequences, options.max_length),
         _ => {
             // Apply the same truncation strategy to each sequence individually
             let mut truncated_sequences = Vec::with_capacity(sequences.len());
@@ -180,7 +179,11 @@ pub fn truncate_right(sequence: Vec<u32>, max_length: usize) -> Vec<u32> {
 ///
 /// # Returns
 /// The truncated sequence
-pub fn truncate_both_ends(sequence: Vec<u32>, max_length: usize, left_ratio: f32) -> SequenceResult<Vec<u32>> {
+pub fn truncate_both_ends(
+    sequence: Vec<u32>,
+    max_length: usize,
+    left_ratio: f32,
+) -> SequenceResult<Vec<u32>> {
     if sequence.len() <= max_length {
         return Ok(sequence);
     }
@@ -221,7 +224,7 @@ pub fn truncate_to_budget(
     }
 
     let total_original_tokens: usize = sequences.iter().map(|s| s.len()).sum();
-    
+
     if total_original_tokens <= total_budget {
         return Ok(sequences);
     }
@@ -231,7 +234,7 @@ pub fn truncate_to_budget(
 
     for (i, sequence) in sequences.iter().enumerate() {
         let remaining_sequences = sequences.len() - i;
-        
+
         // Calculate proportional allocation for this sequence
         let sequence_budget = if remaining_sequences == 1 {
             // Last sequence gets all remaining budget
@@ -244,7 +247,7 @@ pub fn truncate_to_budget(
 
         let truncated_length = sequence_budget.min(sequence.len());
         let truncated = truncate_right(sequence.clone(), truncated_length);
-        
+
         remaining_budget = remaining_budget.saturating_sub(truncated.len());
         truncated_sequences.push(truncated);
     }
@@ -263,7 +266,7 @@ pub struct TruncationStats {
     pub avg_original_length: f32,
     pub avg_final_length: f32,
     pub avg_tokens_removed: f32,
-    pub truncation_rate: f32, // percentage of sequences truncated
+    pub truncation_rate: f32,   // percentage of sequences truncated
     pub compression_ratio: f32, // final tokens / original tokens
 }
 
@@ -274,43 +277,43 @@ impl TruncationStats {
         let total_original_tokens: usize = original_sequences.iter().map(|s| s.len()).sum();
         let total_final_tokens: usize = truncated_sequences.iter().map(|s| s.len()).sum();
         let total_tokens_removed = total_original_tokens - total_final_tokens;
-        
+
         let truncated_sequences = original_sequences
             .iter()
             .zip(truncated_sequences.iter())
             .filter(|(orig, trunc)| orig.len() != trunc.len())
             .count();
-        
+
         let avg_original_length = if total_sequences > 0 {
             total_original_tokens as f32 / total_sequences as f32
         } else {
             0.0
         };
-        
+
         let avg_final_length = if total_sequences > 0 {
             total_final_tokens as f32 / total_sequences as f32
         } else {
             0.0
         };
-        
+
         let avg_tokens_removed = if total_sequences > 0 {
             total_tokens_removed as f32 / total_sequences as f32
         } else {
             0.0
         };
-        
+
         let truncation_rate = if total_sequences > 0 {
             truncated_sequences as f32 / total_sequences as f32
         } else {
             0.0
         };
-        
+
         let compression_ratio = if total_original_tokens > 0 {
             total_final_tokens as f32 / total_original_tokens as f32
         } else {
             1.0
         };
-        
+
         Self {
             total_sequences,
             truncated_sequences,
@@ -359,12 +362,12 @@ mod tests {
     fn test_truncate_longest_first() {
         let sequences = vec![
             vec![1, 2, 3, 4, 5, 6, 7, 8], // longest
-            vec![9, 10, 11, 12],           // medium
-            vec![13, 14],                  // shortest
+            vec![9, 10, 11, 12],          // medium
+            vec![13, 14],                 // shortest
         ];
-        
+
         let truncated = truncate_longest_first(sequences, 5).unwrap();
-        
+
         // The longest sequence should be truncated to 5
         assert_eq!(truncated[0].len(), 5);
         assert_eq!(truncated[1], vec![9, 10, 11, 12]);
@@ -374,7 +377,7 @@ mod tests {
     #[test]
     fn test_truncate_both_ends() {
         let sequence = vec![1, 2, 3, 4, 5, 6, 7, 8];
-        
+
         // Remove 4 tokens: 2 from left, 2 from right
         let truncated = truncate_both_ends(sequence, 4, 0.5).unwrap();
         assert_eq!(truncated, vec![3, 4, 5, 6]);
@@ -388,33 +391,29 @@ mod tests {
             vec![11, 12],           // 2 tokens
         ];
         // Total: 12 tokens, budget: 8 tokens
-        
+
         let truncated = truncate_to_budget(sequences, 8).unwrap();
-        
+
         let total_final: usize = truncated.iter().map(|s| s.len()).sum();
         assert!(total_final <= 8);
     }
 
     #[test]
     fn test_truncation_stats() {
-        let original = vec![
-            vec![1, 2, 3, 4, 5, 6],
-            vec![7, 8, 9, 10],
-            vec![11, 12],
-        ];
-        
+        let original = vec![vec![1, 2, 3, 4, 5, 6], vec![7, 8, 9, 10], vec![11, 12]];
+
         let truncated = vec![
             vec![1, 2, 3, 4],  // truncated by 2
             vec![7, 8, 9, 10], // not truncated
             vec![11, 12],      // not truncated
         ];
-        
+
         let stats = TruncationStats::calculate(&original, &truncated);
-        
+
         assert_eq!(stats.total_sequences, 3);
         assert_eq!(stats.truncated_sequences, 1);
         assert_eq!(stats.total_original_tokens, 12); // 6 + 4 + 2
-        assert_eq!(stats.total_final_tokens, 10);    // 4 + 4 + 2
+        assert_eq!(stats.total_final_tokens, 10); // 4 + 4 + 2
         assert_eq!(stats.total_tokens_removed, 2);
         assert_eq!(stats.truncation_rate, 1.0 / 3.0);
         assert_eq!(stats.compression_ratio, 10.0 / 12.0);
@@ -429,15 +428,11 @@ mod tests {
 
     #[test]
     fn test_truncate_sequences_multiple() {
-        let sequences = vec![
-            vec![1, 2, 3, 4, 5, 6],
-            vec![7, 8, 9, 10, 11],
-            vec![12, 13],
-        ];
-        
+        let sequences = vec![vec![1, 2, 3, 4, 5, 6], vec![7, 8, 9, 10, 11], vec![12, 13]];
+
         let options = TruncationOptions::new(TruncationStrategy::TruncateRight, 4);
         let truncated = truncate_sequences(sequences, &options).unwrap();
-        
+
         assert_eq!(truncated[0], vec![1, 2, 3, 4]);
         assert_eq!(truncated[1], vec![7, 8, 9, 10]);
         assert_eq!(truncated[2], vec![12, 13]); // No truncation needed

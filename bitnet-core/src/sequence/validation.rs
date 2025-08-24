@@ -28,7 +28,11 @@ impl std::fmt::Display for ValidationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ValidationError::TooLong { length, max_length } => {
-                write!(f, "Sequence length {} exceeds maximum {}", length, max_length)
+                write!(
+                    f,
+                    "Sequence length {} exceeds maximum {}",
+                    length, max_length
+                )
             }
             ValidationError::TooShort { length, min_length } => {
                 write!(f, "Sequence length {} below minimum {}", length, min_length)
@@ -182,7 +186,7 @@ impl SequenceValidator {
 
         // Check length constraints
         let length = sequence.len();
-        
+
         if let Some(min_len) = self.rules.min_length {
             if length < min_len {
                 self.stats.failed_validations += 1;
@@ -453,13 +457,13 @@ mod tests {
     #[test]
     fn test_validate_sequence_length() {
         let sequence = vec![1, 2, 3, 4, 5];
-        
+
         // Valid length
         assert!(validate_sequence_length(&sequence, Some(3), Some(10)).is_ok());
-        
+
         // Too short
         assert!(validate_sequence_length(&sequence, Some(10), None).is_err());
-        
+
         // Too long
         assert!(validate_sequence_length(&sequence, None, Some(3)).is_err());
     }
@@ -468,10 +472,10 @@ mod tests {
     fn test_validate_token_ids() {
         let sequence = vec![1, 2, 3, 100]; // 100 is out of vocab
         let vocab_size = 50;
-        
+
         // Should fail without special tokens
         assert!(validate_token_ids(&sequence, vocab_size, None).is_err());
-        
+
         // Should pass with special tokens
         let mut special_tokens = std::collections::HashSet::new();
         special_tokens.insert(100);
@@ -480,21 +484,19 @@ mod tests {
 
     #[test]
     fn test_sequence_validator() {
-        let config = SequenceConfig::new()
-            .with_min_length(2)
-            .with_max_length(10);
-        
+        let config = SequenceConfig::new().with_min_length(2).with_max_length(10);
+
         let mut validator = SequenceValidator::new(&config);
-        
+
         // Valid sequence
         assert!(validator.validate_sequence(&[1, 2, 3]).is_ok());
-        
+
         // Too short
         assert!(validator.validate_sequence(&[1]).is_err());
-        
+
         // Too long
         assert!(validator.validate_sequence(&[1; 15]).is_err());
-        
+
         // Check stats
         let stats = validator.stats();
         assert_eq!(stats.total_validated, 3);
@@ -509,7 +511,7 @@ mod tests {
             .with_max_length(100)
             .allow_empty()
             .with_pad_token(0);
-        
+
         assert_eq!(rules.min_length, Some(5));
         assert_eq!(rules.max_length, Some(100));
         assert!(rules.allow_empty);
@@ -518,24 +520,16 @@ mod tests {
 
     #[test]
     fn test_batch_consistency_validation() {
-        let sequences = vec![
-            vec![1, 2, 3],
-            vec![4, 5, 6],
-            vec![7, 8, 9],
-        ];
-        
+        let sequences = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
+
         // Should pass with same length requirement
         assert!(validate_batch_consistency(&sequences, true).is_ok());
-        
-        let inconsistent_sequences = vec![
-            vec![1, 2, 3],
-            vec![4, 5],
-            vec![7, 8, 9],
-        ];
-        
+
+        let inconsistent_sequences = vec![vec![1, 2, 3], vec![4, 5], vec![7, 8, 9]];
+
         // Should fail with same length requirement
         assert!(validate_batch_consistency(&inconsistent_sequences, true).is_err());
-        
+
         // Should pass without same length requirement
         assert!(validate_batch_consistency(&inconsistent_sequences, false).is_ok());
     }
@@ -543,18 +537,18 @@ mod tests {
     #[test]
     fn test_validation_stats() {
         let mut stats = ValidationStats::new();
-        
+
         stats.total_validated = 10;
         stats.passed_validations = 8;
         stats.failed_validations = 2;
         stats.update_success_rate();
-        
+
         assert_eq!(stats.success_rate, 0.8);
-        
+
         stats.add_error("TooLong");
         stats.add_error("TooShort");
         stats.add_error("TooLong");
-        
+
         let (most_common, count) = stats.most_common_error().unwrap();
         assert_eq!(most_common, "TooLong");
         assert_eq!(*count, 2);

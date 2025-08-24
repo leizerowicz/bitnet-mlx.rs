@@ -1,15 +1,15 @@
 //! Configurable quantization schemes for BitNet models
-//! 
+//!
 //! This module provides configurable quantization schemes supporting both 1-bit and 1.58-bit
 //! quantization with flexible configuration options and optimized implementations.
 
 use super::{
-    Quantizer, QuantizationConfig, QuantizationStats, QuantizationResult, 
-    QuantizationPrecision, QuantizationStrategy
+    QuantizationConfig, QuantizationPrecision, QuantizationResult, QuantizationStats,
+    QuantizationStrategy, Quantizer,
 };
 use crate::quantization::utils::QuantizationError;
 use crate::quantization::weights::TernaryMethod;
-use candle_core::{Tensor, DType, Device, Shape};
+use candle_core::{DType, Device, Shape, Tensor};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -29,8 +29,7 @@ pub struct QuantizationSchemeConfig {
 }
 
 /// Scheme-specific parameters for different quantization types
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SchemeParameters {
     /// Parameters for 1-bit quantization
     pub one_bit: OneBitParams,
@@ -131,7 +130,6 @@ impl Default for QuantizationSchemeConfig {
         }
     }
 }
-
 
 impl Default for OneBitParams {
     fn default() -> Self {
@@ -271,17 +269,18 @@ impl ConfigurableQuantizationScheme {
     /// 1-bit quantization implementation
     fn quantize_one_bit(&mut self, input: &Tensor) -> QuantizationResult<QuantizedTensor> {
         let params = &self.config.scheme_params.one_bit;
-        
+
         // Compute threshold based on method
         let threshold = self.compute_binary_threshold(input, params.threshold_method)?;
-        
+
         // Apply binary quantization
         let quantized_values = if params.sign_based {
             // Sign-based: values -> {-1, +1}
             input.sign()?
         } else {
             // Threshold-based: values -> {0, 1} then map to {-1, +1}
-            let threshold_tensor = Tensor::new(threshold, input.device())?.broadcast_as(input.shape())?;
+            let threshold_tensor =
+                Tensor::new(threshold, input.device())?.broadcast_as(input.shape())?;
             let binary_mask = input.gt(&threshold_tensor)?;
             let binary_values = binary_mask.to_dtype(DType::F32)?;
             // Map {0, 1} to {-1, +1}
@@ -309,15 +308,19 @@ impl ConfigurableQuantizationScheme {
     }
 
     /// 1.58-bit quantization implementation
-    fn quantize_one_five_eight_bit(&mut self, input: &Tensor) -> QuantizationResult<QuantizedTensor> {
+    fn quantize_one_five_eight_bit(
+        &mut self,
+        input: &Tensor,
+    ) -> QuantizationResult<QuantizedTensor> {
         let params = &self.config.scheme_params.one_five_eight_bit;
-        
+
         // Compute ternary threshold
         let threshold = self.compute_ternary_threshold(input, params)?;
-        
+
         // Apply ternary quantization: values -> {-1, 0, +1}
         let abs_input = input.abs()?;
-        let threshold_tensor = Tensor::new(threshold, input.device())?.broadcast_as(input.shape())?;
+        let threshold_tensor =
+            Tensor::new(threshold, input.device())?.broadcast_as(input.shape())?;
         let mask = abs_input.gt(&threshold_tensor)?;
         let signs = input.sign()?;
         let quantized_values = signs.mul(&mask.to_dtype(input.dtype())?)?;
@@ -348,9 +351,13 @@ impl ConfigurableQuantizationScheme {
     }
 
     /// Multi-bit quantization implementation
-    fn quantize_multi_bit(&mut self, input: &Tensor, num_levels: u32) -> QuantizationResult<QuantizedTensor> {
+    fn quantize_multi_bit(
+        &mut self,
+        input: &Tensor,
+        num_levels: u32,
+    ) -> QuantizationResult<QuantizedTensor> {
         let params = &self.config.scheme_params.multi_bit;
-        
+
         // Determine quantization range
         let (min_val, max_val) = if let Some((clip_min, clip_max)) = params.clip_range {
             (clip_min, clip_max)
@@ -362,13 +369,22 @@ impl ConfigurableQuantizationScheme {
 
         // Compute scale and zero point
         let range = max_val - min_val;
-        let scale = if range > 0.0 { range / (num_levels - 1) as f32 } else { 1.0 };
-        let zero_point = if scale > 0.0 { (-min_val / scale).round() as i32 } else { 0 };
+        let scale = if range > 0.0 {
+            range / (num_levels - 1) as f32
+        } else {
+            1.0
+        };
+        let zero_point = if scale > 0.0 {
+            (-min_val / scale).round() as i32
+        } else {
+            0
+        };
 
         // Quantize values
         let scale_tensor = Tensor::new(scale, input.device())?.broadcast_as(input.shape())?;
-        let zero_point_tensor = Tensor::new(zero_point as f32, input.device())?.broadcast_as(input.shape())?;
-        
+        let zero_point_tensor =
+            Tensor::new(zero_point as f32, input.device())?.broadcast_as(input.shape())?;
+
         let quantized_values = input
             .div(&scale_tensor)?
             .add(&zero_point_tensor)?
@@ -376,7 +392,9 @@ impl ConfigurableQuantizationScheme {
             .clamp(0.0, (num_levels - 1) as f32)?;
 
         // Compute statistics
-        let dequantized = quantized_values.sub(&zero_point_tensor)?.mul(&scale_tensor)?;
+        let dequantized = quantized_values
+            .sub(&zero_point_tensor)?
+            .mul(&scale_tensor)?;
         let stats = self.compute_quantization_stats(input, &dequantized, scale)?;
 
         Ok(QuantizedTensor {
@@ -391,55 +409,70 @@ impl ConfigurableQuantizationScheme {
     }
 
     /// Compute binary threshold for 1-bit quantization
-    fn compute_binary_threshold(&self, input: &Tensor, method: BinaryThresholdMethod) -> QuantizationResult<f32> {
+    fn compute_binary_threshold(
+        &self,
+        input: &Tensor,
+        method: BinaryThresholdMethod,
+    ) -> QuantizationResult<f32> {
         match method {
             BinaryThresholdMethod::Zero => Ok(0.0),
             BinaryThresholdMethod::Mean => {
                 let mean = input.mean_all()?.to_scalar::<f32>()?;
                 Ok(mean)
-            },
+            }
             BinaryThresholdMethod::Median => {
                 // Approximate median with mean for simplicity
                 let mean = input.mean_all()?.to_scalar::<f32>()?;
                 Ok(mean)
-            },
+            }
             BinaryThresholdMethod::Adaptive => {
                 let mean = input.mean_all()?.to_scalar::<f32>()?;
                 let abs_input = input.abs()?;
                 let std = abs_input.mean_all()?.to_scalar::<f32>()?;
                 Ok(mean + 0.5 * std)
-            },
+            }
             BinaryThresholdMethod::Optimal => {
                 // Find optimal threshold minimizing quantization error
                 let mean = input.mean_all()?.to_scalar::<f32>()?;
                 let std = input.abs()?.mean_all()?.to_scalar::<f32>()?;
-                
+
                 let mut best_threshold = 0.0;
                 let mut best_error = f32::INFINITY;
-                
+
                 for factor in [-2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0] {
                     let threshold = mean + factor * std;
-                    let threshold_tensor = Tensor::new(threshold, input.device())?.broadcast_as(input.shape())?;
+                    let threshold_tensor =
+                        Tensor::new(threshold, input.device())?.broadcast_as(input.shape())?;
                     let binary = input.gt(&threshold_tensor)?;
                     let binary_values = binary.to_dtype(DType::F32)?;
-                    let two_tensor = Tensor::new(2.0f32, input.device())?.broadcast_as(input.shape())?;
-                    let one_tensor = Tensor::new(1.0f32, input.device())?.broadcast_as(input.shape())?;
+                    let two_tensor =
+                        Tensor::new(2.0f32, input.device())?.broadcast_as(input.shape())?;
+                    let one_tensor =
+                        Tensor::new(1.0f32, input.device())?.broadcast_as(input.shape())?;
                     let binary_quantized = binary_values.mul(&two_tensor)?.sub(&one_tensor)?;
-                    
-                    let error = input.sub(&binary_quantized)?.sqr()?.mean_all()?.to_scalar::<f32>()?;
+
+                    let error = input
+                        .sub(&binary_quantized)?
+                        .sqr()?
+                        .mean_all()?
+                        .to_scalar::<f32>()?;
                     if error < best_error {
                         best_error = error;
                         best_threshold = threshold;
                     }
                 }
-                
+
                 Ok(best_threshold)
             }
         }
     }
 
     /// Compute ternary threshold for 1.58-bit quantization
-    fn compute_ternary_threshold(&self, input: &Tensor, params: &OneFiveEightBitParams) -> QuantizationResult<f32> {
+    fn compute_ternary_threshold(
+        &self,
+        input: &Tensor,
+        params: &OneFiveEightBitParams,
+    ) -> QuantizationResult<f32> {
         let abs_input = input.abs()?;
         let base_threshold = match params.ternary_method {
             TernaryMethod::MeanThreshold => abs_input.mean_all()?.to_scalar::<f32>()?,
@@ -452,64 +485,75 @@ impl ConfigurableQuantizationScheme {
                 } else {
                     mean * 0.7 // Standard threshold
                 }
-            },
+            }
             TernaryMethod::OptimalThreshold => {
                 // Find optimal threshold minimizing MSE
                 let mean = abs_input.mean_all()?.to_scalar::<f32>()?;
                 let mut best_threshold = mean * 0.7;
                 let mut best_error = f32::INFINITY;
-                
+
                 for factor in [0.3, 0.5, 0.7, 0.9, 1.1] {
                     let threshold = mean * factor;
                     let threshold_tensor = Tensor::new(threshold, input.device())?;
                     let mask = abs_input.gt(&threshold_tensor.broadcast_as(input.shape())?)?;
                     let signs = input.sign()?;
                     let ternary = signs.mul(&mask.to_dtype(input.dtype())?)?;
-                    
+
                     let error = input.sub(&ternary)?.sqr()?.mean_all()?.to_scalar::<f32>()?;
                     if error < best_error {
                         best_error = error;
                         best_threshold = threshold;
                     }
                 }
-                
+
                 best_threshold
-            },
+            }
             TernaryMethod::DetSTE => {
                 // Deterministic Straight-Through Estimator - use mean threshold with conservative factor
                 abs_input.mean_all()?.to_scalar::<f32>()? * 0.7
             }
         };
-        
+
         Ok(base_threshold * params.threshold_factor)
     }
 
     /// Apply sparsity target to ternary quantized values
-    fn apply_sparsity_target(&self, quantized: &Tensor, target_sparsity: f32) -> QuantizationResult<Tensor> {
+    fn apply_sparsity_target(
+        &self,
+        quantized: &Tensor,
+        target_sparsity: f32,
+    ) -> QuantizationResult<Tensor> {
         // Count current zeros
         let eps = 1e-6f32;
         let eps_tensor = Tensor::new(eps, quantized.device())?.broadcast_as(quantized.shape())?;
         let zero_mask = quantized.abs()?.lt(&eps_tensor)?;
-        let current_sparsity = zero_mask.to_dtype(DType::F32)?.mean_all()?.to_scalar::<f32>()?;
-        
+        let current_sparsity = zero_mask
+            .to_dtype(DType::F32)?
+            .mean_all()?
+            .to_scalar::<f32>()?;
+
         if current_sparsity >= target_sparsity {
             return Ok(quantized.clone());
         }
-        
+
         // Need to increase sparsity by setting some non-zero values to zero
         let abs_quantized = quantized.abs()?;
         let non_zero_mask = abs_quantized.gt(&eps_tensor)?;
-        
+
         // For simplicity, randomly set some non-zero values to zero
         // In practice, you might want to use a more sophisticated method
         Ok(quantized.clone()) // Placeholder implementation
     }
 
     /// Compute optimal scale factor for quantization
-    fn compute_optimal_scale(&self, original: &Tensor, quantized: &Tensor) -> QuantizationResult<f32> {
+    fn compute_optimal_scale(
+        &self,
+        original: &Tensor,
+        quantized: &Tensor,
+    ) -> QuantizationResult<f32> {
         let numerator = original.mul(quantized)?.sum_all()?.to_scalar::<f32>()?;
         let denominator = quantized.mul(quantized)?.sum_all()?.to_scalar::<f32>()?;
-        
+
         if denominator.abs() < f32::EPSILON {
             Ok(1.0)
         } else {
@@ -518,12 +562,17 @@ impl ConfigurableQuantizationScheme {
     }
 
     /// Compute quantization statistics
-    fn compute_quantization_stats(&self, original: &Tensor, quantized: &Tensor, scale: f32) -> QuantizationResult<QuantizationStats> {
+    fn compute_quantization_stats(
+        &self,
+        original: &Tensor,
+        quantized: &Tensor,
+        scale: f32,
+    ) -> QuantizationResult<QuantizationStats> {
         let diff = original.sub(quantized)?;
         let mse = diff.sqr()?.mean_all()?.to_scalar::<f32>()?;
         let min_val = original.min_all()?.to_scalar::<f32>()?;
         let max_val = original.max_all()?.to_scalar::<f32>()?;
-        
+
         let compression_ratio = match self.config.base.precision {
             QuantizationPrecision::OneBit => 32.0,
             QuantizationPrecision::OneFiveFiveBit => 32.0 / 1.58,
@@ -553,13 +602,16 @@ impl ConfigurableQuantizationScheme {
             // Already shaped scale tensor
             quantized.scales.clone()
         };
-        
+
         let dequantized = quantized.values.mul(&scale_tensor)?;
         Ok(dequantized)
     }
 
     /// Dequantize 1.58-bit quantized tensor
-    fn dequantize_one_five_eight_bit(&self, quantized: &QuantizedTensor) -> QuantizationResult<Tensor> {
+    fn dequantize_one_five_eight_bit(
+        &self,
+        quantized: &QuantizedTensor,
+    ) -> QuantizationResult<Tensor> {
         // Handle scalar scale factor
         let scale_tensor = if quantized.scales.dims().is_empty() {
             // Scalar scale - broadcast to match tensor shape
@@ -568,7 +620,7 @@ impl ConfigurableQuantizationScheme {
             // Already shaped scale tensor
             quantized.scales.clone()
         };
-        
+
         let dequantized = quantized.values.mul(&scale_tensor)?;
         Ok(dequantized)
     }
@@ -576,7 +628,7 @@ impl ConfigurableQuantizationScheme {
     /// Dequantize multi-bit quantized tensor
     fn dequantize_multi_bit(&self, quantized: &QuantizedTensor) -> QuantizationResult<Tensor> {
         let mut dequantized = quantized.values.clone();
-        
+
         if let Some(ref zero_points) = quantized.zero_points {
             let zero_point_tensor = if zero_points.dims().is_empty() {
                 zero_points.broadcast_as(quantized.values.shape())?
@@ -585,13 +637,13 @@ impl ConfigurableQuantizationScheme {
             };
             dequantized = dequantized.sub(&zero_point_tensor)?;
         }
-        
+
         let scale_tensor = if quantized.scales.dims().is_empty() {
             quantized.scales.broadcast_as(quantized.values.shape())?
         } else {
             quantized.scales.clone()
         };
-        
+
         dequantized = dequantized.mul(&scale_tensor)?;
         Ok(dequantized)
     }
@@ -612,11 +664,13 @@ impl ConfigurableQuantizationScheme {
         if input.elem_count() == 0 {
             return Err(QuantizationError::InvalidInput("Empty tensor".to_string()));
         }
-        
+
         if !matches!(input.dtype(), DType::F32 | DType::F16 | DType::BF16) {
-            return Err(QuantizationError::InvalidInput("Input must be floating point".to_string()));
+            return Err(QuantizationError::InvalidInput(
+                "Input must be floating point".to_string(),
+            ));
         }
-        
+
         Ok(())
     }
 }
@@ -645,11 +699,12 @@ impl QuantizedTensor {
     pub fn memory_footprint(&self) -> usize {
         let values_size = self.values.elem_count() * self.quantized_dtype.size_in_bytes();
         let scales_size = self.scales.elem_count() * self.scales.dtype().size_in_bytes();
-        let zero_points_size = self.zero_points
+        let zero_points_size = self
+            .zero_points
             .as_ref()
             .map(|zp| zp.elem_count() * zp.dtype().size_in_bytes())
             .unwrap_or(0);
-        
+
         values_size + scales_size + zero_points_size
     }
 
@@ -676,12 +731,18 @@ impl QuantizationSchemeFactory {
     }
 
     /// Create a custom quantization scheme
-    pub fn create_custom_scheme(config: QuantizationSchemeConfig, device: Device) -> ConfigurableQuantizationScheme {
+    pub fn create_custom_scheme(
+        config: QuantizationSchemeConfig,
+        device: Device,
+    ) -> ConfigurableQuantizationScheme {
         ConfigurableQuantizationScheme::new(config, device)
     }
 
     /// Create a scheme from precision
-    pub fn create_from_precision(precision: QuantizationPrecision, device: Device) -> ConfigurableQuantizationScheme {
+    pub fn create_from_precision(
+        precision: QuantizationPrecision,
+        device: Device,
+    ) -> ConfigurableQuantizationScheme {
         match precision {
             QuantizationPrecision::OneBit => Self::create_one_bit_scheme(device),
             QuantizationPrecision::OneFiveFiveBit => Self::create_one_five_eight_bit_scheme(device),
@@ -708,16 +769,16 @@ mod tests {
     fn test_one_bit_quantization_scheme() {
         let device = Device::Cpu;
         let mut scheme = ConfigurableQuantizationScheme::one_bit(device.clone());
-        
+
         let input = Tensor::new(&[1.5f32, -0.8, 0.2, -2.1], &device).unwrap();
         let quantized = scheme.quantize_tensor(&input).unwrap();
-        
+
         // Check that values are binary
         let values = quantized.values.to_vec1::<f32>().unwrap();
         for &val in &values {
             assert!(val == -1.0 || val == 1.0, "Value {} is not binary", val);
         }
-        
+
         // Test dequantization
         let dequantized = scheme.dequantize_tensor(&quantized).unwrap();
         assert_eq!(dequantized.shape(), input.shape());
@@ -727,16 +788,20 @@ mod tests {
     fn test_one_five_eight_bit_quantization_scheme() {
         let device = Device::Cpu;
         let mut scheme = ConfigurableQuantizationScheme::one_five_eight_bit(device.clone());
-        
+
         let input = Tensor::new(&[1.5f32, -0.8, 0.2, -2.1, 0.0], &device).unwrap();
         let quantized = scheme.quantize_tensor(&input).unwrap();
-        
+
         // Check that values are ternary
         let values = quantized.values.to_vec1::<f32>().unwrap();
         for &val in &values {
-            assert!(val == -1.0 || val == 0.0 || val == 1.0, "Value {} is not ternary", val);
+            assert!(
+                val == -1.0 || val == 0.0 || val == 1.0,
+                "Value {} is not ternary",
+                val
+            );
         }
-        
+
         // Test dequantization
         let dequantized = scheme.dequantize_tensor(&quantized).unwrap();
         assert_eq!(dequantized.shape(), input.shape());
@@ -746,7 +811,7 @@ mod tests {
     fn test_binary_threshold_methods() {
         let device = Device::Cpu;
         let input = Tensor::new(&[1.0f32, -0.5, 0.3, -1.2], &device).unwrap();
-        
+
         let scheme = ConfigurableQuantizationScheme::new(
             QuantizationSchemeConfig {
                 scheme_params: SchemeParameters {
@@ -758,28 +823,45 @@ mod tests {
                 },
                 ..Default::default()
             },
-            device.clone()
+            device.clone(),
         );
-        
-        let threshold = scheme.compute_binary_threshold(&input, BinaryThresholdMethod::Mean).unwrap();
+
+        let threshold = scheme
+            .compute_binary_threshold(&input, BinaryThresholdMethod::Mean)
+            .unwrap();
         assert!(threshold != 0.0); // Should compute non-zero mean
-        
-        let zero_threshold = scheme.compute_binary_threshold(&input, BinaryThresholdMethod::Zero).unwrap();
+
+        let zero_threshold = scheme
+            .compute_binary_threshold(&input, BinaryThresholdMethod::Zero)
+            .unwrap();
         assert_eq!(zero_threshold, 0.0);
     }
 
     #[test]
     fn test_quantization_scheme_factory() {
         let device = Device::Cpu;
-        
+
         let one_bit_scheme = QuantizationSchemeFactory::create_one_bit_scheme(device.clone());
-        assert_eq!(one_bit_scheme.config().base.precision, QuantizationPrecision::OneBit);
-        
-        let ternary_scheme = QuantizationSchemeFactory::create_one_five_eight_bit_scheme(device.clone());
-        assert_eq!(ternary_scheme.config().base.precision, QuantizationPrecision::OneFiveFiveBit);
-        
-        let custom_scheme = QuantizationSchemeFactory::create_from_precision(QuantizationPrecision::EightBit, device);
-        assert_eq!(custom_scheme.config().base.precision, QuantizationPrecision::EightBit);
+        assert_eq!(
+            one_bit_scheme.config().base.precision,
+            QuantizationPrecision::OneBit
+        );
+
+        let ternary_scheme =
+            QuantizationSchemeFactory::create_one_five_eight_bit_scheme(device.clone());
+        assert_eq!(
+            ternary_scheme.config().base.precision,
+            QuantizationPrecision::OneFiveFiveBit
+        );
+
+        let custom_scheme = QuantizationSchemeFactory::create_from_precision(
+            QuantizationPrecision::EightBit,
+            device,
+        );
+        assert_eq!(
+            custom_scheme.config().base.precision,
+            QuantizationPrecision::EightBit
+        );
     }
 
     #[test]
@@ -789,7 +871,7 @@ mod tests {
         let scales = Tensor::ones((1,), DType::F32, &device).unwrap();
         let shape = Shape::from_dims(&[10, 10]);
         let stats = QuantizationStats::default();
-        
+
         let quantized = QuantizedTensor {
             values,
             scales,
@@ -799,10 +881,10 @@ mod tests {
             quantized_dtype: DType::U8,
             stats,
         };
-        
+
         let memory_footprint = quantized.memory_footprint();
         assert!(memory_footprint > 0);
-        
+
         let compression_ratio = quantized.compression_ratio();
         assert!(compression_ratio > 1.0);
     }
@@ -811,11 +893,11 @@ mod tests {
     fn test_scheme_config_validation() {
         let device = Device::Cpu;
         let scheme = ConfigurableQuantizationScheme::one_bit(device.clone());
-        
+
         // Test valid input
         let valid_input = Tensor::new(&[1.0f32, -1.0, 0.5], &device).unwrap();
         assert!(scheme.validate_input(&valid_input).is_ok());
-        
+
         // Test empty tensor
         let empty_input = Tensor::new(&[] as &[f32], &device).unwrap();
         assert!(scheme.validate_input(&empty_input).is_err());

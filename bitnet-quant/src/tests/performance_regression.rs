@@ -62,7 +62,7 @@ pub enum PerformanceCategory {
 pub enum RegressionSeverity {
     None,      // No regression or improvement
     Minor,     // 5-15% slower
-    Moderate,  // 15-30% slower  
+    Moderate,  // 15-30% slower
     Major,     // 30-50% slower
     Critical,  // >50% slower
 }
@@ -97,13 +97,13 @@ pub fn run_performance_regression_tests(device: &Device) -> QuantizationResult<P
 
     for (benchmark_name, benchmark_fn) in benchmarks {
         results.benchmarks_run += 1;
-        
+
         match benchmark_fn(device, 50) { // 50 iterations per benchmark
             Ok(benchmark_result) => {
-                let passes_performance_threshold = 
+                let passes_performance_threshold =
                     benchmark_result.baseline_comparison.regression_severity != RegressionSeverity::Critical &&
                     benchmark_result.performance_category != PerformanceCategory::Critical;
-                
+
                 if passes_performance_threshold {
                     results.benchmarks_passed += 1;
                 } else {
@@ -136,7 +136,7 @@ pub fn run_performance_regression_tests(device: &Device) -> QuantizationResult<P
 fn benchmark_small_tensor_quantization(device: &Device, iterations: usize) -> QuantizationResult<BenchmarkResult> {
     let mut measurements = Vec::new();
     let tensor_size = vec![64]; // Small tensor
-    
+
     // Warm up
     for _ in 0..5 {
         let tensor = generate_test_tensor(TestPattern::NormalDistribution, &tensor_size, device)?;
@@ -148,11 +148,11 @@ fn benchmark_small_tensor_quantization(device: &Device, iterations: usize) -> Qu
     for _ in 0..iterations {
         let tensor = generate_test_tensor(TestPattern::NormalDistribution, &tensor_size, device)?;
         let quantizer = create_ternary_quantizer(TernaryMethod::MeanThreshold, Some(0.7))?;
-        
+
         let start = Instant::now();
         let _result = quantizer.quantize(&tensor)?;
         let duration = start.elapsed();
-        
+
         measurements.push(duration);
     }
 
@@ -173,7 +173,7 @@ fn benchmark_small_tensor_quantization(device: &Device, iterations: usize) -> Qu
 fn benchmark_large_tensor_quantization(device: &Device, iterations: usize) -> QuantizationResult<BenchmarkResult> {
     let mut measurements = Vec::new();
     let tensor_size = vec![1024, 1024]; // Large tensor
-    
+
     // Warm up
     for _ in 0..3 {
         let tensor = generate_test_tensor(TestPattern::UniformDistribution, &tensor_size, device)?;
@@ -181,15 +181,15 @@ fn benchmark_large_tensor_quantization(device: &Device, iterations: usize) -> Qu
         let _ = quantizer.quantize(&tensor)?;
     }
 
-    // Actual measurements  
+    // Actual measurements
     for _ in 0..iterations {
         let tensor = generate_test_tensor(TestPattern::UniformDistribution, &tensor_size, device)?;
         let quantizer = create_ternary_quantizer(TernaryMethod::OptimalThreshold, Some(0.7))?;
-        
+
         let start = Instant::now();
         let _result = quantizer.quantize(&tensor)?;
         let duration = start.elapsed();
-        
+
         measurements.push(duration);
     }
 
@@ -211,7 +211,7 @@ fn benchmark_batch_quantization(device: &Device, iterations: usize) -> Quantizat
     let mut measurements = Vec::new();
     let batch_size = 10;
     let tensor_size = vec![128, 128];
-    
+
     // Warm up
     for _ in 0..3 {
         let tensors: Result<Vec<_>, _> = (0..batch_size)
@@ -219,7 +219,7 @@ fn benchmark_batch_quantization(device: &Device, iterations: usize) -> Quantizat
             .collect();
         let tensors = tensors?;
         let quantizer = create_ternary_quantizer(TernaryMethod::AdaptiveThreshold, Some(0.7))?;
-        
+
         for tensor in &tensors {
             let _ = quantizer.quantize(tensor)?;
         }
@@ -232,13 +232,13 @@ fn benchmark_batch_quantization(device: &Device, iterations: usize) -> Quantizat
             .collect();
         let tensors = tensors?;
         let quantizer = create_ternary_quantizer(TernaryMethod::AdaptiveThreshold, Some(0.7))?;
-        
+
         let start = Instant::now();
         for tensor in &tensors {
             let _result = quantizer.quantize(tensor)?;
         }
         let duration = start.elapsed();
-        
+
         measurements.push(duration);
     }
 
@@ -262,11 +262,11 @@ fn benchmark_method_comparison(device: &Device, iterations: usize) -> Quantizati
     let tensor_size = vec![256, 256];
     let methods = [
         TernaryMethod::MeanThreshold,
-        TernaryMethod::MedianThreshold, 
+        TernaryMethod::MedianThreshold,
         TernaryMethod::AdaptiveThreshold,
         TernaryMethod::OptimalThreshold,
     ];
-    
+
     // Warm up
     for method in &methods {
         let tensor = generate_test_tensor(TestPattern::NormalDistribution, &tensor_size, device)?;
@@ -277,14 +277,14 @@ fn benchmark_method_comparison(device: &Device, iterations: usize) -> Quantizati
     // Actual measurements - test all methods per iteration
     for _ in 0..iterations {
         let tensor = generate_test_tensor(TestPattern::NormalDistribution, &tensor_size, device)?;
-        
+
         let start = Instant::now();
         for method in &methods {
             let quantizer = create_ternary_quantizer(*method, Some(0.7))?;
             let _result = quantizer.quantize(&tensor)?;
         }
         let duration = start.elapsed();
-        
+
         measurements.push(duration);
     }
 
@@ -306,7 +306,7 @@ fn benchmark_method_comparison(device: &Device, iterations: usize) -> Quantizati
 fn benchmark_memory_efficiency(device: &Device, iterations: usize) -> QuantizationResult<BenchmarkResult> {
     let mut measurements = Vec::new();
     let tensor_size = vec![512, 512];
-    
+
     // Warm up
     for _ in 0..3 {
         let tensor = generate_test_tensor(TestPattern::LargeValues, &tensor_size, device)?;
@@ -319,12 +319,12 @@ fn benchmark_memory_efficiency(device: &Device, iterations: usize) -> Quantizati
     for _ in 0..iterations {
         let tensor = generate_test_tensor(TestPattern::LargeValues, &tensor_size, device)?;
         let quantizer = create_ternary_quantizer(TernaryMethod::OptimalThreshold, Some(0.7))?;
-        
+
         let start = Instant::now();
         let quantized = quantizer.quantize(&tensor)?;
         let _dequantized = quantizer.dequantize(&quantized)?;
         let duration = start.elapsed();
-        
+
         measurements.push(duration);
     }
 
@@ -345,10 +345,10 @@ fn benchmark_memory_efficiency(device: &Device, iterations: usize) -> Quantizati
 fn benchmark_concurrent_operations(device: &Device, iterations: usize) -> QuantizationResult<BenchmarkResult> {
     let mut measurements = Vec::new();
     let tensor_size = vec![256, 256];
-    
+
     // For this benchmark, we simulate concurrent-like operations by alternating methods
     let methods = [TernaryMethod::MeanThreshold, TernaryMethod::OptimalThreshold];
-    
+
     // Warm up
     for _ in 0..3 {
         for method in &methods {
@@ -363,11 +363,11 @@ fn benchmark_concurrent_operations(device: &Device, iterations: usize) -> Quanti
         let method = methods[i % methods.len()];
         let tensor = generate_test_tensor(TestPattern::OutlierHeavy, &tensor_size, device)?;
         let quantizer = create_ternary_quantizer(method, Some(0.7))?;
-        
+
         let start = Instant::now();
         let _result = quantizer.quantize(&tensor)?;
         let duration = start.elapsed();
-        
+
         measurements.push(duration);
     }
 
@@ -387,14 +387,14 @@ fn benchmark_concurrent_operations(device: &Device, iterations: usize) -> Quanti
 
 fn benchmark_edge_case_performance(device: &Device, iterations: usize) -> QuantizationResult<BenchmarkResult> {
     let mut measurements = Vec::new();
-    
+
     // Test various edge case scenarios
     let edge_cases = [
         (TestPattern::AllZeros, vec![100]),
         (TestPattern::LargeValues, vec![100]),
         (TestPattern::OutlierHeavy, vec![100]),
     ];
-    
+
     // Warm up
     for (pattern, shape) in &edge_cases {
         let tensor = generate_test_tensor(*pattern, shape, device)?;
@@ -407,18 +407,18 @@ fn benchmark_edge_case_performance(device: &Device, iterations: usize) -> Quanti
         let (pattern, shape) = &edge_cases[i % edge_cases.len()];
         let tensor = generate_test_tensor(*pattern, shape, device)?;
         let quantizer = create_ternary_quantizer(TernaryMethod::AdaptiveThreshold, Some(0.7))?;
-        
+
         let start = Instant::now();
         let _result = quantizer.quantize(&tensor)?;
         let duration = start.elapsed();
-        
+
         measurements.push(duration);
     }
 
     let avg_elements = edge_cases.iter()
         .map(|(_, shape)| shape.iter().product::<usize>())
         .sum::<usize>() / edge_cases.len();
-        
+
     let statistics = calculate_performance_statistics(&measurements, avg_elements);
     let baseline_comparison = compare_with_baseline("edge_case_performance", &statistics);
     let performance_category = categorize_performance(&statistics);
@@ -489,11 +489,11 @@ fn calculate_performance_statistics(measurements: &[Duration], num_elements: usi
 }
 
 fn compare_with_baseline(benchmark_name: &str, statistics: &PerformanceStatistics) -> BaselineComparison {
-    // These are approximate baseline values - in a real implementation, 
+    // These are approximate baseline values - in a real implementation,
     // these would be loaded from historical performance data
     let baseline_mean = match benchmark_name {
         "small_tensor" => Duration::from_micros(10),      // 10μs for small tensors
-        "large_tensor" => Duration::from_millis(1),       // 1ms for large tensors  
+        "large_tensor" => Duration::from_millis(1),       // 1ms for large tensors
         "batch_quantization" => Duration::from_millis(5), // 5ms for batch operations
         "method_comparison" => Duration::from_millis(2),  // 2ms for method comparison
         "memory_efficiency" => Duration::from_millis(2),  // 2ms for full cycle
@@ -504,13 +504,13 @@ fn compare_with_baseline(benchmark_name: &str, statistics: &PerformanceStatistic
 
     let current_mean = statistics.mean_duration;
     let performance_ratio = current_mean.as_secs_f64() / baseline_mean.as_secs_f64();
-    
+
     let (is_regression, severity) = if performance_ratio <= 1.05 {
         (false, RegressionSeverity::None)
     } else if performance_ratio <= 1.15 {
         (true, RegressionSeverity::Minor)
     } else if performance_ratio <= 1.30 {
-        (true, RegressionSeverity::Moderate)  
+        (true, RegressionSeverity::Moderate)
     } else if performance_ratio <= 1.50 {
         (true, RegressionSeverity::Major)
     } else {
@@ -529,11 +529,11 @@ fn compare_with_baseline(benchmark_name: &str, statistics: &PerformanceStatistic
 fn categorize_performance(statistics: &PerformanceStatistics) -> PerformanceCategory {
     // Categorize based on throughput (operations per second)
     let throughput = statistics.throughput_ops_per_sec;
-    
+
     if throughput > 1_000_000.0 {
         PerformanceCategory::Fast
     } else if throughput > 100_000.0 {
-        PerformanceCategory::Normal  
+        PerformanceCategory::Normal
     } else if throughput > 10_000.0 {
         PerformanceCategory::Slow
     } else {
@@ -555,7 +555,7 @@ fn calculate_performance_score(results: &PerformanceRegressionResults) -> f64 {
                 PerformanceCategory::Slow => 0.6,
                 PerformanceCategory::Critical => 0.2,
             };
-            
+
             // Penalty for regressions
             let regression_penalty = match benchmark.baseline_comparison.regression_severity {
                 RegressionSeverity::None => 1.0,
@@ -564,7 +564,7 @@ fn calculate_performance_score(results: &PerformanceRegressionResults) -> f64 {
                 RegressionSeverity::Major => 0.5,
                 RegressionSeverity::Critical => 0.2,
             };
-            
+
             category_score * regression_penalty
         })
         .sum();
@@ -580,7 +580,7 @@ mod tests {
     fn test_performance_regression_testing() {
         let device = create_test_device();
         let results = run_performance_regression_tests(&device).unwrap();
-        
+
         assert!(results.benchmarks_run > 0);
         assert!(results.overall_performance_score >= 0.0 && results.overall_performance_score <= 1.0);
     }
@@ -588,14 +588,14 @@ mod tests {
     #[test]
     fn test_individual_benchmarks() {
         let device = create_test_device();
-        
+
         let result = benchmark_small_tensor_quantization(&device, 5).unwrap();
         assert_eq!(result.iterations, 5);
         assert_eq!(result.measurements.len(), 5);
         assert!(result.statistics.mean_duration > Duration::ZERO);
     }
 
-    #[test] 
+    #[test]
     fn test_performance_categorization() {
         let fast_stats = PerformanceStatistics {
             throughput_ops_per_sec: 2_000_000.0,

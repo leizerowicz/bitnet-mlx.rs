@@ -3,12 +3,8 @@
 //! This module provides integration between the tokenizer and sequence management
 //! systems, enabling seamless text processing with automatic sequence handling.
 
-use super::{
-    SequenceConfig,
-    manager::SequenceManager,
-    ProcessedSequence, SequenceResult,
-};
-use crate::tokenizer::{Tokenizer, encode_text, encode_batch, decode_tokens};
+use super::{manager::SequenceManager, ProcessedSequence, SequenceConfig, SequenceResult};
+use crate::tokenizer::{decode_tokens, encode_batch, encode_text, Tokenizer};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
@@ -121,7 +117,7 @@ impl SequenceAwareTokenizer {
         tokenizer_config: TokenizerSequenceConfig,
     ) -> Result<Self> {
         let sequence_manager = SequenceManager::with_config(sequence_config)?;
-        
+
         Ok(Self {
             tokenizer,
             sequence_manager,
@@ -133,7 +129,7 @@ impl SequenceAwareTokenizer {
     pub fn with_tokenizer(tokenizer: Tokenizer) -> Self {
         let sequence_config = SequenceConfig::default();
         let tokenizer_config = TokenizerSequenceConfig::default();
-        
+
         Self {
             sequence_manager: SequenceManager::with_config(sequence_config).unwrap(),
             tokenizer,
@@ -157,11 +153,14 @@ impl SequenceAwareTokenizer {
     }
 
     /// Encode a single text with sequence management
-    pub fn encode_with_sequence_management(&mut self, text: &str) -> SequenceResult<ProcessedSequence> {
+    pub fn encode_with_sequence_management(
+        &mut self,
+        text: &str,
+    ) -> SequenceResult<ProcessedSequence> {
         // Tokenize the text
-        let mut tokens = encode_text(&self.tokenizer, text)
-            .map_err(|e| super::SequenceError::ConfigError { 
-                message: format!("Tokenization failed: {}", e) 
+        let mut tokens =
+            encode_text(&self.tokenizer, text).map_err(|e| super::SequenceError::ConfigError {
+                message: format!("Tokenization failed: {}", e),
             })?;
 
         // Add special tokens if configured
@@ -185,16 +184,18 @@ impl SequenceAwareTokenizer {
         texts: &[&str],
     ) -> SequenceResult<TokenizationResult> {
         let start_time = std::time::Instant::now();
-        
+
         // Tokenize all texts
-        let token_sequences = encode_batch(&self.tokenizer, texts)
-            .map_err(|e| super::SequenceError::ConfigError { 
-                message: format!("Batch tokenization failed: {}", e) 
-            })?;
+        let token_sequences = encode_batch(&self.tokenizer, texts).map_err(|e| {
+            super::SequenceError::ConfigError {
+                message: format!("Batch tokenization failed: {}", e),
+            }
+        })?;
 
         // Add special tokens if configured
         let processed_tokens: Vec<Vec<u32>> = if self.config.add_special_tokens {
-            token_sequences.into_iter()
+            token_sequences
+                .into_iter()
                 .map(|tokens| self.add_special_tokens(tokens))
                 .collect()
         } else {
@@ -213,16 +214,18 @@ impl SequenceAwareTokenizer {
 
         // Process with sequence manager
         let pad_token = self.config.special_tokens.pad_token;
-        let batch = self.sequence_manager.process_batch(&processed_tokens, pad_token)?;
+        let batch = self
+            .sequence_manager
+            .process_batch(&processed_tokens, pad_token)?;
 
         // Calculate metadata
         let processing_time = start_time.elapsed().as_millis() as u64;
         let sequences = batch.sequences().to_vec();
-        
+
         let total_output_tokens: usize = sequences.iter().map(|s| s.current_length).sum();
         let truncated_count = sequences.iter().filter(|s| s.was_truncated).count();
         let padded_count = sequences.iter().filter(|s| s.was_padded).count();
-        
+
         let avg_compression_ratio = if total_input_tokens > 0 {
             total_output_tokens as f32 / total_input_tokens as f32
         } else {
@@ -255,40 +258,40 @@ impl SequenceAwareTokenizer {
     /// Decode sequences back to text
     pub fn decode_sequences(&self, sequences: &[ProcessedSequence]) -> Result<Vec<String>> {
         let mut decoded_texts = Vec::with_capacity(sequences.len());
-        
+
         for sequence in sequences {
             // Remove special tokens before decoding
             let tokens_to_decode = self.remove_special_tokens(&sequence.tokens);
-            
+
             let decoded = decode_tokens(&self.tokenizer, &tokens_to_decode)
                 .map_err(|e| anyhow::anyhow!("Decoding failed: {}", e))?;
-            
+
             decoded_texts.push(decoded);
         }
-        
+
         Ok(decoded_texts)
     }
 
     /// Add special tokens to a sequence
     fn add_special_tokens(&self, mut tokens: Vec<u32>) -> Vec<u32> {
         let special = &self.config.special_tokens;
-        
+
         // Add BOS token at the beginning
         if let Some(bos) = special.bos_token {
             tokens.insert(0, bos);
         }
-        
+
         // Add CLS token at the beginning (after BOS if present)
         if let Some(cls) = special.cls_token {
             let insert_pos = if special.bos_token.is_some() { 1 } else { 0 };
             tokens.insert(insert_pos, cls);
         }
-        
+
         // Add EOS token at the end
         if let Some(eos) = special.eos_token {
             tokens.push(eos);
         }
-        
+
         tokens
     }
 
@@ -318,7 +321,7 @@ impl SequenceAwareTokenizer {
     fn validate_tokens(&self, tokens: &[u32]) -> SequenceResult<()> {
         let vocab_size = self.tokenizer.vocab_size();
         let special = &self.config.special_tokens;
-        
+
         // Create set of allowed special tokens
         let special_tokens: std::collections::HashSet<u32> = [
             special.bos_token,
@@ -349,10 +352,11 @@ impl SequenceAwareTokenizer {
         text_b: Option<&str>,
     ) -> SequenceResult<ProcessedSequence> {
         // Tokenize first text
-        let mut tokens_a = encode_text(&self.tokenizer, text_a)
-            .map_err(|e| super::SequenceError::ConfigError { 
-                message: format!("Tokenization failed: {}", e) 
-            })?;
+        let mut tokens_a = encode_text(&self.tokenizer, text_a).map_err(|e| {
+            super::SequenceError::ConfigError {
+                message: format!("Tokenization failed: {}", e),
+            }
+        })?;
 
         let mut final_tokens = Vec::new();
         let special = &self.config.special_tokens;
@@ -372,13 +376,14 @@ impl SequenceAwareTokenizer {
 
         // Add second text if provided
         if let Some(text_b_str) = text_b {
-            let mut tokens_b = encode_text(&self.tokenizer, text_b_str)
-                .map_err(|e| super::SequenceError::ConfigError { 
-                    message: format!("Tokenization failed: {}", e) 
-                })?;
-            
+            let mut tokens_b = encode_text(&self.tokenizer, text_b_str).map_err(|e| {
+                super::SequenceError::ConfigError {
+                    message: format!("Tokenization failed: {}", e),
+                }
+            })?;
+
             final_tokens.append(&mut tokens_b);
-            
+
             // Add final SEP token
             if let Some(sep) = special.sep_token {
                 final_tokens.push(sep);
@@ -391,7 +396,8 @@ impl SequenceAwareTokenizer {
         }
 
         let pad_token = special.pad_token;
-        self.sequence_manager.process_sequence(final_tokens, pad_token)
+        self.sequence_manager
+            .process_sequence(final_tokens, pad_token)
     }
 
     /// Create sequences for token classification tasks (NER, POS tagging)
@@ -402,10 +408,10 @@ impl SequenceAwareTokenizer {
     ) -> SequenceResult<(ProcessedSequence, Option<Vec<u32>>)> {
         // For token classification, we typically don't add special tokens
         // except for padding, as we need 1:1 alignment with labels
-        
-        let tokens = encode_text(&self.tokenizer, text)
-            .map_err(|e| super::SequenceError::ConfigError { 
-                message: format!("Tokenization failed: {}", e) 
+
+        let tokens =
+            encode_text(&self.tokenizer, text).map_err(|e| super::SequenceError::ConfigError {
+                message: format!("Tokenization failed: {}", e),
             })?;
 
         // Process labels if provided (this is a simplified approach)
@@ -467,7 +473,7 @@ pub fn create_bert_tokenizer(
     let mut tokenizer_config = TokenizerSequenceConfig::default();
     tokenizer_config.special_tokens.cls_token = Some(101); // [CLS]
     tokenizer_config.special_tokens.sep_token = Some(102); // [SEP]
-    tokenizer_config.special_tokens.pad_token = Some(0);   // [PAD]
+    tokenizer_config.special_tokens.pad_token = Some(0); // [PAD]
 
     SequenceAwareTokenizer::new(tokenizer, sequence_config, tokenizer_config)
 }
@@ -503,7 +509,7 @@ mod tests {
         vocab.insert("<pad>".to_string(), 3);
         vocab.insert("<cls>".to_string(), 4);
         vocab.insert("<sep>".to_string(), 5);
-        
+
         create_simple_tokenizer(vocab)
     }
 
@@ -512,13 +518,10 @@ mod tests {
         let tokenizer = create_test_tokenizer();
         let sequence_config = SequenceConfig::new().with_max_length(10);
         let tokenizer_config = TokenizerSequenceConfig::default();
-        
-        let seq_tokenizer = SequenceAwareTokenizer::new(
-            tokenizer,
-            sequence_config,
-            tokenizer_config,
-        );
-        
+
+        let seq_tokenizer =
+            SequenceAwareTokenizer::new(tokenizer, sequence_config, tokenizer_config);
+
         assert!(seq_tokenizer.is_ok());
     }
 
@@ -526,14 +529,14 @@ mod tests {
     fn test_special_tokens_addition() {
         let tokenizer = create_test_tokenizer();
         let mut seq_tokenizer = SequenceAwareTokenizer::with_tokenizer(tokenizer);
-        
+
         // Configure special tokens
         seq_tokenizer.config.special_tokens.cls_token = Some(4);
         seq_tokenizer.config.special_tokens.sep_token = Some(5);
-        
+
         let tokens = vec![0, 1]; // "hello world"
         let tokens_with_special = seq_tokenizer.add_special_tokens(tokens);
-        
+
         // Should have CLS at beginning
         assert_eq!(tokens_with_special[0], 4);
         assert_eq!(tokens_with_special[1], 0); // hello
@@ -544,10 +547,10 @@ mod tests {
     fn test_special_tokens_removal() {
         let tokenizer = create_test_tokenizer();
         let seq_tokenizer = SequenceAwareTokenizer::with_tokenizer(tokenizer);
-        
+
         let tokens_with_special = vec![4, 0, 1, 5, 3, 3]; // [CLS] hello world [SEP] [PAD] [PAD]
         let cleaned_tokens = seq_tokenizer.remove_special_tokens(&tokens_with_special);
-        
+
         // Should only have content tokens
         assert_eq!(cleaned_tokens, vec![0, 1]); // hello world
     }
@@ -556,7 +559,7 @@ mod tests {
     fn test_bert_tokenizer_creation() {
         let tokenizer = create_test_tokenizer();
         let bert_tokenizer = create_bert_tokenizer(tokenizer, 512);
-        
+
         assert!(bert_tokenizer.is_ok());
         let tokenizer = bert_tokenizer.unwrap();
         assert_eq!(tokenizer.config().special_tokens.cls_token, Some(101));

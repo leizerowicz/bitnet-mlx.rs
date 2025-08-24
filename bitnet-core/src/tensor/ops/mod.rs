@@ -17,8 +17,8 @@
 //! All operations are designed to work efficiently with the BitNet memory
 //! management system and support heterogeneous device execution.
 
-use thiserror::Error;
 use crate::tensor::dtype::BitNetDType;
+use thiserror::Error;
 
 /// Result type for tensor operations
 pub type TensorOpResult<T> = Result<T, TensorOpError>;
@@ -50,7 +50,7 @@ pub enum TensorOpError {
     /// Data type mismatch error
     #[error("Data type mismatch in operation {operation}: {reason}")]
     DTypeMismatch { operation: String, reason: String },
-    
+
     /// Data type mismatch error (alternative form)
     #[error("Data type mismatch in operation {operation}: {reason}")]
     DataTypeMismatch { operation: String, reason: String },
@@ -61,7 +61,10 @@ pub enum TensorOpError {
 
     /// Unsupported operation for the given data type
     #[error("Operation {operation} is not supported for data type {dtype:?}")]
-    UnsupportedOperation { operation: String, dtype: BitNetDType },
+    UnsupportedOperation {
+        operation: String,
+        dtype: BitNetDType,
+    },
 
     /// Memory-related error during operation
     #[error("Memory error in operation {operation}: {reason}")]
@@ -88,12 +91,10 @@ pub enum TensorOpError {
 impl From<crate::memory::MemoryError> for TensorOpError {
     fn from(err: crate::memory::MemoryError) -> Self {
         match err {
-            crate::memory::MemoryError::InsufficientMemory { .. } => {
-                TensorOpError::MemoryError {
-                    operation: "tensor_operation".to_string(),
-                    reason: err.to_string(),
-                }
-            }
+            crate::memory::MemoryError::InsufficientMemory { .. } => TensorOpError::MemoryError {
+                operation: "tensor_operation".to_string(),
+                reason: err.to_string(),
+            },
             _ => TensorOpError::InternalError {
                 reason: err.to_string(),
             },
@@ -101,7 +102,7 @@ impl From<crate::memory::MemoryError> for TensorOpError {
     }
 }
 
-/// Conversion from TensorOpError to MemoryError 
+/// Conversion from TensorOpError to MemoryError
 impl From<TensorOpError> for crate::memory::MemoryError {
     fn from(err: TensorOpError) -> Self {
         match err {
@@ -110,7 +111,7 @@ impl From<TensorOpError> for crate::memory::MemoryError {
             }
             _ => crate::memory::MemoryError::InternalError {
                 reason: err.to_string(),
-            }
+            },
         }
     }
 }
@@ -126,22 +127,22 @@ impl From<candle_core::Error> for TensorOpError {
 }
 
 // Export modules
+pub mod activation;
+pub mod advanced_linear_algebra_fixes;
 pub mod arithmetic;
 pub mod broadcasting;
-pub mod linear_algebra;
-pub mod advanced_linear_algebra_fixes;
-pub mod reduction;
-pub mod activation;
-pub mod simd;
 pub mod eigendecomposition;
+pub mod linear_algebra;
 pub mod numerical_stability;
+pub mod reduction;
+pub mod simd;
 
 // Re-exports for convenience
+pub use activation::*;
 pub use arithmetic::*;
 pub use broadcasting::*;
-pub use linear_algebra::*;
-pub use reduction::*;
-pub use activation::*;
-pub use simd::*;
 pub use eigendecomposition::*;
+pub use linear_algebra::*;
 pub use numerical_stability::*;
+pub use reduction::*;
+pub use simd::*;

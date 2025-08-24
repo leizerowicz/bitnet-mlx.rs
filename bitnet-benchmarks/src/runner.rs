@@ -1,12 +1,12 @@
 //! Benchmark Runner
-//! 
+//!
 //! This module provides a command-line interface and utilities for running
 //! MLX vs Candle performance benchmarks with detailed metrics and reporting.
 
-use std::fs;
-use std::time::Instant;
 use clap::{Parser, Subcommand};
 use serde_json;
+use std::fs;
+use std::time::Instant;
 
 use crate::comparison::{ComparisonConfig, PerformanceComparator};
 
@@ -26,48 +26,48 @@ pub enum Commands {
         /// Configuration file path (JSON)
         #[arg(short, long)]
         config: Option<String>,
-        
+
         /// Output directory for results
         #[arg(short, long, default_value = "benchmark_results")]
         output: String,
-        
+
         /// Export format (json, csv, both)
         #[arg(short, long, default_value = "both")]
         format: String,
-        
+
         /// Specific operations to benchmark (comma-separated)
         #[arg(long)]
         operations: Option<String>,
-        
+
         /// Specific tensor sizes to test (format: 128x128,256x256)
         #[arg(long)]
         sizes: Option<String>,
-        
+
         /// Verbose output
         #[arg(short, long)]
         verbose: bool,
     },
-    
+
     /// Generate default configuration file
     GenerateConfig {
         /// Output path for configuration file
         #[arg(short, long, default_value = "benchmark_config.json")]
         output: String,
     },
-    
+
     /// Run quick benchmark with default settings
     Quick {
         /// Output directory for results
         #[arg(short, long, default_value = "quick_results")]
         output: String,
     },
-    
+
     /// Analyze existing benchmark results
     Analyze {
         /// Path to benchmark results file
         #[arg(short, long)]
         input: String,
-        
+
         /// Generate detailed report
         #[arg(short, long)]
         detailed: bool,
@@ -109,7 +109,7 @@ impl BenchmarkRunner {
         fs::create_dir_all(output_dir)?;
 
         let start_time = Instant::now();
-        
+
         // Run benchmarks
         let mut comparator = PerformanceComparator::new(self.config.clone());
         let comparisons = comparator.run_comparison()?;
@@ -164,7 +164,7 @@ impl BenchmarkRunner {
                 let json_content = comparator.export_json()?;
                 let json_path = format!("{output_dir}/benchmark_results_{timestamp}.json");
                 fs::write(&json_path, json_content)?;
-                
+
                 if self.verbose {
                     println!("JSON results exported to: {json_path}");
                 }
@@ -177,7 +177,7 @@ impl BenchmarkRunner {
                 let csv_content = comparator.export_csv();
                 let csv_path = format!("{output_dir}/benchmark_results_{timestamp}.csv");
                 fs::write(&csv_path, csv_content)?;
-                
+
                 if self.verbose {
                     println!("CSV results exported to: {csv_path}");
                 }
@@ -189,7 +189,7 @@ impl BenchmarkRunner {
         let summary = self.generate_comparison_summary(comparisons);
         let summary_path = format!("{output_dir}/comparison_summary_{timestamp}.md");
         fs::write(&summary_path, summary)?;
-        
+
         if self.verbose {
             println!("Summary report exported to: {summary_path}");
         }
@@ -198,27 +198,38 @@ impl BenchmarkRunner {
     }
 
     /// Generate a markdown summary of comparisons
-    fn generate_comparison_summary(&self, comparisons: &[crate::comparison::ComparisonResult]) -> String {
+    fn generate_comparison_summary(
+        &self,
+        comparisons: &[crate::comparison::ComparisonResult],
+    ) -> String {
         let mut summary = String::new();
-        
+
         summary.push_str("# MLX vs Candle Performance Comparison Summary\n\n");
-        summary.push_str(&format!("Generated: {}\n\n", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")));
-        
+        summary.push_str(&format!(
+            "Generated: {}\n\n",
+            chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
+        ));
+
         // Group by operation
-        let mut by_operation: std::collections::HashMap<String, Vec<&crate::comparison::ComparisonResult>> = 
-            std::collections::HashMap::new();
-        
+        let mut by_operation: std::collections::HashMap<
+            String,
+            Vec<&crate::comparison::ComparisonResult>,
+        > = std::collections::HashMap::new();
+
         for comparison in comparisons {
-            by_operation.entry(comparison.operation.clone())
+            by_operation
+                .entry(comparison.operation.clone())
                 .or_default()
                 .push(comparison);
         }
 
         for (operation, results) in by_operation {
             summary.push_str(&format!("## {operation}\n\n"));
-            summary.push_str("| Tensor Size | Baseline | Comparison | Speedup | Recommendation |\n");
-            summary.push_str("|-------------|----------|------------|---------|----------------|\n");
-            
+            summary
+                .push_str("| Tensor Size | Baseline | Comparison | Speedup | Recommendation |\n");
+            summary
+                .push_str("|-------------|----------|------------|---------|----------------|\n");
+
             for result in results {
                 summary.push_str(&format!(
                     "| {}x{} | {} | {} | {:.2}x | {} |\n",
@@ -237,7 +248,9 @@ impl BenchmarkRunner {
         summary.push_str("## Overall Recommendations\n\n");
         let mut recommendations = std::collections::HashMap::new();
         for comparison in comparisons {
-            *recommendations.entry(comparison.recommendation.clone()).or_insert(0) += 1;
+            *recommendations
+                .entry(comparison.recommendation.clone())
+                .or_insert(0) += 1;
         }
 
         for (recommendation, count) in recommendations {
@@ -251,22 +264,34 @@ impl BenchmarkRunner {
     fn print_summary(&self, comparisons: &[crate::comparison::ComparisonResult]) {
         println!("\n=== Benchmark Summary ===");
         println!("Total comparisons: {}", comparisons.len());
-        
+
         // Find best and worst performers
-        if let Some(best) = comparisons.iter().max_by(|a, b| a.speedup.partial_cmp(&b.speedup).unwrap()) {
-            println!("Best speedup: {:.2}x ({} vs {} for {})", 
-                best.speedup, best.comparison_backend, best.baseline_backend, best.operation);
+        if let Some(best) = comparisons
+            .iter()
+            .max_by(|a, b| a.speedup.partial_cmp(&b.speedup).unwrap())
+        {
+            println!(
+                "Best speedup: {:.2}x ({} vs {} for {})",
+                best.speedup, best.comparison_backend, best.baseline_backend, best.operation
+            );
         }
-        
-        if let Some(worst) = comparisons.iter().min_by(|a, b| a.speedup.partial_cmp(&b.speedup).unwrap()) {
-            println!("Worst speedup: {:.2}x ({} vs {} for {})", 
-                worst.speedup, worst.comparison_backend, worst.baseline_backend, worst.operation);
+
+        if let Some(worst) = comparisons
+            .iter()
+            .min_by(|a, b| a.speedup.partial_cmp(&b.speedup).unwrap())
+        {
+            println!(
+                "Worst speedup: {:.2}x ({} vs {} for {})",
+                worst.speedup, worst.comparison_backend, worst.baseline_backend, worst.operation
+            );
         }
 
         // Average speedups by backend
-        let mut backend_speedups: std::collections::HashMap<String, Vec<f64>> = std::collections::HashMap::new();
+        let mut backend_speedups: std::collections::HashMap<String, Vec<f64>> =
+            std::collections::HashMap::new();
         for comparison in comparisons {
-            backend_speedups.entry(comparison.comparison_backend.clone())
+            backend_speedups
+                .entry(comparison.comparison_backend.clone())
                 .or_default()
                 .push(comparison.speedup);
         }
@@ -291,57 +316,68 @@ impl BenchmarkRunner {
     pub fn analyze_results(input_path: &str, detailed: bool) -> anyhow::Result<()> {
         let content = fs::read_to_string(input_path)?;
         let data: serde_json::Value = serde_json::from_str(&content)?;
-        
+
         println!("=== Benchmark Results Analysis ===");
-        
+
         if let Some(measurements) = data.get("measurements").and_then(|m| m.as_array()) {
             println!("Total measurements: {}", measurements.len());
-            
+
             // Group by backend
-            let mut by_backend: std::collections::HashMap<String, Vec<&serde_json::Value>> = 
+            let mut by_backend: std::collections::HashMap<String, Vec<&serde_json::Value>> =
                 std::collections::HashMap::new();
-            
+
             for measurement in measurements {
                 if let Some(backend) = measurement.get("backend").and_then(|b| b.as_str()) {
-                    by_backend.entry(backend.to_string())
+                    by_backend
+                        .entry(backend.to_string())
                         .or_default()
                         .push(measurement);
                 }
             }
-            
+
             for (backend, measurements) in by_backend {
                 println!("\n{} measurements: {}", backend, measurements.len());
-                
+
                 if detailed {
                     // Calculate statistics
                     let mut execution_times = Vec::new();
                     let mut throughputs = Vec::new();
-                    
+
                     for measurement in measurements {
-                        if let Some(time) = measurement.get("execution_time").and_then(|t| t.get("secs_f64")).and_then(|s| s.as_f64()) {
+                        if let Some(time) = measurement
+                            .get("execution_time")
+                            .and_then(|t| t.get("secs_f64"))
+                            .and_then(|s| s.as_f64())
+                        {
                             execution_times.push(time);
                         }
-                        if let Some(throughput) = measurement.get("throughput").and_then(|t| t.as_f64()) {
+                        if let Some(throughput) =
+                            measurement.get("throughput").and_then(|t| t.as_f64())
+                        {
                             throughputs.push(throughput);
                         }
                     }
-                    
+
                     if !execution_times.is_empty() {
-                        let avg_time = execution_times.iter().sum::<f64>() / execution_times.len() as f64;
+                        let avg_time =
+                            execution_times.iter().sum::<f64>() / execution_times.len() as f64;
                         let min_time = execution_times.iter().fold(f64::INFINITY, |a, &b| a.min(b));
-                        let max_time = execution_times.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
-                        
+                        let max_time = execution_times
+                            .iter()
+                            .fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+
                         println!("  Execution time - Avg: {avg_time:.4}s, Min: {min_time:.4}s, Max: {max_time:.4}s");
                     }
-                    
+
                     if !throughputs.is_empty() {
-                        let avg_throughput = throughputs.iter().sum::<f64>() / throughputs.len() as f64;
+                        let avg_throughput =
+                            throughputs.iter().sum::<f64>() / throughputs.len() as f64;
                         println!("  Average throughput: {avg_throughput:.2} ops/sec");
                     }
                 }
             }
         }
-        
+
         Ok(())
     }
 }
@@ -349,26 +385,35 @@ impl BenchmarkRunner {
 /// Main CLI entry point
 pub fn run_cli() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    
+
     match cli.command {
-        Commands::Compare { config, output, format, operations, sizes, verbose } => {
+        Commands::Compare {
+            config,
+            output,
+            format,
+            operations,
+            sizes,
+            verbose,
+        } => {
             let mut runner = if let Some(config_path) = config {
                 BenchmarkRunner::from_config_file(&config_path, verbose)?
             } else {
                 BenchmarkRunner::with_defaults(verbose)
             };
-            
+
             // Override config with CLI options if provided
             if let Some(ops) = operations {
                 runner.config.operations = ops.split(',').map(|s| s.trim().to_string()).collect();
             }
-            
+
             if let Some(sizes_str) = sizes {
                 let mut sizes = Vec::new();
                 for size_str in sizes_str.split(',') {
                     let parts: Vec<&str> = size_str.trim().split('x').collect();
                     if parts.len() == 2 {
-                        if let (Ok(rows), Ok(cols)) = (parts[0].parse::<usize>(), parts[1].parse::<usize>()) {
+                        if let (Ok(rows), Ok(cols)) =
+                            (parts[0].parse::<usize>(), parts[1].parse::<usize>())
+                        {
                             sizes.push((rows, cols));
                         }
                     }
@@ -377,24 +422,24 @@ pub fn run_cli() -> anyhow::Result<()> {
                     runner.config.tensor_sizes = sizes;
                 }
             }
-            
+
             runner.run(&output, &format)?;
         }
-        
+
         Commands::GenerateConfig { output } => {
             BenchmarkRunner::generate_config_file(&output)?;
         }
-        
+
         Commands::Quick { output } => {
             let runner = BenchmarkRunner::with_defaults(true);
             runner.run_quick(&output)?;
         }
-        
+
         Commands::Analyze { input, detailed } => {
             BenchmarkRunner::analyze_results(&input, detailed)?;
         }
     }
-    
+
     Ok(())
 }
 

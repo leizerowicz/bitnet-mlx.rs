@@ -3,10 +3,8 @@
 //! This module implements zero-copy conversions for compatible data types,
 //! eliminating memory allocation and copying overhead when possible.
 
-use crate::memory::conversion::{
-    ConversionResult, ConversionError, ConversionContext, Converter
-};
-use crate::memory::tensor::{BitNetTensor, BitNetDType};
+use crate::memory::conversion::{ConversionContext, ConversionError, ConversionResult, Converter};
+use crate::memory::tensor::{BitNetDType, BitNetTensor};
 use crate::memory::HybridMemoryPool;
 use std::sync::Arc;
 
@@ -22,16 +20,12 @@ pub struct ZeroCopyConverter {
 impl ZeroCopyConverter {
     /// Creates a new zero-copy converter
     pub fn new() -> Self {
-        Self {
-            strict_mode: false,
-        }
+        Self { strict_mode: false }
     }
 
     /// Creates a new zero-copy converter with strict mode enabled
     pub fn new_strict() -> Self {
-        Self {
-            strict_mode: true,
-        }
+        Self { strict_mode: true }
     }
 
     /// Checks if two data types are zero-copy compatible
@@ -39,10 +33,10 @@ impl ZeroCopyConverter {
         match (source, target) {
             // Same type is always compatible
             (a, b) if a == b => true,
-            
+
             // F16 and BF16 have same memory layout (16 bits)
             (BitNetDType::F16, BitNetDType::BF16) | (BitNetDType::BF16, BitNetDType::F16) => true,
-            
+
             // All other conversions require data transformation
             _ => false,
         }
@@ -56,7 +50,7 @@ impl ZeroCopyConverter {
         pool: &Arc<HybridMemoryPool>,
     ) -> ConversionResult<BitNetTensor> {
         let source_dtype = source.dtype();
-        
+
         if !Self::is_compatible(source_dtype, target_dtype) {
             return Err(ConversionError::UnsupportedConversion {
                 from: source_dtype,
@@ -65,7 +59,10 @@ impl ZeroCopyConverter {
         }
 
         #[cfg(feature = "tracing")]
-        debug!("Performing zero-copy reinterpret cast from {} to {}", source_dtype, target_dtype);
+        debug!(
+            "Performing zero-copy reinterpret cast from {} to {}",
+            source_dtype, target_dtype
+        );
 
         // For same types, just clone the tensor reference
         if source_dtype == target_dtype {
@@ -94,20 +91,24 @@ impl ZeroCopyConverter {
     ) -> ConversionResult<BitNetTensor> {
         let shape = source.shape();
         let device = source.device();
-        
+
         #[cfg(feature = "tracing")]
         debug!("Reinterpreting F16/BF16 tensor with shape {:?}", shape);
 
         // Create a new tensor with the same memory layout but different type interpretation
-        let target_tensor = BitNetTensor::zeros(&shape, target_dtype, &device, pool)
-            .map_err(|e| ConversionError::InternalError { reason: e.to_string() })?;
+        let target_tensor =
+            BitNetTensor::zeros(&shape, target_dtype, &device, pool).map_err(|e| {
+                ConversionError::InternalError {
+                    reason: e.to_string(),
+                }
+            })?;
 
         // Copy the raw memory (this is still zero-copy in terms of data transformation)
         unsafe {
             let src_ptr = source.data.memory_handle.as_ptr();
             let dst_ptr = target_tensor.data.memory_handle.as_ptr() as *mut u8;
             let size_bytes = source.size_bytes();
-            
+
             std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, size_bytes);
         }
 
@@ -130,7 +131,7 @@ impl ZeroCopyConverter {
         target_dtype: BitNetDType,
     ) -> ConversionResult<TensorView> {
         let source_dtype = source.dtype();
-        
+
         if !Self::is_compatible(source_dtype, target_dtype) {
             return Err(ConversionError::UnsupportedConversion {
                 from: source_dtype,
@@ -139,7 +140,10 @@ impl ZeroCopyConverter {
         }
 
         #[cfg(feature = "tracing")]
-        debug!("Creating zero-copy view from {} to {}", source_dtype, target_dtype);
+        debug!(
+            "Creating zero-copy view from {} to {}",
+            source_dtype, target_dtype
+        );
 
         Ok(TensorView {
             source_tensor: source.clone(),
@@ -192,7 +196,9 @@ impl Converter for ZeroCopyConverter {
         self.validate_conversion(context.source_dtype, context.target_dtype)?;
 
         // Check device compatibility
-        if std::mem::discriminant(&context.source_device) != std::mem::discriminant(&context.target_device) {
+        if std::mem::discriminant(&context.source_device)
+            != std::mem::discriminant(&context.target_device)
+        {
             return Err(ConversionError::DeviceMismatch);
         }
 
@@ -207,7 +213,8 @@ impl Converter for ZeroCopyConverter {
         }
 
         // Check device compatibility
-        std::mem::discriminant(&context.source_device) == std::mem::discriminant(&context.target_device)
+        std::mem::discriminant(&context.source_device)
+            == std::mem::discriminant(&context.target_device)
     }
 
     fn estimate_time_ms(&self, context: &ConversionContext) -> u64 {
@@ -218,7 +225,7 @@ impl Converter for ZeroCopyConverter {
             // Memory copy for reinterpretation - very fast
             let element_count: usize = context.shape.iter().product();
             let size_bytes = context.source_dtype.bytes_for_elements(element_count);
-            
+
             // Estimate ~10 GB/s memory bandwidth
             ((size_bytes as f64) / (10.0 * 1024.0 * 1024.0 * 1024.0) * 1000.0) as u64
         }
@@ -353,16 +360,34 @@ mod tests {
     #[test]
     fn test_compatibility_checking() {
         // Same types should be compatible
-        assert!(ZeroCopyConverter::is_compatible(BitNetDType::F32, BitNetDType::F32));
-        assert!(ZeroCopyConverter::is_compatible(BitNetDType::I8, BitNetDType::I8));
+        assert!(ZeroCopyConverter::is_compatible(
+            BitNetDType::F32,
+            BitNetDType::F32
+        ));
+        assert!(ZeroCopyConverter::is_compatible(
+            BitNetDType::I8,
+            BitNetDType::I8
+        ));
 
         // F16 and BF16 should be compatible
-        assert!(ZeroCopyConverter::is_compatible(BitNetDType::F16, BitNetDType::BF16));
-        assert!(ZeroCopyConverter::is_compatible(BitNetDType::BF16, BitNetDType::F16));
+        assert!(ZeroCopyConverter::is_compatible(
+            BitNetDType::F16,
+            BitNetDType::BF16
+        ));
+        assert!(ZeroCopyConverter::is_compatible(
+            BitNetDType::BF16,
+            BitNetDType::F16
+        ));
 
         // Different types should not be compatible
-        assert!(!ZeroCopyConverter::is_compatible(BitNetDType::F32, BitNetDType::I8));
-        assert!(!ZeroCopyConverter::is_compatible(BitNetDType::F16, BitNetDType::F32));
+        assert!(!ZeroCopyConverter::is_compatible(
+            BitNetDType::F32,
+            BitNetDType::I8
+        ));
+        assert!(!ZeroCopyConverter::is_compatible(
+            BitNetDType::F16,
+            BitNetDType::F32
+        ));
     }
 
     #[test]
@@ -372,7 +397,9 @@ mod tests {
         let converter = ZeroCopyConverter::new();
 
         let source = BitNetTensor::zeros(&[2, 3], BitNetDType::F32, &device, &pool).unwrap();
-        let result = converter.reinterpret_cast(&source, BitNetDType::F32, &pool).unwrap();
+        let result = converter
+            .reinterpret_cast(&source, BitNetDType::F32, &pool)
+            .unwrap();
 
         assert_eq!(result.dtype(), BitNetDType::F32);
         assert_eq!(result.shape(), vec![2, 3]);
@@ -386,7 +413,9 @@ mod tests {
         let converter = ZeroCopyConverter::new();
 
         let source = BitNetTensor::zeros(&[4, 4], BitNetDType::F16, &device, &pool).unwrap();
-        let result = converter.reinterpret_cast(&source, BitNetDType::BF16, &pool).unwrap();
+        let result = converter
+            .reinterpret_cast(&source, BitNetDType::BF16, &pool)
+            .unwrap();
 
         assert_eq!(result.dtype(), BitNetDType::BF16);
         assert_eq!(result.shape(), vec![4, 4]);
@@ -403,7 +432,10 @@ mod tests {
         let result = converter.reinterpret_cast(&source, BitNetDType::I8, &pool);
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), ConversionError::UnsupportedConversion { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            ConversionError::UnsupportedConversion { .. }
+        ));
     }
 
     #[test]
@@ -432,7 +464,7 @@ mod tests {
         let converter = ZeroCopyConverter::new_strict();
 
         let source = BitNetTensor::zeros(&[2, 2], BitNetDType::F16, &device, &pool).unwrap();
-        
+
         // Same type should work in strict mode
         let result = converter.reinterpret_cast(&source, BitNetDType::F16, &pool);
         assert!(result.is_ok());
@@ -478,8 +510,14 @@ mod tests {
         assert!(can_zero_copy(BitNetDType::F16, BitNetDType::BF16));
         assert!(!can_zero_copy(BitNetDType::F32, BitNetDType::I8));
 
-        assert!(memory_layout_compatible(BitNetDType::F16, BitNetDType::BF16));
-        assert!(!memory_layout_compatible(BitNetDType::F32, BitNetDType::F16));
+        assert!(memory_layout_compatible(
+            BitNetDType::F16,
+            BitNetDType::BF16
+        ));
+        assert!(!memory_layout_compatible(
+            BitNetDType::F32,
+            BitNetDType::F16
+        ));
 
         let gain = performance_gain_estimate(BitNetDType::F32, BitNetDType::F32, 1000);
         assert!(gain.is_infinite());

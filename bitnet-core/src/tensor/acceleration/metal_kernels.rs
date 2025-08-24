@@ -20,21 +20,21 @@ use tracing::{debug, trace, warn, info};
 pub struct BitNetMetalKernels {
     device: Device,
     command_queue: CommandQueue,
-    
+
     // Quantization kernels
     quantization_158_pipeline: ComputePipelineState,
     dequantization_158_pipeline: ComputePipelineState,
     adaptive_quantization_pipeline: ComputePipelineState,
     weight_quantization_pipeline: ComputePipelineState,
     activation_quantization_pipeline: ComputePipelineState,
-    
+
     // BitLinear kernels
     bitlinear_forward_pipeline: ComputePipelineState,
     bitlinear_activation_quant_pipeline: ComputePipelineState,
-    
+
     // Matrix operation kernels
     matmul_optimized_pipeline: ComputePipelineState,
-    
+
     // QAT kernels
     qat_forward_pipeline: ComputePipelineState,
     ste_gradient_pipeline: ComputePipelineState,
@@ -55,44 +55,44 @@ impl BitNetMetalKernels {
 
         // Load and compile shader library
         let library = Self::load_bitnet_shader_library(&device)?;
-        
+
         // Create compute pipelines for all kernels
         let quantization_158_pipeline = Self::create_compute_pipeline(
             &device, &library, "bitnet_158_quantize"
         )?;
-        
+
         let dequantization_158_pipeline = Self::create_compute_pipeline(
             &device, &library, "bitnet_158_dequantize"
         )?;
-        
+
         let adaptive_quantization_pipeline = Self::create_compute_pipeline(
             &device, &library, "bitnet_adaptive_quantize"
         )?;
-        
+
         let weight_quantization_pipeline = Self::create_compute_pipeline(
             &device, &library, "bitnet_weight_quantize"
         )?;
-        
+
         let activation_quantization_pipeline = Self::create_compute_pipeline(
             &device, &library, "bitnet_activation_quantize"
         )?;
-        
+
         let bitlinear_forward_pipeline = Self::create_compute_pipeline(
             &device, &library, "bitlinear_forward"
         )?;
-        
+
         let bitlinear_activation_quant_pipeline = Self::create_compute_pipeline(
             &device, &library, "bitlinear_activation_quant"
         )?;
-        
+
         let matmul_optimized_pipeline = Self::create_compute_pipeline(
             &device, &library, "bitnet_matmul_optimized"
         )?;
-        
+
         let qat_forward_pipeline = Self::create_compute_pipeline(
             &device, &library, "bitnet_qat_forward"
         )?;
-        
+
         let ste_gradient_pipeline = Self::create_compute_pipeline(
             &device, &library, "bitnet_ste_gradient"
         )?;
@@ -125,9 +125,9 @@ impl BitNetMetalKernels {
     ///
     /// # Returns
     /// * Quantized tensor with values in {-1, 0, 1}
-    pub fn quantize_158(&self, 
-        input: &BitNetTensor, 
-        scale: f32, 
+    pub fn quantize_158(&self,
+        input: &BitNetTensor,
+        scale: f32,
         zero_point: f32
     ) -> TensorOpResult<BitNetTensor> {
         #[cfg(feature = "tracing")]
@@ -135,31 +135,31 @@ impl BitNetMetalKernels {
 
         let command_buffer = self.command_queue.new_command_buffer();
         let encoder = command_buffer.new_compute_command_encoder();
-        
+
         encoder.set_compute_pipeline_state(&self.quantization_158_pipeline);
-        
+
         // Create buffers
         let input_buffer = self.tensor_to_metal_buffer(input)?;
         let output_buffer = self.create_output_buffer(input.num_elements(), std::mem::size_of::<i8>())?;
         let scale_buffer = self.create_scalar_buffer(&[scale])?;
         let zero_point_buffer = self.create_scalar_buffer(&[zero_point])?;
         let size_buffer = self.create_scalar_buffer(&[input.num_elements() as u32])?;
-        
+
         // Set buffers
         encoder.set_buffer(0, Some(&input_buffer), 0);
         encoder.set_buffer(1, Some(&output_buffer), 0);
         encoder.set_buffer(2, Some(&scale_buffer), 0);
         encoder.set_buffer(3, Some(&zero_point_buffer), 0);
         encoder.set_buffer(4, Some(&size_buffer), 0);
-        
+
         // Dispatch threads
         let (threadgroup_size, threadgroups) = self.calculate_dispatch_size(input.num_elements());
         encoder.dispatch_threadgroups(threadgroups, threadgroup_size);
-        
+
         encoder.end_encoding();
         command_buffer.commit();
         command_buffer.wait_until_completed();
-        
+
         // Convert result back to BitNetTensor
         self.metal_buffer_to_tensor(&output_buffer, input.shape(), BitNetDType::I8)
     }
@@ -183,31 +183,31 @@ impl BitNetMetalKernels {
 
         let command_buffer = self.command_queue.new_command_buffer();
         let encoder = command_buffer.new_compute_command_encoder();
-        
+
         encoder.set_compute_pipeline_state(&self.dequantization_158_pipeline);
-        
+
         // Create buffers
         let input_buffer = self.tensor_to_metal_buffer(input)?;
         let output_buffer = self.create_output_buffer(input.num_elements(), std::mem::size_of::<f32>())?;
         let scale_buffer = self.create_scalar_buffer(&[scale])?;
         let zero_point_buffer = self.create_scalar_buffer(&[zero_point])?;
         let size_buffer = self.create_scalar_buffer(&[input.num_elements() as u32])?;
-        
+
         // Set buffers
         encoder.set_buffer(0, Some(&input_buffer), 0);
         encoder.set_buffer(1, Some(&output_buffer), 0);
         encoder.set_buffer(2, Some(&scale_buffer), 0);
         encoder.set_buffer(3, Some(&zero_point_buffer), 0);
         encoder.set_buffer(4, Some(&size_buffer), 0);
-        
+
         // Dispatch threads
         let (threadgroup_size, threadgroups) = self.calculate_dispatch_size(input.num_elements());
         encoder.dispatch_threadgroups(threadgroups, threadgroup_size);
-        
+
         encoder.end_encoding();
         command_buffer.commit();
         command_buffer.wait_until_completed();
-        
+
         // Convert result back to BitNetTensor
         self.metal_buffer_to_tensor(&output_buffer, input.shape(), BitNetDType::F32)
     }
@@ -230,7 +230,7 @@ impl BitNetMetalKernels {
     ) -> TensorOpResult<BitNetTensor> {
         let weight_dims = weights.shape().dims();
         let input_dims = input.shape().dims();
-        
+
         if weight_dims.len() != 2 || input_dims.len() != 2 {
             return Err(TensorOpError::ShapeMismatch {
                 expected: vec![2, 2],
@@ -247,9 +247,9 @@ impl BitNetMetalKernels {
 
         let command_buffer = self.command_queue.new_command_buffer();
         let encoder = command_buffer.new_compute_command_encoder();
-        
+
         encoder.set_compute_pipeline_state(&self.bitlinear_forward_pipeline);
-        
+
         // Create buffers
         let weights_buffer = self.tensor_to_metal_buffer(weights)?;
         let input_buffer = self.tensor_to_metal_buffer(input)?;
@@ -258,7 +258,7 @@ impl BitNetMetalKernels {
         let input_scale_buffer = self.create_scalar_buffer(&[input_scale])?;
         let input_size_buffer = self.create_scalar_buffer(&[input_size as u32])?;
         let output_size_buffer = self.create_scalar_buffer(&[output_size as u32])?;
-        
+
         // Set buffers
         encoder.set_buffer(0, Some(&weights_buffer), 0);
         encoder.set_buffer(1, Some(&input_buffer), 0);
@@ -267,7 +267,7 @@ impl BitNetMetalKernels {
         encoder.set_buffer(4, Some(&input_scale_buffer), 0);
         encoder.set_buffer(5, Some(&input_size_buffer), 0);
         encoder.set_buffer(6, Some(&output_size_buffer), 0);
-        
+
         // Dispatch threads (2D grid for output elements)
         let threadgroup_size = metal::MTLSize::new(16, 16, 1);
         let threadgroups = metal::MTLSize::new(
@@ -276,11 +276,11 @@ impl BitNetMetalKernels {
             1
         );
         encoder.dispatch_threadgroups(threadgroups, threadgroup_size);
-        
+
         encoder.end_encoding();
         command_buffer.commit();
         command_buffer.wait_until_completed();
-        
+
         // Convert result back to BitNetTensor
         self.metal_buffer_to_tensor(&output_buffer, &[batch_size, output_size], BitNetDType::F32)
     }
@@ -296,7 +296,7 @@ impl BitNetMetalKernels {
     pub fn matmul_optimized(&self, a: &BitNetTensor, b: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
         let a_dims = a.shape().dims();
         let b_dims = b.shape().dims();
-        
+
         if a_dims.len() != 2 || b_dims.len() != 2 {
             return Err(TensorOpError::ShapeMismatch {
                 expected: vec![2, 2],
@@ -320,9 +320,9 @@ impl BitNetMetalKernels {
 
         let command_buffer = self.command_queue.new_command_buffer();
         let encoder = command_buffer.new_compute_command_encoder();
-        
+
         encoder.set_compute_pipeline_state(&self.matmul_optimized_pipeline);
-        
+
         // Create buffers
         let a_buffer = self.tensor_to_metal_buffer(a)?;
         let b_buffer = self.tensor_to_metal_buffer(b)?;
@@ -330,7 +330,7 @@ impl BitNetMetalKernels {
         let m_buffer = self.create_scalar_buffer(&[M as u32])?;
         let n_buffer = self.create_scalar_buffer(&[N as u32])?;
         let k_buffer = self.create_scalar_buffer(&[K as u32])?;
-        
+
         // Set buffers
         encoder.set_buffer(0, Some(&a_buffer), 0);
         encoder.set_buffer(1, Some(&b_buffer), 0);
@@ -338,7 +338,7 @@ impl BitNetMetalKernels {
         encoder.set_buffer(3, Some(&m_buffer), 0);
         encoder.set_buffer(4, Some(&n_buffer), 0);
         encoder.set_buffer(5, Some(&k_buffer), 0);
-        
+
         // Dispatch threads with optimal tiling
         let threadgroup_size = metal::MTLSize::new(16, 16, 1);
         let threadgroups = metal::MTLSize::new(
@@ -347,11 +347,11 @@ impl BitNetMetalKernels {
             1
         );
         encoder.dispatch_threadgroups(threadgroups, threadgroup_size);
-        
+
         encoder.end_encoding();
         command_buffer.commit();
         command_buffer.wait_until_completed();
-        
+
         // Convert result back to BitNetTensor
         self.metal_buffer_to_tensor(&output_buffer, &[M, N], BitNetDType::F32)
     }
@@ -387,10 +387,10 @@ impl BitNetMetalKernels {
     ///
     /// # Returns
     /// * Result of the operation
-    pub fn auto_dispatch<T, F, G>(&self, 
-        operation: &str, 
-        tensor_size: usize, 
-        gpu_fn: F, 
+    pub fn auto_dispatch<T, F, G>(&self,
+        operation: &str,
+        tensor_size: usize,
+        gpu_fn: F,
         cpu_fn: G
     ) -> TensorOpResult<T>
     where
@@ -400,7 +400,7 @@ impl BitNetMetalKernels {
         if self.should_use_gpu(tensor_size, operation) {
             #[cfg(feature = "tracing")]
             trace!("Dispatching {} (size: {}) to GPU", operation, tensor_size);
-            
+
             match gpu_fn() {
                 Ok(result) => Ok(result),
                 Err(e) => {
@@ -417,7 +417,7 @@ impl BitNetMetalKernels {
     }
 
     // Private helper methods
-    
+
     /// Calculate optimal dispatch size for GPU kernels
     fn calculate_dispatch_size(&self, element_count: usize) -> (metal::MTLSize, metal::MTLSize) {
         let threadgroup_size = metal::MTLSize::new(256, 1, 1);
@@ -455,13 +455,13 @@ impl BitNetMetalKernels {
 
     /// Convert Metal buffer back to BitNet tensor
     fn metal_buffer_to_tensor(
-        &self, 
-        buffer: &metal::Buffer, 
-        shape: &[usize], 
+        &self,
+        buffer: &metal::Buffer,
+        shape: &[usize],
         dtype: BitNetDType
     ) -> TensorOpResult<BitNetTensor> {
         let element_count: usize = shape.iter().product();
-        
+
         // Read buffer data
         let buffer_data = unsafe {
             std::slice::from_raw_parts(
@@ -472,9 +472,9 @@ impl BitNetMetalKernels {
 
         // Create new tensor with the data
         BitNetTensor::from_data(
-            buffer_data, 
-            shape, 
-            dtype, 
+            buffer_data,
+            shape,
+            dtype,
             Some(candle_core::Device::Cpu)
         ).map_err(|e| TensorOpError::InternalError {
             reason: format!("Failed to create tensor from GPU buffer: {:?}", e),
@@ -511,9 +511,9 @@ impl BitNetMetalKernels {
         // Try to load from embedded shaders first
         let shader_source = include_str!("../../../../bitnet-metal/shaders/bitnet_quantization.metal");
         let bitlinear_source = include_str!("../../../../bitnet-metal/shaders/bitlinear_operations.metal");
-        
+
         let combined_source = format!("{}\n\n{}", shader_source, bitlinear_source);
-        
+
         let compile_options = metal::CompileOptions::new();
         device.new_library_with_source(&combined_source, &compile_options)
             .map_err(|e| TensorOpError::InternalError {
@@ -555,9 +555,9 @@ impl BitNetMetalKernels {
 
         let command_buffer = self.command_queue.new_command_buffer();
         let encoder = command_buffer.new_compute_command_encoder();
-        
+
         encoder.set_compute_pipeline_state(&self.qat_forward_pipeline);
-        
+
         // Create buffers
         let input_buffer = self.tensor_to_metal_buffer(input)?;
         let fake_quantized_buffer = self.create_output_buffer(input.num_elements(), std::mem::size_of::<f32>())?;
@@ -565,7 +565,7 @@ impl BitNetMetalKernels {
         let scale_buffer = self.create_scalar_buffer(&[scale])?;
         let size_buffer = self.create_scalar_buffer(&[input.num_elements() as u32])?;
         let training_mode_buffer = self.create_scalar_buffer(&[if training_mode { 1u32 } else { 0u32 }])?;
-        
+
         // Set buffers
         encoder.set_buffer(0, Some(&input_buffer), 0);
         encoder.set_buffer(1, Some(&fake_quantized_buffer), 0);
@@ -573,19 +573,19 @@ impl BitNetMetalKernels {
         encoder.set_buffer(3, Some(&scale_buffer), 0);
         encoder.set_buffer(4, Some(&size_buffer), 0);
         encoder.set_buffer(5, Some(&training_mode_buffer), 0);
-        
+
         // Dispatch threads
         let (threadgroup_size, threadgroups) = self.calculate_dispatch_size(input.num_elements());
         encoder.dispatch_threadgroups(threadgroups, threadgroup_size);
-        
+
         encoder.end_encoding();
         command_buffer.commit();
         command_buffer.wait_until_completed();
-        
+
         // Convert results back to BitNetTensors
         let fake_quantized = self.metal_buffer_to_tensor(&fake_quantized_buffer, input.shape(), BitNetDType::F32)?;
         let true_quantized = self.metal_buffer_to_tensor(&true_quantized_buffer, input.shape(), BitNetDType::I8)?;
-        
+
         Ok((fake_quantized, true_quantized))
     }
 
@@ -598,7 +598,7 @@ impl BitNetMetalKernels {
         // In a real implementation, this would load the compiled shader library
         // For now, we'll create a placeholder that compiles from source
         let shader_source = include_str!("../../../bitnet-metal/shaders/bitnet_quantization.metal");
-        
+
         device.new_library_with_source(shader_source, &metal::CompileOptions::new())
             .map_err(|e| TensorOpError::InternalError {
                 reason: format!("Failed to compile Metal shaders: {}", e),
@@ -654,7 +654,7 @@ impl BitNetMetalKernels {
                 let ptr = buffer.contents() as *const f32;
                 let len = shape.iter().product::<usize>();
                 let data = unsafe { std::slice::from_raw_parts(ptr, len) };
-                
+
                 BitNetTensor::from_vec(
                     data.to_vec(),
                     shape,
@@ -666,10 +666,10 @@ impl BitNetMetalKernels {
                 let ptr = buffer.contents() as *const i8;
                 let len = shape.iter().product::<usize>();
                 let data = unsafe { std::slice::from_raw_parts(ptr, len) };
-                
+
                 // Convert i8 to f32 for BitNetTensor
                 let f32_data: Vec<f32> = data.iter().map(|&x| x as f32).collect();
-                
+
                 BitNetTensor::from_vec(
                     f32_data,
                     shape,
@@ -730,7 +730,7 @@ impl BitNetGPUDispatcher {
     /// * GPU dispatcher with Metal kernels if available
     pub fn new(gpu_threshold: usize) -> Self {
         let metal_kernels = Self::try_initialize_metal();
-        
+
         #[cfg(feature = "tracing")]
         if metal_kernels.is_some() {
             info!("GPU acceleration available via Metal");
@@ -755,7 +755,7 @@ impl BitNetGPUDispatcher {
                 return kernels.quantize_158(input, scale, zero_point);
             }
         }
-        
+
         // CPU fallback
         self.quantize_158_cpu(input, scale, zero_point)
     }
@@ -772,7 +772,7 @@ impl BitNetGPUDispatcher {
                 return kernels.bitlinear_forward(weights, input, weight_scale, input_scale);
             }
         }
-        
+
         // CPU fallback
         self.bitlinear_forward_cpu(weights, input, weight_scale, input_scale)
     }
@@ -784,7 +784,7 @@ impl BitNetGPUDispatcher {
                 return kernels.matmul_optimized(a, b);
             }
         }
-        
+
         // CPU fallback
         super::super::ops::linear_algebra::matmul(a, b)
     }
@@ -805,7 +805,7 @@ impl BitNetGPUDispatcher {
 
     /// Determine if GPU should be used for this tensor
     fn should_use_gpu(&self, tensor: &BitNetTensor) -> bool {
-        tensor.num_elements() >= self.gpu_threshold && 
+        tensor.num_elements() >= self.gpu_threshold &&
         self.metal_kernels.is_some() &&
         matches!(tensor.device(), metal::Device::Metal(_))
     }
@@ -820,7 +820,7 @@ impl BitNetGPUDispatcher {
             else if scaled >= 0.5 { 1.0 }
             else { 0.0 }
         }).collect();
-        
+
         BitNetTensor::from_vec(quantized_data, input.shape().dims(), input.dtype(), Some(input.device().clone()))
     }
 
@@ -833,11 +833,11 @@ impl BitNetGPUDispatcher {
     ) -> TensorOpResult<BitNetTensor> {
         // Simplified CPU implementation using standard matrix multiplication
         let result = super::super::ops::linear_algebra::matmul(input, &super::super::ops::linear_algebra::transpose(weights)?)?;
-        
+
         // Apply scaling
         let data = result.as_slice_f32()?;
         let scaled_data: Vec<f32> = data.iter().map(|&x| x * weight_scale * input_scale).collect();
-        
+
         BitNetTensor::from_vec(scaled_data, result.shape().dims(), result.dtype(), Some(result.device().clone()))
     }
 }
@@ -869,10 +869,10 @@ mod tests {
     #[test]
     fn test_gpu_threshold_logic() {
         let dispatcher = BitNetGPUDispatcher::new(1000);
-        
+
         let small_tensor = BitNetTensor::ones(&[10, 10], BitNetDType::F32, None).unwrap();
         let large_tensor = BitNetTensor::ones(&[100, 100], BitNetDType::F32, None).unwrap();
-        
+
         // These tests will use CPU fallback since Metal may not be available in test environment
         assert!(dispatcher.quantize_158(&small_tensor, 1.0, 0.0).is_ok());
         assert!(dispatcher.quantize_158(&large_tensor, 1.0, 0.0).is_ok());

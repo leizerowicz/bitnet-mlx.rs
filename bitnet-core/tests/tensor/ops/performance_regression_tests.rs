@@ -66,11 +66,11 @@ mod tests {
             Ok(())
         })?;
 
-        println!("Small vector addition: {:.0} ops/sec (target: {:.0})", 
+        println!("Small vector addition: {:.0} ops/sec (target: {:.0})",
                  ops_per_sec, baselines.small_vector_add_ops_per_sec);
 
-        assert!(ops_per_sec >= baselines.small_vector_add_ops_per_sec * 0.8, 
-                "Performance regression: {:.0} < {:.0}", 
+        assert!(ops_per_sec >= baselines.small_vector_add_ops_per_sec * 0.8,
+                "Performance regression: {:.0} < {:.0}",
                 ops_per_sec, baselines.small_vector_add_ops_per_sec * 0.8);
 
         Ok(())
@@ -89,11 +89,11 @@ mod tests {
             Ok(())
         })?;
 
-        println!("Medium vector addition: {:.0} ops/sec (target: {:.0})", 
+        println!("Medium vector addition: {:.0} ops/sec (target: {:.0})",
                  ops_per_sec, baselines.medium_vector_add_ops_per_sec);
 
-        assert!(ops_per_sec >= baselines.medium_vector_add_ops_per_sec * 0.8, 
-                "Performance regression: {:.0} < {:.0}", 
+        assert!(ops_per_sec >= baselines.medium_vector_add_ops_per_sec * 0.8,
+                "Performance regression: {:.0} < {:.0}",
                 ops_per_sec, baselines.medium_vector_add_ops_per_sec * 0.8);
 
         Ok(())
@@ -112,11 +112,11 @@ mod tests {
             Ok(())
         })?;
 
-        println!("Large vector addition: {:.0} ops/sec (target: {:.0})", 
+        println!("Large vector addition: {:.0} ops/sec (target: {:.0})",
                  ops_per_sec, baselines.large_vector_add_ops_per_sec);
 
-        assert!(ops_per_sec >= baselines.large_vector_add_ops_per_sec * 0.8, 
-                "Performance regression: {:.0} < {:.0}", 
+        assert!(ops_per_sec >= baselines.large_vector_add_ops_per_sec * 0.8,
+                "Performance regression: {:.0} < {:.0}",
                 ops_per_sec, baselines.large_vector_add_ops_per_sec * 0.8);
 
         Ok(())
@@ -135,11 +135,11 @@ mod tests {
             Ok(())
         })?;
 
-        println!("Matrix addition: {:.0} ops/sec (target: {:.0})", 
+        println!("Matrix addition: {:.0} ops/sec (target: {:.0})",
                  ops_per_sec, baselines.small_matrix_add_ops_per_sec);
 
-        assert!(ops_per_sec >= baselines.small_matrix_add_ops_per_sec * 0.8, 
-                "Performance regression: {:.0} < {:.0}", 
+        assert!(ops_per_sec >= baselines.small_matrix_add_ops_per_sec * 0.8,
+                "Performance regression: {:.0} < {:.0}",
                 ops_per_sec, baselines.small_matrix_add_ops_per_sec * 0.8);
 
         Ok(())
@@ -157,11 +157,11 @@ mod tests {
             Ok(())
         })?;
 
-        println!("Scalar addition: {:.0} ops/sec (target: {:.0})", 
+        println!("Scalar addition: {:.0} ops/sec (target: {:.0})",
                  ops_per_sec, baselines.scalar_add_ops_per_sec);
 
-        assert!(ops_per_sec >= baselines.scalar_add_ops_per_sec * 0.8, 
-                "Performance regression: {:.0} < {:.0}", 
+        assert!(ops_per_sec >= baselines.scalar_add_ops_per_sec * 0.8,
+                "Performance regression: {:.0} < {:.0}",
                 ops_per_sec, baselines.scalar_add_ops_per_sec * 0.8);
 
         Ok(())
@@ -199,7 +199,7 @@ mod tests {
         // Memory increase should be minimal (allow for some pool growth)
         let max_acceptable_increase = 10 * 1024 * 1024; // 10MB
         assert!(memory_increase <= max_acceptable_increase,
-                "Excessive memory increase: {} bytes > {} bytes", 
+                "Excessive memory increase: {} bytes > {} bytes",
                 memory_increase, max_acceptable_increase);
 
         Ok(())
@@ -249,7 +249,7 @@ mod tests {
         let handles: Vec<_> = (0..num_threads).map(|_| {
             let a_clone = Arc::clone(&a);
             let b_clone = Arc::clone(&b);
-            
+
             thread::spawn(move || -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 for _ in 0..iterations_per_thread {
                     let _result = add(&*a_clone, &*b_clone)?;
@@ -266,13 +266,13 @@ mod tests {
         let total_ops = num_threads * iterations_per_thread;
         let ops_per_sec = total_ops as f64 / duration.as_secs_f64();
 
-        println!("Multi-threaded performance: {:.0} ops/sec ({} threads)", 
+        println!("Multi-threaded performance: {:.0} ops/sec ({} threads)",
                  ops_per_sec, num_threads);
 
         // Multi-threaded performance should be reasonable
         let min_expected_ops_per_sec = 10_000.0; // Conservative baseline
         assert!(ops_per_sec >= min_expected_ops_per_sec,
-                "Multi-threaded performance too low: {:.0} < {:.0}", 
+                "Multi-threaded performance too low: {:.0} < {:.0}",
                 ops_per_sec, min_expected_ops_per_sec);
 
         Ok(())

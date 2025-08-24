@@ -4,8 +4,8 @@
 //! allowing fine-tuned control over tracking behavior, performance overhead,
 //! and feature enablement.
 
-use std::time::Duration;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 /// Configuration for the memory tracking system
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -164,7 +164,7 @@ impl TrackingConfig {
             sampling_rate: 0.01, // Sample 1% of allocations
             enable_performance_metrics: true,
             stats_update_interval: Duration::from_secs(120), // 2 minutes
-            max_overhead_percentage: 1.0, // 1% max overhead
+            max_overhead_percentage: 1.0,                    // 1% max overhead
         }
     }
 
@@ -225,17 +225,17 @@ impl TrackingConfig {
 
     /// Returns whether pattern analysis should be performed
     pub fn should_analyze_patterns(&self) -> bool {
-        self.enable_pattern_analysis && 
-        matches!(self.level, TrackingLevel::Detailed | TrackingLevel::Debug)
+        self.enable_pattern_analysis
+            && matches!(self.level, TrackingLevel::Detailed | TrackingLevel::Debug)
     }
 }
 
 impl Default for PressureThresholds {
     fn default() -> Self {
         Self {
-            low_pressure_threshold: 0.7,    // 70% memory usage
-            medium_pressure_threshold: 0.8, // 80% memory usage
-            high_pressure_threshold: 0.9,   // 90% memory usage
+            low_pressure_threshold: 0.7,       // 70% memory usage
+            medium_pressure_threshold: 0.8,    // 80% memory usage
+            high_pressure_threshold: 0.9,      // 90% memory usage
             critical_pressure_threshold: 0.95, // 95% memory usage
             notification_cooldown: Duration::from_secs(30),
         }
@@ -246,10 +246,10 @@ impl PressureThresholds {
     /// Creates production-optimized pressure thresholds
     pub fn production() -> Self {
         Self {
-            low_pressure_threshold: 0.6,    // 60% memory usage
-            medium_pressure_threshold: 0.75, // 75% memory usage
-            high_pressure_threshold: 0.85,   // 85% memory usage
-            critical_pressure_threshold: 0.92, // 92% memory usage
+            low_pressure_threshold: 0.6,                    // 60% memory usage
+            medium_pressure_threshold: 0.75,                // 75% memory usage
+            high_pressure_threshold: 0.85,                  // 85% memory usage
+            critical_pressure_threshold: 0.92,              // 92% memory usage
             notification_cooldown: Duration::from_secs(60), // Longer cooldown
         }
     }
@@ -257,10 +257,10 @@ impl PressureThresholds {
     /// Creates conservative pressure thresholds for memory-constrained environments
     pub fn conservative() -> Self {
         Self {
-            low_pressure_threshold: 0.5,    // 50% memory usage
-            medium_pressure_threshold: 0.65, // 65% memory usage
-            high_pressure_threshold: 0.8,   // 80% memory usage
-            critical_pressure_threshold: 0.9, // 90% memory usage
+            low_pressure_threshold: 0.5,                    // 50% memory usage
+            medium_pressure_threshold: 0.65,                // 65% memory usage
+            high_pressure_threshold: 0.8,                   // 80% memory usage
+            critical_pressure_threshold: 0.9,               // 90% memory usage
             notification_cooldown: Duration::from_secs(15), // Shorter cooldown
         }
     }
@@ -268,9 +268,9 @@ impl PressureThresholds {
     /// Creates aggressive pressure thresholds that allow higher memory usage
     pub fn aggressive() -> Self {
         Self {
-            low_pressure_threshold: 0.8,    // 80% memory usage
-            medium_pressure_threshold: 0.9, // 90% memory usage
-            high_pressure_threshold: 0.95,  // 95% memory usage
+            low_pressure_threshold: 0.8,       // 80% memory usage
+            medium_pressure_threshold: 0.9,    // 90% memory usage
+            high_pressure_threshold: 0.95,     // 95% memory usage
             critical_pressure_threshold: 0.98, // 98% memory usage
             notification_cooldown: Duration::from_secs(45),
         }
@@ -371,15 +371,24 @@ mod tests {
 
         let production_thresholds = PressureThresholds::production();
         assert!(production_thresholds.validate().is_ok());
-        assert!(production_thresholds.low_pressure_threshold < default_thresholds.low_pressure_threshold);
+        assert!(
+            production_thresholds.low_pressure_threshold
+                < default_thresholds.low_pressure_threshold
+        );
 
         let conservative_thresholds = PressureThresholds::conservative();
         assert!(conservative_thresholds.validate().is_ok());
-        assert!(conservative_thresholds.critical_pressure_threshold < default_thresholds.critical_pressure_threshold);
+        assert!(
+            conservative_thresholds.critical_pressure_threshold
+                < default_thresholds.critical_pressure_threshold
+        );
 
         let aggressive_thresholds = PressureThresholds::aggressive();
         assert!(aggressive_thresholds.validate().is_ok());
-        assert!(aggressive_thresholds.low_pressure_threshold > default_thresholds.low_pressure_threshold);
+        assert!(
+            aggressive_thresholds.low_pressure_threshold
+                > default_thresholds.low_pressure_threshold
+        );
     }
 
     #[test]
@@ -408,7 +417,7 @@ mod tests {
     #[test]
     fn test_sampling_logic() {
         let config = TrackingConfig::standard();
-        
+
         // With sampling rate 1.0, all allocations should be sampled
         assert!(config.should_sample_allocation(1));
         assert!(config.should_sample_allocation(1000));
@@ -416,7 +425,7 @@ mod tests {
 
         let mut config = TrackingConfig::minimal();
         config.sampling_rate = 0.0;
-        
+
         // With sampling rate 0.0, no allocations should be sampled
         assert!(!config.should_sample_allocation(1));
         assert!(!config.should_sample_allocation(1000));

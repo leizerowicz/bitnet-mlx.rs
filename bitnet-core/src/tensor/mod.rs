@@ -11,7 +11,7 @@
 //!
 //! - **BitNetTensor**: Core tensor struct with memory pool integration
 //! - **TensorStorage**: Backend storage leveraging HybridMemoryPool
-//! - **Shape Management**: Advanced broadcasting and dimension handling  
+//! - **Shape Management**: Advanced broadcasting and dimension handling
 //! - **Device Integration**: Seamless CPU/Metal/MLX device support
 //! - **Data Types**: Comprehensive type system for BitNet operations
 //!
@@ -38,29 +38,31 @@
 //! ```
 
 // Core tensor modules
-pub mod dtype;
-pub mod shape;
-pub mod memory_integration;
-pub mod device_integration;
-pub mod storage;
 pub mod core;
+pub mod device_integration;
+pub mod dtype;
+pub mod memory_integration;
+pub mod shape;
+pub mod storage;
 
 // Operations module
 pub mod ops;
 
-// Acceleration module  
+// Acceleration module
 pub mod acceleration;
 
 // Legacy compatibility for backward compatibility
 pub mod legacy;
 
 // Main exports
-pub use dtype::BitNetDType;
-pub use shape::{TensorShape, BroadcastCompatible};
-pub use storage::TensorStorage;
 pub use core::{BitNetTensor, TensorMemoryStats};
-pub use memory_integration::{TensorMemoryManager, set_global_memory_pool, get_global_memory_pool, clear_global_memory_pool};
 pub use device_integration::TensorDeviceManager;
+pub use dtype::BitNetDType;
+pub use memory_integration::{
+    clear_global_memory_pool, get_global_memory_pool, set_global_memory_pool, TensorMemoryManager,
+};
+pub use shape::{BroadcastCompatible, TensorShape};
+pub use storage::TensorStorage;
 
 // Operations exports
 pub use ops::arithmetic::*;
@@ -68,13 +70,9 @@ pub use ops::broadcasting::*;
 
 // Legacy function re-exports for backward compatibility
 pub use legacy::{
-    create_tensor_f32 as legacy_create_tensor_f32,
-    create_tensor_i8 as legacy_create_tensor_i8,
-    zeros as legacy_zeros,
-    ones as legacy_ones,
-    get_shape as legacy_get_shape,
-    reshape as legacy_reshape,
-    transpose as legacy_transpose,
+    create_tensor_f32 as legacy_create_tensor_f32, create_tensor_i8 as legacy_create_tensor_i8,
+    get_shape as legacy_get_shape, ones as legacy_ones, reshape as legacy_reshape,
+    transpose as legacy_transpose, zeros as legacy_zeros,
 };
 
 // Direct exports of legacy functions for backward compatibility (these are the main exports)
@@ -82,10 +80,10 @@ pub use legacy::{
     create_tensor_f32,
     create_tensor_i8,
     get_shape,
+    ones, // Legacy ones returns candle Tensor
     reshape,
     transpose,
-    zeros,  // Legacy zeros returns candle Tensor
-    ones,   // Legacy ones returns candle Tensor
+    zeros, // Legacy zeros returns candle Tensor
 };
 
 // Convenience functions that wrap the new BitNetTensor API
@@ -106,7 +104,7 @@ use crate::memory::MemoryResult;
 ///
 /// ```rust
 /// use bitnet_core::tensor::{zeros_bitnet, BitNetDType};
-/// 
+///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let tensor = zeros_bitnet(&[2, 3], BitNetDType::F32)?;
 /// assert_eq!(tensor.shape().dims(), &[2, 3]);

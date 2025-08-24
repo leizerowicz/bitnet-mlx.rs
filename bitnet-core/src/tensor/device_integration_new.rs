@@ -175,19 +175,19 @@ pub enum DeviceError {
     /// Device not supported for operation
     #[error("Device {device:?} not supported for operation: {reason}")]
     UnsupportedDevice { device: Device, reason: String },
-    
+
     /// Data type not supported on device
     #[error("Data type {dtype:?} not supported on device {device:?}")]
     UnsupportedDataType { device: Device, dtype: BitNetDType },
-    
+
     /// Tensor size exceeds device limits
     #[error("Tensor size {size} bytes exceeds device limit {limit} bytes")]
     TensorSizeExceeded { size: usize, limit: usize },
-    
+
     /// Device migration failed
     #[error("Failed to migrate from {from:?} to {to:?}: {reason}")]
     MigrationFailed { from: Device, to: Device, reason: String },
-    
+
     /// Device capability detection failed
     #[error("Failed to detect device capabilities: {reason}")]
     CapabilityDetectionFailed { reason: String },
@@ -226,14 +226,14 @@ impl TensorDeviceManager {
     /// Creates a new tensor device manager
     pub fn new(memory_pool: Arc<HybridMemoryPool>, device: Option<Device>) -> DeviceResult<Self> {
         let device = device.unwrap_or_else(auto_select_device);
-        
+
         #[cfg(feature = "tracing")]
         info!("Creating tensor device manager for device {:?}", device);
-        
+
         let memory_manager = TensorMemoryManager::new(memory_pool, device.clone());
         let capabilities = Self::detect_capabilities(&device)?;
         let performance_profile = Self::create_performance_profile(&device, &capabilities);
-        
+
         Ok(Self {
             device,
             memory_manager,
@@ -266,15 +266,15 @@ impl TensorDeviceManager {
     pub fn migrate_to_device(&mut self, target_device: Device) -> DeviceResult<DeviceMigrationResult> {
         let start_time = std::time::Instant::now();
         let source_device = self.device.clone();
-        
+
         #[cfg(feature = "tracing")]
         info!("Migrating from {:?} to {:?}", source_device, target_device);
-        
+
         // Check if migration is necessary
         if std::mem::discriminant(&source_device) == std::mem::discriminant(&target_device) {
             #[cfg(feature = "tracing")]
             debug!("No migration needed - already on target device");
-            
+
             return Ok(DeviceMigrationResult {
                 from_device: source_device,
                 to_device: target_device,
@@ -283,17 +283,17 @@ impl TensorDeviceManager {
                 success: true,
             });
         }
-        
+
         // Update device and capabilities
         self.device = target_device.clone();
         self.capabilities = Self::detect_capabilities(&target_device)?;
         self.performance_profile = Self::create_performance_profile(&target_device, &self.capabilities);
-        
+
         let migration_time = start_time.elapsed();
-        
+
         #[cfg(feature = "tracing")]
         info!("Migration completed in {:?}", migration_time);
-        
+
         Ok(DeviceMigrationResult {
             from_device: source_device,
             to_device: target_device,
@@ -313,7 +313,7 @@ impl TensorDeviceManager {
     ) -> DeviceResult<Device> {
         match strategy {
             DeviceSelectionStrategy::ForceCpu => Ok(get_cpu_device()),
-            
+
             DeviceSelectionStrategy::PreferMetal => {
                 match get_metal_device() {
                     Ok(device) => {
@@ -333,12 +333,12 @@ impl TensorDeviceManager {
                     }
                 }
             }
-            
+
             DeviceSelectionStrategy::Auto => {
-                let prefers_gpu = tensor_size > 64 * 1024 
+                let prefers_gpu = tensor_size > 64 * 1024
                     || operations.contains(&TensorOperation::MatrixMultiplication)
                     || operations.contains(&TensorOperation::Convolution);
-                
+
                 if prefers_gpu {
                     match get_metal_device() {
                         Ok(device) => {
@@ -350,28 +350,28 @@ impl TensorDeviceManager {
                         Err(_) => {}
                     }
                 }
-                
+
                 Ok(get_cpu_device())
             }
-            
+
             DeviceSelectionStrategy::Custom { min_memory_gb, required_operations, preferred_dtype } => {
                 if let Ok(device) = get_metal_device() {
                     let caps = Self::detect_capabilities(&device)?;
-                    
+
                     let memory_ok = min_memory_gb.map_or(true, |min_gb| {
                         caps.max_tensor_size.map_or(false, |max_bytes| {
                             max_bytes as f32 >= min_gb * 1024.0 * 1024.0 * 1024.0
                         })
                     });
-                    
+
                     let ops_ok = caps.supports_operations(&required_operations);
                     let dtype_ok = preferred_dtype.map_or(true, |dt| caps.supports_dtype(dt));
-                    
+
                     if memory_ok && ops_ok && dtype_ok {
                         return Ok(device);
                     }
                 }
-                
+
                 Ok(get_cpu_device())
             }
         }
@@ -380,7 +380,7 @@ impl TensorDeviceManager {
     /// Detects device capabilities
     fn detect_capabilities(device: &Device) -> DeviceResult<DeviceCapabilities> {
         let mut capabilities = DeviceCapabilities::default();
-        
+
         match device {
             Device::Cpu => {
                 capabilities.supported_dtypes = vec![
@@ -403,7 +403,7 @@ impl TensorDeviceManager {
                     TensorOperation::BitNetQuantization,
                 ];
             }
-            
+
             Device::Metal(_) => {
                 capabilities.supported_dtypes = vec![
                     BitNetDType::F32, BitNetDType::F16,
@@ -424,7 +424,7 @@ impl TensorDeviceManager {
                     TensorOperation::Memory,
                     TensorOperation::MixedPrecision,
                 ];
-                
+
                 capabilities.metal_features = Some(MetalFeatures {
                     max_threadgroup_memory: 32 * 1024,
                     has_unified_memory: cfg!(target_os = "macos"),
@@ -432,7 +432,7 @@ impl TensorDeviceManager {
                     compute_units: None,
                 });
             }
-            
+
             Device::Cuda(_) => {
                 capabilities.supported_dtypes = vec![
                     BitNetDType::F32, BitNetDType::F16,
@@ -442,7 +442,7 @@ impl TensorDeviceManager {
                 capabilities.compute_capability = Some("CUDA GPU".to_string());
             }
         }
-        
+
         #[cfg(feature = "tracing")]
         debug!("Device capabilities: {:?}", capabilities);
 
@@ -463,7 +463,7 @@ impl TensorDeviceManager {
                     preferred_batch_sizes: vec![1, 8, 16, 32],
                 },
             },
-            
+
             Device::Metal(_) => DevicePerformanceProfile {
                 memory_latency_ms: 0.1,
                 peak_bandwidth_gbps: capabilities.memory_bandwidth.unwrap_or(800.0),
@@ -475,7 +475,7 @@ impl TensorDeviceManager {
                     preferred_batch_sizes: vec![32, 64, 128, 256],
                 },
             },
-            
+
             Device::Cuda(_) => DevicePerformanceProfile {
                 memory_latency_ms: 0.05,
                 peak_bandwidth_gbps: 900.0,
@@ -606,7 +606,7 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().map_err(|e| DeviceError::CapabilityDetectionFailed {
             reason: format!("Memory pool creation failed: {}", e),
         })?);
-        
+
         let manager = TensorDeviceManager::new(pool, None)?;
         assert!(manager.supports_dtype(BitNetDType::F32));
         Ok(())
@@ -617,9 +617,9 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().map_err(|e| DeviceError::CapabilityDetectionFailed {
             reason: format!("Memory pool creation failed: {}", e),
         })?);
-        
+
         let manager = TensorDeviceManager::new(pool, None)?;
-        
+
         let cpu_device = manager.select_optimal_device(
             DeviceSelectionStrategy::ForceCpu,
             1024,
@@ -627,7 +627,7 @@ mod tests {
             &[TensorOperation::Arithmetic],
         )?;
         assert!(matches!(cpu_device, Device::Cpu));
-        
+
         let auto_device = manager.select_optimal_device(
             DeviceSelectionStrategy::Auto,
             1024 * 1024,
@@ -635,7 +635,7 @@ mod tests {
             &[TensorOperation::MatrixMultiplication],
         )?;
         assert!(matches!(auto_device, Device::Cpu | Device::Metal(_)));
-        
+
         Ok(())
     }
 
@@ -644,13 +644,13 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().map_err(|e| DeviceError::CapabilityDetectionFailed {
             reason: format!("Memory pool creation failed: {}", e),
         })?);
-        
+
         let manager = TensorDeviceManager::new(pool, None)?;
-        
+
         let strategy = manager.recommend_allocation_strategy(1024, BitNetDType::F32);
         assert_eq!(strategy.alignment, 16);
         assert!(matches!(strategy.memory_hint, MemoryHint::Standard | MemoryHint::CPUOptimized));
-        
+
         Ok(())
     }
 
@@ -658,7 +658,7 @@ mod tests {
     fn test_device_utils() {
         let cpu_device = DeviceUtils::to_cpu();
         assert!(matches!(cpu_device, Device::Cpu));
-        
+
         let auto_device = DeviceUtils::auto_device();
         assert!(matches!(auto_device, Device::Cpu | Device::Metal(_)));
     }

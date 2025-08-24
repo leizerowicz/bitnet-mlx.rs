@@ -1,7 +1,7 @@
 // Progressive Quantization - Phase-based quantization scheduling for QAT
 // Implements progressive quantization strategies for improved training stability
 
-use candle_core::{Result, Device};
+use candle_core::{Device, Result};
 use std::collections::HashMap;
 
 use super::straight_through::{STEConfig, STEVariant};
@@ -42,7 +42,7 @@ pub enum CompletionCriteria {
     FixedSteps,
     /// Complete when loss improvement is below threshold
     LossConvergence { threshold: f32, patience: usize },
-    /// Complete when quantization error is below threshold  
+    /// Complete when quantization error is below threshold
     QuantizationError { threshold: f32 },
     /// Complete when validation accuracy is above threshold
     ValidationAccuracy { threshold: f32 },
@@ -56,16 +56,16 @@ pub struct ProgressiveQuantization {
     current_step: usize,
     phase_step: usize,
     device: Device,
-    
+
     // State tracking
     loss_history: Vec<f32>,
     quantization_error_history: Vec<f32>,
     validation_accuracy_history: Vec<f32>,
-    
+
     // Layer management
     layer_configs: HashMap<String, STEConfig>,
     quantized_layers: Vec<String>,
-    
+
     // Statistics
     phase_transition_history: Vec<PhaseTransition>,
 }
@@ -110,10 +110,13 @@ impl ProgressiveQuantization {
     /// Get STEConfig for layer based on current phase
     pub fn get_layer_config(&self, layer_name: &str) -> Option<STEConfig> {
         let phase = self.current_phase();
-        
+
         // Check if layer should be quantized in current phase
         if let Some(layer_mask) = &phase.layer_mask {
-            if !layer_mask.iter().any(|pattern| layer_name.contains(pattern)) {
+            if !layer_mask
+                .iter()
+                .any(|pattern| layer_name.contains(pattern))
+            {
                 return None; // Layer not active in this phase
             }
         }
@@ -142,7 +145,7 @@ impl ProgressiveQuantization {
     ) -> Result<bool> {
         self.current_step += 1;
         self.phase_step += 1;
-        
+
         // Store metrics
         self.loss_history.push(loss);
         self.quantization_error_history.push(quantization_error);
@@ -151,8 +154,9 @@ impl ProgressiveQuantization {
         }
 
         // Check if we should transition to next phase
-        let should_transition = self.check_phase_completion(loss, quantization_error, validation_accuracy)?;
-        
+        let should_transition =
+            self.check_phase_completion(loss, quantization_error, validation_accuracy)?;
+
         if should_transition {
             self.transition_to_next_phase(loss, quantization_error, validation_accuracy)?;
             Ok(true)
@@ -169,7 +173,7 @@ impl ProgressiveQuantization {
         validation_accuracy: Option<f32>,
     ) -> Result<bool> {
         let phase = self.current_phase();
-        
+
         // Always check minimum steps first
         if self.phase_step < phase.min_steps {
             return Ok(false);
@@ -188,9 +192,10 @@ impl ProgressiveQuantization {
                 // Already handled by min_steps check
                 Ok(false)
             }
-            CompletionCriteria::LossConvergence { threshold, patience } => {
-                self.check_loss_convergence(*threshold, *patience)
-            }
+            CompletionCriteria::LossConvergence {
+                threshold,
+                patience,
+            } => self.check_loss_convergence(*threshold, *patience),
             CompletionCriteria::QuantizationError { threshold } => {
                 Ok(quantization_error < *threshold)
             }
@@ -272,7 +277,7 @@ impl ProgressiveQuantization {
     /// Update layer configurations for new phase
     fn update_layer_configurations(&mut self) -> Result<()> {
         let _phase = self.current_phase();
-        
+
         // Clear old configurations
         self.layer_configs.clear();
 
@@ -299,13 +304,18 @@ impl ProgressiveQuantization {
     /// Apply layer-wise configuration
     fn apply_layer_wise_config(&mut self) -> Result<()> {
         let phase = self.current_phase().clone();
-        
+
         // In layer-wise progressive quantization, we start from output layers
         // and gradually move towards input layers
         let layer_patterns = vec![
-            "output", "classifier", "head",  // Output layers first
-            "layer", "block",                // Middle layers
-            "conv1", "embed", "input",       // Input layers last
+            "output",
+            "classifier",
+            "head", // Output layers first
+            "layer",
+            "block", // Middle layers
+            "conv1",
+            "embed",
+            "input", // Input layers last
         ];
 
         // Determine which layers to quantize based on current phase
@@ -317,9 +327,8 @@ impl ProgressiveQuantization {
 
         // Create configs for active layers
         // Clone the patterns to avoid borrowing issues
-        let patterns_to_update: Vec<String> = active_patterns.iter()
-            .map(|p| p.to_string())
-            .collect();
+        let patterns_to_update: Vec<String> =
+            active_patterns.iter().map(|p| p.to_string()).collect();
 
         for pattern in patterns_to_update {
             let config = STEConfig {
@@ -329,7 +338,7 @@ impl ProgressiveQuantization {
                 temperature: phase.temperature,
                 ..Default::default()
             };
-            
+
             // This is a simplified version - in practice would need pattern matching
             self.layer_configs.insert(pattern, config);
         }
@@ -345,14 +354,14 @@ impl ProgressiveQuantization {
         Ok(())
     }
 
-    /// Apply block-wise configuration  
+    /// Apply block-wise configuration
     fn apply_block_wise_config(&mut self) -> Result<()> {
         // In block-wise progressive quantization, we quantize entire transformer blocks
         // starting from later blocks and moving to earlier blocks
         let phase = self.current_phase().clone();
         let max_blocks = 12; // Assume 12 transformer blocks
         let blocks_per_phase = max_blocks / self.phases.len().max(1);
-        
+
         let start_block = max_blocks.saturating_sub((self.current_phase + 1) * blocks_per_phase);
         let end_block = max_blocks.saturating_sub(self.current_phase * blocks_per_phase);
 
@@ -365,7 +374,7 @@ impl ProgressiveQuantization {
                 temperature: phase.temperature,
                 ..Default::default()
             };
-            
+
             self.layer_configs.insert(pattern, config);
         }
 
@@ -387,7 +396,7 @@ impl ProgressiveQuantization {
                 // Other strategies handled by layer configuration
             }
         }
-        
+
         Ok(())
     }
 
@@ -446,12 +455,9 @@ pub struct LayerWiseQuantization {
 
 impl LayerWiseQuantization {
     pub fn new(layer_order: Vec<String>, phases: Vec<QuantizationPhase>, device: Device) -> Self {
-        let progressive = ProgressiveQuantization::new(
-            ProgressiveStrategy::LayerWise,
-            phases,
-            device,
-        );
-        
+        let progressive =
+            ProgressiveQuantization::new(ProgressiveStrategy::LayerWise, phases, device);
+
         Self {
             progressive,
             layer_order,
@@ -463,7 +469,7 @@ impl LayerWiseQuantization {
     pub fn get_layer_config(&self, layer_name: &str) -> Option<STEConfig> {
         // Check if this layer should be quantized yet
         let layer_position = self.layer_order.iter().position(|l| l == layer_name)?;
-        
+
         if layer_position <= self.current_layer_index {
             self.progressive.get_layer_config(layer_name)
         } else {
@@ -472,16 +478,23 @@ impl LayerWiseQuantization {
     }
 
     /// Update with training metrics and potentially advance layer quantization
-    pub fn update(&mut self, loss: f32, quantization_error: f32, validation_accuracy: Option<f32>) -> Result<bool> {
-        let phase_changed = self.progressive.update_metrics(loss, quantization_error, validation_accuracy)?;
-        
+    pub fn update(
+        &mut self,
+        loss: f32,
+        quantization_error: f32,
+        validation_accuracy: Option<f32>,
+    ) -> Result<bool> {
+        let phase_changed =
+            self.progressive
+                .update_metrics(loss, quantization_error, validation_accuracy)?;
+
         if phase_changed {
             // Advance to next layer in the sequence
             if self.current_layer_index < self.layer_order.len() - 1 {
                 self.current_layer_index += 1;
             }
         }
-        
+
         Ok(phase_changed)
     }
 }
@@ -502,7 +515,10 @@ impl ProgressiveQuantizationFactory {
                 temperature: 1.0,
                 range: 1.0,
                 layer_mask: None,
-                completion_criteria: CompletionCriteria::LossConvergence { threshold: 0.001, patience: 100 },
+                completion_criteria: CompletionCriteria::LossConvergence {
+                    threshold: 0.001,
+                    patience: 100,
+                },
             },
             QuantizationPhase {
                 name: "4-bit".to_string(),
@@ -513,7 +529,10 @@ impl ProgressiveQuantizationFactory {
                 temperature: 1.0,
                 range: 1.0,
                 layer_mask: None,
-                completion_criteria: CompletionCriteria::LossConvergence { threshold: 0.001, patience: 100 },
+                completion_criteria: CompletionCriteria::LossConvergence {
+                    threshold: 0.001,
+                    patience: 100,
+                },
             },
             QuantizationPhase {
                 name: "2-bit".to_string(),
@@ -524,7 +543,10 @@ impl ProgressiveQuantizationFactory {
                 temperature: 1.0,
                 range: 1.0,
                 layer_mask: None,
-                completion_criteria: CompletionCriteria::LossConvergence { threshold: 0.001, patience: 100 },
+                completion_criteria: CompletionCriteria::LossConvergence {
+                    threshold: 0.001,
+                    patience: 100,
+                },
             },
             QuantizationPhase {
                 name: "1-bit".to_string(),
@@ -554,7 +576,10 @@ impl ProgressiveQuantizationFactory {
                 temperature: 5.0,
                 range: 1.0,
                 layer_mask: None,
-                completion_criteria: CompletionCriteria::LossConvergence { threshold: 0.01, patience: 50 },
+                completion_criteria: CompletionCriteria::LossConvergence {
+                    threshold: 0.01,
+                    patience: 50,
+                },
             },
             QuantizationPhase {
                 name: "soft-warm".to_string(),
@@ -565,7 +590,10 @@ impl ProgressiveQuantizationFactory {
                 temperature: 2.0,
                 range: 1.0,
                 layer_mask: None,
-                completion_criteria: CompletionCriteria::LossConvergence { threshold: 0.005, patience: 100 },
+                completion_criteria: CompletionCriteria::LossConvergence {
+                    threshold: 0.005,
+                    patience: 100,
+                },
             },
             QuantizationPhase {
                 name: "soft-cool".to_string(),
@@ -576,7 +604,10 @@ impl ProgressiveQuantizationFactory {
                 temperature: 1.0,
                 range: 1.0,
                 layer_mask: None,
-                completion_criteria: CompletionCriteria::LossConvergence { threshold: 0.002, patience: 100 },
+                completion_criteria: CompletionCriteria::LossConvergence {
+                    threshold: 0.002,
+                    patience: 100,
+                },
             },
             QuantizationPhase {
                 name: "hard".to_string(),
@@ -598,7 +629,7 @@ impl ProgressiveQuantizationFactory {
     pub fn create_layer_wise(layer_order: Vec<String>, device: Device) -> LayerWiseQuantization {
         let num_phases = layer_order.len().min(4); // Maximum 4 phases
         let mut phases = Vec::new();
-        
+
         for i in 0..num_phases {
             phases.push(QuantizationPhase {
                 name: format!("layer_group_{}", i),
@@ -609,7 +640,10 @@ impl ProgressiveQuantizationFactory {
                 temperature: 1.0,
                 range: 1.0,
                 layer_mask: None,
-                completion_criteria: CompletionCriteria::LossConvergence { threshold: 0.001, patience: 50 },
+                completion_criteria: CompletionCriteria::LossConvergence {
+                    threshold: 0.001,
+                    patience: 50,
+                },
             });
         }
 
@@ -624,22 +658,21 @@ mod tests {
     #[test]
     fn test_progressive_quantization_creation() {
         let device = Device::Cpu;
-        let phases = vec![
-            QuantizationPhase {
-                name: "phase1".to_string(),
-                min_steps: 100,
-                max_steps: Some(500),
-                bit_width: 4,
-                ste_variant: STEVariant::Standard,
-                temperature: 1.0,
-                range: 1.0,
-                layer_mask: None,
-                completion_criteria: CompletionCriteria::FixedSteps,
-            },
-        ];
+        let phases = vec![QuantizationPhase {
+            name: "phase1".to_string(),
+            min_steps: 100,
+            max_steps: Some(500),
+            bit_width: 4,
+            ste_variant: STEVariant::Standard,
+            temperature: 1.0,
+            range: 1.0,
+            layer_mask: None,
+            completion_criteria: CompletionCriteria::FixedSteps,
+        }];
 
-        let progressive = ProgressiveQuantization::new(ProgressiveStrategy::BitWidthReduction, phases, device);
-        
+        let progressive =
+            ProgressiveQuantization::new(ProgressiveStrategy::BitWidthReduction, phases, device);
+
         assert_eq!(progressive.current_phase, 0);
         assert_eq!(progressive.current_phase().bit_width, 4);
     }
@@ -648,7 +681,7 @@ mod tests {
     fn test_bit_width_reduction_factory() {
         let device = Device::Cpu;
         let progressive = ProgressiveQuantizationFactory::create_bit_width_reduction(device);
-        
+
         assert_eq!(progressive.phases.len(), 4);
         assert_eq!(progressive.current_phase().bit_width, 8);
         assert!(!progressive.is_complete());
@@ -658,10 +691,10 @@ mod tests {
     fn test_layer_config_generation() -> Result<()> {
         let device = Device::Cpu;
         let progressive = ProgressiveQuantizationFactory::create_bit_width_reduction(device);
-        
+
         let config = progressive.get_layer_config("conv1.weight");
         assert!(config.is_some());
-        
+
         let config = config.unwrap();
         assert_eq!(config.bits, 8); // First phase should be 8-bit
         assert_eq!(config.variant, STEVariant::Standard);
@@ -673,17 +706,17 @@ mod tests {
     fn test_progressive_metrics_update() -> Result<()> {
         let device = Device::Cpu;
         let mut progressive = ProgressiveQuantizationFactory::create_soft_to_hard(device);
-        
+
         // Update with metrics - should not transition immediately (min_steps = 1000)
         let transitioned = progressive.update_metrics(1.0, 0.1, Some(0.9))?;
         assert!(!transitioned);
         assert_eq!(progressive.current_phase, 0);
-        
+
         // Simulate many steps
         for _ in 0..1500 {
             progressive.update_metrics(0.5, 0.05, Some(0.95))?;
         }
-        
+
         // Should have progressed beyond initial state (current_step should be >= 1500)
         assert!(progressive.current_step >= 1500);
 
@@ -699,18 +732,19 @@ mod tests {
             "layer1.weight".to_string(),
             "input.weight".to_string(),
         ];
-        
-        let mut layer_wise = ProgressiveQuantizationFactory::create_layer_wise(layer_order.clone(), device);
-        
+
+        let mut layer_wise =
+            ProgressiveQuantizationFactory::create_layer_wise(layer_order.clone(), device);
+
         // Initially, only first layer should be quantized
         assert!(layer_wise.get_layer_config("output.weight").is_some());
         assert!(layer_wise.get_layer_config("layer1.weight").is_none());
-        
+
         // After phase transition, more layers should be available
         for _ in 0..600 {
             layer_wise.update(0.5, 0.05, Some(0.9))?;
         }
-        
+
         // Should have advanced layer index
         assert!(layer_wise.current_layer_index > 0);
 
@@ -720,31 +754,30 @@ mod tests {
     #[test]
     fn test_completion_criteria() -> Result<()> {
         let device = Device::Cpu;
-        let phases = vec![
-            QuantizationPhase {
-                name: "test_phase".to_string(),
-                min_steps: 10,
-                max_steps: Some(100),
-                bit_width: 1,
-                ste_variant: STEVariant::Standard,
-                temperature: 1.0,
-                range: 1.0,
-                layer_mask: None,
-                completion_criteria: CompletionCriteria::QuantizationError { threshold: 0.05 },
-            },
-        ];
-        
-        let mut progressive = ProgressiveQuantization::new(ProgressiveStrategy::BitWidthReduction, phases, device);
-        
+        let phases = vec![QuantizationPhase {
+            name: "test_phase".to_string(),
+            min_steps: 10,
+            max_steps: Some(100),
+            bit_width: 1,
+            ste_variant: STEVariant::Standard,
+            temperature: 1.0,
+            range: 1.0,
+            layer_mask: None,
+            completion_criteria: CompletionCriteria::QuantizationError { threshold: 0.05 },
+        }];
+
+        let mut progressive =
+            ProgressiveQuantization::new(ProgressiveStrategy::BitWidthReduction, phases, device);
+
         // High quantization error - should not complete
         for _ in 0..15 {
             let transitioned = progressive.update_metrics(1.0, 0.1, None)?; // Error = 0.1 > 0.05
             assert!(!transitioned);
         }
-        
+
         // Low quantization error - should complete
         let _transitioned = progressive.update_metrics(1.0, 0.03, None)?; // Error = 0.03 < 0.05
-        // Note: Might not transition immediately if there are more phases
+                                                                          // Note: Might not transition immediately if there are more phases
 
         Ok(())
     }
@@ -753,11 +786,11 @@ mod tests {
     fn test_statistics_tracking() -> Result<()> {
         let device = Device::Cpu;
         let mut progressive = ProgressiveQuantizationFactory::create_bit_width_reduction(device);
-        
+
         // Add some metrics
         progressive.update_metrics(1.0, 0.1, Some(0.8))?;
         progressive.update_metrics(0.9, 0.08, Some(0.85))?;
-        
+
         let stats = progressive.get_statistics();
         assert_eq!(stats.current_phase, 0);
         assert_eq!(stats.current_step, 2);
@@ -767,3 +800,7 @@ mod tests {
         Ok(())
     }
 }
+
+// Type aliases for compatibility with existing tests
+pub type ProgressiveQuantizationScheduler = ProgressiveQuantization;
+pub type LayerWiseQuantizationScheduler = LayerWiseQuantization;

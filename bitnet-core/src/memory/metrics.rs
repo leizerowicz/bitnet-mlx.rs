@@ -5,9 +5,9 @@
 //! usage statistics, and performance metrics across different devices
 //! and pool types.
 
-use std::time::Duration;
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::time::Duration;
 
 /// Comprehensive memory usage metrics for the memory pool system
 ///
@@ -180,13 +180,13 @@ impl MemoryMetrics {
     /// * `latency` - Time taken for the allocation operation
     pub fn record_allocation(&mut self, size: usize) {
         let size = size as u64;
-        
+
         // Update global counters
         self.total_allocated += size;
         self.current_allocated += size;
         self.allocation_count += 1;
         self.active_allocations += 1;
-        
+
         // Update peak values
         if self.current_allocated > self.peak_allocated {
             self.peak_allocated = self.current_allocated;
@@ -194,10 +194,10 @@ impl MemoryMetrics {
         if self.active_allocations > self.peak_active_allocations {
             self.peak_active_allocations = self.active_allocations;
         }
-        
+
         // Update size distribution
         self.size_distribution.record_allocation(size);
-        
+
         // Update timestamp
         self.last_updated = Some(std::time::SystemTime::now());
     }
@@ -219,14 +219,17 @@ impl MemoryMetrics {
     ) {
         let size = size as u64;
         let latency_ns = latency.as_nanos() as u64;
-        
+
         // Record basic allocation
         self.record_allocation(size as usize);
-        
+
         // Update device-specific stats
-        let device_stats = self.device_stats.entry(device_type.to_string()).or_insert_with(DeviceMemoryStats::new);
+        let device_stats = self
+            .device_stats
+            .entry(device_type.to_string())
+            .or_insert_with(DeviceMemoryStats::new);
         device_stats.record_allocation(size);
-        
+
         // Update pool-specific stats
         let pool_stats = if is_small_block {
             &mut self.pool_stats.small_block
@@ -234,7 +237,7 @@ impl MemoryMetrics {
             &mut self.pool_stats.large_block
         };
         pool_stats.record_allocation(size);
-        
+
         // Update performance metrics
         self.performance.record_allocation_latency(latency_ns);
     }
@@ -246,13 +249,13 @@ impl MemoryMetrics {
     /// * `size` - Size of the deallocation in bytes
     pub fn record_deallocation(&mut self, size: usize) {
         let size = size as u64;
-        
+
         // Update global counters
         self.total_deallocated += size;
         self.current_allocated = self.current_allocated.saturating_sub(size);
         self.deallocation_count += 1;
         self.active_allocations = self.active_allocations.saturating_sub(1);
-        
+
         // Update timestamp
         self.last_updated = Some(std::time::SystemTime::now());
     }
@@ -274,15 +277,15 @@ impl MemoryMetrics {
     ) {
         let size = size as u64;
         let latency_ns = latency.as_nanos() as u64;
-        
+
         // Record basic deallocation
         self.record_deallocation(size as usize);
-        
+
         // Update device-specific stats
         if let Some(device_stats) = self.device_stats.get_mut(device_type) {
             device_stats.record_deallocation(size);
         }
-        
+
         // Update pool-specific stats
         let pool_stats = if is_small_block {
             &mut self.pool_stats.small_block
@@ -290,7 +293,7 @@ impl MemoryMetrics {
             &mut self.pool_stats.large_block
         };
         pool_stats.record_deallocation(size);
-        
+
         // Update performance metrics
         self.performance.record_deallocation_latency(latency_ns);
     }
@@ -373,24 +376,33 @@ impl MemoryMetrics {
         self.allocation_count += other.allocation_count;
         self.deallocation_count += other.deallocation_count;
         self.active_allocations += other.active_allocations;
-        self.peak_active_allocations = self.peak_active_allocations.max(other.peak_active_allocations);
-        
+        self.peak_active_allocations = self
+            .peak_active_allocations
+            .max(other.peak_active_allocations);
+
         // Merge device stats
         for (device, stats) in &other.device_stats {
-            let entry = self.device_stats.entry(device.clone()).or_insert_with(DeviceMemoryStats::new);
+            let entry = self
+                .device_stats
+                .entry(device.clone())
+                .or_insert_with(DeviceMemoryStats::new);
             entry.merge(stats);
         }
-        
+
         // Merge pool stats
-        self.pool_stats.small_block.merge(&other.pool_stats.small_block);
-        self.pool_stats.large_block.merge(&other.pool_stats.large_block);
-        
+        self.pool_stats
+            .small_block
+            .merge(&other.pool_stats.small_block);
+        self.pool_stats
+            .large_block
+            .merge(&other.pool_stats.large_block);
+
         // Merge size distribution
         self.size_distribution.merge(&other.size_distribution);
-        
+
         // Merge performance metrics
         self.performance.merge(&other.performance);
-        
+
         // Update timestamp
         self.last_updated = Some(std::time::SystemTime::now());
     }
@@ -420,7 +432,7 @@ impl DeviceMemoryStats {
         self.current_allocated += size;
         self.allocation_count += 1;
         self.active_allocations += 1;
-        
+
         if self.current_allocated > self.peak_allocated {
             self.peak_allocated = self.current_allocated;
         }
@@ -463,13 +475,14 @@ impl PoolTypeStats {
         self.current_allocated += size;
         self.allocation_count += 1;
         self.active_allocations += 1;
-        
+
         if self.current_allocated > self.peak_allocated {
             self.peak_allocated = self.current_allocated;
         }
-        
+
         // Update efficiency metrics
-        self.efficiency.update_average_allocation_size(self.total_allocated, self.allocation_count);
+        self.efficiency
+            .update_average_allocation_size(self.total_allocated, self.allocation_count);
     }
 
     fn record_deallocation(&mut self, size: u64) {
@@ -510,7 +523,9 @@ impl PoolEfficiencyMetrics {
 
     fn merge(&mut self, other: &PoolEfficiencyMetrics) {
         // For averages, we take the maximum as a simple heuristic
-        self.average_allocation_size = self.average_allocation_size.max(other.average_allocation_size);
+        self.average_allocation_size = self
+            .average_allocation_size
+            .max(other.average_allocation_size);
         self.fragmentation_ratio = self.fragmentation_ratio.max(other.fragmentation_ratio);
         self.utilization_ratio = self.utilization_ratio.max(other.utilization_ratio);
         self.expansion_count += other.expansion_count;
@@ -565,7 +580,7 @@ impl PerformanceMetrics {
     fn record_allocation_latency(&mut self, latency_ns: u64) {
         self.total_allocation_time_ns += latency_ns;
         self.max_allocation_latency_ns = self.max_allocation_latency_ns.max(latency_ns);
-        
+
         // Update average (simple moving average)
         let count = (self.total_allocation_time_ns / self.avg_allocation_latency_ns.max(1)).max(1);
         self.avg_allocation_latency_ns = self.total_allocation_time_ns / count;
@@ -574,9 +589,10 @@ impl PerformanceMetrics {
     fn record_deallocation_latency(&mut self, latency_ns: u64) {
         self.total_deallocation_time_ns += latency_ns;
         self.max_deallocation_latency_ns = self.max_deallocation_latency_ns.max(latency_ns);
-        
+
         // Update average (simple moving average)
-        let count = (self.total_deallocation_time_ns / self.avg_deallocation_latency_ns.max(1)).max(1);
+        let count =
+            (self.total_deallocation_time_ns / self.avg_deallocation_latency_ns.max(1)).max(1);
         self.avg_deallocation_latency_ns = self.total_deallocation_time_ns / count;
     }
 
@@ -584,17 +600,25 @@ impl PerformanceMetrics {
         // Merge timing data
         self.total_allocation_time_ns += other.total_allocation_time_ns;
         self.total_deallocation_time_ns += other.total_deallocation_time_ns;
-        self.max_allocation_latency_ns = self.max_allocation_latency_ns.max(other.max_allocation_latency_ns);
-        self.max_deallocation_latency_ns = self.max_deallocation_latency_ns.max(other.max_deallocation_latency_ns);
-        
+        self.max_allocation_latency_ns = self
+            .max_allocation_latency_ns
+            .max(other.max_allocation_latency_ns);
+        self.max_deallocation_latency_ns = self
+            .max_deallocation_latency_ns
+            .max(other.max_deallocation_latency_ns);
+
         // Recalculate averages
-        let total_ops = self.allocation_failures + other.allocation_failures + 
-                       self.deallocation_failures + other.deallocation_failures;
+        let total_ops = self.allocation_failures
+            + other.allocation_failures
+            + self.deallocation_failures
+            + other.deallocation_failures;
         if total_ops > 0 {
-            self.avg_allocation_latency_ns = (self.avg_allocation_latency_ns + other.avg_allocation_latency_ns) / 2;
-            self.avg_deallocation_latency_ns = (self.avg_deallocation_latency_ns + other.avg_deallocation_latency_ns) / 2;
+            self.avg_allocation_latency_ns =
+                (self.avg_allocation_latency_ns + other.avg_allocation_latency_ns) / 2;
+            self.avg_deallocation_latency_ns =
+                (self.avg_deallocation_latency_ns + other.avg_deallocation_latency_ns) / 2;
         }
-        
+
         // Merge failure counts
         self.allocation_failures += other.allocation_failures;
         self.deallocation_failures += other.deallocation_failures;
@@ -619,7 +643,7 @@ mod tests {
     fn test_record_allocation() {
         let mut metrics = MemoryMetrics::new();
         metrics.record_allocation(1024);
-        
+
         assert_eq!(metrics.total_allocated, 1024);
         assert_eq!(metrics.current_allocated, 1024);
         assert_eq!(metrics.peak_allocated, 1024);
@@ -633,7 +657,7 @@ mod tests {
         let mut metrics = MemoryMetrics::new();
         metrics.record_allocation(1024);
         metrics.record_deallocation(1024);
-        
+
         assert_eq!(metrics.total_allocated, 1024);
         assert_eq!(metrics.total_deallocated, 1024);
         assert_eq!(metrics.current_allocated, 0);
@@ -647,15 +671,15 @@ mod tests {
     #[test]
     fn test_peak_tracking() {
         let mut metrics = MemoryMetrics::new();
-        
+
         // First allocation
         metrics.record_allocation(1024);
         assert_eq!(metrics.peak_allocated, 1024);
-        
+
         // Second allocation (higher peak)
         metrics.record_allocation(2048);
         assert_eq!(metrics.peak_allocated, 3072);
-        
+
         // Deallocate first allocation (peak should remain)
         metrics.record_deallocation(1024);
         assert_eq!(metrics.peak_allocated, 3072);
@@ -665,13 +689,13 @@ mod tests {
     #[test]
     fn test_size_distribution() {
         let mut distribution = SizeDistribution::new();
-        
-        distribution.record_allocation(512);      // tiny
-        distribution.record_allocation(2048);     // small
-        distribution.record_allocation(131072);   // medium
-        distribution.record_allocation(2097152);  // large
+
+        distribution.record_allocation(512); // tiny
+        distribution.record_allocation(2048); // small
+        distribution.record_allocation(131072); // medium
+        distribution.record_allocation(2097152); // large
         distribution.record_allocation(33554432); // huge
-        
+
         assert_eq!(distribution.tiny, 1);
         assert_eq!(distribution.small, 1);
         assert_eq!(distribution.medium, 1);
@@ -682,17 +706,17 @@ mod tests {
     #[test]
     fn test_memory_efficiency() {
         let mut metrics = MemoryMetrics::new();
-        
+
         // No allocations - should be 100% efficient
         assert_eq!(metrics.memory_efficiency(), 1.0);
-        
+
         // Allocate and deallocate
         metrics.record_allocation(1024);
         assert_eq!(metrics.memory_efficiency(), 1.0); // 1024/1024
-        
+
         metrics.record_allocation(1024);
         assert_eq!(metrics.memory_efficiency(), 1.0); // 2048/2048
-        
+
         metrics.record_deallocation(1024);
         assert_eq!(metrics.memory_efficiency(), 0.5); // 1024/2048
     }
@@ -700,14 +724,14 @@ mod tests {
     #[test]
     fn test_average_allocation_size() {
         let mut metrics = MemoryMetrics::new();
-        
+
         // No allocations
         assert_eq!(metrics.average_allocation_size(), 0.0);
-        
+
         // Single allocation
         metrics.record_allocation(1024);
         assert_eq!(metrics.average_allocation_size(), 1024.0);
-        
+
         // Multiple allocations
         metrics.record_allocation(2048);
         assert_eq!(metrics.average_allocation_size(), 1536.0); // (1024 + 2048) / 2
@@ -717,12 +741,12 @@ mod tests {
     fn test_metrics_merge() {
         let mut metrics1 = MemoryMetrics::new();
         let mut metrics2 = MemoryMetrics::new();
-        
+
         metrics1.record_allocation(1024);
         metrics2.record_allocation(2048);
-        
+
         metrics1.merge(&metrics2);
-        
+
         assert_eq!(metrics1.total_allocated, 3072);
         assert_eq!(metrics1.allocation_count, 2);
         assert_eq!(metrics1.peak_allocated, 2048);
@@ -731,15 +755,15 @@ mod tests {
     #[test]
     fn test_metrics_reset() {
         let mut metrics = MemoryMetrics::new();
-        
+
         metrics.record_allocation(1024);
         metrics.record_deallocation(512);
-        
+
         assert_ne!(metrics.total_allocated, 0);
         assert_ne!(metrics.allocation_count, 0);
-        
+
         metrics.reset();
-        
+
         assert_eq!(metrics.total_allocated, 0);
         assert_eq!(metrics.total_deallocated, 0);
         assert_eq!(metrics.allocation_count, 0);

@@ -43,7 +43,7 @@ impl BitNetTensor {
         device: Option<Device>,
     ) -> MemoryResult<Self> {
         let tensor_shape = TensorShape::new(shape);
-        
+
         let device_clone = device.clone();
         let memory_manager = super::memory_integration::get_global_memory_pool()
             .ok_or_else(|| MemoryError::InternalError {
@@ -85,7 +85,7 @@ impl BitNetTensor {
         device: Option<Device>,
     ) -> MemoryResult<Self> {
         let tensor_shape = TensorShape::new(shape);
-        
+
         let device_clone = device.clone();
         let memory_manager = super::memory_integration::get_global_memory_pool()
             .ok_or_else(|| MemoryError::InternalError {
@@ -131,7 +131,7 @@ impl BitNetTensor {
         T: Copy + 'static,
     {
         let tensor_shape = TensorShape::new(shape);
-        
+
         let device_clone = device.clone();
         let memory_manager = super::memory_integration::get_global_memory_pool()
             .ok_or_else(|| MemoryError::InternalError {
@@ -230,7 +230,7 @@ impl fmt::Display for TensorMemoryStats {
         write!(
             f,
             "Tensor ID: {}, Storage ID: {}, Shape: {:?}, Type: {:?}, Device: {:?}, Size: {} bytes ({} elements), Shared: {}",
-            self.tensor_id, self.storage_id, self.shape, self.dtype, self.device, 
+            self.tensor_id, self.storage_id, self.shape, self.dtype, self.device,
             self.size_bytes, self.num_elements, self.is_shared
         )
     }
@@ -244,7 +244,7 @@ impl Clone for BitNetTensor {
     fn clone(&self) -> Self {
         #[cfg(feature = "tracing")]
         debug!("Cloning BitNetTensor {}", self.tensor_id);
-        
+
         Self {
             storage: Arc::clone(&self.storage),
             memory_manager: self.memory_manager.clone(),
@@ -266,11 +266,11 @@ impl BroadcastCompatible for BitNetTensor {
     fn is_broadcast_compatible(&self, other: &Self) -> bool {
         self.shape().is_broadcast_compatible(other.shape())
     }
-    
+
     fn broadcast_shape(&self, other: &Self) -> super::shape::ShapeResult<TensorShape> {
         self.shape().broadcast_shape(other.shape())
     }
-    
+
     fn can_broadcast_to(&self, target: &Self) -> bool {
         self.shape().can_broadcast_to(target.shape())
     }
@@ -292,7 +292,7 @@ mod tests {
     fn test_tensor_from_vec() {
         let data = vec![1.0f32, 2.0, 3.0, 4.0, 5.0, 6.0];
         let tensor = BitNetTensor::from_vec(data, &[2, 3], BitNetDType::F32, None).unwrap();
-        
+
         assert_eq!(tensor.shape().dims(), &[2, 3]);
         assert_eq!(tensor.num_elements(), 6);
     }
@@ -308,7 +308,7 @@ mod tests {
     fn test_tensor_clone() {
         let tensor = BitNetTensor::zeros(&[2, 3], BitNetDType::F32, None).unwrap();
         let cloned = tensor.clone();
-        
+
         assert_eq!(tensor.tensor_id(), cloned.tensor_id());
         assert_eq!(tensor.shape().dims(), cloned.shape().dims());
         assert_eq!(tensor.dtype(), cloned.dtype());

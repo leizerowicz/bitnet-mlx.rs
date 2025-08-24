@@ -50,30 +50,30 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 
-use std::time::{Duration, Instant, SystemTime};
-use std::collections::HashMap;
 use candle_core::Device;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::time::{Duration, Instant, SystemTime};
 use thiserror::Error;
 
 #[cfg(feature = "tracing")]
 use tracing::error;
 
 // Sub-modules
-pub mod tracker;
+pub mod config;
+pub mod patterns;
 pub mod pressure;
 pub mod profiler;
 pub mod timeline;
-pub mod patterns;
-pub mod config;
+pub mod tracker;
 
 // Re-exports
-pub use tracker::{MemoryTracker, DetailedMemoryMetrics};
+pub use config::{PressureThresholds, TrackingConfig, TrackingLevel};
+pub use patterns::{AllocationPattern, PatternAnalyzer, PatternReport};
 pub use pressure::{MemoryPressureDetector, MemoryPressureLevel, PressureCallback};
-pub use profiler::{MemoryProfiler, ProfilingReport, LeakReport};
-pub use timeline::{AllocationTimeline, AllocationEvent, TimelineEntry};
-pub use patterns::{PatternAnalyzer, AllocationPattern, PatternReport};
-pub use config::{TrackingConfig, TrackingLevel, PressureThresholds};
+pub use profiler::{LeakReport, MemoryProfiler, ProfilingReport};
+pub use timeline::{AllocationEvent, AllocationTimeline, TimelineEntry};
+pub use tracker::{DetailedMemoryMetrics, MemoryTracker};
 
 /// Errors that can occur during memory tracking operations
 #[derive(Error, Debug)]
@@ -177,7 +177,7 @@ impl AllocationInfo {
     ) -> Self {
         let now = SystemTime::now();
         let elapsed = start_time.elapsed();
-        
+
         Self {
             id,
             size,
@@ -255,11 +255,11 @@ impl DeviceTrackingStats {
         self.active_allocations += 1;
         self.total_bytes_allocated += size as u64;
         self.current_bytes_allocated += size as u64;
-        
+
         if self.current_bytes_allocated > self.peak_bytes_allocated {
             self.peak_bytes_allocated = self.current_bytes_allocated;
         }
-        
+
         self.update_average_allocation_size();
     }
 
@@ -274,7 +274,7 @@ impl DeviceTrackingStats {
     /// Updates the average allocation size
     fn update_average_allocation_size(&mut self) {
         if self.total_allocations > 0 {
-            self.average_allocation_size = 
+            self.average_allocation_size =
                 self.total_bytes_allocated as f64 / self.total_allocations as f64;
         }
     }
@@ -328,7 +328,7 @@ impl GlobalTrackingStats {
     /// Updates global statistics
     pub fn update(&mut self, elapsed: Duration) {
         self.total_tracking_time = elapsed;
-        
+
         // Update rates for all devices
         let elapsed_seconds = elapsed.as_secs_f64();
         for stats in self.device_stats.values_mut() {
@@ -338,22 +338,35 @@ impl GlobalTrackingStats {
 
     /// Returns total allocations across all devices
     pub fn total_allocations(&self) -> u64 {
-        self.device_stats.values().map(|s| s.total_allocations).sum()
+        self.device_stats
+            .values()
+            .map(|s| s.total_allocations)
+            .sum()
     }
 
     /// Returns total active allocations across all devices
     pub fn total_active_allocations(&self) -> u64 {
-        self.device_stats.values().map(|s| s.active_allocations).sum()
+        self.device_stats
+            .values()
+            .map(|s| s.active_allocations)
+            .sum()
     }
 
     /// Returns total bytes allocated across all devices
     pub fn total_bytes_allocated(&self) -> u64 {
-        self.device_stats.values().map(|s| s.current_bytes_allocated).sum()
+        self.device_stats
+            .values()
+            .map(|s| s.current_bytes_allocated)
+            .sum()
     }
 
     /// Returns peak bytes allocated across all devices
     pub fn peak_bytes_allocated(&self) -> u64 {
-        self.device_stats.values().map(|s| s.peak_bytes_allocated).max().unwrap_or(0)
+        self.device_stats
+            .values()
+            .map(|s| s.peak_bytes_allocated)
+            .max()
+            .unwrap_or(0)
     }
 }
 
@@ -371,10 +384,10 @@ mod tests {
     fn test_allocation_id() {
         let id = AllocationId::new(42);
         assert_eq!(id.raw(), 42);
-        
+
         let id_from_u64: AllocationId = 123.into();
         assert_eq!(id_from_u64.raw(), 123);
-        
+
         let u64_from_id: u64 = id.into();
         assert_eq!(u64_from_id, 42);
     }
@@ -382,21 +395,21 @@ mod tests {
     #[test]
     fn test_device_tracking_stats() {
         let mut stats = DeviceTrackingStats::new("CPU".to_string());
-        
+
         // Record some allocations
         stats.record_allocation(1024);
         stats.record_allocation(2048);
-        
+
         assert_eq!(stats.total_allocations, 2);
         assert_eq!(stats.active_allocations, 2);
         assert_eq!(stats.total_bytes_allocated, 3072);
         assert_eq!(stats.current_bytes_allocated, 3072);
         assert_eq!(stats.peak_bytes_allocated, 3072);
         assert_eq!(stats.average_allocation_size, 1536.0);
-        
+
         // Record a deallocation
         stats.record_deallocation(1024);
-        
+
         assert_eq!(stats.total_deallocations, 1);
         assert_eq!(stats.active_allocations, 1);
         assert_eq!(stats.current_bytes_allocated, 2048);
@@ -406,15 +419,15 @@ mod tests {
     #[test]
     fn test_global_tracking_stats() {
         let mut global_stats = GlobalTrackingStats::new();
-        
+
         // Add some device stats
         let cpu_stats = global_stats.get_or_create_device_stats("CPU");
         cpu_stats.record_allocation(1024);
         cpu_stats.record_allocation(2048);
-        
+
         let metal_stats = global_stats.get_or_create_device_stats("Metal");
         metal_stats.record_allocation(4096);
-        
+
         assert_eq!(global_stats.total_allocations(), 3);
         assert_eq!(global_stats.total_active_allocations(), 3);
         assert_eq!(global_stats.total_bytes_allocated(), 7168);
@@ -423,26 +436,20 @@ mod tests {
     #[test]
     fn test_allocation_info() {
         use crate::device::get_cpu_device;
-        
+
         let device = get_cpu_device();
         let start_time = Instant::now();
         let id = AllocationId::new(1);
-        
-        let mut info = AllocationInfo::new(
-            id,
-            1024,
-            16,
-            &device,
-            "SmallBlock".to_string(),
-            start_time,
-        );
-        
+
+        let mut info =
+            AllocationInfo::new(id, 1024, 16, &device, "SmallBlock".to_string(), start_time);
+
         assert_eq!(info.id, id);
         assert_eq!(info.size, 1024);
         assert_eq!(info.alignment, 16);
         assert_eq!(info.pool_type, "SmallBlock");
         assert!(info.is_active);
-        
+
         info.mark_deallocated();
         assert!(!info.is_active);
     }

@@ -115,16 +115,16 @@ pub fn choose_execution_backend(operation: &str) -> ExecutionBackend {
                 "attention" | "self_attention" | "multi_head_attention" => ExecutionBackend::Mlx,
                 "conv2d" | "convolution" => ExecutionBackend::Mlx,
                 "layer_norm" | "batch_norm" | "group_norm" => ExecutionBackend::Mlx,
-                
+
                 // Operations that may benefit from Candle's optimizations
                 "embedding" | "lookup" => ExecutionBackend::CandleMetal,
                 "softmax" | "activation" => ExecutionBackend::CandleMetal,
                 "pooling" | "max_pool" | "avg_pool" => ExecutionBackend::CandleMetal,
-                
+
                 // CPU-bound operations
                 "tokenization" | "preprocessing" | "postprocessing" => ExecutionBackend::CandleCpu,
                 "io" | "file_operations" | "serialization" => ExecutionBackend::CandleCpu,
-                
+
                 // Default to MLX for unknown operations on Apple Silicon
                 _ => ExecutionBackend::Mlx,
             }
@@ -133,7 +133,7 @@ pub fn choose_execution_backend(operation: &str) -> ExecutionBackend {
             choose_candle_backend(operation)
         }
     }
-    
+
     #[cfg(not(feature = "mlx"))]
     {
         // MLX feature not enabled, use Candle backends
@@ -151,15 +151,17 @@ fn choose_candle_backend(operation: &str) -> ExecutionBackend {
                 // GPU-accelerated operations
                 "matmul" | "matrix_multiply" | "gemm" => ExecutionBackend::CandleMetal,
                 "conv2d" | "convolution" => ExecutionBackend::CandleMetal,
-                "attention" | "self_attention" | "multi_head_attention" => ExecutionBackend::CandleMetal,
+                "attention" | "self_attention" | "multi_head_attention" => {
+                    ExecutionBackend::CandleMetal
+                }
                 "softmax" | "activation" => ExecutionBackend::CandleMetal,
                 "layer_norm" | "batch_norm" | "group_norm" => ExecutionBackend::CandleMetal,
-                
+
                 // CPU operations
                 "tokenization" | "preprocessing" | "postprocessing" => ExecutionBackend::CandleCpu,
                 "io" | "file_operations" | "serialization" => ExecutionBackend::CandleCpu,
                 "quantize" | "dequantize" | "quantization" => ExecutionBackend::CandleCpu,
-                
+
                 // Default to Metal for unknown operations
                 _ => ExecutionBackend::CandleMetal,
             }
@@ -167,7 +169,7 @@ fn choose_candle_backend(operation: &str) -> ExecutionBackend {
             ExecutionBackend::CandleCpu
         }
     }
-    
+
     #[cfg(not(target_os = "macos"))]
     {
         // Non-macOS systems default to CPU
@@ -200,44 +202,47 @@ fn choose_candle_backend(operation: &str) -> ExecutionBackend {
 pub fn fallback_to_candle(mlx_error: MlxError) -> Result<Tensor> {
     // Log the MLX error for debugging
     #[cfg(feature = "tracing")]
-    tracing::warn!("MLX operation failed, attempting Candle fallback: {}", mlx_error);
-    
+    tracing::warn!(
+        "MLX operation failed, attempting Candle fallback: {}",
+        mlx_error
+    );
+
     // Analyze the error type to determine fallback strategy
     match &mlx_error {
         MlxError::NotAvailable(_) => {
             // MLX not available, create a placeholder tensor for CPU execution
             create_fallback_tensor("MLX not available")
-        },
-        
+        }
+
         MlxError::OperationFailed(msg) => {
             // Operation failed, try to recover with a default tensor
             create_fallback_tensor(&format!("MLX operation failed: {}", msg))
-        },
-        
+        }
+
         MlxError::ConversionError(_) => {
             // Conversion error, create a minimal tensor
             create_fallback_tensor("MLX conversion failed")
-        },
-        
+        }
+
         MlxError::DeviceError(_) => {
             // Device error, fall back to CPU
             create_cpu_fallback_tensor()
-        },
-        
+        }
+
         MlxError::MemoryError(_) => {
             // Memory error, create a smaller tensor
             create_small_fallback_tensor()
-        },
-        
+        }
+
         MlxError::CompilationError(_) | MlxError::OptimizationError(_) => {
             // Compilation/optimization errors, use unoptimized fallback
             create_unoptimized_fallback_tensor()
-        },
-        
+        }
+
         MlxError::Other(_) => {
             // Generic error, create a basic fallback tensor
             create_fallback_tensor("Generic MLX error")
-        },
+        }
     }
 }
 
@@ -245,12 +250,12 @@ pub fn fallback_to_candle(mlx_error: MlxError) -> Result<Tensor> {
 fn create_fallback_tensor(reason: &str) -> Result<Tensor> {
     #[cfg(feature = "tracing")]
     tracing::info!("Creating fallback tensor: {}", reason);
-    
+
     // Create a minimal 1x1 tensor on CPU as a safe fallback
     let device = candle_core::Device::Cpu;
     let data = vec![0.0f32];
     let tensor = Tensor::from_vec(data, &[1], &device)?;
-    
+
     Ok(tensor)
 }
 
@@ -258,11 +263,11 @@ fn create_fallback_tensor(reason: &str) -> Result<Tensor> {
 fn create_cpu_fallback_tensor() -> Result<Tensor> {
     #[cfg(feature = "tracing")]
     tracing::info!("Creating CPU fallback tensor due to device error");
-    
+
     let device = candle_core::Device::Cpu;
     let data = vec![0.0f32; 4]; // 2x2 tensor
     let tensor = Tensor::from_vec(data, &[2, 2], &device)?;
-    
+
     Ok(tensor)
 }
 
@@ -270,11 +275,11 @@ fn create_cpu_fallback_tensor() -> Result<Tensor> {
 fn create_small_fallback_tensor() -> Result<Tensor> {
     #[cfg(feature = "tracing")]
     tracing::info!("Creating small fallback tensor due to memory constraints");
-    
+
     let device = candle_core::Device::Cpu;
     let data = vec![0.0f32]; // Minimal 1-element tensor
     let tensor = Tensor::from_vec(data, &[1], &device)?;
-    
+
     Ok(tensor)
 }
 
@@ -282,11 +287,11 @@ fn create_small_fallback_tensor() -> Result<Tensor> {
 fn create_unoptimized_fallback_tensor() -> Result<Tensor> {
     #[cfg(feature = "tracing")]
     tracing::info!("Creating unoptimized fallback tensor");
-    
+
     let device = candle_core::Device::Cpu;
     let data = vec![1.0f32; 16]; // 4x4 identity-like tensor
     let tensor = Tensor::from_vec(data, &[4, 4], &device)?;
-    
+
     Ok(tensor)
 }
 
@@ -307,8 +312,8 @@ pub fn is_backend_available(backend: &ExecutionBackend) -> bool {
             {
                 false
             }
-        },
-        
+        }
+
         ExecutionBackend::CandleMetal => {
             #[cfg(target_os = "macos")]
             {
@@ -318,10 +323,10 @@ pub fn is_backend_available(backend: &ExecutionBackend) -> bool {
             {
                 false
             }
-        },
-        
+        }
+
         ExecutionBackend::CandleCpu => true, // CPU is always available
-        
+
         ExecutionBackend::Auto => true, // Auto selection is always available
     }
 }
@@ -329,23 +334,23 @@ pub fn is_backend_available(backend: &ExecutionBackend) -> bool {
 /// Get a list of all available backends on the current system
 pub fn get_available_backends() -> Vec<ExecutionBackend> {
     let mut backends = Vec::new();
-    
+
     // Always add CPU backend
     backends.push(ExecutionBackend::CandleCpu);
-    
+
     // Check Metal availability
     if is_backend_available(&ExecutionBackend::CandleMetal) {
         backends.push(ExecutionBackend::CandleMetal);
     }
-    
+
     // Check MLX availability
     if is_backend_available(&ExecutionBackend::Mlx) {
         backends.push(ExecutionBackend::Mlx);
     }
-    
+
     // Always add Auto selection
     backends.push(ExecutionBackend::Auto);
-    
+
     backends
 }
 
@@ -365,7 +370,7 @@ mod tests {
     fn test_mlx_error_display() {
         let error = MlxError::NotAvailable("System not supported".to_string());
         assert!(error.to_string().contains("MLX not available"));
-        
+
         let error = MlxError::OperationFailed("Matrix multiplication failed".to_string());
         assert!(error.to_string().contains("MLX operation failed"));
     }
@@ -374,11 +379,17 @@ mod tests {
     fn test_choose_execution_backend() {
         // Test specific operations
         let backend = choose_execution_backend("matmul");
-        assert!(matches!(backend, ExecutionBackend::Mlx | ExecutionBackend::CandleMetal | ExecutionBackend::CandleCpu));
-        
+        assert!(matches!(
+            backend,
+            ExecutionBackend::Mlx | ExecutionBackend::CandleMetal | ExecutionBackend::CandleCpu
+        ));
+
         let backend = choose_execution_backend("tokenization");
         // Tokenization should prefer CPU
-        assert!(matches!(backend, ExecutionBackend::CandleCpu | ExecutionBackend::Mlx));
+        assert!(matches!(
+            backend,
+            ExecutionBackend::CandleCpu | ExecutionBackend::Mlx
+        ));
     }
 
     #[test]
@@ -386,7 +397,7 @@ mod tests {
         let mlx_error = MlxError::NotAvailable("Test error".to_string());
         let result = fallback_to_candle(mlx_error);
         assert!(result.is_ok());
-        
+
         let tensor = result.unwrap();
         assert_eq!(tensor.dims(), &[1]);
     }
@@ -395,7 +406,7 @@ mod tests {
     fn test_backend_availability() {
         // CPU should always be available
         assert!(is_backend_available(&ExecutionBackend::CandleCpu));
-        
+
         // Auto should always be available
         assert!(is_backend_available(&ExecutionBackend::Auto));
     }
@@ -403,11 +414,11 @@ mod tests {
     #[test]
     fn test_get_available_backends() {
         let backends = get_available_backends();
-        
+
         // Should always include CPU and Auto
         assert!(backends.contains(&ExecutionBackend::CandleCpu));
         assert!(backends.contains(&ExecutionBackend::Auto));
-        
+
         // Should have at least 2 backends (CPU and Auto)
         assert!(backends.len() >= 2);
     }
@@ -422,7 +433,7 @@ mod tests {
     fn test_mlx_error_conversion() {
         let mlx_error = MlxError::MemoryError("Out of memory".to_string());
         let bitnet_error: BitNetError = mlx_error.into();
-        
+
         assert!(matches!(bitnet_error.kind(), BitNetErrorKind::Mlx { .. }));
     }
 }

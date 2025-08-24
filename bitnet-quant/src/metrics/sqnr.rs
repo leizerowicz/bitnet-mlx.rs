@@ -1,10 +1,10 @@
 // bitnet-quant/src/metrics/sqnr.rs
 //! Signal-to-Quantization-Noise Ratio (SQNR) Calculation
-//! 
+//!
 //! Implements SQNR calculation for quantization quality assessment, providing
 //! comprehensive noise analysis and signal quality metrics in dB scale.
 
-use candle_core::{Tensor, Result, Device, Error as CandleError};
+use candle_core::{Device, Error as CandleError, Result, Tensor};
 
 /// Calculate Signal-to-Quantization-Noise Ratio in dB
 pub fn calculate_sqnr(original: &Tensor, quantized: &Tensor) -> Result<f32> {
@@ -19,27 +19,31 @@ pub fn calculate_sqnr(original: &Tensor, quantized: &Tensor) -> Result<f32> {
 
     // Calculate signal power (original signal energy)
     let signal_power = original.powf(2.0)?.mean_all()?.to_scalar::<f32>()?;
-    
+
     // Calculate quantization noise power
     let noise = original.sub(quantized)?;
     let noise_power = noise.powf(2.0)?.mean_all()?.to_scalar::<f32>()?;
-    
+
     // Avoid division by zero and log of zero
     if noise_power < f32::EPSILON {
         return Ok(f32::INFINITY); // Perfect quantization
     }
-    
+
     if signal_power < f32::EPSILON {
         return Ok(f32::NEG_INFINITY); // No signal
     }
-    
+
     // Calculate SQNR in dB: 10 * log10(signal_power / noise_power)
     let sqnr_db = 10.0 * (signal_power / noise_power).log10();
     Ok(sqnr_db)
 }
 
 /// Calculate SQNR with memory-efficient streaming for large tensors
-pub fn calculate_sqnr_streaming(original: &Tensor, quantized: &Tensor, chunk_size: usize) -> Result<f32> {
+pub fn calculate_sqnr_streaming(
+    original: &Tensor,
+    quantized: &Tensor,
+    chunk_size: usize,
+) -> Result<f32> {
     if original.shape() != quantized.shape() {
         return Err(CandleError::Msg(format!(
             "Shape mismatch in streaming SQNR: original {:?} vs quantized {:?}",
@@ -56,7 +60,7 @@ pub fn calculate_sqnr_streaming(original: &Tensor, quantized: &Tensor, chunk_siz
     // Flatten tensors for streaming processing
     let orig_flat = original.flatten_all()?;
     let quant_flat = quantized.flatten_all()?;
-    
+
     let mut total_signal_power = 0.0f32;
     let mut total_noise_power = 0.0f32;
     let mut processed_elements = 0;
@@ -64,27 +68,27 @@ pub fn calculate_sqnr_streaming(original: &Tensor, quantized: &Tensor, chunk_siz
     // Process in chunks
     for start in (0..total_elements).step_by(chunk_size) {
         let end = (start + chunk_size).min(total_elements);
-        
+
         // Extract chunks
         let orig_chunk = orig_flat.narrow(0, start, end - start)?;
         let quant_chunk = quant_flat.narrow(0, start, end - start)?;
-        
+
         // Calculate signal power for chunk
         let signal_power_chunk = orig_chunk.powf(2.0)?.sum_all()?.to_scalar::<f32>()?;
         total_signal_power += signal_power_chunk;
-        
+
         // Calculate noise power for chunk
         let noise_chunk = orig_chunk.sub(&quant_chunk)?;
         let noise_power_chunk = noise_chunk.powf(2.0)?.sum_all()?.to_scalar::<f32>()?;
         total_noise_power += noise_power_chunk;
-        
+
         processed_elements += end - start;
     }
 
     // Calculate average powers
     let avg_signal_power = total_signal_power / processed_elements as f32;
     let avg_noise_power = total_noise_power / processed_elements as f32;
-    
+
     // Calculate SQNR
     if avg_noise_power < f32::EPSILON {
         Ok(f32::INFINITY)
@@ -96,7 +100,11 @@ pub fn calculate_sqnr_streaming(original: &Tensor, quantized: &Tensor, chunk_siz
 }
 
 /// Calculate Segmental SQNR for time-series or sequential data
-pub fn calculate_segmental_sqnr(original: &Tensor, quantized: &Tensor, segment_size: usize) -> Result<Vec<f32>> {
+pub fn calculate_segmental_sqnr(
+    original: &Tensor,
+    quantized: &Tensor,
+    segment_size: usize,
+) -> Result<Vec<f32>> {
     if original.shape() != quantized.shape() {
         return Err(CandleError::Msg(format!(
             "Shape mismatch in segmental SQNR: original {:?} vs quantized {:?}",
@@ -108,21 +116,21 @@ pub fn calculate_segmental_sqnr(original: &Tensor, quantized: &Tensor, segment_s
     let total_elements = original.elem_count();
     let orig_flat = original.flatten_all()?;
     let quant_flat = quantized.flatten_all()?;
-    
+
     let mut segmental_sqnr = Vec::new();
-    
+
     for start in (0..total_elements).step_by(segment_size) {
         let end = (start + segment_size).min(total_elements);
-        
+
         // Extract segments
         let orig_segment = orig_flat.narrow(0, start, end - start)?;
         let quant_segment = quant_flat.narrow(0, start, end - start)?;
-        
+
         // Calculate SQNR for this segment
         let segment_sqnr = calculate_sqnr(&orig_segment, &quant_segment)?;
         segmental_sqnr.push(segment_sqnr);
     }
-    
+
     Ok(segmental_sqnr)
 }
 
@@ -140,12 +148,17 @@ impl SQNRCalculator {
         Self {
             device,
             streaming_threshold: 10_000_000, // 10M elements
-            chunk_size: 1_000_000, // 1M elements per chunk
-            segment_size: 1000, // 1K elements per segment for segmental analysis
+            chunk_size: 1_000_000,           // 1M elements per chunk
+            segment_size: 1000,              // 1K elements per segment for segmental analysis
         }
     }
 
-    pub fn with_config(device: Device, streaming_threshold: usize, chunk_size: usize, segment_size: usize) -> Self {
+    pub fn with_config(
+        device: Device,
+        streaming_threshold: usize,
+        chunk_size: usize,
+        segment_size: usize,
+    ) -> Self {
         Self {
             device,
             streaming_threshold,
@@ -164,9 +177,13 @@ impl SQNRCalculator {
     }
 
     /// Calculate comprehensive SQNR analysis
-    pub fn calculate_comprehensive(&self, original: &Tensor, quantized: &Tensor) -> Result<SQNRAnalysis> {
+    pub fn calculate_comprehensive(
+        &self,
+        original: &Tensor,
+        quantized: &Tensor,
+    ) -> Result<SQNRAnalysis> {
         let global_sqnr = self.calculate(original, quantized)?;
-        
+
         // Calculate segmental SQNR for variance analysis
         let segmental_sqnr = if original.elem_count() > self.segment_size {
             calculate_segmental_sqnr(original, quantized, self.segment_size)?
@@ -176,10 +193,10 @@ impl SQNRCalculator {
 
         // Calculate statistics of segmental SQNR
         let sqnr_stats = self.calculate_sqnr_statistics(&segmental_sqnr)?;
-        
+
         // Calculate frequency-domain SQNR if applicable
         let frequency_sqnr = self.calculate_frequency_sqnr(original, quantized)?;
-        
+
         Ok(SQNRAnalysis {
             global_sqnr,
             segmental_sqnr,
@@ -195,7 +212,8 @@ impl SQNRCalculator {
         }
 
         // Filter out infinite values for statistics
-        let finite_values: Vec<f32> = segmental_sqnr.iter()
+        let finite_values: Vec<f32> = segmental_sqnr
+            .iter()
             .filter(|&&x| x.is_finite())
             .copied()
             .collect();
@@ -206,23 +224,27 @@ impl SQNRCalculator {
 
         let mean = finite_values.iter().sum::<f32>() / finite_values.len() as f32;
         let min = finite_values.iter().fold(f32::INFINITY, |a, &b| a.min(b));
-        let max = finite_values.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
-        
+        let max = finite_values
+            .iter()
+            .fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+
         // Calculate variance
-        let variance = finite_values.iter()
+        let variance = finite_values
+            .iter()
             .map(|&x| (x - mean).powi(2))
-            .sum::<f32>() / finite_values.len() as f32;
-        
+            .sum::<f32>()
+            / finite_values.len() as f32;
+
         let std_dev = variance.sqrt();
-        
+
         // Calculate percentiles
         let num_finite = finite_values.len();
         let mut sorted_values = finite_values;
         sorted_values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        
+
         let p10_idx = (0.1 * sorted_values.len() as f32) as usize;
         let p90_idx = (0.9 * sorted_values.len() as f32) as usize;
-        
+
         let p10 = sorted_values[p10_idx.min(sorted_values.len() - 1)];
         let p90 = sorted_values[p90_idx.min(sorted_values.len() - 1)];
 
@@ -239,7 +261,11 @@ impl SQNRCalculator {
         })
     }
 
-    fn calculate_frequency_sqnr(&self, _original: &Tensor, _quantized: &Tensor) -> Result<Option<f32>> {
+    fn calculate_frequency_sqnr(
+        &self,
+        _original: &Tensor,
+        _quantized: &Tensor,
+    ) -> Result<Option<f32>> {
         // For now, return None - frequency domain analysis would require FFT implementation
         // This is a placeholder for future enhancement
         Ok(None)
@@ -262,30 +288,42 @@ impl SQNRCalculator {
     }
 
     /// Calculate SQNR improvement ratio between two quantization methods
-    pub fn calculate_improvement(&self, original: &Tensor, quantized1: &Tensor, quantized2: &Tensor) -> Result<f32> {
+    pub fn calculate_improvement(
+        &self,
+        original: &Tensor,
+        quantized1: &Tensor,
+        quantized2: &Tensor,
+    ) -> Result<f32> {
         let sqnr1 = self.calculate(original, quantized1)?;
         let sqnr2 = self.calculate(original, quantized2)?;
-        
+
         // Return the difference in dB (improvement of quantized2 over quantized1)
         Ok(sqnr2 - sqnr1)
     }
 
     /// Calculate layer-wise SQNR analysis
-    pub fn analyze_layers(&self, layer_outputs: &[(String, Tensor, Tensor)]) -> Result<Vec<(String, SQNRAnalysis)>> {
+    pub fn analyze_layers(
+        &self,
+        layer_outputs: &[(String, Tensor, Tensor)],
+    ) -> Result<Vec<(String, SQNRAnalysis)>> {
         let mut results = Vec::new();
-        
+
         for (layer_name, original, quantized) in layer_outputs {
             let analysis = self.calculate_comprehensive(original, quantized)?;
             results.push((layer_name.clone(), analysis));
         }
-        
+
         Ok(results)
     }
 
     /// Calculate SQNR evolution over training/iterations
-    pub fn track_evolution(&self, original: &Tensor, quantized_series: &[Tensor]) -> Result<SQNREvolution> {
+    pub fn track_evolution(
+        &self,
+        original: &Tensor,
+        quantized_series: &[Tensor],
+    ) -> Result<SQNREvolution> {
         let mut sqnr_values = Vec::with_capacity(quantized_series.len());
-        
+
         for quantized in quantized_series {
             let sqnr = self.calculate(original, quantized)?;
             sqnr_values.push(sqnr);
@@ -293,7 +331,8 @@ impl SQNRCalculator {
 
         // Calculate trend analysis
         let trend = self.analyze_trend(&sqnr_values);
-        let best_iteration = sqnr_values.iter()
+        let best_iteration = sqnr_values
+            .iter()
             .enumerate()
             .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
             .map(|(i, _)| i);
@@ -315,17 +354,19 @@ impl SQNRCalculator {
             return Trend::Stable;
         }
 
-        let first_half = &values[0..values.len()/2];
-        let second_half = &values[values.len()/2..];
-        
+        let first_half = &values[0..values.len() / 2];
+        let second_half = &values[values.len() / 2..];
+
         let first_avg = first_half.iter().sum::<f32>() / first_half.len() as f32;
         let second_avg = second_half.iter().sum::<f32>() / second_half.len() as f32;
-        
+
         let improvement = second_avg - first_avg;
-        
-        if improvement > 1.0 { // More than 1dB improvement
+
+        if improvement > 1.0 {
+            // More than 1dB improvement
             Trend::Improving
-        } else if improvement < -1.0 { // More than 1dB degradation
+        } else if improvement < -1.0 {
+            // More than 1dB degradation
             Trend::Degrading
         } else {
             Trend::Stable
@@ -403,7 +444,10 @@ impl SQNRQuality {
             (SQNRQuality::Excellent, _) => true,
             (SQNRQuality::Good, SQNRQuality::Perfect | SQNRQuality::Excellent) => false,
             (SQNRQuality::Good, _) => true,
-            (SQNRQuality::Fair, SQNRQuality::Perfect | SQNRQuality::Excellent | SQNRQuality::Good) => false,
+            (
+                SQNRQuality::Fair,
+                SQNRQuality::Perfect | SQNRQuality::Excellent | SQNRQuality::Good,
+            ) => false,
             (SQNRQuality::Fair, _) => true,
             (SQNRQuality::Poor, SQNRQuality::Unacceptable) => true,
             (SQNRQuality::Poor, _) => false,
@@ -445,7 +489,7 @@ pub fn sqnr_to_effective_bits(sqnr_db: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use candle_core::{Device, DType};
+    use candle_core::{DType, Device};
 
     fn create_test_tensors() -> Result<(Tensor, Tensor, Tensor)> {
         let device = Device::Cpu;
@@ -475,7 +519,7 @@ mod tests {
     fn test_sqnr_calculator() -> Result<()> {
         let device = Device::Cpu;
         let calculator = SQNRCalculator::new(device);
-        
+
         let (original, _, quantized) = create_test_tensors()?;
         let sqnr = calculator.calculate(&original, &quantized)?;
         assert!(sqnr.is_finite());
@@ -486,10 +530,10 @@ mod tests {
     fn test_comprehensive_sqnr_analysis() -> Result<()> {
         let device = Device::Cpu;
         let calculator = SQNRCalculator::new(device);
-        
+
         let (original, _, quantized) = create_test_tensors()?;
         let analysis = calculator.calculate_comprehensive(&original, &quantized)?;
-        
+
         assert!(analysis.global_sqnr.is_finite());
         assert!(!analysis.segmental_sqnr.is_empty());
         assert!(analysis.statistics.num_segments > 0);
@@ -500,12 +544,15 @@ mod tests {
     fn test_sqnr_quality_assessment() {
         let device = Device::Cpu;
         let calculator = SQNRCalculator::new(device);
-        
+
         assert_eq!(calculator.assess_sqnr_quality(70.0), SQNRQuality::Excellent);
         assert_eq!(calculator.assess_sqnr_quality(45.0), SQNRQuality::Good);
         assert_eq!(calculator.assess_sqnr_quality(25.0), SQNRQuality::Fair);
         assert_eq!(calculator.assess_sqnr_quality(15.0), SQNRQuality::Poor);
-        assert_eq!(calculator.assess_sqnr_quality(5.0), SQNRQuality::Unacceptable);
+        assert_eq!(
+            calculator.assess_sqnr_quality(5.0),
+            SQNRQuality::Unacceptable
+        );
     }
 
     #[test]
@@ -514,7 +561,7 @@ mod tests {
         let large_original = Tensor::ones((1000, 1000), DType::F32, &device)?;
         let data = vec![0.95f32; 1_000_000];
         let large_quantized = Tensor::new(data.as_slice(), &device)?.reshape((1000, 1000))?;
-        
+
         let sqnr = calculate_sqnr_streaming(&large_original, &large_quantized, 10000)?;
         assert!(sqnr.is_finite() && sqnr > 0.0);
         Ok(())
@@ -526,7 +573,7 @@ mod tests {
         let original = Tensor::ones((100,), DType::F32, &device)?;
         let data = vec![0.9f32; 100];
         let quantized = Tensor::new(data.as_slice(), &device)?;
-        
+
         let segmental = calculate_segmental_sqnr(&original, &quantized, 10)?;
         assert_eq!(segmental.len(), 10); // 100 elements / 10 per segment = 10 segments
         assert!(segmental.iter().all(|&x| x.is_finite()));
@@ -537,13 +584,13 @@ mod tests {
     fn test_sqnr_improvement() -> Result<()> {
         let device = Device::Cpu;
         let calculator = SQNRCalculator::new(device.clone());
-        
+
         let original = Tensor::ones((4, 4), DType::F32, &device)?;
         let data1 = vec![0.8f32; 16];
         let quantized1 = Tensor::new(data1.as_slice(), &device)?.reshape((4, 4))?;
         let data2 = vec![0.9f32; 16];
         let quantized2 = Tensor::new(data2.as_slice(), &device)?.reshape((4, 4))?;
-        
+
         let improvement = calculator.calculate_improvement(&original, &quantized1, &quantized2)?;
         assert!(improvement > 0.0); // quantized2 should be better (closer to original)
         Ok(())
@@ -572,7 +619,7 @@ mod tests {
         let device = Device::Cpu;
         let tensor1 = Tensor::ones((2, 2), DType::F32, &device).unwrap();
         let tensor2 = Tensor::ones((3, 3), DType::F32, &device).unwrap();
-        
+
         let result = calculate_sqnr(&tensor1, &tensor2);
         assert!(result.is_err());
     }
@@ -582,7 +629,7 @@ mod tests {
         let device = Device::Cpu;
         let zero_signal = Tensor::zeros((4, 4), DType::F32, &device)?;
         let quantized = Tensor::ones((4, 4), DType::F32, &device)?;
-        
+
         let sqnr = calculate_sqnr(&zero_signal, &quantized)?;
         assert_eq!(sqnr, f32::NEG_INFINITY); // No signal case
         Ok(())

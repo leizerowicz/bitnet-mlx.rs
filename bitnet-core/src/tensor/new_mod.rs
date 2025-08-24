@@ -11,7 +11,7 @@
 //!
 //! - **BitNetTensor**: Core tensor struct with memory pool integration
 //! - **TensorStorage**: Backend storage leveraging HybridMemoryPool
-//! - **Shape Management**: Advanced broadcasting and dimension handling  
+//! - **Shape Management**: Advanced broadcasting and dimension handling
 //! - **Device Integration**: Seamless CPU/Metal/MLX device support
 //! - **Data Types**: Comprehensive type system for BitNet operations
 //!
@@ -85,7 +85,7 @@ use crate::memory::MemoryResult;
 ///
 /// ```rust
 /// use bitnet_core::tensor::{zeros, BitNetDType};
-/// 
+///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let tensor = zeros(&[2, 3], BitNetDType::F32)?;
 /// assert_eq!(tensor.shape().dims(), &[2, 3]);

@@ -4,14 +4,14 @@
 //! all sequence processing operations including padding, truncation, and batching.
 
 use super::{
-    SequenceConfig, PaddingStrategy, TruncationStrategy,
-    padding::{pad_sequence, PaddingOptions},
-    truncation::{truncate_sequence, TruncationOptions},
+    batching::{BatchProcessor, SequenceBatch},
     masking::create_attention_mask,
-    batching::{SequenceBatch, BatchProcessor},
+    padding::{pad_sequence, PaddingOptions},
+    statistics::{analyze_sequence_lengths, SequenceStats},
+    truncation::{truncate_sequence, TruncationOptions},
     validation::SequenceValidator,
-    statistics::{SequenceStats, analyze_sequence_lengths},
-    ProcessedSequence, SequenceError, SequenceResult,
+    PaddingStrategy, ProcessedSequence, SequenceConfig, SequenceError, SequenceResult,
+    TruncationStrategy,
 };
 use anyhow::Result;
 
@@ -38,8 +38,10 @@ impl SequenceManager {
 
     /// Create a sequence manager with custom configuration
     pub fn with_config(config: SequenceConfig) -> Result<Self> {
-        config.validate().map_err(|e| anyhow::anyhow!("Invalid configuration: {}", e))?;
-        
+        config
+            .validate()
+            .map_err(|e| anyhow::anyhow!("Invalid configuration: {}", e))?;
+
         Ok(Self {
             validator: SequenceValidator::new(&config),
             batch_processor: BatchProcessor::new(&config),
@@ -105,10 +107,10 @@ impl SequenceManager {
         pad_token_id: Option<u32>,
     ) -> SequenceResult<ProcessedSequence> {
         let original_length = tokens.len();
-        
+
         // Validate sequence
         self.validator.validate_sequence(&tokens)?;
-        
+
         // Update statistics if enabled
         if let Some(ref mut stats) = self.stats {
             stats.add_sequence_length(original_length);
@@ -163,7 +165,7 @@ impl SequenceManager {
 
         // Collect original lengths for statistics
         let original_lengths: Vec<usize> = sequences.iter().map(|s| s.len()).collect();
-        
+
         // Update statistics if enabled
         if let Some(ref mut stats) = self.stats {
             for &length in &original_lengths {
@@ -176,15 +178,20 @@ impl SequenceManager {
         for sequence in sequences {
             // Validate each sequence
             self.validator.validate_sequence(sequence)?;
-            
+
             // Apply truncation
             let (truncated_tokens, tokens_truncated) = self.apply_truncation(sequence.clone())?;
             processed_sequences.push((truncated_tokens, tokens_truncated));
         }
 
         // Determine target length for padding
-        let current_lengths: Vec<usize> = processed_sequences.iter().map(|(tokens, _)| tokens.len()).collect();
-        let target_length = self.config.padding_strategy
+        let current_lengths: Vec<usize> = processed_sequences
+            .iter()
+            .map(|(tokens, _)| tokens.len())
+            .collect();
+        let target_length = self
+            .config
+            .padding_strategy
             .calculate_target_length(&current_lengths, self.config.max_length);
 
         // Apply padding to achieve uniform length
@@ -223,14 +230,14 @@ impl SequenceManager {
     /// Apply truncation to a sequence based on the configured strategy
     fn apply_truncation(&self, mut tokens: Vec<u32>) -> SequenceResult<(Vec<u32>, usize)> {
         let original_length = tokens.len();
-        
+
         if let Some(max_length) = self.config.max_length {
             if tokens.len() > max_length {
                 let truncation_options = TruncationOptions {
                     strategy: self.config.truncation_strategy,
                     max_length,
                 };
-                
+
                 tokens = truncate_sequence(tokens, &truncation_options)?;
                 let tokens_truncated = original_length - tokens.len();
                 return Ok((tokens, tokens_truncated));
@@ -278,7 +285,7 @@ impl SequenceManager {
 
         let padded_tokens = pad_sequence(tokens, &padding_options)?;
         let padding_added = padded_tokens.len() - original_length;
-        
+
         Ok((padded_tokens, padding_added))
     }
 
@@ -306,10 +313,12 @@ impl SequenceManager {
     /// Get memory usage estimate for a batch
     pub fn estimate_memory_usage(&self, sequences: &[Vec<u32>]) -> usize {
         let total_tokens: usize = sequences.iter().map(|s| s.len()).sum();
-        
+
         // Estimate based on target length calculation
         let lengths: Vec<usize> = sequences.iter().map(|s| s.len()).collect();
-        let target_length = self.config.padding_strategy
+        let target_length = self
+            .config
+            .padding_strategy
             .calculate_target_length(&lengths, self.config.max_length)
             .unwrap_or_else(|| lengths.iter().max().copied().unwrap_or(0));
 
@@ -329,7 +338,7 @@ impl SequenceManager {
     pub fn create_processing_summary(&self, batch: &SequenceBatch) -> ProcessingSummary {
         let sequences = batch.sequences();
         let total_sequences = sequences.len();
-        
+
         let mut total_original_length = 0;
         let mut total_final_length = 0;
         let mut truncated_count = 0;
@@ -340,12 +349,12 @@ impl SequenceManager {
         for seq in sequences {
             total_original_length += seq.original_length;
             total_final_length += seq.current_length;
-            
+
             if seq.was_truncated {
                 truncated_count += 1;
                 total_truncated_tokens += seq.tokens_truncated;
             }
-            
+
             if seq.was_padded {
                 padded_count += 1;
                 total_padding_added += seq.padding_added;
@@ -441,7 +450,10 @@ mod tests {
     fn test_sequence_manager_creation() {
         let manager = SequenceManager::new();
         assert_eq!(manager.config().max_length, Some(512));
-        assert_eq!(manager.config().padding_strategy, PaddingStrategy::LongestInBatch);
+        assert_eq!(
+            manager.config().padding_strategy,
+            PaddingStrategy::LongestInBatch
+        );
     }
 
     #[test]
@@ -452,7 +464,10 @@ mod tests {
             .with_pad_token_id(1);
 
         assert_eq!(manager.config().max_length, Some(256));
-        assert_eq!(manager.config().padding_strategy, PaddingStrategy::MaxLength);
+        assert_eq!(
+            manager.config().padding_strategy,
+            PaddingStrategy::MaxLength
+        );
         assert_eq!(manager.config().pad_token_id, Some(1));
     }
 
@@ -462,14 +477,10 @@ mod tests {
             .with_max_length(10)
             .with_padding_strategy(PaddingStrategy::MaxLength);
 
-        let sequences = vec![
-            vec![1, 2, 3],
-            vec![4, 5, 6, 7],
-            vec![8, 9],
-        ];
+        let sequences = vec![vec![1, 2, 3], vec![4, 5, 6, 7], vec![8, 9]];
 
         let memory_usage = manager.estimate_memory_usage(&sequences);
-        
+
         // 3 sequences * 10 tokens * (4 bytes for u32 + 1 byte for mask)
         let expected = 3 * 10 * (4 + 1);
         assert_eq!(memory_usage, expected);

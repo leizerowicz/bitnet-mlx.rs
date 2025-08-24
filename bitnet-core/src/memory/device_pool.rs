@@ -4,12 +4,12 @@
 //! CPU and Metal GPU devices. Each device type has its own optimized
 //! memory allocation strategy and management approach.
 
+use crate::memory::handle::{CpuMemoryMetadata, PoolType};
+use crate::memory::{MemoryError, MemoryHandle, MemoryResult};
+use candle_core::Device;
+use std::alloc::{alloc, dealloc, Layout};
 use std::ptr::NonNull;
 use std::sync::{Arc, Mutex};
-use std::alloc::{alloc, dealloc, Layout};
-use candle_core::Device;
-use crate::memory::{MemoryError, MemoryResult, MemoryHandle};
-use crate::memory::handle::{PoolType, CpuMemoryMetadata};
 
 #[cfg(feature = "metal")]
 use crate::memory::handle::MetalMemoryMetadata;
@@ -134,7 +134,10 @@ impl CpuMemoryPool {
         handle_id_counter: Arc<Mutex<u64>>,
     ) -> MemoryResult<MemoryHandle> {
         #[cfg(feature = "tracing")]
-        debug!("Allocating {} bytes with alignment {} on CPU", size, alignment);
+        debug!(
+            "Allocating {} bytes with alignment {} on CPU",
+            size, alignment
+        );
 
         // Create layout
         let layout = Layout::from_size_align(size, alignment)
@@ -168,7 +171,8 @@ impl CpuMemoryPool {
 
         // Generate unique handle ID
         let handle_id = {
-            let mut counter = handle_id_counter.lock()
+            let mut counter = handle_id_counter
+                .lock()
                 .map_err(|_| MemoryError::InternalError {
                     reason: "Failed to acquire handle ID counter lock".to_string(),
                 })?;
@@ -202,7 +206,10 @@ impl CpuMemoryPool {
         self.stats.bytes_allocated += size as u64;
 
         #[cfg(feature = "tracing")]
-        debug!("Successfully allocated CPU memory with handle ID {}", handle_id);
+        debug!(
+            "Successfully allocated CPU memory with handle ID {}",
+            handle_id
+        );
 
         Ok(handle)
     }
@@ -253,7 +260,10 @@ impl CpuMemoryPool {
         self.stats.bytes_deallocated += size as u64;
 
         #[cfg(feature = "tracing")]
-        debug!("Successfully deallocated CPU memory with handle ID {}", handle.id());
+        debug!(
+            "Successfully deallocated CPU memory with handle ID {}",
+            handle.id()
+        );
 
         Ok(())
     }
@@ -273,9 +283,7 @@ impl CpuMemoryPool {
     fn try_lock_memory(&self, ptr: *mut u8, size: usize) -> bool {
         #[cfg(unix)]
         {
-            unsafe {
-                libc::mlock(ptr as *const libc::c_void, size) == 0
-            }
+            unsafe { libc::mlock(ptr as *const libc::c_void, size) == 0 }
         }
         #[cfg(not(unix))]
         {
@@ -432,7 +440,9 @@ impl MetalMemoryPool {
         debug!("Allocating {} bytes on Metal GPU", size);
 
         // Create Metal buffer
-        let buffer = self.metal_device.new_buffer(size as u64, self.config.resource_options);
+        let buffer = self
+            .metal_device
+            .new_buffer(size as u64, self.config.resource_options);
 
         // Get buffer pointer
         let ptr = buffer.contents() as *mut u8;
@@ -443,12 +453,13 @@ impl MetalMemoryPool {
         let non_null_ptr = unsafe { NonNull::new_unchecked(ptr) };
 
         // Determine if this is unified memory
-        let unified_memory = self.config.use_unified_memory && 
-            self.config.default_storage_mode == metal::MTLStorageMode::Shared;
+        let unified_memory = self.config.use_unified_memory
+            && self.config.default_storage_mode == metal::MTLStorageMode::Shared;
 
         // Generate unique handle ID
         let handle_id = {
-            let mut counter = handle_id_counter.lock()
+            let mut counter = handle_id_counter
+                .lock()
                 .map_err(|_| MemoryError::InternalError {
                     reason: "Failed to acquire handle ID counter lock".to_string(),
                 })?;
@@ -492,7 +503,10 @@ impl MetalMemoryPool {
         }
 
         #[cfg(feature = "tracing")]
-        debug!("Successfully allocated Metal memory with handle ID {}", handle_id);
+        debug!(
+            "Successfully allocated Metal memory with handle ID {}",
+            handle_id
+        );
 
         Ok(handle)
     }
@@ -529,7 +543,10 @@ impl MetalMemoryPool {
         self.stats.bytes_deallocated += size as u64;
 
         #[cfg(feature = "tracing")]
-        debug!("Successfully deallocated Metal memory with handle ID {}", handle.id());
+        debug!(
+            "Successfully deallocated Metal memory with handle ID {}",
+            handle.id()
+        );
 
         Ok(())
     }
@@ -568,7 +585,7 @@ mod tests {
     fn test_cpu_memory_pool_creation() {
         let device = get_cpu_device();
         let pool = CpuMemoryPool::new_default(device).unwrap();
-        
+
         let stats = pool.get_stats();
         assert_eq!(stats.allocations, 0);
         assert_eq!(stats.deallocations, 0);
@@ -581,21 +598,21 @@ mod tests {
         let device = get_cpu_device();
         let mut pool = CpuMemoryPool::new_default(device).unwrap();
         let handle_counter = Arc::new(Mutex::new(1));
-        
+
         // Allocate memory
         let handle = pool.allocate(1024, 16, handle_counter).unwrap();
         assert_eq!(handle.size(), 1024);
         assert_eq!(handle.alignment(), 16);
         assert!(handle.is_cpu());
-        
+
         // Check statistics
         let stats = pool.get_stats();
         assert_eq!(stats.allocations, 1);
         assert_eq!(stats.bytes_allocated, 1024);
-        
+
         // Deallocate memory
         pool.deallocate(handle).unwrap();
-        
+
         // Check statistics
         let stats = pool.get_stats();
         assert_eq!(stats.deallocations, 1);
@@ -611,12 +628,15 @@ mod tests {
             numa_node: Some(0),
             use_huge_pages: true,
         };
-        
+
         let pool = CpuMemoryPool::new(device, config.clone()).unwrap();
         let pool_config = pool.get_config();
-        
+
         assert_eq!(pool_config.zero_memory, config.zero_memory);
-        assert_eq!(pool_config.enable_memory_locking, config.enable_memory_locking);
+        assert_eq!(
+            pool_config.enable_memory_locking,
+            config.enable_memory_locking
+        );
         assert_eq!(pool_config.numa_node, config.numa_node);
         assert_eq!(pool_config.use_huge_pages, config.use_huge_pages);
     }
@@ -632,18 +652,25 @@ mod tests {
         let device = get_cpu_device();
         let mut pool = CpuMemoryPool::new_default(device).unwrap();
         let handle_counter = Arc::new(Mutex::new(1));
-        
+
         // Test various alignments
         let alignments = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 4096];
-        
+
         for alignment in alignments {
-            let handle = pool.allocate(1024, alignment, handle_counter.clone()).unwrap();
+            let handle = pool
+                .allocate(1024, alignment, handle_counter.clone())
+                .unwrap();
             assert_eq!(handle.alignment(), alignment);
-            
+
             // Check that the pointer is properly aligned
             let ptr_addr = unsafe { handle.as_ptr() } as usize;
-            assert_eq!(ptr_addr % alignment, 0, "Pointer not aligned to {}", alignment);
-            
+            assert_eq!(
+                ptr_addr % alignment,
+                0,
+                "Pointer not aligned to {}",
+                alignment
+            );
+
             pool.deallocate(handle).unwrap();
         }
     }
@@ -657,16 +684,16 @@ mod tests {
         };
         let mut pool = CpuMemoryPool::new(device, config).unwrap();
         let handle_counter = Arc::new(Mutex::new(1));
-        
+
         // Allocate memory
         let handle = pool.allocate(1024, 16, handle_counter).unwrap();
-        
+
         // Check that memory is zeroed
         let slice = unsafe { handle.as_slice().unwrap() };
         for &byte in slice {
             assert_eq!(byte, 0, "Memory not properly zeroed");
         }
-        
+
         pool.deallocate(handle).unwrap();
     }
 
@@ -674,10 +701,10 @@ mod tests {
     #[test]
     fn test_metal_memory_pool_creation() {
         use crate::device::get_metal_device;
-        
+
         if let Ok(device) = get_metal_device() {
             let pool = MetalMemoryPool::new_default(device).unwrap();
-            
+
             let stats = pool.get_stats();
             assert_eq!(stats.allocations, 0);
             assert_eq!(stats.deallocations, 0);
@@ -690,24 +717,24 @@ mod tests {
     #[test]
     fn test_metal_memory_allocation() {
         use crate::device::get_metal_device;
-        
+
         if let Ok(device) = get_metal_device() {
             let mut pool = MetalMemoryPool::new_default(device).unwrap();
             let handle_counter = Arc::new(Mutex::new(1));
-            
+
             // Allocate memory
             let handle = pool.allocate(1024, 16, handle_counter).unwrap();
             assert_eq!(handle.size(), 1024);
             assert!(handle.is_metal());
-            
+
             // Check statistics
             let stats = pool.get_stats();
             assert_eq!(stats.allocations, 1);
             assert_eq!(stats.bytes_allocated, 1024);
-            
+
             // Deallocate memory
             pool.deallocate(handle).unwrap();
-            
+
             // Check statistics
             let stats = pool.get_stats();
             assert_eq!(stats.deallocations, 1);

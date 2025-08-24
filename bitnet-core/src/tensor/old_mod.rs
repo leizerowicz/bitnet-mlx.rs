@@ -11,7 +11,7 @@
 //!
 //! - **BitNetTensor**: Core tensor struct with memory pool integration
 //! - **TensorStorage**: Backend storage leveraging HybridMemoryPool
-//! - **Shape Management**: Advanced broadcasting and dimension handling  
+//! - **Shape Management**: Advanced broadcasting and dimension handling
 //! - **Device Integration**: Seamless CPU/Metal/MLX device support
 //! - **Data Types**: Comprehensive type system for BitNet operations
 //!
@@ -35,7 +35,7 @@
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let pool = HybridMemoryPool::new()?;
 //! let device = auto_select_device();
-//! 
+//!
 //! let tensor = BitNetTensor::zeros(&[2, 3], &device, &pool)?;
 //! println!("Created tensor with shape: {:?}", tensor.shape());
 //! # Ok(())
@@ -73,7 +73,7 @@ pub use device_integration::TensorDeviceManager;
 
 // Re-export legacy functions for backward compatibility
 pub use legacy::{
-    create_tensor_f32, create_tensor_i8, zeros, ones, 
+    create_tensor_f32, create_tensor_i8, zeros, ones,
     get_shape, reshape, transpose
 };
 
@@ -87,18 +87,18 @@ use crate::device::auto_select_device;
 use tracing::{debug, info, warn, error};
 
 /// Creates a tensor from f32 data with the specified shape
-/// 
+///
 /// # Arguments
 /// * `shape` - The desired shape of the tensor
 /// * `data` - Vector of f32 values to populate the tensor
-/// 
+///
 /// # Returns
 /// A Result containing the created Tensor or an error
-/// 
+///
 /// # Example
 /// ```
 /// use bitnet_core::tensor::create_tensor_f32;
-/// 
+///
 /// let data = vec![1.0, 2.0, 3.0, 4.0];
 /// let tensor = create_tensor_f32(&[2, 2], data).unwrap();
 /// ```
@@ -131,17 +131,17 @@ pub fn create_tensor_i8(shape: &[usize], data: Vec<i8>) -> Result<Tensor> {
 }
 
 /// Creates a tensor filled with zeros
-/// 
+///
 /// # Arguments
 /// * `shape` - The desired shape of the tensor
-/// 
+///
 /// # Returns
 /// A Result containing the created Tensor filled with zeros or an error
-/// 
+///
 /// # Example
 /// ```
 /// use bitnet_core::tensor::zeros;
-/// 
+///
 /// let tensor = zeros(&[3, 3]).unwrap();
 /// ```
 pub fn zeros(shape: &[usize]) -> Result<Tensor> {
@@ -150,17 +150,17 @@ pub fn zeros(shape: &[usize]) -> Result<Tensor> {
 }
 
 /// Creates a tensor filled with ones
-/// 
+///
 /// # Arguments
 /// * `shape` - The desired shape of the tensor
-/// 
+///
 /// # Returns
 /// A Result containing the created Tensor filled with ones or an error
-/// 
+///
 /// # Example
 /// ```
 /// use bitnet_core::tensor::ones;
-/// 
+///
 /// let tensor = ones(&[2, 4]).unwrap();
 /// ```
 pub fn ones(shape: &[usize]) -> Result<Tensor> {
@@ -210,7 +210,7 @@ pub fn reshape(tensor: &Tensor, new_shape: &[usize]) -> Result<Tensor> {
     // Validate that the total number of elements remains the same
     let current_elements: usize = tensor.shape().dims().iter().product();
     let new_elements: usize = new_shape.iter().product();
-    
+
     if current_elements != new_elements {
         return Err(candle_core::Error::ShapeMismatchBinaryOp {
             lhs: tensor.shape().clone(),
@@ -218,7 +218,7 @@ pub fn reshape(tensor: &Tensor, new_shape: &[usize]) -> Result<Tensor> {
             op: "reshape",
         });
     }
-    
+
     tensor.reshape(new_shape)
 }
 
@@ -242,7 +242,7 @@ pub fn reshape(tensor: &Tensor, new_shape: &[usize]) -> Result<Tensor> {
 pub fn transpose(tensor: &Tensor, dims: &[usize]) -> Result<Tensor> {
     // Validate that dims contains a valid permutation
     let tensor_rank = tensor.shape().rank();
-    
+
     if dims.len() != tensor_rank {
         return Err(candle_core::Error::UnexpectedNumberOfDims {
             expected: tensor_rank,
@@ -250,12 +250,12 @@ pub fn transpose(tensor: &Tensor, dims: &[usize]) -> Result<Tensor> {
             shape: tensor.shape().clone(),
         });
     }
-    
+
     // Check that dims contains each dimension index exactly once
     let mut sorted_dims = dims.to_vec();
     sorted_dims.sort_unstable();
     let expected: Vec<usize> = (0..tensor_rank).collect();
-    
+
     if sorted_dims != expected {
         return Err(candle_core::Error::InvalidIndex {
             op: "transpose",
@@ -263,7 +263,7 @@ pub fn transpose(tensor: &Tensor, dims: &[usize]) -> Result<Tensor> {
             size: tensor_rank,
         });
     }
-    
+
     tensor.permute(dims)
 }
 
@@ -429,19 +429,19 @@ mod tests {
         // Test a complete workflow using all three functions
         let data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
         let tensor = create_tensor_f32(&[2, 4], data).unwrap();
-        
+
         // Get original shape
         let original_shape = get_shape(&tensor);
         assert_eq!(original_shape, vec![2, 4]);
-        
+
         // Reshape to 4x2
         let reshaped = reshape(&tensor, &[4, 2]).unwrap();
         assert_eq!(get_shape(&reshaped), vec![4, 2]);
-        
+
         // Transpose the reshaped tensor
         let transposed = transpose(&reshaped, &[1, 0]).unwrap();
         assert_eq!(get_shape(&transposed), vec![2, 4]);
-        
+
         // Final shape should match original
         assert_eq!(get_shape(&transposed), original_shape);
     }

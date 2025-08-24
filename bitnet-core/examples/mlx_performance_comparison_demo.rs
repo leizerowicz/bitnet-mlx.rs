@@ -8,7 +8,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         run_mlx_demo()
     }
-    
+
     #[cfg(not(feature = "mlx"))]
     {
         run_stub_demo();
@@ -18,17 +18,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(feature = "mlx")]
 fn run_mlx_demo() -> Result<(), Box<dyn std::error::Error>> {
-    use bitnet_core::mlx::{
-        BitNetMlxDevice,
-        MlxPerformanceBenchmarker, BenchmarkConfig, PerformanceMetrics, MemoryUsage, ComparisonResult,
-        MlxMemoryTracker, track_allocation, track_deallocation, MemoryEvent, MemoryEventType, MemoryOptimization, OptimizationType, OptimizationPriority, ImplementationEffort,
-        MlxMetricsCollector, MetricsConfig, OperationContext, ExportFormat, MlxMetrics, MemoryMetrics, SystemMetrics,
-        PerformanceReportGenerator,
-        MlxAdvancedProfiler, ProfilerConfig, ProfileOutputFormat,
-        MlxDeviceComparison, DeviceComparisonConfig,
-        MlxRegressionTester, RegressionTestConfig,
-    };
     use anyhow::Result;
+    use bitnet_core::mlx::{
+        track_allocation, track_deallocation, BenchmarkConfig, BitNetMlxDevice, ComparisonResult,
+        DeviceComparisonConfig, ExportFormat, ImplementationEffort, MemoryEvent, MemoryEventType,
+        MemoryMetrics, MemoryOptimization, MemoryUsage, MetricsConfig, MlxAdvancedProfiler,
+        MlxDeviceComparison, MlxMemoryTracker, MlxMetrics, MlxMetricsCollector,
+        MlxPerformanceBenchmarker, MlxRegressionTester, OperationContext, OptimizationPriority,
+        OptimizationType, PerformanceMetrics, PerformanceReportGenerator, ProfileOutputFormat,
+        ProfilerConfig, RegressionTestConfig, SystemMetrics,
+    };
     use std::time::{Duration, SystemTime};
 
     println!("🚀 MLX Performance Comparison Demo");
@@ -36,22 +35,22 @@ fn run_mlx_demo() -> Result<(), Box<dyn std::error::Error>> {
 
     // 1. Basic Performance Benchmarking
     demo_basic_benchmarking()?;
-    
+
     // 2. Memory Tracking and Analysis
     demo_memory_tracking()?;
-    
+
     // 3. Comprehensive Device Comparison
     demo_device_comparison()?;
-    
+
     // 4. Advanced Profiling
     demo_advanced_profiling()?;
-    
+
     // 5. Metrics Collection
     demo_metrics_collection()?;
-    
+
     // 6. Regression Testing
     demo_regression_testing()?;
-    
+
     // 7. Report Generation
     demo_report_generation()?;
 
@@ -89,10 +88,7 @@ fn demo_basic_benchmarking() -> Result<(), Box<dyn std::error::Error>> {
     let config = BenchmarkConfig {
         warmup_iterations: 3,
         measurement_iterations: 5,
-        tensor_sizes: vec![
-            vec![512, 512],
-            vec![1024, 1024],
-        ],
+        tensor_sizes: vec![vec![512, 512], vec![1024, 1024]],
         data_types: vec!["f32".to_string()],
         devices: vec!["cpu".to_string(), "gpu".to_string()],
         timeout: Duration::from_secs(30),
@@ -111,25 +107,33 @@ fn demo_basic_benchmarking() -> Result<(), Box<dyn std::error::Error>> {
     println!("CPU Results:");
     println!("  Execution time: {:?}", cpu_metrics.execution_time);
     println!("  Throughput: {:.2} ops/sec", cpu_metrics.throughput);
-    println!("  Memory usage: {:.2} MB", cpu_metrics.memory_usage.allocated_memory_mb);
+    println!(
+        "  Memory usage: {:.2} MB",
+        cpu_metrics.memory_usage.allocated_memory_mb
+    );
 
     // Benchmark GPU
     let gpu_metrics = benchmarker.benchmark_matmul(&gpu_device)?;
     println!("GPU Results:");
     println!("  Execution time: {:?}", gpu_metrics.execution_time);
     println!("  Throughput: {:.2} ops/sec", gpu_metrics.throughput);
-    println!("  Memory usage: {:.2} MB", gpu_metrics.memory_usage.allocated_memory_mb);
+    println!(
+        "  Memory usage: {:.2} MB",
+        gpu_metrics.memory_usage.allocated_memory_mb
+    );
 
     // Calculate speedup
-    let speedup = cpu_metrics.execution_time.as_secs_f64() / gpu_metrics.execution_time.as_secs_f64();
+    let speedup =
+        cpu_metrics.execution_time.as_secs_f64() / gpu_metrics.execution_time.as_secs_f64();
     println!("GPU Speedup: {:.2}x", speedup);
 
     // Test other operations
     println!("\nBenchmarking quantization...");
     let cpu_quant = benchmarker.benchmark_quantization(&cpu_device)?;
     let gpu_quant = benchmarker.benchmark_quantization(&gpu_device)?;
-    
-    let quant_speedup = cpu_quant.execution_time.as_secs_f64() / gpu_quant.execution_time.as_secs_f64();
+
+    let quant_speedup =
+        cpu_quant.execution_time.as_secs_f64() / gpu_quant.execution_time.as_secs_f64();
     println!("Quantization GPU speedup: {:.2}x", quant_speedup);
 
     println!("✅ Basic benchmarking completed\n");
@@ -153,14 +157,9 @@ fn demo_memory_tracking() -> Result<(), Box<dyn std::error::Error>> {
     for i in 0..5 {
         let tensor_id = format!("tensor_{}", i);
         let size = (i + 1) * 1024 * 1024; // 1MB, 2MB, 3MB, etc.
-        
-        track_allocation(
-            tensor_id.clone(),
-            size,
-            &device,
-            "matmul".to_string(),
-        )?;
-        
+
+        track_allocation(tensor_id.clone(), size, &device, "matmul".to_string())?;
+
         println!("  Allocated {}: {} bytes", tensor_id, size);
     }
 
@@ -201,10 +200,7 @@ fn demo_device_comparison() -> Result<(), Box<dyn std::error::Error>> {
     let config = DeviceComparisonConfig {
         devices_to_compare: vec!["cpu".to_string(), "gpu".to_string()],
         operations_to_test: vec!["matmul".to_string(), "quantization".to_string()],
-        tensor_sizes: vec![
-            vec![256, 256],
-            vec![1024, 1024],
-        ],
+        tensor_sizes: vec![vec![256, 256], vec![1024, 1024]],
         data_types: vec!["f32".to_string()],
         iterations_per_test: 3,
         warmup_iterations: 2,
@@ -221,10 +217,22 @@ fn demo_device_comparison() -> Result<(), Box<dyn std::error::Error>> {
 
     // Display summary
     println!("Comparison Results:");
-    println!("  Best overall device: {}", results.summary.best_overall_device);
-    println!("  Best performance device: {}", results.summary.best_performance_device);
-    println!("  Best efficiency device: {}", results.summary.best_efficiency_device);
-    println!("  Best memory device: {}", results.summary.best_memory_device);
+    println!(
+        "  Best overall device: {}",
+        results.summary.best_overall_device
+    );
+    println!(
+        "  Best performance device: {}",
+        results.summary.best_performance_device
+    );
+    println!(
+        "  Best efficiency device: {}",
+        results.summary.best_efficiency_device
+    );
+    println!(
+        "  Best memory device: {}",
+        results.summary.best_memory_device
+    );
 
     // Display key insights
     println!("\nKey Insights:");
@@ -279,28 +287,23 @@ fn demo_advanced_profiling() -> Result<(), Box<dyn std::error::Error>> {
     let device = BitNetMlxDevice::gpu();
 
     // Profile matrix multiplication
-    let (_, metrics) = profiler.profile_operation(
-        "matmul",
-        &device,
-        || {
-            // Simulate MLX operation
-            std::thread::sleep(Duration::from_millis(50));
-            Ok(())
-        },
-    )?;
+    let (_, metrics) = profiler.profile_operation("matmul", &device, || {
+        // Simulate MLX operation
+        std::thread::sleep(Duration::from_millis(50));
+        Ok(())
+    })?;
 
-    println!("Profiled operation execution time: {:?}", metrics.execution_time);
+    println!(
+        "Profiled operation execution time: {:?}",
+        metrics.execution_time
+    );
 
     // Profile quantization
-    let (_, _) = profiler.profile_operation(
-        "quantization",
-        &device,
-        || {
-            // Simulate quantization operation
-            std::thread::sleep(Duration::from_millis(30));
-            Ok(())
-        },
-    )?;
+    let (_, _) = profiler.profile_operation("quantization", &device, || {
+        // Simulate quantization operation
+        std::thread::sleep(Duration::from_millis(30));
+        Ok(())
+    })?;
 
     // Stop profiling and get results
     let session = profiler.stop_session()?;
@@ -315,21 +318,33 @@ fn demo_advanced_profiling() -> Result<(), Box<dyn std::error::Error>> {
     if !session.hotspots.is_empty() {
         println!("\nTop Hotspots:");
         for (i, hotspot) in session.hotspots.iter().take(3).enumerate() {
-            println!("  {}. {} - {:.2}% of total time", 
-                i + 1, hotspot.function_name, hotspot.percentage_of_total);
-            println!("     Calls: {}, Avg time: {:?}", 
-                hotspot.call_count, hotspot.average_time);
+            println!(
+                "  {}. {} - {:.2}% of total time",
+                i + 1,
+                hotspot.function_name,
+                hotspot.percentage_of_total
+            );
+            println!(
+                "     Calls: {}, Avg time: {:?}",
+                hotspot.call_count, hotspot.average_time
+            );
         }
     }
 
     // Generate flame graph
     let flame_graph = profiler.generate_flame_graph(&session)?;
-    println!("\nFlame graph data generated ({} lines)", flame_graph.lines().count());
+    println!(
+        "\nFlame graph data generated ({} lines)",
+        flame_graph.lines().count()
+    );
 
     // Generate call tree
     let call_tree = profiler.generate_call_tree(&session)?;
     println!("Call tree analysis:");
-    println!("{}", call_tree.lines().take(10).collect::<Vec<_>>().join("\n"));
+    println!(
+        "{}",
+        call_tree.lines().take(10).collect::<Vec<_>>().join("\n")
+    );
 
     println!("✅ Advanced profiling completed\n");
     Ok(())
@@ -381,14 +396,21 @@ fn demo_metrics_collection() -> Result<(), Box<dyn std::error::Error>> {
             context,
         )?;
 
-        println!("  Operation {}: {:?} execution time", i + 1, metrics.performance.execution_time);
+        println!(
+            "  Operation {}: {:?} execution time",
+            i + 1,
+            metrics.performance.execution_time
+        );
     }
 
     // Get aggregated statistics
     let stats = collector.get_aggregated_stats();
     println!("\nAggregated Statistics:");
     println!("  Total operations: {}", stats.total_operations());
-    println!("  Average throughput: {:.2} ops/sec", stats.average_throughput());
+    println!(
+        "  Average throughput: {:.2} ops/sec",
+        stats.average_throughput()
+    );
     println!("  Peak memory usage: {} bytes", stats.peak_memory_usage());
 
     // Export metrics in different formats
@@ -396,7 +418,10 @@ fn demo_metrics_collection() -> Result<(), Box<dyn std::error::Error>> {
     println!("JSON export generated ({} characters)", json_export.len());
 
     let csv_export = collector.export_metrics(Some(ExportFormat::Csv))?;
-    println!("CSV export generated ({} lines)", csv_export.lines().count());
+    println!(
+        "CSV export generated ({} lines)",
+        csv_export.lines().count()
+    );
 
     collector.stop_collection();
     println!("✅ Metrics collection completed\n");
@@ -434,7 +459,10 @@ fn demo_regression_testing() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     println!("Baseline created: {}", baseline.baseline_id);
-    println!("  Performance metrics: {}", baseline.performance_metrics.len());
+    println!(
+        "  Performance metrics: {}",
+        baseline.performance_metrics.len()
+    );
     println!("  Memory baselines: {}", baseline.memory_baselines.len());
 
     // Simulate some time passing and potential changes
@@ -455,11 +483,13 @@ fn demo_regression_testing() -> Result<(), Box<dyn std::error::Error>> {
     if !test_results.regressions_detected.is_empty() {
         println!("\nRegressions detected:");
         for regression in &test_results.regressions_detected {
-            println!("  {} on {}: {:.1}% degradation ({:?})",
+            println!(
+                "  {} on {}: {:.1}% degradation ({:?})",
                 regression.operation,
                 regression.device,
                 regression.performance_degradation,
-                regression.severity);
+                regression.severity
+            );
         }
     }
 
@@ -467,10 +497,10 @@ fn demo_regression_testing() -> Result<(), Box<dyn std::error::Error>> {
     if !test_results.improvements_detected.is_empty() {
         println!("\nImprovements detected:");
         for improvement in &test_results.improvements_detected {
-            println!("  {} on {}: {:.1}% improvement",
-                improvement.operation,
-                improvement.device,
-                improvement.performance_improvement);
+            println!(
+                "  {} on {}: {:.1}% improvement",
+                improvement.operation, improvement.device, improvement.performance_improvement
+            );
         }
     }
 
@@ -509,10 +539,19 @@ fn demo_report_generation() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     println!("Report generated:");
-    println!("  Operations analyzed: {}", report.performance_analysis.operation_performance.len());
+    println!(
+        "  Operations analyzed: {}",
+        report.performance_analysis.operation_performance.len()
+    );
     println!("  Device comparisons: {}", report.device_comparisons.len());
-    println!("  Optimization recommendations: {}", report.optimization_recommendations.len());
-    println!("  Overall performance score: {:.1}/100", report.executive_summary.overall_score);
+    println!(
+        "  Optimization recommendations: {}",
+        report.optimization_recommendations.len()
+    );
+    println!(
+        "  Overall performance score: {:.1}/100",
+        report.executive_summary.overall_score
+    );
 
     // Display key findings
     println!("\nKey Findings:");
@@ -532,10 +571,13 @@ fn demo_report_generation() -> Result<(), Box<dyn std::error::Error>> {
     // Generate HTML report
     println!("\nGenerating HTML report...");
     let html_report = generator.generate_html_report(&report)?;
-    
+
     // Save HTML report to file
     std::fs::write("demo_performance_report.html", &html_report)?;
-    println!("HTML report saved to: demo_performance_report.html ({} characters)", html_report.len());
+    println!(
+        "HTML report saved to: demo_performance_report.html ({} characters)",
+        html_report.len()
+    );
 
     // Generate JSON report for programmatic access
     let json_report = generator.generate_json_report(&sample_metrics, &sample_comparisons)?;
@@ -550,129 +592,117 @@ fn demo_report_generation() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(feature = "mlx")]
 fn create_sample_metrics() -> Vec<MlxMetrics> {
-
-    vec![
-        MlxMetrics {
-            performance: PerformanceMetrics {
-                operation_name: "matmul".to_string(),
-                device_type: "gpu".to_string(),
-                execution_time: Duration::from_millis(25),
-                memory_usage: MemoryUsage {
-                    peak_memory_mb: 128.0,
-                    allocated_memory_mb: 64.0,
-                    freed_memory_mb: 0.0,
-                    memory_efficiency: 0.85,
-                },
-                throughput: 40.0,
-                tensor_shapes: vec![vec![1024, 1024]],
-                data_type: "f32".to_string(),
-                timestamp: SystemTime::now(),
+    vec![MlxMetrics {
+        performance: PerformanceMetrics {
+            operation_name: "matmul".to_string(),
+            device_type: "gpu".to_string(),
+            execution_time: Duration::from_millis(25),
+            memory_usage: MemoryUsage {
+                peak_memory_mb: 128.0,
+                allocated_memory_mb: 64.0,
+                freed_memory_mb: 0.0,
+                memory_efficiency: 0.85,
             },
-            memory: MemoryMetrics {
-                current_usage: MemoryUsage {
-                    peak_memory_mb: 128.0,
-                    allocated_memory_mb: 64.0,
-                    freed_memory_mb: 0.0,
-                    memory_efficiency: 0.85,
-                },
-                pressure_level: "Low".to_string(),
-                allocation_events: 10,
-                deallocation_events: 8,
-                transfer_events: 2,
-                fragmentation_ratio: 0.1,
-                efficiency_score: 0.85,
+            throughput: 40.0,
+            tensor_shapes: vec![vec![1024, 1024]],
+            data_type: "f32".to_string(),
+            timestamp: SystemTime::now(),
+        },
+        memory: MemoryMetrics {
+            current_usage: MemoryUsage {
+                peak_memory_mb: 128.0,
+                allocated_memory_mb: 64.0,
+                freed_memory_mb: 0.0,
+                memory_efficiency: 0.85,
             },
-            system: SystemMetrics {
-                cpu_usage: 25.0,
-                gpu_usage: 75.0,
-                system_memory_usage: 60.0,
-                gpu_memory_usage: 40.0,
-                temperature: Some(65.0),
-                power_consumption: Some(25.0),
-                thermal_state: "Normal".to_string(),
-            },
-            operation_context: OperationContext {
-                operation_name: "matmul".to_string(),
-                batch_size: 32,
-                sequence_length: Some(512),
-                model_parameters: Some(1000000),
-                precision: "f32".to_string(),
-                optimization_level: "O2".to_string(),
-                parallel_execution: true,
-            },
-        }
-    ]
+            pressure_level: "Low".to_string(),
+            allocation_events: 10,
+            deallocation_events: 8,
+            transfer_events: 2,
+            fragmentation_ratio: 0.1,
+            efficiency_score: 0.85,
+        },
+        system: SystemMetrics {
+            cpu_usage: 25.0,
+            gpu_usage: 75.0,
+            system_memory_usage: 60.0,
+            gpu_memory_usage: 40.0,
+            temperature: Some(65.0),
+            power_consumption: Some(25.0),
+            thermal_state: "Normal".to_string(),
+        },
+        operation_context: OperationContext {
+            operation_name: "matmul".to_string(),
+            batch_size: 32,
+            sequence_length: Some(512),
+            model_parameters: Some(1000000),
+            precision: "f32".to_string(),
+            optimization_level: "O2".to_string(),
+            parallel_execution: true,
+        },
+    }]
 }
 
 #[cfg(feature = "mlx")]
 fn create_sample_comparisons() -> Vec<ComparisonResult> {
-
-    vec![
-        ComparisonResult {
-            baseline_metrics: PerformanceMetrics {
-                operation_name: "matmul".to_string(),
-                device_type: "cpu".to_string(),
-                execution_time: Duration::from_millis(100),
-                memory_usage: MemoryUsage {
-                    peak_memory_mb: 64.0,
-                    allocated_memory_mb: 32.0,
-                    freed_memory_mb: 0.0,
-                    memory_efficiency: 0.8,
-                },
-                throughput: 10.0,
-                tensor_shapes: vec![vec![1024, 1024]],
-                data_type: "f32".to_string(),
-                timestamp: SystemTime::now(),
+    vec![ComparisonResult {
+        baseline_metrics: PerformanceMetrics {
+            operation_name: "matmul".to_string(),
+            device_type: "cpu".to_string(),
+            execution_time: Duration::from_millis(100),
+            memory_usage: MemoryUsage {
+                peak_memory_mb: 64.0,
+                allocated_memory_mb: 32.0,
+                freed_memory_mb: 0.0,
+                memory_efficiency: 0.8,
             },
-            comparison_metrics: PerformanceMetrics {
-                operation_name: "matmul".to_string(),
-                device_type: "gpu".to_string(),
-                execution_time: Duration::from_millis(25),
-                memory_usage: MemoryUsage {
-                    peak_memory_mb: 128.0,
-                    allocated_memory_mb: 64.0,
-                    freed_memory_mb: 0.0,
-                    memory_efficiency: 0.85,
-                },
-                throughput: 40.0,
-                tensor_shapes: vec![vec![1024, 1024]],
-                data_type: "f32".to_string(),
-                timestamp: SystemTime::now(),
+            throughput: 10.0,
+            tensor_shapes: vec![vec![1024, 1024]],
+            data_type: "f32".to_string(),
+            timestamp: SystemTime::now(),
+        },
+        comparison_metrics: PerformanceMetrics {
+            operation_name: "matmul".to_string(),
+            device_type: "gpu".to_string(),
+            execution_time: Duration::from_millis(25),
+            memory_usage: MemoryUsage {
+                peak_memory_mb: 128.0,
+                allocated_memory_mb: 64.0,
+                freed_memory_mb: 0.0,
+                memory_efficiency: 0.85,
             },
-            speedup: 4.0,
-            memory_improvement: 0.05,
-            throughput_improvement: 4.0,
-            recommendation: "Use GPU for large matrix operations".to_string(),
-        }
-    ]
+            throughput: 40.0,
+            tensor_shapes: vec![vec![1024, 1024]],
+            data_type: "f32".to_string(),
+            timestamp: SystemTime::now(),
+        },
+        speedup: 4.0,
+        memory_improvement: 0.05,
+        throughput_improvement: 4.0,
+        recommendation: "Use GPU for large matrix operations".to_string(),
+    }]
 }
 
 #[cfg(feature = "mlx")]
 fn create_sample_memory_events() -> Vec<MemoryEvent> {
-
-    vec![
-        MemoryEvent {
-            event_type: MemoryEventType::Allocation,
-            size_bytes: 1024 * 1024,
-            device_type: "gpu".to_string(),
-            operation: "matmul".to_string(),
-            timestamp: SystemTime::now(),
-            tensor_id: "tensor_1".to_string(),
-            stack_trace: Some("mlx_matmul -> allocate_tensor".to_string()),
-        }
-    ]
+    vec![MemoryEvent {
+        event_type: MemoryEventType::Allocation,
+        size_bytes: 1024 * 1024,
+        device_type: "gpu".to_string(),
+        operation: "matmul".to_string(),
+        timestamp: SystemTime::now(),
+        tensor_id: "tensor_1".to_string(),
+        stack_trace: Some("mlx_matmul -> allocate_tensor".to_string()),
+    }]
 }
 
 #[cfg(feature = "mlx")]
 fn create_sample_optimizations() -> Vec<MemoryOptimization> {
-
-    vec![
-        MemoryOptimization {
-            suggestion_type: OptimizationType::TensorReuse,
-            description: "Implement tensor reuse for frequently allocated sizes".to_string(),
-            potential_savings: 1024 * 1024,
-            priority: OptimizationPriority::Medium,
-            implementation_effort: ImplementationEffort::Low,
-        }
-    ]
+    vec![MemoryOptimization {
+        suggestion_type: OptimizationType::TensorReuse,
+        description: "Implement tensor reuse for frequently allocated sizes".to_string(),
+        potential_savings: 1024 * 1024,
+        priority: OptimizationPriority::Medium,
+        implementation_effort: ImplementationEffort::Low,
+    }]
 }

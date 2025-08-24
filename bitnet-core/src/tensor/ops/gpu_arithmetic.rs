@@ -24,7 +24,7 @@ lazy_static! {
 /// Falls back to CPU if GPU acceleration fails.
 pub fn add_gpu(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
     let tensor_size = lhs.num_elements().max(rhs.num_elements());
-    
+
     let metal_manager = GLOBAL_METAL.lock().map_err(|_| TensorOpError::InternalError {
         reason: "Failed to acquire Metal kernel manager lock".to_string(),
     })?;
@@ -46,7 +46,7 @@ pub fn add_gpu(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetT
 /// GPU-accelerated element-wise subtraction
 pub fn sub_gpu(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
     let tensor_size = lhs.num_elements().max(rhs.num_elements());
-    
+
     let metal_manager = GLOBAL_METAL.lock().map_err(|_| TensorOpError::InternalError {
         reason: "Failed to acquire Metal kernel manager lock".to_string(),
     })?;
@@ -66,7 +66,7 @@ pub fn sub_gpu(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetT
 /// GPU-accelerated element-wise multiplication
 pub fn mul_gpu(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
     let tensor_size = lhs.num_elements().max(rhs.num_elements());
-    
+
     let metal_manager = GLOBAL_METAL.lock().map_err(|_| TensorOpError::InternalError {
         reason: "Failed to acquire Metal kernel manager lock".to_string(),
     })?;
@@ -86,7 +86,7 @@ pub fn mul_gpu(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetT
 /// GPU-accelerated element-wise division
 pub fn div_gpu(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
     let tensor_size = lhs.num_elements().max(rhs.num_elements());
-    
+
     let metal_manager = GLOBAL_METAL.lock().map_err(|_| TensorOpError::InternalError {
         reason: "Failed to acquire Metal kernel manager lock".to_string(),
     })?;
@@ -107,7 +107,7 @@ pub fn div_gpu(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetT
 pub fn matmul_gpu(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
     let lhs_dims = lhs.shape().dims();
     let rhs_dims = rhs.shape().dims();
-    
+
     // Validate matrix multiplication dimensions
     if lhs_dims.len() != 2 || rhs_dims.len() != 2 {
         return Err(TensorOpError::ShapeMismatch {
@@ -126,7 +126,7 @@ pub fn matmul_gpu(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitN
     }
 
     let tensor_size = lhs_dims[0] * lhs_dims[1] * rhs_dims[1];
-    
+
     let metal_manager = GLOBAL_METAL.lock().map_err(|_| TensorOpError::InternalError {
         reason: "Failed to acquire Metal kernel manager lock".to_string(),
     })?;
@@ -137,17 +137,17 @@ pub fn matmul_gpu(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitN
         |metal_kernels| {
             #[cfg(feature = "tracing")]
             debug!("Using GPU matmul for {}×{} × {}×{}", lhs_dims[0], lhs_dims[1], rhs_dims[0], rhs_dims[1]);
-            
+
             metal_kernels.matmul_optimized(lhs, rhs)
         },
         || {
             #[cfg(feature = "tracing")]
             debug!("Using CPU matmul for {}×{} × {}×{}", lhs_dims[0], lhs_dims[1], rhs_dims[0], rhs_dims[1]);
-            
+
             // CPU fallback using Candle
             let lhs_candle = lhs.to_candle()?;
             let rhs_candle = rhs.to_candle()?;
-            
+
             let result_candle = lhs_candle.matmul(&rhs_candle)
                 .map_err(|e| TensorOpError::CandleError {
                     operation: "matmul".to_string(),
@@ -167,7 +167,7 @@ pub fn matmul_gpu(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitN
 fn gpu_add_impl(lhs: &BitNetTensor, rhs: &BitNetTensor, metal_kernels: &crate::tensor::acceleration::metal_kernels_complete::BitNetMetalKernels) -> TensorOpResult<BitNetTensor> {
     // For now, we'll create a simple element-wise add using Metal's basic operations
     // In a full implementation, we would have specialized broadcasting kernels
-    
+
     // Check if tensors have the same shape (no broadcasting needed)
     if lhs.shape().dims() == rhs.shape().dims() {
         // Use simple element-wise addition
@@ -212,17 +212,17 @@ fn gpu_div_impl(lhs: &BitNetTensor, rhs: &BitNetTensor, metal_kernels: &crate::t
 }
 
 fn gpu_elementwise_operation(
-    lhs: &BitNetTensor, 
-    rhs: &BitNetTensor, 
+    lhs: &BitNetTensor,
+    rhs: &BitNetTensor,
     operation: &str,
     metal_kernels: &crate::tensor::acceleration::metal_kernels_complete::BitNetMetalKernels
 ) -> TensorOpResult<BitNetTensor> {
     // This is a simplified implementation
     // In a full implementation, we would use the element-wise kernels we created
-    
+
     #[cfg(feature = "tracing")]
     debug!("GPU element-wise {} for tensor shape {:?}", operation, lhs.shape().dims());
-    
+
     // For now, use CPU implementation and indicate that GPU kernels need to be added
     Err(TensorOpError::InternalError {
         reason: format!("GPU element-wise {} kernel not fully implemented yet", operation),
@@ -232,7 +232,7 @@ fn gpu_elementwise_operation(
 /// GPU-accelerated quantization operations
 pub fn quantize_gpu(input: &BitNetTensor, scale: f32, zero_point: f32) -> TensorOpResult<BitNetTensor> {
     let tensor_size = input.num_elements();
-    
+
     let metal_manager = GLOBAL_METAL.lock().map_err(|_| TensorOpError::InternalError {
         reason: "Failed to acquire Metal kernel manager lock".to_string(),
     })?;
@@ -243,13 +243,13 @@ pub fn quantize_gpu(input: &BitNetTensor, scale: f32, zero_point: f32) -> Tensor
         |metal_kernels| {
             #[cfg(feature = "tracing")]
             debug!("Using GPU quantization for tensor with {} elements", tensor_size);
-            
+
             metal_kernels.quantize_158(input, scale, zero_point)
         },
         || {
             #[cfg(feature = "tracing")]
             debug!("Using CPU quantization for tensor with {} elements", tensor_size);
-            
+
             // CPU fallback - implement basic quantization
             cpu_quantize_impl(input, scale, zero_point)
         }
@@ -259,7 +259,7 @@ pub fn quantize_gpu(input: &BitNetTensor, scale: f32, zero_point: f32) -> Tensor
 /// GPU-accelerated dequantization operations
 pub fn dequantize_gpu(input: &BitNetTensor, scale: f32, zero_point: f32) -> TensorOpResult<BitNetTensor> {
     let tensor_size = input.num_elements();
-    
+
     let metal_manager = GLOBAL_METAL.lock().map_err(|_| TensorOpError::InternalError {
         reason: "Failed to acquire Metal kernel manager lock".to_string(),
     })?;
@@ -270,13 +270,13 @@ pub fn dequantize_gpu(input: &BitNetTensor, scale: f32, zero_point: f32) -> Tens
         |metal_kernels| {
             #[cfg(feature = "tracing")]
             debug!("Using GPU dequantization for tensor with {} elements", tensor_size);
-            
+
             metal_kernels.dequantize_158(input, scale, zero_point)
         },
         || {
             #[cfg(feature = "tracing")]
             debug!("Using CPU dequantization for tensor with {} elements", tensor_size);
-            
+
             // CPU fallback
             cpu_dequantize_impl(input, scale, zero_point)
         }
@@ -291,7 +291,7 @@ pub fn bitlinear_forward_gpu(
     input_scale: f32
 ) -> TensorOpResult<BitNetTensor> {
     let tensor_size = weights.num_elements() + input.num_elements();
-    
+
     let metal_manager = GLOBAL_METAL.lock().map_err(|_| TensorOpError::InternalError {
         reason: "Failed to acquire Metal kernel manager lock".to_string(),
     })?;
@@ -302,16 +302,16 @@ pub fn bitlinear_forward_gpu(
         |metal_kernels| {
             let weight_dims = weights.shape().dims();
             let input_dims = input.shape().dims();
-            
+
             #[cfg(feature = "tracing")]
             debug!("Using GPU BitLinear forward: weights {:?}, input {:?}", weight_dims, input_dims);
-            
+
             metal_kernels.bitlinear_forward(weights, input, weight_scale, input_scale)
         },
         || {
             #[cfg(feature = "tracing")]
             debug!("Using CPU BitLinear forward");
-            
+
             // CPU fallback
             cpu_bitlinear_forward_impl(weights, input, weight_scale, input_scale)
         }
@@ -324,7 +324,7 @@ fn cpu_quantize_impl(input: &BitNetTensor, scale: f32, zero_point: f32) -> Tenso
     // Basic CPU quantization implementation
     let input_data = input.as_slice_f32()?;
     let mut output_data = Vec::with_capacity(input_data.len());
-    
+
     for &value in input_data {
         let scaled = value / scale + zero_point;
         let quantized = if scaled <= -0.5 {
@@ -336,7 +336,7 @@ fn cpu_quantize_impl(input: &BitNetTensor, scale: f32, zero_point: f32) -> Tenso
         };
         output_data.push(quantized as f32); // Store as f32 for tensor compatibility
     }
-    
+
     BitNetTensor::from_data(&output_data, input.shape().dims(), input.dtype(), input.device().clone())
         .map_err(|e| TensorOpError::InternalError {
             reason: format!("Failed to create quantized tensor: {}", e),
@@ -347,12 +347,12 @@ fn cpu_dequantize_impl(input: &BitNetTensor, scale: f32, zero_point: f32) -> Ten
     // Basic CPU dequantization implementation
     let input_data = input.as_slice_f32()?;
     let mut output_data = Vec::with_capacity(input_data.len());
-    
+
     for &quantized in input_data {
         let dequantized = (quantized as i8 as f32 - zero_point) * scale;
         output_data.push(dequantized);
     }
-    
+
     BitNetTensor::from_data(&output_data, input.shape().dims(), input.dtype(), input.device().clone())
         .map_err(|e| TensorOpError::InternalError {
             reason: format!("Failed to create dequantized tensor: {}", e),
@@ -360,15 +360,15 @@ fn cpu_dequantize_impl(input: &BitNetTensor, scale: f32, zero_point: f32) -> Ten
 }
 
 fn cpu_bitlinear_forward_impl(
-    weights: &BitNetTensor, 
-    input: &BitNetTensor, 
-    weight_scale: f32, 
+    weights: &BitNetTensor,
+    input: &BitNetTensor,
+    weight_scale: f32,
     input_scale: f32
 ) -> TensorOpResult<BitNetTensor> {
     // Basic CPU BitLinear implementation
     let weight_dims = weights.shape().dims();
     let input_dims = input.shape().dims();
-    
+
     if weight_dims.len() != 2 || input_dims.len() != 2 {
         return Err(TensorOpError::ShapeMismatch {
             expected: vec![2, 2],
@@ -376,10 +376,10 @@ fn cpu_bitlinear_forward_impl(
             operation: "bitlinear_forward".to_string(),
         });
     }
-    
+
     let (output_size, input_size) = (weight_dims[0], weight_dims[1]);
     let batch_size = input_dims[0];
-    
+
     if input_dims[1] != input_size {
         return Err(TensorOpError::ShapeMismatch {
             expected: vec![input_size, input_size],
@@ -387,11 +387,11 @@ fn cpu_bitlinear_forward_impl(
             operation: "bitlinear_forward".to_string(),
         });
     }
-    
+
     let weight_data = weights.as_slice_f32()?;
     let input_data = input.as_slice_f32()?;
     let mut output_data = vec![0.0f32; batch_size * output_size];
-    
+
     for b in 0..batch_size {
         for o in 0..output_size {
             let mut sum = 0.0f32;
@@ -403,7 +403,7 @@ fn cpu_bitlinear_forward_impl(
             output_data[b * output_size + o] = sum * weight_scale * input_scale;
         }
     }
-    
+
     BitNetTensor::from_data(&output_data, &[batch_size, output_size], input.dtype(), input.device().clone())
         .map_err(|e| TensorOpError::InternalError {
             reason: format!("Failed to create BitLinear output tensor: {}", e),
@@ -423,13 +423,13 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    #[test] 
+    #[test]
     fn test_gpu_matmul_fallback() {
         let a = BitNetTensor::ones(&[4, 6], BitNetDType::F32, None).unwrap();
         let b = BitNetTensor::ones(&[6, 8], BitNetDType::F32, None).unwrap();
         let result = matmul_gpu(&a, &b);
         assert!(result.is_ok());
-        
+
         let result_tensor = result.unwrap();
         assert_eq!(result_tensor.shape().dims(), &[4, 8]);
     }

@@ -1,15 +1,15 @@
 //! MLX vs Candle Performance Benchmarks
-//! 
+//!
 //! This benchmark suite compares the performance of equivalent operations
 //! between MLX (Apple Silicon optimized) and Candle (cross-platform) backends.
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use candle_core::{Tensor, Device, DType};
+use candle_core::{DType, Device, Tensor};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::time::Duration;
 
 #[cfg(feature = "mlx")]
 use bitnet_core::{
-    mlx::{MlxTensor, BitNetMlxDevice, operations::BitNetMlxOps},
+    mlx::{operations::BitNetMlxOps, BitNetMlxDevice, MlxTensor},
     tensor::BitNetDType,
 };
 
@@ -40,7 +40,7 @@ impl Default for BenchmarkConfig {
 fn bench_matmul_comparison(c: &mut Criterion) {
     let config = BenchmarkConfig::default();
     let mut group = c.benchmark_group("matmul_comparison");
-    
+
     group.warm_up_time(config.warmup_time);
     group.measurement_time(config.measurement_time);
 
@@ -56,7 +56,7 @@ fn bench_matmul_comparison(c: &mut Criterion) {
                 let device = Device::Cpu;
                 let a = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
                 let b = Tensor::randn(0f32, 1f32, (cols, rows), &device).unwrap();
-                
+
                 bencher.iter(|| {
                     let result = a.matmul(&b).unwrap();
                     black_box(result)
@@ -74,7 +74,7 @@ fn bench_matmul_comparison(c: &mut Criterion) {
                     let device = Device::new_metal(0).unwrap();
                     let a = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
                     let b = Tensor::randn(0f32, 1f32, (cols, rows), &device).unwrap();
-                    
+
                     bencher.iter(|| {
                         let result = a.matmul(&b).unwrap();
                         black_box(result)
@@ -91,9 +91,10 @@ fn bench_matmul_comparison(c: &mut Criterion) {
                 &(rows, cols),
                 |bencher, &(rows, cols)| {
                     let device = BitNetMlxDevice::default();
-                    let a = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
+                    let a =
+                        MlxTensor::randn(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
                     let b = MlxTensor::randn(&[cols, rows], BitNetDType::F32, device).unwrap();
-                    
+
                     bencher.iter(|| {
                         let result = BitNetMlxOps::matmul(&a, &b).unwrap();
                         black_box(result)
@@ -110,7 +111,7 @@ fn bench_matmul_comparison(c: &mut Criterion) {
 fn bench_quantization_comparison(c: &mut Criterion) {
     let config = BenchmarkConfig::default();
     let mut group = c.benchmark_group("quantization_comparison");
-    
+
     group.warm_up_time(config.warmup_time);
     group.measurement_time(config.measurement_time);
 
@@ -126,10 +127,12 @@ fn bench_quantization_comparison(c: &mut Criterion) {
                 let device = Device::Cpu;
                 let tensor = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
                 let scale = 0.1f32;
-                
+
                 b.iter(|| {
                     // Simple quantization: divide by scale and round
-                    let scaled = tensor.broadcast_div(&Tensor::new(scale, &device).unwrap()).unwrap();
+                    let scaled = tensor
+                        .broadcast_div(&Tensor::new(scale, &device).unwrap())
+                        .unwrap();
                     let quantized = scaled.round().unwrap();
                     black_box(quantized)
                 })
@@ -144,8 +147,9 @@ fn bench_quantization_comparison(c: &mut Criterion) {
                 &(rows, cols),
                 |b, &(rows, cols)| {
                     let device = BitNetMlxDevice::default();
-                    let tensor = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
-                    
+                    let tensor =
+                        MlxTensor::randn(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
+
                     b.iter(|| {
                         let result = BitNetMlxOps::quantize_1_58_bit(&tensor, Some(0.1)).unwrap();
                         black_box(result)
@@ -162,7 +166,7 @@ fn bench_quantization_comparison(c: &mut Criterion) {
 fn bench_elementwise_comparison(c: &mut Criterion) {
     let config = BenchmarkConfig::default();
     let mut group = c.benchmark_group("elementwise_comparison");
-    
+
     group.warm_up_time(config.warmup_time);
     group.measurement_time(config.measurement_time);
 
@@ -178,7 +182,7 @@ fn bench_elementwise_comparison(c: &mut Criterion) {
                 let device = Device::Cpu;
                 let a = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
                 let b = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
-                
+
                 bencher.iter(|| {
                     let result = (&a + &b).unwrap();
                     black_box(result)
@@ -194,7 +198,7 @@ fn bench_elementwise_comparison(c: &mut Criterion) {
                 let device = Device::Cpu;
                 let a = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
                 let b = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
-                
+
                 bencher.iter(|| {
                     let result = (&a * &b).unwrap();
                     black_box(result)
@@ -210,9 +214,10 @@ fn bench_elementwise_comparison(c: &mut Criterion) {
                 &(rows, cols),
                 |b, &(rows, cols)| {
                     let device = BitNetMlxDevice::default();
-                    let a = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
+                    let a =
+                        MlxTensor::randn(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
                     let b = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device).unwrap();
-                    
+
                     b.iter(|| {
                         let result = BitNetMlxOps::add(&a, &b).unwrap();
                         black_box(result)
@@ -230,9 +235,10 @@ fn bench_elementwise_comparison(c: &mut Criterion) {
                 |b, &(rows, cols)| {
                     use bitnet_core::memory::tensor::BitNetDType;
                     let device = BitNetMlxDevice::default();
-                    let a = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
+                    let a =
+                        MlxTensor::randn(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
                     let b = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device).unwrap();
-                    
+
                     b.iter(|| {
                         let result = BitNetMlxOps::multiply(&a, &b).unwrap();
                         black_box(result)
@@ -249,7 +255,7 @@ fn bench_elementwise_comparison(c: &mut Criterion) {
 fn bench_memory_operations(c: &mut Criterion) {
     let config = BenchmarkConfig::default();
     let mut group = c.benchmark_group("memory_operations");
-    
+
     group.warm_up_time(config.warmup_time);
     group.measurement_time(config.measurement_time);
 
@@ -263,7 +269,7 @@ fn bench_memory_operations(c: &mut Criterion) {
             &(rows, cols),
             |b, &(rows, cols)| {
                 let device = Device::Cpu;
-                
+
                 b.iter(|| {
                     let result = Tensor::zeros((rows, cols), DType::F32, &device).unwrap();
                     black_box(result)
@@ -276,7 +282,7 @@ fn bench_memory_operations(c: &mut Criterion) {
             &(rows, cols),
             |b, &(rows, cols)| {
                 let device = Device::Cpu;
-                
+
                 b.iter(|| {
                     let result = Tensor::ones((rows, cols), DType::F32, &device).unwrap();
                     black_box(result)
@@ -293,9 +299,11 @@ fn bench_memory_operations(c: &mut Criterion) {
                 |b, &(rows, cols)| {
                     use bitnet_core::memory::tensor::BitNetDType;
                     let device = BitNetMlxDevice::default();
-                    
+
                     b.iter(|| {
-                        let result = MlxTensor::zeros(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
+                        let result =
+                            MlxTensor::zeros(&[rows, cols], BitNetDType::F32, device.clone())
+                                .unwrap();
                         black_box(result)
                     })
                 },
@@ -306,9 +314,11 @@ fn bench_memory_operations(c: &mut Criterion) {
                 &(rows, cols),
                 |b, &(rows, cols)| {
                     let device = BitNetMlxDevice::default();
-                    
+
                     b.iter(|| {
-                        let result = MlxTensor::ones(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
+                        let result =
+                            MlxTensor::ones(&[rows, cols], BitNetDType::F32, device.clone())
+                                .unwrap();
                         black_box(result)
                     })
                 },
@@ -323,7 +333,7 @@ fn bench_memory_operations(c: &mut Criterion) {
 fn bench_bitlinear_comparison(c: &mut Criterion) {
     let config = BenchmarkConfig::default();
     let mut group = c.benchmark_group("bitlinear_comparison");
-    
+
     group.warm_up_time(config.warmup_time);
     group.measurement_time(config.measurement_time);
 
@@ -341,7 +351,7 @@ fn bench_bitlinear_comparison(c: &mut Criterion) {
                 let input = Tensor::randn(0f32, 1f32, (batch_size, input_size), &device).unwrap();
                 let weight = Tensor::randn(0f32, 1f32, (input_size, output_size), &device).unwrap();
                 let bias = Tensor::randn(0f32, 1f32, (output_size,), &device).unwrap();
-                
+
                 b.iter(|| {
                     // Simulate quantization: clamp weights to -1, 0, 1
                     let quantized_weight = weight.clamp(-1.0, 1.0).unwrap().round().unwrap();
@@ -360,12 +370,24 @@ fn bench_bitlinear_comparison(c: &mut Criterion) {
                 &(input_size, output_size),
                 |b, &(input_size, output_size)| {
                     let device = BitNetMlxDevice::default();
-                    let input = MlxTensor::randn(&[batch_size, input_size], BitNetDType::F32, device.clone()).unwrap();
-                    let weight = MlxTensor::randn(&[input_size, output_size], BitNetDType::F32, device.clone()).unwrap();
+                    let input = MlxTensor::randn(
+                        &[batch_size, input_size],
+                        BitNetDType::F32,
+                        device.clone(),
+                    )
+                    .unwrap();
+                    let weight = MlxTensor::randn(
+                        &[input_size, output_size],
+                        BitNetDType::F32,
+                        device.clone(),
+                    )
+                    .unwrap();
                     let bias = MlxTensor::randn(&[output_size], BitNetDType::F32, device).unwrap();
-                    
+
                     b.iter(|| {
-                        let result = BitNetMlxOps::bitlinear_forward(&input, &weight, Some(&bias), true).unwrap();
+                        let result =
+                            BitNetMlxOps::bitlinear_forward(&input, &weight, Some(&bias), true)
+                                .unwrap();
                         black_box(result)
                     })
                 },
@@ -381,7 +403,7 @@ fn bench_bitlinear_comparison(c: &mut Criterion) {
 fn bench_conversion_operations(c: &mut Criterion) {
     let config = BenchmarkConfig::default();
     let mut group = c.benchmark_group("conversion_operations");
-    
+
     group.warm_up_time(config.warmup_time);
     group.measurement_time(config.measurement_time);
 
@@ -396,7 +418,7 @@ fn bench_conversion_operations(c: &mut Criterion) {
             |b, &(rows, cols)| {
                 let device = Device::Cpu;
                 let tensor = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
-                
+
                 b.iter(|| {
                     let result = bitnet_core::mlx::candle_to_mlx_array(&tensor).unwrap();
                     black_box(result)
@@ -412,7 +434,7 @@ fn bench_conversion_operations(c: &mut Criterion) {
                 use bitnet_core::memory::tensor::BitNetDType;
                 let device = BitNetMlxDevice::default();
                 let tensor = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device).unwrap();
-                
+
                 b.iter(|| {
                     let result = bitnet_core::mlx::mlx_to_candle_tensor(tensor.array()).unwrap();
                     black_box(result)

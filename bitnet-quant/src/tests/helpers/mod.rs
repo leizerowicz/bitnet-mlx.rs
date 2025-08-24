@@ -10,7 +10,7 @@ pub mod statistical_analysis;
 
 // Re-export commonly used items
 pub use test_data::{
-    TestPattern, generate_test_tensor, create_test_device, 
+    TestPattern, generate_test_tensor, create_test_device,
     generate_test_tensor_set, TestTensorSet, DataStatistics
 };
 
@@ -24,7 +24,7 @@ pub use validation::{
 
 pub use memory_helpers::{
     MemoryTestHarness, TestMemoryPool, ConcurrentMemoryTestHarness,
-    AllocationRecord, MemoryLeakReport, MemoryTestStatistics, 
+    AllocationRecord, MemoryLeakReport, MemoryTestStatistics,
     ConcurrentTestResults
 };
 

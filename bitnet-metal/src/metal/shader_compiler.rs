@@ -171,13 +171,14 @@ impl ShaderCompiler {
         if let Some(cache_dir) = &config.cache_directory {
             if config.enable_caching {
                 fs::create_dir_all(cache_dir)
-                    .with_context(|| format!("Failed to create cache directory: {:?}", cache_dir))?;
+                    .with_context(|| format!("Failed to create cache directory: {cache_dir:?}"))?;
             }
         }
 
         // Configure Metal compile options
-        let mut compile_options = metal::CompileOptions::new();
-        compile_options.set_language_version(config.compile_options.language_version.to_metal_version());
+        let compile_options = metal::CompileOptions::new();
+        compile_options
+            .set_language_version(config.compile_options.language_version.to_metal_version());
         compile_options.set_fast_math_enabled(config.compile_options.fast_math);
 
         // Set preprocessor definitions
@@ -211,7 +212,7 @@ impl ShaderCompiler {
                     compiled_shaders.push(compiled_shader);
                 }
                 Err(e) => {
-                    eprintln!("Warning: Failed to compile shader {:?}: {}", shader_file, e);
+                    eprintln!("Warning: Failed to compile shader {shader_file:?}: {e}");
                 }
             }
         }
@@ -224,7 +225,9 @@ impl ShaderCompiler {
         let shader_name = shader_path
             .file_stem()
             .and_then(|s| s.to_str())
-            .ok_or_else(|| MetalError::LibraryCreationFailed("Invalid shader file name".to_string()))?;
+            .ok_or_else(|| {
+                MetalError::LibraryCreationFailed("Invalid shader file name".to_string())
+            })?;
 
         // Check cache first
         if self.config.enable_caching {
@@ -235,7 +238,7 @@ impl ShaderCompiler {
 
         // Read shader source
         let source = fs::read_to_string(shader_path)
-            .with_context(|| format!("Failed to read shader file: {:?}", shader_path))?;
+            .with_context(|| format!("Failed to read shader file: {shader_path:?}"))?;
 
         // Compile shader
         let library = self.compile_source(&source, shader_name)?;
@@ -266,11 +269,12 @@ impl ShaderCompiler {
 
     /// Compiles Metal source code into a library
     pub fn compile_source(&self, source: &str, name: &str) -> Result<metal::Library> {
-        let library = self.device
+        let library = self
+            .device
             .new_library_with_source(source, &self.compile_options)
-            .map_err(|e| MetalError::LibraryCreationFailed(
-                format!("Failed to compile shader '{}': {}", name, e)
-            ))?;
+            .map_err(|e| {
+                MetalError::LibraryCreationFailed(format!("Failed to compile shader '{name}': {e}"))
+            })?;
 
         Ok(library)
     }
@@ -287,30 +291,43 @@ impl ShaderCompiler {
     }
 
     /// Gets a compute function from a compiled shader
-    pub fn get_compute_function(&self, shader_name: &str, function_name: &str) -> Result<metal::Function> {
-        let shader = self.get_shader(shader_name)
-            .ok_or_else(|| MetalError::ComputeFunctionNotFound(
-                format!("Shader '{}' not found", shader_name)
-            ))?;
+    pub fn get_compute_function(
+        &self,
+        shader_name: &str,
+        function_name: &str,
+    ) -> Result<metal::Function> {
+        let shader = self.get_shader(shader_name).ok_or_else(|| {
+            MetalError::ComputeFunctionNotFound(format!("Shader '{shader_name}' not found"))
+        })?;
 
-        let function = shader.library
+        let function = shader
+            .library
             .get_function(function_name, None)
-            .map_err(|e| MetalError::ComputeFunctionNotFound(
-                format!("Function '{}' not found in shader '{}': {}", function_name, shader_name, e)
-            ))?;
+            .map_err(|e| {
+                MetalError::ComputeFunctionNotFound(format!(
+                    "Function '{function_name}' not found in shader '{shader_name}': {e}"
+                ))
+            })?;
 
         Ok(function)
     }
 
     /// Creates a compute pipeline state from a shader function
-    pub fn create_compute_pipeline(&self, shader_name: &str, function_name: &str) -> Result<metal::ComputePipelineState> {
+    pub fn create_compute_pipeline(
+        &self,
+        shader_name: &str,
+        function_name: &str,
+    ) -> Result<metal::ComputePipelineState> {
         let function = self.get_compute_function(shader_name, function_name)?;
-        
-        let pipeline_state = self.device
+
+        let pipeline_state = self
+            .device
             .new_compute_pipeline_state_with_function(&function)
-            .map_err(|e| MetalError::ComputePipelineCreationFailed(
-                format!("Failed to create pipeline for '{}::{}': {}", shader_name, function_name, e)
-            ))?;
+            .map_err(|e| {
+                MetalError::ComputePipelineCreationFailed(format!(
+                    "Failed to create pipeline for '{shader_name}::{function_name}': {e}"
+                ))
+            })?;
 
         Ok(pipeline_state)
     }
@@ -337,7 +354,8 @@ impl ShaderCompiler {
         let cache = self.cache.lock().unwrap();
         ShaderCompilerStats {
             cached_shaders: cache.len(),
-            total_functions: cache.values()
+            total_functions: cache
+                .values()
                 .map(|entry| entry.compiled_shader.function_names.len())
                 .sum(),
             cache_directory: self.config.cache_directory.clone(),
@@ -349,18 +367,22 @@ impl ShaderCompiler {
 
     fn discover_shader_files(&self) -> Result<Vec<PathBuf>> {
         let mut shader_files = Vec::new();
-        
+
         if !self.config.shader_directory.exists() {
             return Ok(shader_files);
         }
 
-        let entries = fs::read_dir(&self.config.shader_directory)
-            .with_context(|| format!("Failed to read shader directory: {:?}", self.config.shader_directory))?;
+        let entries = fs::read_dir(&self.config.shader_directory).with_context(|| {
+            format!(
+                "Failed to read shader directory: {:?}",
+                self.config.shader_directory
+            )
+        })?;
 
         for entry in entries {
             let entry = entry?;
             let path = entry.path();
-            
+
             if path.is_file() {
                 if let Some(extension) = path.extension() {
                     if extension == "metal" {
@@ -375,12 +397,12 @@ impl ShaderCompiler {
 
     fn get_cached_shader(&self, name: &str, shader_path: &Path) -> Result<Option<CompiledShader>> {
         let cache = self.cache.lock().unwrap();
-        
+
         if let Some(entry) = cache.get(name) {
             // Check if source file has been modified
             let metadata = fs::metadata(shader_path)?;
             let modified_time = metadata.modified()?;
-            
+
             if modified_time <= entry.compiled_shader.compiled_at {
                 return Ok(Some(entry.compiled_shader.clone()));
             }
@@ -391,20 +413,27 @@ impl ShaderCompiler {
 
     fn cache_shader(&self, shader: &CompiledShader) {
         let mut cache = self.cache.lock().unwrap();
-        cache.insert(shader.name.clone(), CacheEntry {
-            compiled_shader: shader.clone(),
-            last_accessed: std::time::Instant::now(),
-        });
+        cache.insert(
+            shader.name.clone(),
+            CacheEntry {
+                compiled_shader: shader.clone(),
+                last_accessed: std::time::Instant::now(),
+            },
+        );
     }
 
     fn extract_function_names(&self, library: &metal::Library) -> Vec<String> {
-        library.function_names().iter().map(|s| s.to_string()).collect()
+        library
+            .function_names()
+            .iter()
+            .map(|s| s.to_string())
+            .collect()
     }
 
     fn calculate_hash(&self, source: &str) -> u64 {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
-        
+
         let mut hasher = DefaultHasher::new();
         source.hash(&mut hasher);
         hasher.finish()
@@ -431,7 +460,7 @@ impl ShaderLoader {
     /// Creates a new shader loader
     pub fn new(device: metal::Device, config: ShaderCompilerConfig) -> Result<Self> {
         let compiler = ShaderCompiler::new(device, config)?;
-        
+
         Ok(Self {
             compiler,
             preloaded_shaders: HashMap::new(),
@@ -446,7 +475,7 @@ impl ShaderLoader {
     /// Preloads all shaders for faster runtime access
     pub fn preload_all_shaders(&mut self) -> Result<()> {
         let compiled_shaders = self.compiler.compile_all_shaders()?;
-        
+
         for shader in compiled_shaders {
             self.preloaded_shaders.insert(shader.name.clone(), shader);
         }
@@ -457,10 +486,15 @@ impl ShaderLoader {
     /// Preloads specific shaders
     pub fn preload_shaders(&mut self, shader_names: &[&str]) -> Result<()> {
         for &name in shader_names {
-            let shader_path = self.compiler.config.shader_directory.join(format!("{}.metal", name));
+            let shader_path = self
+                .compiler
+                .config
+                .shader_directory
+                .join(format!("{name}.metal"));
             if shader_path.exists() {
                 let compiled_shader = self.compiler.compile_shader_file(&shader_path)?;
-                self.preloaded_shaders.insert(name.to_string(), compiled_shader);
+                self.preloaded_shaders
+                    .insert(name.to_string(), compiled_shader);
             }
         }
 
@@ -477,19 +511,23 @@ impl ShaderLoader {
         if let Some(shader) = self.compiler.get_shader(name) {
             // Note: This would require making preloaded_shaders mutable
             // For now, return an error suggesting preloading
-            return Err(MetalError::ComputeFunctionNotFound(
-                format!("Shader '{}' not preloaded. Consider calling preload_shaders() first.", name)
-            ).into());
+            return Err(MetalError::ComputeFunctionNotFound(format!(
+                "Shader '{name}' not preloaded. Consider calling preload_shaders() first."
+            ))
+            .into());
         }
 
-        Err(MetalError::ComputeFunctionNotFound(
-            format!("Shader '{}' not found", name)
-        ).into())
+        Err(MetalError::ComputeFunctionNotFound(format!("Shader '{name}' not found")).into())
     }
 
     /// Creates a compute pipeline from preloaded shader
-    pub fn create_compute_pipeline(&self, shader_name: &str, function_name: &str) -> Result<metal::ComputePipelineState> {
-        self.compiler.create_compute_pipeline(shader_name, function_name)
+    pub fn create_compute_pipeline(
+        &self,
+        shader_name: &str,
+        function_name: &str,
+    ) -> Result<metal::ComputePipelineState> {
+        self.compiler
+            .create_compute_pipeline(shader_name, function_name)
     }
 
     /// Gets available shader names
@@ -546,7 +584,11 @@ pub fn compile_shader_file(device: &metal::Device, shader_path: &Path) -> Result
 
 /// Compiles Metal source code directly
 #[cfg(all(target_os = "macos", feature = "metal"))]
-pub fn compile_shader_source(device: &metal::Device, source: &str, name: &str) -> Result<metal::Library> {
+pub fn compile_shader_source(
+    device: &metal::Device,
+    source: &str,
+    name: &str,
+) -> Result<metal::Library> {
     let compiler = ShaderCompiler::new_default(device.clone())?;
     compiler.compile_source(source, name)
 }
@@ -558,7 +600,10 @@ pub fn create_shader_compiler(_device: &()) -> Result<()> {
 }
 
 #[cfg(not(all(target_os = "macos", feature = "metal")))]
-pub fn create_shader_compiler_with_config(_device: &(), _config: ShaderCompilerConfig) -> Result<()> {
+pub fn create_shader_compiler_with_config(
+    _device: &(),
+    _config: ShaderCompilerConfig,
+) -> Result<()> {
     Err(MetalError::UnsupportedPlatform.into())
 }
 
@@ -601,14 +646,17 @@ mod tests {
         assert!(options.defines.is_empty());
         assert!(options.include_directories.is_empty());
         assert!(options.fast_math);
-        assert!(matches!(options.language_version, LanguageVersion::Metal2_4));
+        assert!(matches!(
+            options.language_version,
+            LanguageVersion::Metal2_4
+        ));
     }
 
     #[test]
     #[cfg(all(target_os = "macos", feature = "metal"))]
     fn test_shader_compiler_creation() {
         use crate::metal::create_metal_device;
-        
+
         if let Ok(device) = create_metal_device() {
             let temp_dir = TempDir::new().unwrap();
             let config = ShaderCompilerConfig {
@@ -627,17 +675,17 @@ mod tests {
     #[cfg(all(target_os = "macos", feature = "metal"))]
     fn test_shader_discovery() {
         use crate::metal::create_metal_device;
-        
+
         if let Ok(device) = create_metal_device() {
             let temp_dir = TempDir::new().unwrap();
-            
+
             // Create test shader files
             let shader1_path = temp_dir.path().join("test1.metal");
             let shader2_path = temp_dir.path().join("test2.metal");
-            
+
             fs::write(&shader1_path, "// Test shader 1").unwrap();
             fs::write(&shader2_path, "// Test shader 2").unwrap();
-            
+
             let config = ShaderCompilerConfig {
                 shader_directory: temp_dir.path().to_path_buf(),
                 ..Default::default()
@@ -645,7 +693,7 @@ mod tests {
 
             let compiler = ShaderCompiler::new(device, config).unwrap();
             let shader_files = compiler.discover_shader_files().unwrap();
-            
+
             assert_eq!(shader_files.len(), 2);
             assert!(shader_files.contains(&shader1_path));
             assert!(shader_files.contains(&shader2_path));
@@ -657,13 +705,13 @@ mod tests {
     fn test_unsupported_platform() {
         let result = create_shader_compiler(&());
         assert!(result.is_err());
-        
+
         let result = create_shader_loader(&());
         assert!(result.is_err());
-        
+
         let result = compile_shader_file(&(), Path::new("test.metal"));
         assert!(result.is_err());
-        
+
         let result = compile_shader_source(&(), "// test", "test");
         assert!(result.is_err());
     }

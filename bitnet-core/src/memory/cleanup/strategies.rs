@@ -4,16 +4,16 @@
 //! requirements. Each strategy implements the CleanupStrategy trait and can be
 //! used independently or in combination with others.
 
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 
-use crate::memory::{HybridMemoryPool, MemoryMetrics};
-use crate::memory::tracking::{MemoryPressureLevel, DetailedMemoryMetrics};
-use super::CleanupResult;
-use super::config::{CleanupConfig};
+use super::config::CleanupConfig;
 pub use super::config::CleanupStrategyType;
+use super::CleanupResult;
+use crate::memory::tracking::{DetailedMemoryMetrics, MemoryPressureLevel};
+use crate::memory::{HybridMemoryPool, MemoryMetrics};
 
 /// Priority levels for cleanup operations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -88,10 +88,18 @@ pub trait CleanupStrategy: Send + Sync {
     fn priority(&self) -> CleanupPriority;
 
     /// Determines if cleanup should be performed based on current metrics
-    fn should_cleanup(&self, metrics: &MemoryMetrics, detailed_metrics: Option<&DetailedMemoryMetrics>) -> bool;
+    fn should_cleanup(
+        &self,
+        metrics: &MemoryMetrics,
+        detailed_metrics: Option<&DetailedMemoryMetrics>,
+    ) -> bool;
 
     /// Performs the cleanup operation
-    fn cleanup(&self, pool: &HybridMemoryPool, config: &CleanupConfig) -> CleanupResult<CleanupOperationResult>;
+    fn cleanup(
+        &self,
+        pool: &HybridMemoryPool,
+        config: &CleanupConfig,
+    ) -> CleanupResult<CleanupOperationResult>;
 
     /// Returns a human-readable description of the strategy
     fn description(&self) -> String;
@@ -137,7 +145,11 @@ impl CleanupStrategy for IdleCleanupStrategy {
         CleanupPriority::Low
     }
 
-    fn should_cleanup(&self, metrics: &MemoryMetrics, _detailed_metrics: Option<&DetailedMemoryMetrics>) -> bool {
+    fn should_cleanup(
+        &self,
+        metrics: &MemoryMetrics,
+        _detailed_metrics: Option<&DetailedMemoryMetrics>,
+    ) -> bool {
         // Check if enough time has passed since last cleanup
         if let Ok(last_cleanup) = self.last_cleanup.read() {
             if let Some(last) = *last_cleanup {
@@ -151,9 +163,13 @@ impl CleanupStrategy for IdleCleanupStrategy {
         metrics.current_allocated > 0 && metrics.allocation_count > metrics.deallocation_count
     }
 
-    fn cleanup(&self, pool: &HybridMemoryPool, _config: &CleanupConfig) -> CleanupResult<CleanupOperationResult> {
+    fn cleanup(
+        &self,
+        pool: &HybridMemoryPool,
+        _config: &CleanupConfig,
+    ) -> CleanupResult<CleanupOperationResult> {
         let start_time = Instant::now();
-        
+
         // Update last cleanup time
         if let Ok(mut last_cleanup) = self.last_cleanup.write() {
             *last_cleanup = Some(start_time);
@@ -162,30 +178,43 @@ impl CleanupStrategy for IdleCleanupStrategy {
         // For idle cleanup, we perform gentle cleanup operations
         // This is a simplified implementation - in practice, you'd implement
         // actual memory pool cleanup logic here
-        
+
         let _metrics_before = pool.get_metrics();
-        
+
         // Simulate some cleanup work (in real implementation, this would be actual cleanup)
         std::thread::sleep(Duration::from_millis(1));
-        
+
         let duration = start_time.elapsed();
         let bytes_freed = 0; // Would be calculated from actual cleanup
         let allocations_cleaned = 0; // Would be calculated from actual cleanup
-        
-        Ok(CleanupOperationResult::success(bytes_freed, allocations_cleaned, duration)
-            .with_metadata("strategy".to_string(), "idle".to_string())
-            .with_metadata("min_idle_time_ms".to_string(), self.min_idle_time.as_millis().to_string()))
+
+        Ok(
+            CleanupOperationResult::success(bytes_freed, allocations_cleaned, duration)
+                .with_metadata("strategy".to_string(), "idle".to_string())
+                .with_metadata(
+                    "min_idle_time_ms".to_string(),
+                    self.min_idle_time.as_millis().to_string(),
+                ),
+        )
     }
 
     fn description(&self) -> String {
-        format!("Idle cleanup strategy (min_idle: {:?}, max_duration: {:?})", 
-                self.min_idle_time, self.max_cleanup_duration)
+        format!(
+            "Idle cleanup strategy (min_idle: {:?}, max_duration: {:?})",
+            self.min_idle_time, self.max_cleanup_duration
+        )
     }
 
     fn get_parameters(&self) -> HashMap<String, String> {
         let mut params = HashMap::new();
-        params.insert("min_idle_time_ms".to_string(), self.min_idle_time.as_millis().to_string());
-        params.insert("max_cleanup_duration_ms".to_string(), self.max_cleanup_duration.as_millis().to_string());
+        params.insert(
+            "min_idle_time_ms".to_string(),
+            self.min_idle_time.as_millis().to_string(),
+        );
+        params.insert(
+            "max_cleanup_duration_ms".to_string(),
+            self.max_cleanup_duration.as_millis().to_string(),
+        );
         params
     }
 }
@@ -250,7 +279,11 @@ impl CleanupStrategy for PressureCleanupStrategy {
         CleanupPriority::High
     }
 
-    fn should_cleanup(&self, metrics: &MemoryMetrics, detailed_metrics: Option<&DetailedMemoryMetrics>) -> bool {
+    fn should_cleanup(
+        &self,
+        metrics: &MemoryMetrics,
+        detailed_metrics: Option<&DetailedMemoryMetrics>,
+    ) -> bool {
         // Check if enough time has passed since last cleanup
         if let Ok(last_cleanup) = self.last_cleanup.read() {
             if let Some(last) = *last_cleanup {
@@ -271,12 +304,19 @@ impl CleanupStrategy for PressureCleanupStrategy {
 
         // Fallback to basic pressure calculation
         let pressure_level = self.get_pressure_level(metrics);
-        matches!(pressure_level, CleanupPriority::Normal | CleanupPriority::High | CleanupPriority::Critical)
+        matches!(
+            pressure_level,
+            CleanupPriority::Normal | CleanupPriority::High | CleanupPriority::Critical
+        )
     }
 
-    fn cleanup(&self, pool: &HybridMemoryPool, _config: &CleanupConfig) -> CleanupResult<CleanupOperationResult> {
+    fn cleanup(
+        &self,
+        pool: &HybridMemoryPool,
+        _config: &CleanupConfig,
+    ) -> CleanupResult<CleanupOperationResult> {
         let start_time = Instant::now();
-        
+
         // Update last cleanup time
         if let Ok(mut last_cleanup) = self.last_cleanup.write() {
             *last_cleanup = Some(start_time);
@@ -284,7 +324,7 @@ impl CleanupStrategy for PressureCleanupStrategy {
 
         let metrics_before = pool.get_metrics();
         let pressure_level = self.get_pressure_level(&metrics_before);
-        
+
         // Perform pressure-based cleanup with intensity based on pressure level
         let cleanup_intensity = match pressure_level {
             CleanupPriority::Critical => 1.0,
@@ -296,30 +336,52 @@ impl CleanupStrategy for PressureCleanupStrategy {
         // Simulate cleanup work proportional to pressure
         let cleanup_duration = Duration::from_millis((cleanup_intensity * 10.0) as u64);
         std::thread::sleep(cleanup_duration);
-        
+
         let duration = start_time.elapsed();
         let bytes_freed = (cleanup_intensity * 1024.0) as u64; // Simulated
         let allocations_cleaned = (cleanup_intensity * 10.0) as u64; // Simulated
-        
-        Ok(CleanupOperationResult::success(bytes_freed, allocations_cleaned, duration)
-            .with_metadata("strategy".to_string(), "pressure".to_string())
-            .with_metadata("pressure_level".to_string(), format!("{:?}", pressure_level))
-            .with_metadata("cleanup_intensity".to_string(), cleanup_intensity.to_string()))
+
+        Ok(
+            CleanupOperationResult::success(bytes_freed, allocations_cleaned, duration)
+                .with_metadata("strategy".to_string(), "pressure".to_string())
+                .with_metadata(
+                    "pressure_level".to_string(),
+                    format!("{:?}", pressure_level),
+                )
+                .with_metadata(
+                    "cleanup_intensity".to_string(),
+                    cleanup_intensity.to_string(),
+                ),
+        )
     }
 
     fn description(&self) -> String {
-        format!("Pressure cleanup strategy (thresholds: {:.1}%, {:.1}%, {:.1}%)", 
-                self.light_threshold * 100.0, 
-                self.aggressive_threshold * 100.0, 
-                self.emergency_threshold * 100.0)
+        format!(
+            "Pressure cleanup strategy (thresholds: {:.1}%, {:.1}%, {:.1}%)",
+            self.light_threshold * 100.0,
+            self.aggressive_threshold * 100.0,
+            self.emergency_threshold * 100.0
+        )
     }
 
     fn get_parameters(&self) -> HashMap<String, String> {
         let mut params = HashMap::new();
-        params.insert("light_threshold".to_string(), self.light_threshold.to_string());
-        params.insert("aggressive_threshold".to_string(), self.aggressive_threshold.to_string());
-        params.insert("emergency_threshold".to_string(), self.emergency_threshold.to_string());
-        params.insert("min_interval_ms".to_string(), self.min_interval.as_millis().to_string());
+        params.insert(
+            "light_threshold".to_string(),
+            self.light_threshold.to_string(),
+        );
+        params.insert(
+            "aggressive_threshold".to_string(),
+            self.aggressive_threshold.to_string(),
+        );
+        params.insert(
+            "emergency_threshold".to_string(),
+            self.emergency_threshold.to_string(),
+        );
+        params.insert(
+            "min_interval_ms".to_string(),
+            self.min_interval.as_millis().to_string(),
+        );
         params
     }
 }
@@ -356,7 +418,11 @@ impl CleanupStrategy for PeriodicCleanupStrategy {
         CleanupPriority::Normal
     }
 
-    fn should_cleanup(&self, _metrics: &MemoryMetrics, _detailed_metrics: Option<&DetailedMemoryMetrics>) -> bool {
+    fn should_cleanup(
+        &self,
+        _metrics: &MemoryMetrics,
+        _detailed_metrics: Option<&DetailedMemoryMetrics>,
+    ) -> bool {
         if let Ok(last_cleanup) = self.last_cleanup.read() {
             if let Some(last) = *last_cleanup {
                 last.elapsed() >= self.interval
@@ -368,9 +434,13 @@ impl CleanupStrategy for PeriodicCleanupStrategy {
         }
     }
 
-    fn cleanup(&self, _pool: &HybridMemoryPool, _config: &CleanupConfig) -> CleanupResult<CleanupOperationResult> {
+    fn cleanup(
+        &self,
+        _pool: &HybridMemoryPool,
+        _config: &CleanupConfig,
+    ) -> CleanupResult<CleanupOperationResult> {
         let start_time = Instant::now();
-        
+
         // Update last cleanup time
         if let Ok(mut last_cleanup) = self.last_cleanup.write() {
             *last_cleanup = Some(start_time);
@@ -378,14 +448,19 @@ impl CleanupStrategy for PeriodicCleanupStrategy {
 
         // Perform periodic maintenance cleanup
         std::thread::sleep(self.cleanup_duration);
-        
+
         let duration = start_time.elapsed();
         let bytes_freed = 512; // Simulated
         let allocations_cleaned = 5; // Simulated
-        
-        Ok(CleanupOperationResult::success(bytes_freed, allocations_cleaned, duration)
-            .with_metadata("strategy".to_string(), "periodic".to_string())
-            .with_metadata("interval_ms".to_string(), self.interval.as_millis().to_string()))
+
+        Ok(
+            CleanupOperationResult::success(bytes_freed, allocations_cleaned, duration)
+                .with_metadata("strategy".to_string(), "periodic".to_string())
+                .with_metadata(
+                    "interval_ms".to_string(),
+                    self.interval.as_millis().to_string(),
+                ),
+        )
     }
 
     fn description(&self) -> String {
@@ -394,8 +469,14 @@ impl CleanupStrategy for PeriodicCleanupStrategy {
 
     fn get_parameters(&self) -> HashMap<String, String> {
         let mut params = HashMap::new();
-        params.insert("interval_ms".to_string(), self.interval.as_millis().to_string());
-        params.insert("cleanup_duration_ms".to_string(), self.cleanup_duration.as_millis().to_string());
+        params.insert(
+            "interval_ms".to_string(),
+            self.interval.as_millis().to_string(),
+        );
+        params.insert(
+            "cleanup_duration_ms".to_string(),
+            self.cleanup_duration.as_millis().to_string(),
+        );
         params
     }
 }
@@ -437,7 +518,11 @@ impl CleanupStrategy for DeviceCleanupStrategy {
         CleanupPriority::Normal
     }
 
-    fn should_cleanup(&self, _metrics: &MemoryMetrics, _detailed_metrics: Option<&DetailedMemoryMetrics>) -> bool {
+    fn should_cleanup(
+        &self,
+        _metrics: &MemoryMetrics,
+        _detailed_metrics: Option<&DetailedMemoryMetrics>,
+    ) -> bool {
         if let Ok(last_cleanup_map) = self.last_cleanup.read() {
             if let Some(last) = last_cleanup_map.get(&self.device_type) {
                 last.elapsed() >= self.cleanup_interval
@@ -449,9 +534,13 @@ impl CleanupStrategy for DeviceCleanupStrategy {
         }
     }
 
-    fn cleanup(&self, _pool: &HybridMemoryPool, _config: &CleanupConfig) -> CleanupResult<CleanupOperationResult> {
+    fn cleanup(
+        &self,
+        _pool: &HybridMemoryPool,
+        _config: &CleanupConfig,
+    ) -> CleanupResult<CleanupOperationResult> {
         let start_time = Instant::now();
-        
+
         // Update last cleanup time for this device
         if let Ok(mut last_cleanup_map) = self.last_cleanup.write() {
             last_cleanup_map.insert(self.device_type.clone(), start_time);
@@ -467,28 +556,36 @@ impl CleanupStrategy for DeviceCleanupStrategy {
                 // Metal-specific cleanup (command buffer cleanup, etc.)
                 Duration::from_millis(10)
             }
-            _ => Duration::from_millis(2)
+            _ => Duration::from_millis(2),
         };
 
         std::thread::sleep(cleanup_work);
-        
+
         let duration = start_time.elapsed();
         let bytes_freed = 256; // Simulated
         let allocations_cleaned = 3; // Simulated
-        
-        Ok(CleanupOperationResult::success(bytes_freed, allocations_cleaned, duration)
-            .with_metadata("strategy".to_string(), "device".to_string())
-            .with_metadata("device_type".to_string(), self.device_type.clone()))
+
+        Ok(
+            CleanupOperationResult::success(bytes_freed, allocations_cleaned, duration)
+                .with_metadata("strategy".to_string(), "device".to_string())
+                .with_metadata("device_type".to_string(), self.device_type.clone()),
+        )
     }
 
     fn description(&self) -> String {
-        format!("Device cleanup strategy for {} (interval: {:?})", self.device_type, self.cleanup_interval)
+        format!(
+            "Device cleanup strategy for {} (interval: {:?})",
+            self.device_type, self.cleanup_interval
+        )
     }
 
     fn get_parameters(&self) -> HashMap<String, String> {
         let mut params = HashMap::new();
         params.insert("device_type".to_string(), self.device_type.clone());
-        params.insert("cleanup_interval_ms".to_string(), self.cleanup_interval.as_millis().to_string());
+        params.insert(
+            "cleanup_interval_ms".to_string(),
+            self.cleanup_interval.as_millis().to_string(),
+        );
         params
     }
 }
@@ -539,7 +636,11 @@ impl CleanupStrategy for GenerationalCleanupStrategy {
         CleanupPriority::Low
     }
 
-    fn should_cleanup(&self, _metrics: &MemoryMetrics, _detailed_metrics: Option<&DetailedMemoryMetrics>) -> bool {
+    fn should_cleanup(
+        &self,
+        _metrics: &MemoryMetrics,
+        _detailed_metrics: Option<&DetailedMemoryMetrics>,
+    ) -> bool {
         if let Ok(last_cleanup) = self.last_cleanup.read() {
             if let Some(last) = *last_cleanup {
                 last.elapsed() >= self.cleanup_interval
@@ -551,9 +652,13 @@ impl CleanupStrategy for GenerationalCleanupStrategy {
         }
     }
 
-    fn cleanup(&self, _pool: &HybridMemoryPool, _config: &CleanupConfig) -> CleanupResult<CleanupOperationResult> {
+    fn cleanup(
+        &self,
+        _pool: &HybridMemoryPool,
+        _config: &CleanupConfig,
+    ) -> CleanupResult<CleanupOperationResult> {
         let start_time = Instant::now();
-        
+
         // Update last cleanup time
         if let Ok(mut last_cleanup) = self.last_cleanup.write() {
             *last_cleanup = Some(start_time);
@@ -562,29 +667,54 @@ impl CleanupStrategy for GenerationalCleanupStrategy {
         // Perform generational cleanup
         // In a real implementation, this would analyze allocation ages and clean accordingly
         std::thread::sleep(Duration::from_millis(15));
-        
+
         let duration = start_time.elapsed();
         let bytes_freed = 1024; // Simulated
         let allocations_cleaned = 8; // Simulated
-        
-        Ok(CleanupOperationResult::success(bytes_freed, allocations_cleaned, duration)
-            .with_metadata("strategy".to_string(), "generational".to_string())
-            .with_metadata("young_threshold_ms".to_string(), self.young_age_threshold.as_millis().to_string())
-            .with_metadata("old_threshold_ms".to_string(), self.old_age_threshold.as_millis().to_string())
-            .with_metadata("ancient_threshold_ms".to_string(), self.ancient_age_threshold.as_millis().to_string()))
+
+        Ok(
+            CleanupOperationResult::success(bytes_freed, allocations_cleaned, duration)
+                .with_metadata("strategy".to_string(), "generational".to_string())
+                .with_metadata(
+                    "young_threshold_ms".to_string(),
+                    self.young_age_threshold.as_millis().to_string(),
+                )
+                .with_metadata(
+                    "old_threshold_ms".to_string(),
+                    self.old_age_threshold.as_millis().to_string(),
+                )
+                .with_metadata(
+                    "ancient_threshold_ms".to_string(),
+                    self.ancient_age_threshold.as_millis().to_string(),
+                ),
+        )
     }
 
     fn description(&self) -> String {
-        format!("Generational cleanup strategy (young: {:?}, old: {:?}, ancient: {:?})", 
-                self.young_age_threshold, self.old_age_threshold, self.ancient_age_threshold)
+        format!(
+            "Generational cleanup strategy (young: {:?}, old: {:?}, ancient: {:?})",
+            self.young_age_threshold, self.old_age_threshold, self.ancient_age_threshold
+        )
     }
 
     fn get_parameters(&self) -> HashMap<String, String> {
         let mut params = HashMap::new();
-        params.insert("young_age_threshold_ms".to_string(), self.young_age_threshold.as_millis().to_string());
-        params.insert("old_age_threshold_ms".to_string(), self.old_age_threshold.as_millis().to_string());
-        params.insert("ancient_age_threshold_ms".to_string(), self.ancient_age_threshold.as_millis().to_string());
-        params.insert("cleanup_interval_ms".to_string(), self.cleanup_interval.as_millis().to_string());
+        params.insert(
+            "young_age_threshold_ms".to_string(),
+            self.young_age_threshold.as_millis().to_string(),
+        );
+        params.insert(
+            "old_age_threshold_ms".to_string(),
+            self.old_age_threshold.as_millis().to_string(),
+        );
+        params.insert(
+            "ancient_age_threshold_ms".to_string(),
+            self.ancient_age_threshold.as_millis().to_string(),
+        );
+        params.insert(
+            "cleanup_interval_ms".to_string(),
+            self.cleanup_interval.as_millis().to_string(),
+        );
         params
     }
 }
@@ -592,7 +722,6 @@ impl CleanupStrategy for GenerationalCleanupStrategy {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
 
     #[test]
     fn test_cleanup_priority_ordering() {
@@ -610,7 +739,8 @@ mod tests {
         assert_eq!(result.allocations_cleaned, 5);
         assert_eq!(result.duration, Duration::from_millis(100));
 
-        let result = CleanupOperationResult::failure("test error".to_string(), Duration::from_millis(50));
+        let result =
+            CleanupOperationResult::failure("test error".to_string(), Duration::from_millis(50));
         assert!(!result.success);
         assert_eq!(result.bytes_freed, 0);
         assert_eq!(result.error_message, Some("test error".to_string()));
@@ -621,7 +751,7 @@ mod tests {
         let strategy = IdleCleanupStrategy::default();
         assert_eq!(strategy.strategy_type(), CleanupStrategyType::Idle);
         assert_eq!(strategy.priority(), CleanupPriority::Low);
-        
+
         let params = strategy.get_parameters();
         assert!(params.contains_key("min_idle_time_ms"));
         assert!(params.contains_key("max_cleanup_duration_ms"));
@@ -632,7 +762,7 @@ mod tests {
         let strategy = PressureCleanupStrategy::default();
         assert_eq!(strategy.strategy_type(), CleanupStrategyType::Pressure);
         assert_eq!(strategy.priority(), CleanupPriority::High);
-        
+
         let params = strategy.get_parameters();
         assert!(params.contains_key("light_threshold"));
         assert!(params.contains_key("aggressive_threshold"));
@@ -644,7 +774,7 @@ mod tests {
         let strategy = PeriodicCleanupStrategy::default();
         assert_eq!(strategy.strategy_type(), CleanupStrategyType::Periodic);
         assert_eq!(strategy.priority(), CleanupPriority::Normal);
-        
+
         // Test should_cleanup logic
         let metrics = crate::memory::MemoryMetrics::new();
         assert!(strategy.should_cleanup(&metrics, None)); // First cleanup should return true
@@ -655,7 +785,7 @@ mod tests {
         let cpu_strategy = DeviceCleanupStrategy::cpu();
         assert_eq!(cpu_strategy.strategy_type(), CleanupStrategyType::Device);
         assert_eq!(cpu_strategy.priority(), CleanupPriority::Normal);
-        
+
         let metal_strategy = DeviceCleanupStrategy::metal();
         let params = metal_strategy.get_parameters();
         assert_eq!(params.get("device_type"), Some(&"Metal".to_string()));
@@ -666,7 +796,7 @@ mod tests {
         let strategy = GenerationalCleanupStrategy::default();
         assert_eq!(strategy.strategy_type(), CleanupStrategyType::Generational);
         assert_eq!(strategy.priority(), CleanupPriority::Low);
-        
+
         let params = strategy.get_parameters();
         assert!(params.contains_key("young_age_threshold_ms"));
         assert!(params.contains_key("old_age_threshold_ms"));

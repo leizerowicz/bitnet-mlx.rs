@@ -4,9 +4,9 @@
 //! supporting various precision levels from full precision (F32) down
 //! to extreme quantization (I1) and the specialized BitNet 1.58b format.
 
+use candle_core::DType;
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use candle_core::DType;
 
 /// BitNet-specific data types supporting various quantization levels
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -52,17 +52,26 @@ impl BitNetDType {
 
     /// Returns true if this is a floating-point type
     pub fn is_float(&self) -> bool {
-        matches!(self, BitNetDType::F32 | BitNetDType::F16 | BitNetDType::BF16)
+        matches!(
+            self,
+            BitNetDType::F32 | BitNetDType::F16 | BitNetDType::BF16
+        )
     }
 
     /// Returns true if this is an integer type
     pub fn is_integer(&self) -> bool {
-        matches!(self, BitNetDType::I8 | BitNetDType::I4 | BitNetDType::I2 | BitNetDType::I1)
+        matches!(
+            self,
+            BitNetDType::I8 | BitNetDType::I4 | BitNetDType::I2 | BitNetDType::I1
+        )
     }
 
     /// Returns true if this is a quantized type (< 8 bits)
     pub fn is_quantized(&self) -> bool {
-        matches!(self, BitNetDType::I4 | BitNetDType::I2 | BitNetDType::I1 | BitNetDType::BitNet158)
+        matches!(
+            self,
+            BitNetDType::I4 | BitNetDType::I2 | BitNetDType::I1 | BitNetDType::BitNet158
+        )
     }
 
     /// Returns true if this is the special BitNet 1.58b format
@@ -78,7 +87,7 @@ impl BitNetDType {
             BitNetDType::I2 => Some((-2, 1)),
             BitNetDType::I1 => Some((-1, 0)), // Binary: -1, 0
             BitNetDType::BitNet158 => Some((-1, 1)), // Ternary: -1, 0, +1
-            _ => None, // Floating point types don't have fixed ranges
+            _ => None,                        // Floating point types don't have fixed ranges
         }
     }
 
@@ -224,9 +233,18 @@ mod tests {
         assert_eq!(BitNetDType::F16.to_candle_dtype(), DType::F16);
         assert_eq!(BitNetDType::I8.to_candle_dtype(), DType::I64);
 
-        assert_eq!(BitNetDType::from_candle_dtype(DType::F32), Some(BitNetDType::F32));
-        assert_eq!(BitNetDType::from_candle_dtype(DType::F16), Some(BitNetDType::F16));
-        assert_eq!(BitNetDType::from_candle_dtype(DType::I64), Some(BitNetDType::I8));
+        assert_eq!(
+            BitNetDType::from_candle_dtype(DType::F32),
+            Some(BitNetDType::F32)
+        );
+        assert_eq!(
+            BitNetDType::from_candle_dtype(DType::F16),
+            Some(BitNetDType::F16)
+        );
+        assert_eq!(
+            BitNetDType::from_candle_dtype(DType::I64),
+            Some(BitNetDType::I8)
+        );
     }
 
     #[test]

@@ -1,6 +1,6 @@
 // bitnet-quant/src/metrics/examples.rs
 //! Example implementations and usage demonstrations for quantization metrics
-//! 
+//!
 //! This module provides comprehensive examples showing how to use the BitNet
 //! quantization metrics system in various real-world scenarios.
 
@@ -11,7 +11,7 @@ use crate::metrics::{
     QuantizationMetrics, MetricsCalculator, ErrorThresholds,
     error_analysis::{ErrorAnalyzer, ErrorAnalysisConfig},
     mse::MSECalculator,
-    sqnr::SQNRCalculator, 
+    sqnr::SQNRCalculator,
     cosine_similarity::CosineSimilarityCalculator,
     layer_wise::{LayerWiseAnalyzer, LayerWiseAnalysisConfig},
     visualization::VisualizationEngine,
@@ -48,7 +48,7 @@ impl MetricsWorkflowDemo {
         let mitigation_config = MitigationConfig {
             enable_adaptive_mitigation: true,
             quality_improvement_threshold: 0.1,
-            implementation_complexity_preference: 
+            implementation_complexity_preference:
                 crate::metrics::mitigation::ComplexityPreference::Balanced,
             risk_tolerance: crate::metrics::mitigation::RiskTolerance::Medium,
         };
@@ -64,26 +64,26 @@ impl MetricsWorkflowDemo {
     }
 
     /// Complete workflow example: from tensors to final report
-    pub fn run_complete_analysis_workflow(&mut self, 
+    pub fn run_complete_analysis_workflow(&mut self,
         layer_data: &[(String, Tensor, Tensor)]) -> Result<()> {
-        
+
         println!("🔍 Starting comprehensive quantization analysis workflow...\n");
 
         // Step 1: Calculate basic metrics for each layer
         println!("📊 Step 1: Calculating basic quantization metrics...");
         let mut layer_metrics = HashMap::new();
-        
+
         for (layer_name, original, quantized) in layer_data {
             let metrics = self.calculate_layer_metrics(original, quantized, layer_name)?;
             layer_metrics.insert(layer_name.clone(), metrics);
-            println!("  ✓ Analyzed layer: {} (MSE: {:.6}, SQNR: {:.2} dB)", 
+            println!("  ✓ Analyzed layer: {} (MSE: {:.6}, SQNR: {:.2} dB)",
                 layer_name, metrics.mse, metrics.sqnr);
         }
 
         // Step 2: Perform comprehensive error analysis
         println!("\n🔬 Step 2: Performing error analysis...");
         let mut error_results = HashMap::new();
-        
+
         for (layer_name, original, quantized) in layer_data {
             let result = self.error_analyzer.analyze_comprehensive_error(
                 original, quantized, layer_name
@@ -95,12 +95,12 @@ impl MetricsWorkflowDemo {
         // Step 3: Layer-wise sensitivity analysis
         println!("\n🎯 Step 3: Conducting layer-wise analysis...");
         let layer_analysis = self.layer_wise_analyzer.analyze_layers(&layer_metrics)?;
-        
+
         println!("  📈 Global statistics:");
         println!("    Mean MSE: {:.6}", layer_analysis.global_statistics.mean_mse);
         println!("    Mean SQNR: {:.2} dB", layer_analysis.global_statistics.mean_sqnr);
         println!("    Mean Cosine Similarity: {:.4}", layer_analysis.global_statistics.mean_cosine_similarity);
-        
+
         println!("  🚨 Problematic layers found: {}", layer_analysis.problematic_layers.len());
         println!("  ⭐ High priority layers: {}", layer_analysis.optimization_plan.high_priority_layers.len());
 
@@ -112,17 +112,17 @@ impl MetricsWorkflowDemo {
         // Step 5: Execute error mitigation
         println!("\n🛠️ Step 5: Planning error mitigation...");
         let mitigation_result = self.mitigation_engine.execute_mitigation_plan(&layer_analysis)?;
-        
+
         println!("  📋 Mitigation actions: {}", mitigation_result.mitigation_actions.len());
         println!("  💡 Expected improvement: {:.1}%", mitigation_result.overall_improvement * 100.0);
-        println!("  ⏱️ Estimated implementation: {} hours", 
+        println!("  ⏱️ Estimated implementation: {} hours",
             mitigation_result.implementation_plan.total_estimated_duration_hours);
 
         // Step 6: Generate comprehensive report
         println!("\n📄 Step 6: Generating comprehensive report...");
         let report = self.reporting_engine.generate_comprehensive_report(&layer_analysis)?;
         let exported_files = self.reporting_engine.export_report(&report)?;
-        
+
         println!("  ✓ Report generated successfully");
         println!("  📁 Exported files: {}", exported_files.len());
         for file in &exported_files {
@@ -135,7 +135,7 @@ impl MetricsWorkflowDemo {
         println!("Overall Quality: {:?}", report.executive_summary.overall_quality_grade);
         println!("Key Findings: {}", report.executive_summary.key_findings.len());
         println!("High Priority Actions: {}", report.executive_summary.high_priority_actions_count);
-        
+
         println!("\n🎯 Next Steps:");
         for (i, step) in report.executive_summary.next_steps.iter().enumerate() {
             println!("  {}. {}", i + 1, step);
@@ -146,9 +146,9 @@ impl MetricsWorkflowDemo {
         Ok(())
     }
 
-    fn calculate_layer_metrics(&self, original: &Tensor, quantized: &Tensor, 
+    fn calculate_layer_metrics(&self, original: &Tensor, quantized: &Tensor,
         layer_name: &str) -> Result<QuantizationMetrics> {
-        
+
         let mse_calc = MSECalculator::new();
         let sqnr_calc = SQNRCalculator::new();
         let cosine_calc = CosineSimilarityCalculator::new();
@@ -164,7 +164,7 @@ impl MetricsWorkflowDemo {
         let max_error = abs_error.max_keepdim(0)?
             .max_keepdim(1)?
             .to_scalar::<f32>()?;
-        
+
         let original_mean = original.abs()?.mean_all()?.to_scalar::<f32>()?;
         let relative_error = if original_mean > 1e-8 {
             mean_abs_error / original_mean
@@ -195,29 +195,29 @@ impl BasicMetricsExample {
         println!("================================\n");
 
         let device = Device::Cpu;
-        
+
         // Create sample tensors
         let original = Tensor::randn(0f32, 1f32, (100, 50), &device)?;
         let noise = Tensor::randn(0f32, 0.1f32, (100, 50), &device)?;
         let quantized = (&original + &noise)?;
-        
+
         let mse_calc = MSECalculator::new();
         let mse = mse_calc.calculate_mse(&original, &quantized)?;
-        
+
         println!("Original tensor shape: {:?}", original.shape());
         println!("Quantized tensor shape: {:?}", quantized.shape());
         println!("Mean Squared Error: {:.6}", mse);
-        
+
         // Expected MSE should be close to noise variance (0.01)
         println!("Expected MSE (noise variance): 0.01");
         println!("Actual vs Expected ratio: {:.2}", mse / 0.01);
-        
+
         if mse > 0.005 && mse < 0.015 {
             println!("✅ MSE calculation appears correct!");
         } else {
             println!("⚠️ MSE calculation may need review");
         }
-        
+
         Ok(())
     }
 
@@ -228,28 +228,28 @@ impl BasicMetricsExample {
 
         let device = Device::Cpu;
         let sqnr_calc = SQNRCalculator::new();
-        
+
         // Test with different noise levels
         let noise_levels = vec![0.01, 0.05, 0.1, 0.2];
         let original = Tensor::randn(0f32, 1f32, (200, 100), &device)?;
-        
+
         println!("Signal power (estimated): 1.0");
         println!("Testing different noise levels:\n");
-        
+
         for noise_level in noise_levels {
             let noise = Tensor::randn(0f32, noise_level, (200, 100), &device)?;
             let quantized = (&original + &noise)?;
-            
+
             let sqnr = sqnr_calc.calculate_sqnr(&original, &quantized)?;
             let theoretical_sqnr = -10.0 * (noise_level * noise_level).log10();
-            
+
             println!("Noise Level: {:.3}", noise_level);
             println!("  Calculated SQNR: {:.2} dB", sqnr);
             println!("  Theoretical SQNR: {:.2} dB", theoretical_sqnr);
             println!("  Difference: {:.2} dB", (sqnr - theoretical_sqnr).abs());
             println!();
         }
-        
+
         Ok(())
     }
 
@@ -260,10 +260,10 @@ impl BasicMetricsExample {
 
         let device = Device::Cpu;
         let cosine_calc = CosineSimilarityCalculator::new();
-        
+
         // Create base vector
         let original = Tensor::randn(0f32, 1f32, (1000,), &device)?;
-        
+
         // Test different similarity levels
         let test_cases = vec![
             ("Identical", 1.0, 0.0),
@@ -272,19 +272,19 @@ impl BasicMetricsExample {
             ("Somewhat Similar", 0.5, 0.5),
             ("Different", 0.0, 1.0),
         ];
-        
+
         println!("Testing different vector alignments:\n");
-        
+
         for (description, scale_factor, noise_factor) in test_cases {
             let scaled = (&original * scale_factor)?;
             let noise = Tensor::randn(0f32, noise_factor, (1000,), &device)?;
             let test_vector = (&scaled + &noise)?;
-            
+
             let similarity = cosine_calc.calculate_cosine_similarity(&original, &test_vector)?;
-            
+
             println!("{}: {:.4}", description, similarity);
         }
-        
+
         Ok(())
     }
 }
@@ -314,8 +314,8 @@ impl StreamingProcessingExample {
         let chunk_size = 1000;
         let total_elements = 10000;
         let chunks = total_elements / chunk_size;
-        
-        println!("Processing {} elements in {} chunks of {}", 
+
+        println!("Processing {} elements in {} chunks of {}",
             total_elements, chunks, chunk_size);
         println!("Simulating large model layer analysis...\n");
 
@@ -333,14 +333,14 @@ impl StreamingProcessingExample {
 
             // Update streaming MSE
             let chunk_mse = self.mse_calc.calculate_mse(&original_chunk, &quantized_chunk)?;
-            streaming_mse = (streaming_mse * total_processed as f32 + 
+            streaming_mse = (streaming_mse * total_processed as f32 +
                 chunk_mse * chunk_size as f32) / (total_processed + chunk_size) as f32;
 
             // Update streaming SQNR components
             let signal_power = original_chunk.sqr()?.sum_all()?.to_scalar::<f32>()?;
             let error = (&original_chunk - &quantized_chunk)?;
             let noise_power = error.sqr()?.sum_all()?.to_scalar::<f32>()?;
-            
+
             streaming_sqnr_components.0 += signal_power;
             streaming_sqnr_components.1 += noise_power;
 
@@ -348,20 +348,20 @@ impl StreamingProcessingExample {
             let dot_product = (&original_chunk * &quantized_chunk)?.sum_all()?.to_scalar::<f32>()?;
             let norm1_sq = original_chunk.sqr()?.sum_all()?.to_scalar::<f32>()?;
             let norm2_sq = quantized_chunk.sqr()?.sum_all()?.to_scalar::<f32>()?;
-            
+
             streaming_cosine_components.0 += dot_product;
             streaming_cosine_components.1 += norm1_sq;
             streaming_cosine_components.2 += norm2_sq;
 
             total_processed += chunk_size;
-            
-            println!("Chunk {}/{} processed - Running MSE: {:.6}", 
+
+            println!("Chunk {}/{} processed - Running MSE: {:.6}",
                 chunk_idx + 1, chunks, streaming_mse);
         }
 
         // Calculate final streaming results
         let final_sqnr = 10.0 * (streaming_sqnr_components.0 / streaming_sqnr_components.1).log10();
-        let final_cosine = streaming_cosine_components.0 / 
+        let final_cosine = streaming_cosine_components.0 /
             (streaming_cosine_components.1.sqrt() * streaming_cosine_components.2.sqrt());
 
         println!("\n📊 Streaming Processing Results:");
@@ -399,7 +399,7 @@ impl RealWorldScenarios {
         println!("============================\n");
 
         let device = Device::Cpu;
-        
+
         // Simulate different quantization schemes
         let scenarios = vec![
             ("8-bit Uniform", 0.01),
@@ -409,7 +409,7 @@ impl RealWorldScenarios {
         ];
 
         let original_activations = Tensor::randn(0f32, 1f32, (1000, 512), &device)?;
-        
+
         println!("Comparing quantization schemes on sample activations:");
         println!("Original shape: {:?}\n", original_activations.shape());
 
@@ -429,7 +429,7 @@ impl RealWorldScenarios {
             println!("  MSE: {:.6}", mse);
             println!("  SQNR: {:.2} dB", sqnr);
             println!("  Cosine Similarity: {:.4}", cosine_sim);
-            
+
             // Quality assessment
             let quality = if mse < 0.001 && sqnr > 30.0 && cosine_sim > 0.99 {
                 "Excellent"
@@ -440,7 +440,7 @@ impl RealWorldScenarios {
             } else {
                 "Poor"
             };
-            
+
             println!("  Quality Assessment: {}\n", quality);
         }
 
@@ -453,11 +453,11 @@ impl RealWorldScenarios {
         println!("======================================\n");
 
         let device = Device::Cpu;
-        
+
         // Simulate different layer types with varying sensitivities
         let layer_configs = vec![
             ("embedding", (10000, 512), 0.001), // Low sensitivity
-            ("attention_qkv", (512, 1536), 0.01), // Medium sensitivity  
+            ("attention_qkv", (512, 1536), 0.01), // Medium sensitivity
             ("attention_out", (512, 512), 0.005), // Medium sensitivity
             ("ffn_up", (512, 2048), 0.02), // High sensitivity
             ("ffn_down", (2048, 512), 0.015), // High sensitivity
@@ -493,21 +493,21 @@ impl RealWorldScenarios {
 
             println!("{} ({}): ", layer_name, format!("{:?}", shape));
             println!("  MSE: {:.6}", mse);
-            println!("  SQNR: {:.2} dB", sqnr);  
+            println!("  SQNR: {:.2} dB", sqnr);
             println!("  Cosine Similarity: {:.4}", cosine_sim);
         }
 
         // Perform layer-wise analysis
         println!("\n📊 Layer-wise Analysis Results:");
         println!("================================");
-        
+
         let config = crate::metrics::layer_wise::LayerWiseAnalysisConfig {
             correlation_threshold: 0.5,
             sensitivity_analysis_enabled: true,
             optimization_planning_enabled: true,
             temporal_analysis_enabled: false,
         };
-        
+
         let analyzer = LayerWiseAnalyzer::new(config);
         let analysis = analyzer.analyze_layers(&layer_metrics)?;
 
@@ -550,7 +550,7 @@ impl RealWorldScenarios {
         println!("  Max Relative Error: {}\n", thresholds.max_acceptable_relative_error);
 
         let mse_calc = MSECalculator::new();
-        let sqnr_calc = SQNRCalculator::new(); 
+        let sqnr_calc = SQNRCalculator::new();
         let cosine_calc = CosineSimilarityCalculator::new();
 
         let mut alerts = Vec::new();
@@ -560,7 +560,7 @@ impl RealWorldScenarios {
             // Simulate varying quality over time
             let quality_degradation = (batch_idx as f32) * 0.002; // Gradual degradation
             let noise_level = 0.005 + quality_degradation;
-            
+
             let original = Tensor::randn(0f32, 1f32, (512, 768), &device)?;
             let noise = Tensor::randn(0f32, noise_level, (512, 768), &device)?;
             let quantized = (&original + &noise)?;
@@ -569,22 +569,22 @@ impl RealWorldScenarios {
             let sqnr = sqnr_calc.calculate_sqnr(&original, &quantized)?;
             let cosine_sim = cosine_calc.calculate_cosine_similarity(&original, &quantized)?;
 
-            println!("Batch {}: MSE={:.6}, SQNR={:.2}dB, Cosine={:.4}", 
+            println!("Batch {}: MSE={:.6}, SQNR={:.2}dB, Cosine={:.4}",
                 batch_idx + 1, mse, sqnr, cosine_sim);
 
             // Check thresholds and generate alerts
             if mse > thresholds.max_acceptable_mse {
-                alerts.push(format!("Batch {}: MSE threshold exceeded ({:.6} > {})", 
+                alerts.push(format!("Batch {}: MSE threshold exceeded ({:.6} > {})",
                     batch_idx + 1, mse, thresholds.max_acceptable_mse));
             }
 
             if sqnr < thresholds.min_acceptable_sqnr {
-                alerts.push(format!("Batch {}: SQNR threshold exceeded ({:.2} < {})", 
+                alerts.push(format!("Batch {}: SQNR threshold exceeded ({:.2} < {})",
                     batch_idx + 1, sqnr, thresholds.min_acceptable_sqnr));
             }
 
             if cosine_sim < thresholds.min_acceptable_cosine_similarity {
-                alerts.push(format!("Batch {}: Cosine similarity threshold exceeded ({:.4} < {})", 
+                alerts.push(format!("Batch {}: Cosine similarity threshold exceeded ({:.4} < {})",
                     batch_idx + 1, cosine_sim, thresholds.min_acceptable_cosine_similarity));
             }
         }

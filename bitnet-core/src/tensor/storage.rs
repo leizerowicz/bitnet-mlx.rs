@@ -4,16 +4,16 @@
 //! leveraging the HybridMemoryPool for efficient memory management
 //! and supporting different memory layouts and access patterns.
 
-use std::sync::{Arc, Weak};
-use std::slice;
-use candle_core::Device;
-use crate::memory::{MemoryHandle, MemoryResult, MemoryError};
 use super::dtype::BitNetDType;
-use super::shape::TensorShape;
 use super::memory_integration::TensorMemoryManager;
+use super::shape::TensorShape;
+use crate::memory::{MemoryError, MemoryHandle, MemoryResult};
+use candle_core::Device;
+use std::slice;
+use std::sync::{Arc, Weak};
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, warn, error};
+use tracing::{debug, error, warn};
 
 /// Tensor storage backend that uses HybridMemoryPool
 ///
@@ -67,7 +67,7 @@ impl TensorStorage {
     /// let device = get_cpu_device();
     /// let manager = Arc::new(TensorMemoryManager::new(pool, device.clone()));
     /// let shape = TensorShape::new(&[2, 3]);
-    /// 
+    ///
     /// let storage = TensorStorage::new(shape, BitNetDType::F32, device, &manager)?;
     /// # Ok(())
     /// # }
@@ -78,14 +78,15 @@ impl TensorStorage {
         device: Device,
         memory_manager: &Arc<TensorMemoryManager>,
     ) -> MemoryResult<Self> {
-        let element_size = dtype.size_bytes()
+        let element_size = dtype
+            .size_bytes()
             .ok_or_else(|| MemoryError::InternalError {
                 reason: format!("Cannot determine size for data type {:?}", dtype),
             })?;
 
         let num_elements = shape.num_elements();
         let total_size = num_elements * element_size;
-        
+
         // Calculate appropriate alignment based on data type and SIMD requirements
         let alignment = Self::calculate_alignment(dtype);
 
@@ -96,11 +97,8 @@ impl TensorStorage {
         );
 
         // Allocate memory through the memory manager
-        let (storage_id, memory_handle) = memory_manager.allocate_tensor_memory(
-            total_size,
-            alignment,
-            dtype,
-        )?;
+        let (storage_id, memory_handle) =
+            memory_manager.allocate_tensor_memory(total_size, alignment, dtype)?;
 
         // Initialize memory to zero if requested
         unsafe {
@@ -144,7 +142,7 @@ impl TensorStorage {
         memory_manager: &Arc<TensorMemoryManager>,
     ) -> MemoryResult<Self> {
         let storage = Self::new(shape, dtype, device, memory_manager)?;
-        
+
         if data.len() != storage.total_size {
             return Err(MemoryError::InternalError {
                 reason: format!(
@@ -162,7 +160,10 @@ impl TensorStorage {
         }
 
         #[cfg(feature = "tracing")]
-        debug!("Created tensor storage from data: {} bytes copied", data.len());
+        debug!(
+            "Created tensor storage from data: {} bytes copied",
+            data.len()
+        );
 
         Ok(storage)
     }
@@ -264,7 +265,7 @@ impl TensorStorage {
     pub fn fill_with_value(&mut self, value: f64) -> MemoryResult<()> {
         unsafe {
             let ptr = self.memory_handle.as_ptr();
-            
+
             match self.dtype {
                 BitNetDType::F32 => {
                     let typed_ptr = ptr as *mut f32;
@@ -341,7 +342,11 @@ impl TensorStorage {
         self.shape = new_shape;
 
         #[cfg(feature = "tracing")]
-        debug!("Reshaped tensor storage {} to {:?}", self.storage_id, self.shape.dims());
+        debug!(
+            "Reshaped tensor storage {} to {:?}",
+            self.storage_id,
+            self.shape.dims()
+        );
 
         Ok(())
     }
@@ -350,14 +355,12 @@ impl TensorStorage {
     pub fn size_in_bytes(&self) -> usize {
         self.total_size
     }
-    
+
     /// Get raw data pointer for zero-copy operations
     pub fn raw_data_ptr(&self) -> Option<*const u8> {
-        unsafe {
-            Some(self.memory_handle.as_ptr() as *const u8)
-        }
+        unsafe { Some(self.memory_handle.as_ptr() as *const u8) }
     }
-    
+
     /// Get tensor data as a slice of the specified type
     pub fn data_as_slice<T: Clone + 'static>(&self) -> MemoryResult<Vec<T>> {
         // This is a simplified implementation - in practice this would need
@@ -365,8 +368,9 @@ impl TensorStorage {
         unsafe {
             let byte_slice = self.as_slice();
             // For now, just handle f32 type
-            if std::any::TypeId::of::<T>() == std::any::TypeId::of::<f32>() 
-                && self.dtype == BitNetDType::F32 {
+            if std::any::TypeId::of::<T>() == std::any::TypeId::of::<f32>()
+                && self.dtype == BitNetDType::F32
+            {
                 let float_ptr = byte_slice.as_ptr() as *const f32;
                 let float_slice = slice::from_raw_parts(float_ptr, self.num_elements());
                 let vec: Vec<f32> = float_slice.to_vec();
@@ -374,7 +378,10 @@ impl TensorStorage {
                 Ok(std::mem::transmute::<Vec<f32>, Vec<T>>(vec))
             } else {
                 Err(MemoryError::InternalError {
-                    reason: format!("Type conversion from {:?} to requested type not implemented", self.dtype),
+                    reason: format!(
+                        "Type conversion from {:?} to requested type not implemented",
+                        self.dtype
+                    ),
                 })
             }
         }
@@ -402,7 +409,7 @@ impl TensorStorage {
             (candle_core::Device::Metal(_), candle_core::Device::Metal(_)) => true, // Simplified comparison
             _ => false,
         };
-        
+
         if !device_matches {
             return Err(MemoryError::InternalError {
                 reason: "Device mismatch between storage and memory handle".to_string(),
@@ -427,8 +434,12 @@ impl TensorStorage {
             // Smaller types
             BitNetDType::I8 | BitNetDType::U8 | BitNetDType::Bool => 4,
             // BitNet quantized types - align to byte boundaries but allow SIMD
-            BitNetDType::BitNet158 | BitNetDType::BitNet11 | BitNetDType::BitNet1 | 
-            BitNetDType::Int4 | BitNetDType::QInt8 | BitNetDType::QInt4 => 8,
+            BitNetDType::BitNet158
+            | BitNetDType::BitNet11
+            | BitNetDType::BitNet1
+            | BitNetDType::Int4
+            | BitNetDType::QInt8
+            | BitNetDType::QInt4 => 8,
         }
     }
 }
@@ -443,11 +454,17 @@ impl Drop for TensorStorage {
             if let Some(manager) = manager_weak.upgrade() {
                 if let Err(e) = manager.deallocate_tensor_memory(self.storage_id) {
                     #[cfg(feature = "tracing")]
-                    warn!("Failed to deallocate tensor storage {}: {}", self.storage_id, e);
+                    warn!(
+                        "Failed to deallocate tensor storage {}: {}",
+                        self.storage_id, e
+                    );
                 }
             } else {
                 #[cfg(feature = "tracing")]
-                warn!("Memory manager no longer available for tensor storage {}", self.storage_id);
+                warn!(
+                    "Memory manager no longer available for tensor storage {}",
+                    self.storage_id
+                );
             }
         }
     }
@@ -483,7 +500,8 @@ impl TensorStorage {
         T: Copy + 'static,
     {
         // Validate that T matches the expected size for dtype
-        let expected_size = dtype.size_bytes()
+        let expected_size = dtype
+            .size_bytes()
             .ok_or_else(|| MemoryError::InternalError {
                 reason: format!("Cannot determine size for data type {:?}", dtype),
             })?;
@@ -511,7 +529,10 @@ impl TensorStorage {
 
         // Convert to bytes
         let data_bytes = unsafe {
-            slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * std::mem::size_of::<T>())
+            slice::from_raw_parts(
+                data.as_ptr() as *const u8,
+                data.len() * std::mem::size_of::<T>(),
+            )
         };
 
         Self::from_data(data_bytes, shape, dtype, device, memory_manager)
@@ -521,8 +542,8 @@ impl TensorStorage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::memory::HybridMemoryPool;
     use crate::device::get_cpu_device;
+    use crate::memory::HybridMemoryPool;
     use std::sync::Arc;
 
     #[test]
@@ -531,9 +552,9 @@ mod tests {
         let device = get_cpu_device();
         let manager = Arc::new(TensorMemoryManager::new(pool, device.clone()));
         let shape = TensorShape::new(&[2, 3]);
-        
+
         let storage = TensorStorage::new(shape, BitNetDType::F32, device, &manager).unwrap();
-        
+
         assert_eq!(storage.dtype(), BitNetDType::F32);
         assert_eq!(storage.shape().dims(), &[2, 3]);
         assert_eq!(storage.num_elements(), 6);
@@ -547,10 +568,12 @@ mod tests {
         let device = get_cpu_device();
         let manager = Arc::new(TensorMemoryManager::new(pool, device.clone()));
         let shape = TensorShape::new(&[2, 2]);
-        
-        let zeros_storage = TensorStorage::zeros(shape.clone(), BitNetDType::F32, device.clone(), &manager).unwrap();
+
+        let zeros_storage =
+            TensorStorage::zeros(shape.clone(), BitNetDType::F32, device.clone(), &manager)
+                .unwrap();
         assert_eq!(zeros_storage.num_elements(), 4);
-        
+
         let ones_storage = TensorStorage::ones(shape, BitNetDType::F32, device, &manager).unwrap();
         assert_eq!(ones_storage.num_elements(), 4);
     }
@@ -561,13 +584,14 @@ mod tests {
         let device = get_cpu_device();
         let manager = Arc::new(TensorMemoryManager::new(pool, device.clone()));
         let shape = TensorShape::new(&[2]);
-        
+
         let data: Vec<f32> = vec![1.0, 2.0];
-        let data_bytes = unsafe {
-            slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4)
-        };
-        
-        let storage = TensorStorage::from_data(data_bytes, shape, BitNetDType::F32, device, &manager).unwrap();
+        let data_bytes =
+            unsafe { slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4) };
+
+        let storage =
+            TensorStorage::from_data(data_bytes, shape, BitNetDType::F32, device, &manager)
+                .unwrap();
         assert_eq!(storage.size_bytes(), 8); // 2 * 4 bytes
     }
 
@@ -577,10 +601,11 @@ mod tests {
         let device = get_cpu_device();
         let manager = Arc::new(TensorMemoryManager::new(pool, device.clone()));
         let shape = TensorShape::new(&[3]);
-        
+
         let data: Vec<f32> = vec![1.0, 2.0, 3.0];
-        let storage = TensorStorage::from_vec(data, shape, BitNetDType::F32, device, &manager).unwrap();
-        
+        let storage =
+            TensorStorage::from_vec(data, shape, BitNetDType::F32, device, &manager).unwrap();
+
         assert_eq!(storage.num_elements(), 3);
         assert_eq!(storage.size_bytes(), 12);
     }
@@ -591,12 +616,12 @@ mod tests {
         let device = get_cpu_device();
         let manager = Arc::new(TensorMemoryManager::new(pool, device.clone()));
         let shape = TensorShape::new(&[2, 3]);
-        
+
         let mut storage = TensorStorage::new(shape, BitNetDType::F32, device, &manager).unwrap();
-        
+
         let new_shape = TensorShape::new(&[3, 2]);
         storage.reshape(new_shape).unwrap();
-        
+
         assert_eq!(storage.shape().dims(), &[3, 2]);
         assert_eq!(storage.num_elements(), 6); // Same number of elements
     }
@@ -607,10 +632,10 @@ mod tests {
         let device = get_cpu_device();
         let manager = Arc::new(TensorMemoryManager::new(pool, device.clone()));
         let shape = TensorShape::new(&[2, 2]);
-        
+
         let mut storage = TensorStorage::new(shape, BitNetDType::F32, device, &manager).unwrap();
         storage.fill_with_value(5.0).unwrap();
-        
+
         // Verify the fill worked (unsafe access for testing)
         unsafe {
             let ptr = storage.as_ptr() as *const f32;
@@ -627,10 +652,11 @@ mod tests {
         let device = get_cpu_device();
         let manager = Arc::new(TensorMemoryManager::new(pool, device.clone()));
         let shape = TensorShape::new(&[4]);
-        
-        let mut storage = TensorStorage::new(shape, BitNetDType::BitNet158, device, &manager).unwrap();
+
+        let mut storage =
+            TensorStorage::new(shape, BitNetDType::BitNet158, device, &manager).unwrap();
         storage.fill_with_value(1.0).unwrap(); // Should become 1
-        
+
         unsafe {
             let ptr = storage.as_ptr() as *const i8;
             let slice = slice::from_raw_parts(ptr, storage.num_elements());
@@ -646,7 +672,7 @@ mod tests {
         let device = get_cpu_device();
         let manager = Arc::new(TensorMemoryManager::new(pool, device.clone()));
         let shape = TensorShape::new(&[2, 3]);
-        
+
         let storage = TensorStorage::new(shape, BitNetDType::F32, device, &manager).unwrap();
         assert!(storage.validate().is_ok());
     }
@@ -656,6 +682,9 @@ mod tests {
         assert_eq!(TensorStorage::calculate_alignment(BitNetDType::F32), 16);
         assert_eq!(TensorStorage::calculate_alignment(BitNetDType::F16), 8);
         assert_eq!(TensorStorage::calculate_alignment(BitNetDType::I64), 32);
-        assert_eq!(TensorStorage::calculate_alignment(BitNetDType::BitNet158), 8);
+        assert_eq!(
+            TensorStorage::calculate_alignment(BitNetDType::BitNet158),
+            8
+        );
     }
 }

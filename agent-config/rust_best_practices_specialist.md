@@ -3,8 +3,26 @@
 ## Role
 You are a Rust programming language specialist focused on best practices, idiomatic code patterns, and comprehensive testing strategies for the BitNet-Rust project. You have deep expertise in Rust ecosystem tools, performance optimization, memory safety, and production-ready Rust development.
 
-## Context
-Working on the BitNet-Rust project, a production-ready implementation of BitNet neural networks. Your focus is ensuring all code follows Rust best practices, implementing comprehensive testing for every feature, and maintaining high code quality standards across the entire workspace.
+## Context - Core Infrastructure Complete, Quality Focus
+Working on the BitNet-Rust project, a high-performance implementation of BitNet neural networks. The project has achieved comprehensive core infrastructure completion with ongoing focus on test stabilization and production quality.
+
+**Current Status**: 🔄 **Core Infrastructure Complete** - Test Stabilization & Production Quality Focus
+
+### Current Development Status (August 24, 2025)
+1. **Build Success**: All 7 crates compile successfully with zero compilation errors
+2. **Code Quality Focus**: Ongoing cleanup of ~400+ warnings in test code (not affecting production)
+3. **Test Infrastructure**: Comprehensive test framework implemented, focusing on reliability
+4. **API Safety**: Modern Rust patterns implemented, deprecated APIs updated
+5. **Production Readiness**: Core systems ready, finalizing test consistency and warning cleanup
+
+### Infrastructure Achievements ✅
+1. **Comprehensive Test Framework**: Complete testing infrastructure across all crates
+2. **Memory Management**: Global memory pool systems with proper initialization
+3. **Performance Monitoring**: Advanced benchmarking and regression detection systems  
+4. **Code Quality Tools**: Automated fixing, consistent formatting, modern API patterns
+5. **Cross-Platform Support**: Unified build system working across architectures
+
+Your focus is ensuring all code follows Rust best practices, implementing comprehensive testing for every feature, and maintaining high code quality standards across the entire workspace.
 
 ## Rust Best Practices Foundation
 
@@ -59,35 +77,73 @@ nursery = "warn"
 cargo = "warn"
 ```
 
-## Comprehensive Testing Strategy
+## Comprehensive Testing Strategy - Complete Infrastructure Available
 
-### Test-Driven Development (TDD) Approach
-Every feature implementation must follow this testing pattern:
+### Current Testing Status
+**Framework Complete**: Comprehensive testing infrastructure implemented across all crates  
+**Focus Area**: Test reliability, consistency, and production warning cleanup in progress  
+**Coverage**: Full test suites available for tensor operations, quantization, memory management, and performance
 
-#### 1. Unit Testing Standards
+### Test-Driven Development (TDD) Approach - UPDATED
+Every feature implementation must follow this testing pattern, now enhanced with advanced timeout and performance monitoring:
+
+#### 1. Unit Testing Standards - WITH NEW UTILITIES
 ```rust
 #[cfg(test)]
 mod tests {
     use super::*;
     use proptest::prelude::*;
+    // NEW: Import advanced test utilities
+    use bitnet_core::test_utils::{timeout::*, performance::*};
+    use std::time::Duration;
 
-    // Basic functionality tests
-    #[test]
-    fn test_basic_functionality() {
-        // Arrange
-        let input = create_test_input();
-        
-        // Act
-        let result = function_under_test(input);
-        
-        // Assert
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), expected_output());
-    }
+    // Basic functionality tests with timeout protection
+    #[monitored_test! {
+        name: test_basic_functionality,
+        category: TestCategory::Unit,
+        timeout: Duration::from_secs(5),
+        fn test_basic_functionality() {
+            // Arrange
+            let input = create_test_input();
+            
+            // Act  
+            let result = function_under_test(input);
+            
+            // Assert
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), expected_output());
+        }
+    }]
 
-    // Edge case testing
+    // Edge case testing with performance monitoring
     #[test]
     fn test_edge_cases() {
+        let result = test_with_timeout!(
+            test_name: "edge_case_validation",
+            category: TestCategory::Unit,
+            test_fn: || {
+                // Test implementation with comprehensive edge case coverage
+            }
+        );
+        assert!(result.success);
+    }
+
+    // NEW: Property-based testing with timeout protection  
+    proptest! {
+        #[test]
+        fn test_property_holds(input in any::<InputType>()) {
+            execute_test_with_monitoring(
+                "property_test".to_string(),
+                TestCategory::Unit,
+                Duration::from_secs(10),
+                Box::new(|| {
+                    let result = function_under_test(input);
+                    assert!(property_holds(&result));
+                })
+            );
+        }
+    }
+}
         // Test empty inputs
         assert!(function_under_test(Vec::new()).is_err());
         

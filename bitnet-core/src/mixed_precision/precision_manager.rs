@@ -4,17 +4,17 @@
 //! managing precision policies, conversions, and optimization across the entire model.
 
 use super::{
-    ComponentType, MixedPrecisionError, MixedPrecisionResult,
     config::MixedPrecisionConfig,
+    conversion::{ConversionConfig, ConversionStrategy, PrecisionConverter},
     layer_precision::{LayerPrecisionManager, LayerPrecisionSpec},
-    conversion::{PrecisionConverter, ConversionConfig, ConversionStrategy},
-    validation::PrecisionValidator,
     policy::PolicyEngine,
+    validation::PrecisionValidator,
+    ComponentType, MixedPrecisionError, MixedPrecisionResult,
 };
 use crate::memory::tensor::{BitNetDType, BitNetTensor};
 use crate::memory::HybridMemoryPool;
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 
 /// Context for precision decisions
 #[derive(Debug, Clone)]
@@ -145,8 +145,10 @@ pub struct PrecisionManager {
 impl PrecisionManager {
     /// Create a new precision manager
     pub fn new(config: MixedPrecisionConfig) -> MixedPrecisionResult<Self> {
-        let memory_pool = Arc::new(HybridMemoryPool::new()
-            .map_err(|e| MixedPrecisionError::MemoryAllocationError(e.to_string()))?);
+        let memory_pool = Arc::new(
+            HybridMemoryPool::new()
+                .map_err(|e| MixedPrecisionError::MemoryAllocationError(e.to_string()))?,
+        );
 
         let conversion_config = ConversionConfig {
             strategy: ConversionStrategy::Scaled,
@@ -192,10 +194,10 @@ impl PrecisionManager {
     pub fn register_layer(&self, spec: LayerPrecisionSpec) -> MixedPrecisionResult<()> {
         // Validate the layer specification
         self.validator.validate_layer_spec(&spec)?;
-        
+
         // Register with layer manager
         self.layer_manager.register_layer(spec)?;
-        
+
         Ok(())
     }
 
@@ -220,18 +222,16 @@ impl PrecisionManager {
         if let Some(layer_spec) = self.layer_manager.get_layer_spec(layer_id) {
             // Use layer-specific precision
             let precision = layer_spec.get_component_precision(component_type);
-            
+
             // Apply policy constraints
             let mut policy_engine = self.policy_engine.lock().map_err(|_| {
-                MixedPrecisionError::InvalidConfiguration("Failed to acquire policy engine lock".to_string())
+                MixedPrecisionError::InvalidConfiguration(
+                    "Failed to acquire policy engine lock".to_string(),
+                )
             })?;
-            let policy_precision = policy_engine.apply_policies(
-                precision,
-                &layer_spec,
-                component_type,
-                &context,
-            )?;
-            
+            let policy_precision =
+                policy_engine.apply_policies(precision, &layer_spec, component_type, &context)?;
+
             Ok(policy_precision)
         } else {
             // Use global configuration
@@ -247,7 +247,7 @@ impl PrecisionManager {
         component_type: ComponentType,
     ) -> MixedPrecisionResult<BitNetTensor> {
         let target_precision = self.get_optimal_precision(layer_id, component_type, tensor)?;
-        
+
         // Check if conversion is needed
         if tensor.dtype() == target_precision {
             return Ok(tensor.clone());
@@ -256,9 +256,11 @@ impl PrecisionManager {
         // Perform conversion
         let start_time = std::time::Instant::now();
         let mut converter = self.converter.lock().map_err(|_| {
-            MixedPrecisionError::InvalidConfiguration("Failed to acquire converter lock".to_string())
+            MixedPrecisionError::InvalidConfiguration(
+                "Failed to acquire converter lock".to_string(),
+            )
         })?;
-        
+
         let converted_tensor = converter.convert_tensor(tensor, target_precision)?;
         let conversion_time = start_time.elapsed();
 
@@ -286,9 +288,11 @@ impl PrecisionManager {
             OptimizationObjective::Accuracy { min_accuracy } => {
                 self.optimize_for_accuracy(min_accuracy)
             }
-            OptimizationObjective::Balanced { memory_weight, speed_weight, accuracy_weight } => {
-                self.optimize_balanced(memory_weight, speed_weight, accuracy_weight)
-            }
+            OptimizationObjective::Balanced {
+                memory_weight,
+                speed_weight,
+                accuracy_weight,
+            } => self.optimize_balanced(memory_weight, speed_weight, accuracy_weight),
         }
     }
 
@@ -345,14 +349,16 @@ impl PrecisionManager {
     /// Generate optimization recommendations
     fn generate_recommendations(&self) -> MixedPrecisionResult<Vec<OptimizationRecommendation>> {
         let mut recommendations = Vec::new();
-        
+
         // Analyze current configuration and suggest improvements
         let analysis = self.layer_manager.analyze_precision_impact();
-        
+
         if analysis.average_memory_savings < 0.2 {
             recommendations.push(OptimizationRecommendation {
                 recommendation_type: RecommendationType::MemoryOptimization,
-                description: "Consider using more aggressive quantization for better memory efficiency".to_string(),
+                description:
+                    "Consider using more aggressive quantization for better memory efficiency"
+                        .to_string(),
                 expected_benefit: "20-40% memory reduction".to_string(),
                 risk_level: RiskLevel::Medium,
             });
@@ -361,7 +367,8 @@ impl PrecisionManager {
         if analysis.average_accuracy_impact > 0.1 {
             recommendations.push(OptimizationRecommendation {
                 recommendation_type: RecommendationType::AccuracyImprovement,
-                description: "Some layers may benefit from higher precision to improve accuracy".to_string(),
+                description: "Some layers may benefit from higher precision to improve accuracy"
+                    .to_string(),
                 expected_benefit: "5-10% accuracy improvement".to_string(),
                 risk_level: RiskLevel::Low,
             });
@@ -383,7 +390,13 @@ impl PrecisionManager {
             MixedPrecisionError::InvalidConfiguration("Failed to acquire metrics lock".to_string())
         })?;
 
-        metrics.record_conversion(from_precision, to_precision, duration, original_size, converted_size);
+        metrics.record_conversion(
+            from_precision,
+            to_precision,
+            duration,
+            original_size,
+            converted_size,
+        );
         Ok(())
     }
 
@@ -413,9 +426,12 @@ impl PrecisionManager {
     }
 
     /// Update the mixed precision configuration
-    pub fn update_configuration(&self, new_config: MixedPrecisionConfig) -> MixedPrecisionResult<()> {
+    pub fn update_configuration(
+        &self,
+        new_config: MixedPrecisionConfig,
+    ) -> MixedPrecisionResult<()> {
         new_config.validate()?;
-        
+
         let mut config = self.config.write().map_err(|_| {
             MixedPrecisionError::InvalidConfiguration("Failed to acquire config lock".to_string())
         })?;
@@ -434,7 +450,11 @@ pub enum OptimizationObjective {
     /// Optimize for accuracy
     Accuracy { min_accuracy: f32 },
     /// Balanced optimization
-    Balanced { memory_weight: f32, speed_weight: f32, accuracy_weight: f32 },
+    Balanced {
+        memory_weight: f32,
+        speed_weight: f32,
+        accuracy_weight: f32,
+    },
 }
 
 /// Performance metrics for precision operations
@@ -469,11 +489,16 @@ impl PrecisionMetrics {
 
         let precision_pair = (from_precision, to_precision);
         *self.conversion_counts.entry(precision_pair).or_insert(0) += 1;
-        
-        let current_avg = self.average_conversion_times.get(&precision_pair).copied().unwrap_or(0.0);
+
+        let current_avg = self
+            .average_conversion_times
+            .get(&precision_pair)
+            .copied()
+            .unwrap_or(0.0);
         let count = self.conversion_counts[&precision_pair] as f32;
         let new_avg = (current_avg * (count - 1.0) + duration_ms) / count;
-        self.average_conversion_times.insert(precision_pair, new_avg);
+        self.average_conversion_times
+            .insert(precision_pair, new_avg);
     }
 
     /// Get average conversion time
@@ -584,10 +609,14 @@ mod tests {
 
     #[test]
     fn test_optimization_objective() {
-        let memory_obj = OptimizationObjective::Memory { target_reduction: 0.5 };
-        let speed_obj = OptimizationObjective::Speed { target_speedup: 2.0 };
+        let memory_obj = OptimizationObjective::Memory {
+            target_reduction: 0.5,
+        };
+        let speed_obj = OptimizationObjective::Speed {
+            target_speedup: 2.0,
+        };
         let accuracy_obj = OptimizationObjective::Accuracy { min_accuracy: 0.95 };
-        
+
         // Test that different objectives are different
         match memory_obj {
             OptimizationObjective::Memory { target_reduction } => {
@@ -602,7 +631,7 @@ mod tests {
         let mut metrics = PrecisionMetrics::default();
         assert_eq!(metrics.total_conversions, 0);
         assert_eq!(metrics.average_conversion_time_ms(), 0.0);
-        
+
         metrics.record_conversion(
             BitNetDType::F32,
             BitNetDType::I8,
@@ -610,7 +639,7 @@ mod tests {
             1000,
             250,
         );
-        
+
         assert_eq!(metrics.total_conversions, 1);
         assert!(metrics.average_conversion_time_ms() > 0.0);
         assert!(metrics.memory_efficiency_mb() > 0.0);
@@ -626,7 +655,10 @@ mod tests {
 
     #[test]
     fn test_recommendation_types() {
-        assert_ne!(RecommendationType::MemoryOptimization, RecommendationType::SpeedOptimization);
+        assert_ne!(
+            RecommendationType::MemoryOptimization,
+            RecommendationType::SpeedOptimization
+        );
         assert_ne!(RiskLevel::Low, RiskLevel::High);
     }
 }

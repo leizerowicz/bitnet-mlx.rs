@@ -3,15 +3,15 @@
 //! This module provides comprehensive memory profiling capabilities including
 //! leak detection, allocation lifetime analysis, and debugging utilities.
 
-use std::sync::{Arc, RwLock, Mutex};
-use std::time::{Duration, Instant, SystemTime};
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, RwLock};
+use std::time::{Duration, Instant, SystemTime};
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, info};
 
-use super::{TrackingResult, AllocationId, AllocationInfo};
+use super::{AllocationId, AllocationInfo, TrackingResult};
 
 /// Memory profiler for debugging and leak detection
 pub struct MemoryProfiler {
@@ -240,7 +240,10 @@ impl MemoryProfiler {
     /// ```
     pub fn new(config: ProfilingConfig) -> TrackingResult<Self> {
         #[cfg(feature = "tracing")]
-        info!("Creating memory profiler with config: max_tracked={}", config.max_tracked_allocations);
+        info!(
+            "Creating memory profiler with config: max_tracked={}",
+            config.max_tracked_allocations
+        );
 
         Ok(Self {
             is_profiling: Arc::new(RwLock::new(false)),
@@ -325,7 +328,9 @@ impl MemoryProfiler {
 
         let session_duration = {
             let start_time = self.start_time.read().unwrap();
-            start_time.map(|start| start.elapsed()).unwrap_or(Duration::ZERO)
+            start_time
+                .map(|start| start.elapsed())
+                .unwrap_or(Duration::ZERO)
         };
 
         // Perform final leak detection
@@ -389,7 +394,10 @@ impl MemoryProfiler {
         }
 
         #[cfg(feature = "tracing")]
-        debug!("Recording deallocation {} for profiling", allocation.id.raw());
+        debug!(
+            "Recording deallocation {} for profiling",
+            allocation.id.raw()
+        );
 
         // Remove from tracked allocations
         let was_tracked = {
@@ -456,11 +464,11 @@ impl MemoryProfiler {
             let tracked = self.tracked_allocations.read().unwrap();
             for allocation in tracked.values() {
                 let age = allocation.age();
-                
+
                 if age >= self.config.leak_detection_threshold {
                     let confidence = self.calculate_leak_confidence(allocation, age);
                     let reason = self.determine_leak_reason(allocation, age);
-                    
+
                     let candidate = LeakCandidate {
                         allocation: allocation.clone(),
                         age,
@@ -468,7 +476,7 @@ impl MemoryProfiler {
                         reason,
                         detected_at: now,
                     };
-                    
+
                     leak_candidates.push(candidate);
                 }
             }
@@ -481,10 +489,12 @@ impl MemoryProfiler {
         {
             let mut leaks = self.potential_leaks.lock().unwrap();
             leaks.extend(leak_candidates.iter().cloned());
-            
+
             // Keep only recent leaks
             leaks.retain(|leak| {
-                now.duration_since(leak.detected_at).unwrap_or(Duration::MAX) < Duration::from_secs(3600)
+                now.duration_since(leak.detected_at)
+                    .unwrap_or(Duration::MAX)
+                    < Duration::from_secs(3600)
             });
         }
 
@@ -515,27 +525,29 @@ impl MemoryProfiler {
         debug!("Taking memory snapshot: {}", snapshot_id);
 
         let tracked = self.tracked_allocations.read().unwrap();
-        
+
         let total_allocated = tracked.values().map(|a| a.size as u64).sum();
         let active_allocations = tracked.len();
-        
+
         let mut device_usage = HashMap::new();
         let mut size_distribution = HashMap::new();
-        
+
         for allocation in tracked.values() {
             // Device usage
-            *device_usage.entry(allocation.device_type.clone()).or_insert(0) += allocation.size as u64;
-            
+            *device_usage
+                .entry(allocation.device_type.clone())
+                .or_insert(0) += allocation.size as u64;
+
             // Size distribution
             let size_category = self.categorize_allocation_size(allocation.size);
             *size_distribution.entry(size_category).or_insert(0) += allocation.size as u64;
         }
-        
+
         // Get top allocations by size
         let mut allocations: Vec<_> = tracked.values().cloned().collect();
         allocations.sort_by(|a, b| b.size.cmp(&a.size));
         let top_allocations = allocations.into_iter().take(10).collect();
-        
+
         let snapshot = MemorySnapshot {
             id: snapshot_id,
             timestamp: SystemTime::now(),
@@ -545,11 +557,11 @@ impl MemoryProfiler {
             size_distribution,
             top_allocations,
         };
-        
+
         {
             let mut snapshots = self.snapshots.lock().unwrap();
             snapshots.push(snapshot);
-            
+
             // Keep snapshots bounded
             if snapshots.len() > self.config.max_snapshots {
                 snapshots.drain(0..10); // Remove oldest 10 snapshots
@@ -577,101 +589,111 @@ impl MemoryProfiler {
             let tracked = self.tracked_allocations.read().unwrap();
             tracked.len() * std::mem::size_of::<AllocationInfo>()
         };
-        
+
         let history_size = {
             let history = self.lifetime_history.lock().unwrap();
             history.len() * std::mem::size_of::<AllocationLifetime>()
         };
-        
+
         let leaks_size = {
             let leaks = self.potential_leaks.lock().unwrap();
             leaks.len() * std::mem::size_of::<LeakCandidate>()
         };
-        
+
         let patterns_size = {
             let patterns = self.allocation_patterns.lock().unwrap();
             patterns.len() * std::mem::size_of::<AllocationPattern>()
         };
-        
+
         let snapshots_size = {
             let snapshots = self.snapshots.lock().unwrap();
             snapshots.len() * std::mem::size_of::<MemorySnapshot>()
         };
-        
+
         tracked_size + history_size + leaks_size + patterns_size + snapshots_size
     }
 
     // Private helper methods
 
     fn update_allocation_patterns(&self, allocation: &AllocationInfo) {
-        let pattern_id = format!("{}_{}", 
+        let pattern_id = format!(
+            "{}_{}",
             allocation.device_type,
             self.categorize_allocation_size(allocation.size)
         );
-        
+
         let mut patterns = self.allocation_patterns.lock().unwrap();
-        let pattern = patterns.entry(pattern_id.clone()).or_insert_with(|| {
-            AllocationPattern {
+        let pattern = patterns
+            .entry(pattern_id.clone())
+            .or_insert_with(|| AllocationPattern {
                 pattern_id: pattern_id.clone(),
                 size_range: self.get_size_range(allocation.size),
                 device_type: allocation.device_type.clone(),
                 allocation_count: 0,
                 average_lifetime: Duration::ZERO,
                 is_problematic: false,
-                description: format!("Allocations on {} in size range {:?}", 
-                    allocation.device_type, self.get_size_range(allocation.size)),
-            }
-        });
-        
+                description: format!(
+                    "Allocations on {} in size range {:?}",
+                    allocation.device_type,
+                    self.get_size_range(allocation.size)
+                ),
+            });
+
         pattern.allocation_count += 1;
     }
 
     fn calculate_leak_confidence(&self, allocation: &AllocationInfo, age: Duration) -> f64 {
         let mut confidence = 0.0;
-        
+
         // Age factor (older = more likely to be a leak)
         let age_seconds = age.as_secs_f64();
         confidence += (age_seconds / 3600.0).min(0.5); // Max 0.5 for age
-        
+
         // Size factor (larger allocations are more concerning)
-        if allocation.size > 1024 * 1024 * 10 { // > 10MB
+        if allocation.size > 1024 * 1024 * 10 {
+            // > 10MB
             confidence += 0.3;
-        } else if allocation.size > 1024 * 1024 { // > 1MB
+        } else if allocation.size > 1024 * 1024 {
+            // > 1MB
             confidence += 0.2;
-        } else if allocation.size > 1024 * 100 { // > 100KB
+        } else if allocation.size > 1024 * 100 {
+            // > 100KB
             confidence += 0.1;
         }
-        
+
         // Pattern factor (check if this allocation type typically has short lifetimes)
-        let pattern_id = format!("{}_{}", 
+        let pattern_id = format!(
+            "{}_{}",
             allocation.device_type,
             self.categorize_allocation_size(allocation.size)
         );
-        
+
         if let Ok(patterns) = self.allocation_patterns.lock() {
             if let Some(pattern) = patterns.get(&pattern_id) {
-                if pattern.average_lifetime < Duration::from_secs(60) && age > Duration::from_secs(300) {
+                if pattern.average_lifetime < Duration::from_secs(60)
+                    && age > Duration::from_secs(300)
+                {
                     confidence += 0.2; // This type usually has short lifetime but this one is old
                 }
             }
         }
-        
+
         confidence.min(1.0)
     }
 
     fn determine_leak_reason(&self, allocation: &AllocationInfo, age: Duration) -> String {
         let mut reasons = Vec::new();
-        
+
         if age > Duration::from_secs(3600) {
             reasons.push("allocation is very old (>1 hour)".to_string());
         } else if age > Duration::from_secs(1800) {
             reasons.push("allocation is old (>30 minutes)".to_string());
         }
-        
+
         if allocation.size > 1024 * 1024 * 10 {
             reasons.push("large allocation (>10MB)".to_string());
         }
-        
+
         if reasons.is_empty() {
             "allocation exceeds leak detection threshold".to_string()
         } else {
@@ -699,13 +721,20 @@ impl MemoryProfiler {
         }
     }
 
-    fn generate_leak_report(&self, leak_candidates: Vec<LeakCandidate>, timestamp: SystemTime) -> LeakReport {
+    fn generate_leak_report(
+        &self,
+        leak_candidates: Vec<LeakCandidate>,
+        timestamp: SystemTime,
+    ) -> LeakReport {
         let leak_count = leak_candidates.len();
-        let total_leaked_bytes = leak_candidates.iter().map(|l| l.allocation.size as u64).sum();
-        
+        let total_leaked_bytes = leak_candidates
+            .iter()
+            .map(|l| l.allocation.size as u64)
+            .sum();
+
         let mut leaks_by_confidence = HashMap::new();
         let mut leaks_by_device = HashMap::new();
-        
+
         for leak in &leak_candidates {
             let confidence_category = if leak.confidence >= 0.8 {
                 "high"
@@ -714,12 +743,16 @@ impl MemoryProfiler {
             } else {
                 "low"
             };
-            *leaks_by_confidence.entry(confidence_category.to_string()).or_insert(0) += 1;
-            *leaks_by_device.entry(leak.allocation.device_type.clone()).or_insert(0) += 1;
+            *leaks_by_confidence
+                .entry(confidence_category.to_string())
+                .or_insert(0) += 1;
+            *leaks_by_device
+                .entry(leak.allocation.device_type.clone())
+                .or_insert(0) += 1;
         }
-        
+
         let top_leaks = leak_candidates.into_iter().take(10).collect();
-        
+
         LeakReport {
             leak_count,
             total_leaked_bytes,
@@ -735,18 +768,18 @@ impl MemoryProfiler {
         let history = self.lifetime_history.lock().unwrap();
         let leaks = self.potential_leaks.lock().unwrap();
         let patterns = self.allocation_patterns.lock().unwrap();
-        
+
         let total_allocations = history.len() + tracked.len();
         let total_deallocations = history.len();
         let active_allocations = tracked.len();
-        
+
         let detected_leaks = leaks.clone();
         let lifetime_stats = self.calculate_lifetime_statistics(&history);
         let allocation_patterns: Vec<AllocationPattern> = patterns.values().cloned().collect();
         let usage_trends = self.calculate_usage_trends(session_duration);
         let profiling_overhead = self.calculate_profiling_overhead(session_duration);
         let recommendations = self.generate_recommendations(&detected_leaks, &allocation_patterns);
-        
+
         ProfilingReport {
             session_duration,
             total_allocations,
@@ -772,26 +805,27 @@ impl MemoryProfiler {
                 lifetime_distribution: HashMap::new(),
             };
         }
-        
-        let mut lifetimes: Vec<Duration> = history.iter()
-            .filter_map(|l| l.lifetime_duration)
-            .collect();
+
+        let mut lifetimes: Vec<Duration> =
+            history.iter().filter_map(|l| l.lifetime_duration).collect();
         lifetimes.sort();
-        
+
         let average_lifetime = lifetimes.iter().sum::<Duration>() / lifetimes.len() as u32;
         let median_lifetime = lifetimes[lifetimes.len() / 2];
         let shortest_lifetime = lifetimes.first().copied().unwrap_or(Duration::ZERO);
         let longest_lifetime = lifetimes.last().copied().unwrap_or(Duration::ZERO);
-        
+
         // Calculate standard deviation
-        let variance: f64 = lifetimes.iter()
+        let variance: f64 = lifetimes
+            .iter()
             .map(|&d| {
                 let diff = d.as_secs_f64() - average_lifetime.as_secs_f64();
                 diff * diff
             })
-            .sum::<f64>() / lifetimes.len() as f64;
+            .sum::<f64>()
+            / lifetimes.len() as f64;
         let lifetime_std_dev = Duration::from_secs_f64(variance.sqrt());
-        
+
         // Calculate distribution
         let mut lifetime_distribution = HashMap::new();
         for lifetime in &lifetimes {
@@ -802,9 +836,11 @@ impl MemoryProfiler {
                 3601..=86400 => "long",
                 _ => "very_long",
             };
-            *lifetime_distribution.entry(category.to_string()).or_insert(0) += 1;
+            *lifetime_distribution
+                .entry(category.to_string())
+                .or_insert(0) += 1;
         }
-        
+
         LifetimeStatistics {
             average_lifetime,
             median_lifetime,
@@ -833,7 +869,7 @@ impl MemoryProfiler {
             let history = self.lifetime_history.lock().unwrap();
             tracked.len() as u64 + history.len() as u64
         };
-        
+
         ProfilingOverhead {
             memory_overhead_bytes,
             cpu_overhead_percentage: 1.0, // Estimated
@@ -846,19 +882,29 @@ impl MemoryProfiler {
         }
     }
 
-    fn generate_recommendations(&self, leaks: &[LeakCandidate], patterns: &[AllocationPattern]) -> Vec<String> {
+    fn generate_recommendations(
+        &self,
+        leaks: &[LeakCandidate],
+        patterns: &[AllocationPattern],
+    ) -> Vec<String> {
         let mut recommendations = Vec::new();
-        
+
         if !leaks.is_empty() {
-            recommendations.push(format!("Investigate {} potential memory leaks", leaks.len()));
+            recommendations.push(format!(
+                "Investigate {} potential memory leaks",
+                leaks.len()
+            ));
         }
-        
+
         for pattern in patterns {
             if pattern.is_problematic {
-                recommendations.push(format!("Review allocation pattern: {}", pattern.description));
+                recommendations.push(format!(
+                    "Review allocation pattern: {}",
+                    pattern.description
+                ));
             }
         }
-        
+
         recommendations
     }
 }
@@ -876,46 +922,69 @@ mod tests {
     fn test_profiler_creation() {
         let config = ProfilingConfig::default();
         let profiler = MemoryProfiler::new(config).unwrap();
-        
+
         assert_eq!(profiler.estimated_memory_usage(), 0);
     }
 
     #[test]
     fn test_profiling_session() {
-        let config = ProfilingConfig::default();
-        let profiler = MemoryProfiler::new(config).unwrap();
-        
-        profiler.start_profiling();
-        
-        // Create a mock allocation
-        let allocation = AllocationInfo {
-            id: AllocationId::new(1),
-            size: 1024,
-            alignment: 16,
-            device_type: "CPU".to_string(),
-            timestamp: SystemTime::now(),
-            elapsed: Duration::from_millis(100),
-            stack_trace: None,
-            pool_type: "SmallBlock".to_string(),
-            is_active: true,
-        };
-        
-        profiler.record_allocation(allocation.clone());
-        profiler.record_deallocation(allocation);
-        
-        let report = profiler.stop_profiling();
-        assert_eq!(report.total_allocations, 1);
-        assert_eq!(report.total_deallocations, 1);
+        use crate::test_utils::timeout::execute_test_with_monitoring;
+        use crate::test_utils::TestCategory;
+        use std::time::Duration;
+
+        let result = execute_test_with_monitoring(
+            "test_profiling_session".to_string(),
+            TestCategory::Stress,
+            Duration::from_secs(60),
+            Box::new(|| {
+                let config = ProfilingConfig::default();
+                let profiler = MemoryProfiler::new(config).unwrap();
+
+                profiler.start_profiling();
+
+                // Create a mock allocation
+                let allocation = AllocationInfo {
+                    id: AllocationId::new(1),
+                    size: 1024,
+                    alignment: 16,
+                    device_type: "CPU".to_string(),
+                    timestamp: SystemTime::now(),
+                    elapsed: Duration::from_millis(100),
+                    stack_trace: None,
+                    pool_type: "SmallBlock".to_string(),
+                    is_active: true,
+                };
+
+                profiler.record_allocation(allocation.clone());
+                profiler.record_deallocation(allocation);
+
+                let report = profiler.stop_profiling();
+                assert_eq!(report.total_allocations, 1);
+                assert_eq!(report.total_deallocations, 1);
+            }),
+        );
+
+        if !result.success {
+            if let Some(error) = &result.error_message {
+                panic!("Test failed: {}", error);
+            } else {
+                panic!("Test failed with unknown error");
+            }
+        }
+
+        if result.timed_out {
+            panic!("Test timed out after 60s");
+        }
     }
 
     #[test]
     fn test_leak_detection() {
         let mut config = ProfilingConfig::default();
         config.leak_detection_threshold = Duration::from_millis(10);
-        
+
         let profiler = MemoryProfiler::new(config).unwrap();
         profiler.start_profiling();
-        
+
         // Create a long-lived allocation
         let allocation = AllocationInfo {
             id: AllocationId::new(1),
@@ -928,12 +997,12 @@ mod tests {
             pool_type: "SmallBlock".to_string(),
             is_active: true,
         };
-        
+
         profiler.record_allocation(allocation);
-        
+
         // Wait a bit to ensure it's old enough
         std::thread::sleep(Duration::from_millis(20));
-        
+
         let leak_report = profiler.detect_leaks();
         assert!(leak_report.leak_count > 0);
     }
@@ -942,10 +1011,10 @@ mod tests {
     fn test_snapshot_functionality() {
         let config = ProfilingConfig::default();
         let profiler = MemoryProfiler::new(config).unwrap();
-        
+
         profiler.start_profiling();
         profiler.take_snapshot("test_snapshot".to_string());
-        
+
         let snapshots = profiler.get_snapshots();
         assert_eq!(snapshots.len(), 1);
         assert_eq!(snapshots[0].id, "test_snapshot");
@@ -953,29 +1022,52 @@ mod tests {
 
     #[test]
     fn test_allocation_pattern_tracking() {
-        let config = ProfilingConfig::default();
-        let profiler = MemoryProfiler::new(config).unwrap();
-        
-        profiler.start_profiling();
-        
-        // Create allocations with similar patterns
-        for i in 0..5 {
-            let allocation = AllocationInfo {
-                id: AllocationId::new(i),
-                size: 1024, // Same size
-                alignment: 16,
-                device_type: "CPU".to_string(), // Same device
-                timestamp: SystemTime::now(),
-                elapsed: Duration::from_millis(100),
-                stack_trace: None,
-                pool_type: "SmallBlock".to_string(),
-                is_active: true,
-            };
-            profiler.record_allocation(allocation);
+        use crate::test_utils::timeout::execute_test_with_monitoring;
+        use crate::test_utils::TestCategory;
+        use std::time::Duration;
+
+        let result = execute_test_with_monitoring(
+            "test_allocation_pattern_tracking".to_string(),
+            TestCategory::Stress,
+            Duration::from_secs(60),
+            Box::new(|| {
+                let config = ProfilingConfig::default();
+                let profiler = MemoryProfiler::new(config).unwrap();
+
+                profiler.start_profiling();
+
+                // Create allocations with similar patterns
+                for i in 0..5 {
+                    let allocation = AllocationInfo {
+                        id: AllocationId::new(i),
+                        size: 1024, // Same size
+                        alignment: 16,
+                        device_type: "CPU".to_string(), // Same device
+                        timestamp: SystemTime::now(),
+                        elapsed: Duration::from_millis(100),
+                        stack_trace: None,
+                        pool_type: "SmallBlock".to_string(),
+                        is_active: true,
+                    };
+                    profiler.record_allocation(allocation);
+                }
+
+                let report = profiler.stop_profiling();
+                assert!(!report.allocation_patterns.is_empty());
+            }),
+        );
+
+        if !result.success {
+            if let Some(error) = &result.error_message {
+                panic!("Test failed: {}", error);
+            } else {
+                panic!("Test failed with unknown error");
+            }
         }
-        
-        let report = profiler.stop_profiling();
-        assert!(!report.allocation_patterns.is_empty());
+
+        if result.timed_out {
+            panic!("Test timed out after 60s");
+        }
     }
 
     #[test]
@@ -1016,10 +1108,10 @@ mod tests {
                 was_leak: false,
             },
         ];
-        
+
         let config = ProfilingConfig::default();
         let profiler = MemoryProfiler::new(config).unwrap();
-        
+
         let stats = profiler.calculate_lifetime_statistics(&lifetimes);
         assert_eq!(stats.average_lifetime, Duration::from_millis(150));
         assert_eq!(stats.shortest_lifetime, Duration::from_millis(100));

@@ -56,7 +56,10 @@ pub enum CalibrationError {
     ResourceExhausted { resource: String },
 
     #[error("Operation timeout: {operation} took longer than {timeout_seconds}s")]
-    Timeout { operation: String, timeout_seconds: u64 },
+    Timeout {
+        operation: String,
+        timeout_seconds: u64,
+    },
 
     #[error("Validation error: {field} - {message}")]
     Validation { field: String, message: String },

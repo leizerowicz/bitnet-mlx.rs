@@ -8,9 +8,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, Once};
 
 #[cfg(all(target_os = "macos", feature = "metal"))]
-use anyhow::Context;
-
-#[cfg(all(target_os = "macos", feature = "metal"))]
 use metal;
 
 use super::shader_compiler::ShaderLoader;
@@ -37,7 +34,7 @@ pub enum BitNetShaderFunction {
     BitLinearBackwardInput,
     BinarizeWeights,
     QuantizeActivations,
-    
+
     // Quantization operations
     QuantizeWeights1Bit,
     QuantizeActivations8Bit,
@@ -46,7 +43,7 @@ pub enum BitNetShaderFunction {
     DynamicQuantizeActivations,
     QuantizeGradients,
     MixedPrecisionMatmul,
-    
+
     // Activation functions
     ReluForward,
     ReluBackward,
@@ -70,20 +67,35 @@ impl BitNetShaderFunction {
     /// Gets the shader name for this function
     pub fn shader_name(self) -> &'static str {
         match self {
-            Self::BitLinearForward | Self::BitLinearBackwardInput | 
-            Self::BinarizeWeights | Self::QuantizeActivations => "bitlinear",
-            
-            Self::QuantizeWeights1Bit | Self::QuantizeActivations8Bit |
-            Self::DequantizeWeights1Bit | Self::DequantizeActivations8Bit |
-            Self::DynamicQuantizeActivations | Self::QuantizeGradients |
-            Self::MixedPrecisionMatmul => "quantization",
-            
-            Self::ReluForward | Self::ReluBackward | Self::GeluForward |
-            Self::GeluBackward | Self::SwishForward | Self::SwishBackward |
-            Self::SigmoidForward | Self::SigmoidBackward | Self::TanhForward |
-            Self::TanhBackward | Self::LeakyReluForward | Self::LeakyReluBackward |
-            Self::SoftmaxForward | Self::SoftmaxBackward | Self::LayerNormForward |
-            Self::FusedReluDropout => "activation",
+            Self::BitLinearForward
+            | Self::BitLinearBackwardInput
+            | Self::BinarizeWeights
+            | Self::QuantizeActivations => "bitlinear",
+
+            Self::QuantizeWeights1Bit
+            | Self::QuantizeActivations8Bit
+            | Self::DequantizeWeights1Bit
+            | Self::DequantizeActivations8Bit
+            | Self::DynamicQuantizeActivations
+            | Self::QuantizeGradients
+            | Self::MixedPrecisionMatmul => "quantization",
+
+            Self::ReluForward
+            | Self::ReluBackward
+            | Self::GeluForward
+            | Self::GeluBackward
+            | Self::SwishForward
+            | Self::SwishBackward
+            | Self::SigmoidForward
+            | Self::SigmoidBackward
+            | Self::TanhForward
+            | Self::TanhBackward
+            | Self::LeakyReluForward
+            | Self::LeakyReluBackward
+            | Self::SoftmaxForward
+            | Self::SoftmaxBackward
+            | Self::LayerNormForward
+            | Self::FusedReluDropout => "activation",
         }
     }
 
@@ -94,7 +106,7 @@ impl BitNetShaderFunction {
             Self::BitLinearBackwardInput => "bitlinear_backward_input",
             Self::BinarizeWeights => "binarize_weights",
             Self::QuantizeActivations => "quantize_activations",
-            
+
             Self::QuantizeWeights1Bit => "quantize_weights_1bit",
             Self::QuantizeActivations8Bit => "quantize_activations_8bit",
             Self::DequantizeWeights1Bit => "dequantize_weights_1bit",
@@ -102,7 +114,7 @@ impl BitNetShaderFunction {
             Self::DynamicQuantizeActivations => "dynamic_quantize_activations",
             Self::QuantizeGradients => "quantize_gradients",
             Self::MixedPrecisionMatmul => "mixed_precision_matmul",
-            
+
             Self::ReluForward => "relu_forward",
             Self::ReluBackward => "relu_backward",
             Self::GeluForward => "gelu_forward",
@@ -140,7 +152,7 @@ impl BitNetShaders {
         };
 
         let mut shader_loader = ShaderLoader::new(device.clone(), config)?;
-        
+
         // Preload all BitNet shaders
         shader_loader.preload_shaders(&["bitlinear", "quantization", "activation"])?;
 
@@ -164,9 +176,12 @@ impl BitNetShaders {
     }
 
     /// Gets a compute pipeline for the specified function
-    pub fn get_pipeline(&self, function: BitNetShaderFunction) -> Result<metal::ComputePipelineState> {
+    pub fn get_pipeline(
+        &self,
+        function: BitNetShaderFunction,
+    ) -> Result<metal::ComputePipelineState> {
         let pipeline_key = function.pipeline_key();
-        
+
         // Check cache first
         {
             let pipelines = self.pipelines.lock().unwrap();
@@ -176,10 +191,9 @@ impl BitNetShaders {
         }
 
         // Create pipeline
-        let pipeline = self.shader_loader.create_compute_pipeline(
-            function.shader_name(),
-            function.function_name(),
-        )?;
+        let pipeline = self
+            .shader_loader
+            .create_compute_pipeline(function.shader_name(), function.function_name())?;
 
         // Cache pipeline
         {
@@ -231,9 +245,13 @@ impl BitNetShaders {
         data_size: usize,
     ) -> Result<(metal::MTLSize, metal::MTLSize)> {
         let pipeline = self.get_pipeline(function)?;
-        
+
         // Use the existing optimal threadgroup calculation
-        Ok(super::calculate_optimal_threadgroup_size(&self.device, &pipeline, data_size))
+        Ok(super::calculate_optimal_threadgroup_size(
+            &self.device,
+            &pipeline,
+            data_size,
+        ))
     }
 }
 
@@ -276,8 +294,9 @@ pub fn get_global_shaders() -> Result<&'static BitNetShaders> {
     }
 
     Err(MetalError::LibraryCreationFailed(
-        "Global shaders not initialized. Call initialize_global_shaders() first.".to_string()
-    ).into())
+        "Global shaders not initialized. Call initialize_global_shaders() first.".to_string(),
+    )
+    .into())
 }
 
 /// Convenience functions for common shader operations
@@ -288,7 +307,10 @@ pub fn create_bitlinear_forward_encoder(
     shaders: &BitNetShaders,
     command_buffer: &metal::CommandBuffer,
 ) -> Result<metal::ComputeCommandEncoder> {
-    shaders.create_compute_encoder_with_pipeline(command_buffer, BitNetShaderFunction::BitLinearForward)
+    shaders.create_compute_encoder_with_pipeline(
+        command_buffer,
+        BitNetShaderFunction::BitLinearForward,
+    )
 }
 
 /// Creates a quantization encoder
@@ -394,7 +416,7 @@ impl BitNetShaders {
     pub fn new(_device: ()) -> Result<Self> {
         Err(MetalError::UnsupportedPlatform.into())
     }
-    
+
     pub fn get_available_shaders(&self) -> Vec<String> {
         Vec::new()
     }
@@ -416,12 +438,20 @@ pub fn create_bitlinear_forward_encoder(_shaders: &(), _command_buffer: &()) -> 
 }
 
 #[cfg(not(all(target_os = "macos", feature = "metal")))]
-pub fn create_quantization_encoder(_shaders: &(), _command_buffer: &(), _quantization_type: BitNetShaderFunction) -> Result<()> {
+pub fn create_quantization_encoder(
+    _shaders: &(),
+    _command_buffer: &(),
+    _quantization_type: BitNetShaderFunction,
+) -> Result<()> {
     Err(MetalError::UnsupportedPlatform.into())
 }
 
 #[cfg(not(all(target_os = "macos", feature = "metal")))]
-pub fn create_activation_encoder(_shaders: &(), _command_buffer: &(), _activation_type: BitNetShaderFunction) -> Result<()> {
+pub fn create_activation_encoder(
+    _shaders: &(),
+    _command_buffer: &(),
+    _activation_type: BitNetShaderFunction,
+) -> Result<()> {
     Err(MetalError::UnsupportedPlatform.into())
 }
 
@@ -473,17 +503,29 @@ mod tests {
 
     #[test]
     fn test_shader_function_names() {
-        assert_eq!(BitNetShaderFunction::BitLinearForward.shader_name(), "bitlinear");
-        assert_eq!(BitNetShaderFunction::BitLinearForward.function_name(), "bitlinear_forward");
-        assert_eq!(BitNetShaderFunction::QuantizeWeights1Bit.shader_name(), "quantization");
-        assert_eq!(BitNetShaderFunction::ReluForward.shader_name(), "activation");
+        assert_eq!(
+            BitNetShaderFunction::BitLinearForward.shader_name(),
+            "bitlinear"
+        );
+        assert_eq!(
+            BitNetShaderFunction::BitLinearForward.function_name(),
+            "bitlinear_forward"
+        );
+        assert_eq!(
+            BitNetShaderFunction::QuantizeWeights1Bit.shader_name(),
+            "quantization"
+        );
+        assert_eq!(
+            BitNetShaderFunction::ReluForward.shader_name(),
+            "activation"
+        );
     }
 
     #[test]
     fn test_pipeline_keys() {
         let key = BitNetShaderFunction::BitLinearForward.pipeline_key();
         assert_eq!(key, "bitlinear::bitlinear_forward");
-        
+
         let key = BitNetShaderFunction::QuantizeWeights1Bit.pipeline_key();
         assert_eq!(key, "quantization::quantize_weights_1bit");
     }
@@ -492,17 +534,17 @@ mod tests {
     #[cfg(target_os = "macos")]
     fn test_bitnet_shaders_creation() {
         use crate::metal::create_metal_device;
-        
+
         if let Ok(device) = create_metal_device() {
             // Note: This test may fail if shader files don't exist in the expected location
             let shaders_result = BitNetShaders::new(device);
             match shaders_result {
                 Ok(shaders) => {
                     let available = shaders.get_available_shaders();
-                    println!("Available shaders: {:?}", available);
+                    println!("Available shaders: {available:?}");
                 }
                 Err(e) => {
-                    println!("Expected failure (shader files may not exist): {}", e);
+                    println!("Expected failure (shader files may not exist): {e}");
                 }
             }
         }
@@ -513,7 +555,7 @@ mod tests {
     fn test_unsupported_platform() {
         let result = initialize_global_shaders(());
         assert!(result.is_err());
-        
+
         let result = get_global_shaders();
         assert!(result.is_err());
     }

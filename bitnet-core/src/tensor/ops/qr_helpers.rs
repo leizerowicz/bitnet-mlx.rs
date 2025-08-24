@@ -68,14 +68,14 @@ pub fn construct_matrix_from_columns(
             reason: "No columns provided".to_string(),
         });
     }
-    
+
     // Stack columns to form matrix
     let stacked = CandleTensor::stack(columns, 1)
         .map_err(|e| TensorOpError::CandleError {
             operation: "construct_matrix".to_string(),
             error: e.to_string(),
         })?;
-    
+
     Ok(stacked)
 }
 
@@ -86,7 +86,7 @@ pub fn construct_upper_triangular_matrix(
     cols: usize,
 ) -> TensorOpResult<CandleTensor> {
     let mut data = vec![0.0f32; rows * cols];
-    
+
     for i in 0..rows {
         for j in 0..cols {
             if j < r_matrix[i].len() {
@@ -94,7 +94,7 @@ pub fn construct_upper_triangular_matrix(
             }
         }
     }
-    
+
     let device = candle_core::Device::Cpu;
     CandleTensor::from_slice(&data, (rows, cols), &device)
         .map_err(|e| TensorOpError::CandleError {

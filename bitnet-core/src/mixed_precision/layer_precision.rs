@@ -3,8 +3,8 @@
 //! This module provides layer-specific precision management, allowing different layers
 //! to operate with different precision levels while maintaining compatibility.
 
-use super::{LayerType, ComponentType, MixedPrecisionError, MixedPrecisionResult};
 use super::config::LayerPrecisionConfig;
+use super::{ComponentType, LayerType, MixedPrecisionError, MixedPrecisionResult};
 use crate::memory::tensor::BitNetDType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -78,7 +78,11 @@ impl LayerPrecisionSpec {
     }
 
     /// Set component precision
-    pub fn with_component_precision(mut self, component: ComponentType, precision: BitNetDType) -> Self {
+    pub fn with_component_precision(
+        mut self,
+        component: ComponentType,
+        precision: BitNetDType,
+    ) -> Self {
         self.component_precisions.insert(component, precision);
         self
     }
@@ -104,44 +108,45 @@ impl LayerPrecisionSpec {
 
     /// Get the precision for a specific component
     pub fn get_component_precision(&self, component: ComponentType) -> BitNetDType {
-        self.component_precisions.get(&component).copied().unwrap_or_else(|| {
-            match component {
+        self.component_precisions
+            .get(&component)
+            .copied()
+            .unwrap_or_else(|| match component {
                 ComponentType::Weights => self.weight_precision,
                 ComponentType::Activations => self.input_precision,
                 _ => self.output_precision,
-            }
-        })
+            })
     }
 
     /// Check if the layer supports the given precision
     pub fn supports_precision(&self, precision: BitNetDType) -> bool {
-        precision.bits_per_element() >= self.min_precision.bits_per_element() &&
-        precision.bits_per_element() <= self.max_precision.bits_per_element() &&
-        self.layer_type.supports_precision(precision)
+        precision.bits_per_element() >= self.min_precision.bits_per_element()
+            && precision.bits_per_element() <= self.max_precision.bits_per_element()
+            && self.layer_type.supports_precision(precision)
     }
 
     /// Get the optimal precision for this layer given constraints
     pub fn get_optimal_precision(&self, target_memory_reduction: f32) -> BitNetDType {
         let alternatives = self.layer_type.precision_alternatives();
-        
+
         // Find the precision that achieves the target memory reduction
         let target_efficiency = 1.0 + target_memory_reduction;
-        
+
         let mut best_precision = self.weight_precision;
         let mut best_score = f32::INFINITY;
-        
+
         for &precision in &alternatives {
             if self.supports_precision(precision) {
                 let efficiency = precision.memory_efficiency();
                 let score = (efficiency - target_efficiency).abs();
-                
+
                 if score < best_score {
                     best_score = score;
                     best_precision = precision;
                 }
             }
         }
-        
+
         best_precision
     }
 
@@ -149,40 +154,40 @@ impl LayerPrecisionSpec {
     pub fn validate(&self) -> MixedPrecisionResult<()> {
         // Check if layer type supports all specified precisions
         if !self.layer_type.supports_precision(self.input_precision) {
-            return Err(MixedPrecisionError::InvalidConfiguration(
-                format!("Layer type {:?} does not support input precision {:?}", 
-                    self.layer_type, self.input_precision)
-            ));
+            return Err(MixedPrecisionError::InvalidConfiguration(format!(
+                "Layer type {:?} does not support input precision {:?}",
+                self.layer_type, self.input_precision
+            )));
         }
 
         if !self.layer_type.supports_precision(self.output_precision) {
-            return Err(MixedPrecisionError::InvalidConfiguration(
-                format!("Layer type {:?} does not support output precision {:?}", 
-                    self.layer_type, self.output_precision)
-            ));
+            return Err(MixedPrecisionError::InvalidConfiguration(format!(
+                "Layer type {:?} does not support output precision {:?}",
+                self.layer_type, self.output_precision
+            )));
         }
 
         if !self.layer_type.supports_precision(self.weight_precision) {
-            return Err(MixedPrecisionError::InvalidConfiguration(
-                format!("Layer type {:?} does not support weight precision {:?}", 
-                    self.layer_type, self.weight_precision)
-            ));
+            return Err(MixedPrecisionError::InvalidConfiguration(format!(
+                "Layer type {:?} does not support weight precision {:?}",
+                self.layer_type, self.weight_precision
+            )));
         }
 
         // Validate component precisions
         for (component, precision) in &self.component_precisions {
             if !component.supports_precision(*precision) {
-                return Err(MixedPrecisionError::InvalidConfiguration(
-                    format!("Component {:?} does not support precision {:?}", 
-                        component, precision)
-                ));
+                return Err(MixedPrecisionError::InvalidConfiguration(format!(
+                    "Component {:?} does not support precision {:?}",
+                    component, precision
+                )));
             }
         }
 
         // Validate precision bounds
         if self.min_precision.bits_per_element() > self.max_precision.bits_per_element() {
             return Err(MixedPrecisionError::InvalidConfiguration(
-                "Minimum precision cannot be higher than maximum precision".to_string()
+                "Minimum precision cannot be higher than maximum precision".to_string(),
             ));
         }
 
@@ -214,11 +219,11 @@ impl LayerPrecisionManager {
     /// Register a layer with its precision specification
     pub fn register_layer(&self, spec: LayerPrecisionSpec) -> MixedPrecisionResult<()> {
         spec.validate()?;
-        
+
         let mut specs = self.layer_specs.write().map_err(|_| {
             MixedPrecisionError::InvalidConfiguration("Failed to acquire write lock".to_string())
         })?;
-        
+
         specs.insert(spec.layer_id.clone(), spec);
         Ok(())
     }
@@ -241,18 +246,20 @@ impl LayerPrecisionManager {
 
         if let Some(spec) = specs.get_mut(layer_id) {
             if !spec.supports_precision(new_precision) {
-                return Err(MixedPrecisionError::InvalidConfiguration(
-                    format!("Layer {} does not support precision {:?}", layer_id, new_precision)
-                ));
+                return Err(MixedPrecisionError::InvalidConfiguration(format!(
+                    "Layer {} does not support precision {:?}",
+                    layer_id, new_precision
+                )));
             }
 
             spec.weight_precision = new_precision;
             spec.input_precision = new_precision;
             spec.output_precision = new_precision;
         } else {
-            return Err(MixedPrecisionError::InvalidConfiguration(
-                format!("Layer {} not found", layer_id)
-            ));
+            return Err(MixedPrecisionError::InvalidConfiguration(format!(
+                "Layer {} not found",
+                layer_id
+            )));
         }
 
         Ok(())
@@ -271,16 +278,18 @@ impl LayerPrecisionManager {
 
         if let Some(spec) = specs.get_mut(layer_id) {
             if !component.supports_precision(new_precision) {
-                return Err(MixedPrecisionError::InvalidConfiguration(
-                    format!("Component {:?} does not support precision {:?}", component, new_precision)
-                ));
+                return Err(MixedPrecisionError::InvalidConfiguration(format!(
+                    "Component {:?} does not support precision {:?}",
+                    component, new_precision
+                )));
             }
 
             spec.component_precisions.insert(component, new_precision);
         } else {
-            return Err(MixedPrecisionError::InvalidConfiguration(
-                format!("Layer {} not found", layer_id)
-            ));
+            return Err(MixedPrecisionError::InvalidConfiguration(format!(
+                "Layer {} not found",
+                layer_id
+            )));
         }
 
         Ok(())
@@ -289,7 +298,8 @@ impl LayerPrecisionManager {
     /// Get all layers of a specific type
     pub fn get_layers_by_type(&self, layer_type: LayerType) -> Vec<LayerPrecisionSpec> {
         let specs = self.layer_specs.read().unwrap();
-        specs.values()
+        specs
+            .values()
             .filter(|spec| spec.layer_type == layer_type)
             .cloned()
             .collect()
@@ -298,14 +308,18 @@ impl LayerPrecisionManager {
     /// Get layers using a specific precision
     pub fn get_layers_by_precision(&self, precision: BitNetDType) -> Vec<LayerPrecisionSpec> {
         let specs = self.layer_specs.read().unwrap();
-        specs.values()
+        specs
+            .values()
             .filter(|spec| spec.weight_precision == precision)
             .cloned()
             .collect()
     }
 
     /// Optimize precision across all layers for memory efficiency
-    pub fn optimize_for_memory(&self, target_reduction: f32) -> MixedPrecisionResult<Vec<(String, BitNetDType)>> {
+    pub fn optimize_for_memory(
+        &self,
+        target_reduction: f32,
+    ) -> MixedPrecisionResult<Vec<(String, BitNetDType)>> {
         let specs = self.layer_specs.read().map_err(|_| {
             MixedPrecisionError::InvalidConfiguration("Failed to acquire read lock".to_string())
         })?;
@@ -323,7 +337,10 @@ impl LayerPrecisionManager {
     }
 
     /// Apply precision optimizations
-    pub fn apply_optimizations(&self, optimizations: Vec<(String, BitNetDType)>) -> MixedPrecisionResult<()> {
+    pub fn apply_optimizations(
+        &self,
+        optimizations: Vec<(String, BitNetDType)>,
+    ) -> MixedPrecisionResult<()> {
         for (layer_id, precision) in optimizations {
             self.update_layer_precision(&layer_id, precision)?;
         }
@@ -373,20 +390,33 @@ impl LayerPrecisionManager {
             }
 
             // Track precision distribution
-            *precision_distribution.entry(spec.weight_precision).or_insert(0) += 1;
+            *precision_distribution
+                .entry(spec.weight_precision)
+                .or_insert(0) += 1;
             layer_count += 1;
         }
 
         PrecisionImpactAnalysis {
-            average_memory_savings: if layer_count > 0 { total_memory_savings / layer_count as f32 } else { 0.0 },
-            average_accuracy_impact: if layer_count > 0 { total_accuracy_impact / layer_count as f32 } else { 0.0 },
+            average_memory_savings: if layer_count > 0 {
+                total_memory_savings / layer_count as f32
+            } else {
+                0.0
+            },
+            average_accuracy_impact: if layer_count > 0 {
+                total_accuracy_impact / layer_count as f32
+            } else {
+                0.0
+            },
             precision_distribution,
             total_layers: layer_count,
         }
     }
 
     /// Set global precision constraints
-    pub fn set_global_constraints(&self, constraints: PrecisionConstraints) -> MixedPrecisionResult<()> {
+    pub fn set_global_constraints(
+        &self,
+        constraints: PrecisionConstraints,
+    ) -> MixedPrecisionResult<()> {
         let mut global_constraints = self.global_constraints.write().map_err(|_| {
             MixedPrecisionError::InvalidConfiguration("Failed to acquire write lock".to_string())
         })?;
@@ -408,9 +438,10 @@ impl LayerPrecisionManager {
         for (layer_id, spec) in specs.iter() {
             spec.validate()?;
             constraints.validate_layer_spec(spec).map_err(|e| {
-                MixedPrecisionError::InvalidConfiguration(
-                    format!("Layer '{}' violates global constraints: {}", layer_id, e)
-                )
+                MixedPrecisionError::InvalidConfiguration(format!(
+                    "Layer '{}' violates global constraints: {}",
+                    layer_id, e
+                ))
             })?;
         }
 
@@ -456,17 +487,17 @@ impl PrecisionConstraints {
     pub fn validate_layer_spec(&self, spec: &LayerPrecisionSpec) -> MixedPrecisionResult<()> {
         // Check global precision bounds
         if spec.weight_precision.bits_per_element() < self.min_global_precision.bits_per_element() {
-            return Err(MixedPrecisionError::ValidationError(
-                format!("Layer precision {:?} is below global minimum {:?}", 
-                    spec.weight_precision, self.min_global_precision)
-            ));
+            return Err(MixedPrecisionError::ValidationError(format!(
+                "Layer precision {:?} is below global minimum {:?}",
+                spec.weight_precision, self.min_global_precision
+            )));
         }
 
         if spec.weight_precision.bits_per_element() > self.max_global_precision.bits_per_element() {
-            return Err(MixedPrecisionError::ValidationError(
-                format!("Layer precision {:?} is above global maximum {:?}", 
-                    spec.weight_precision, self.max_global_precision)
-            ));
+            return Err(MixedPrecisionError::ValidationError(format!(
+                "Layer precision {:?} is above global maximum {:?}",
+                spec.weight_precision, self.max_global_precision
+            )));
         }
 
         // Check layer-type specific constraints
@@ -493,21 +524,22 @@ impl LayerTypeConstraints {
     /// Validate a layer specification against these constraints
     pub fn validate_spec(&self, spec: &LayerPrecisionSpec) -> MixedPrecisionResult<()> {
         // Check if precision is allowed
-        if !self.allowed_precisions.is_empty() && 
-           !self.allowed_precisions.contains(&spec.weight_precision) {
-            return Err(MixedPrecisionError::ValidationError(
-                format!("Precision {:?} is not allowed for layer type {:?}", 
-                    spec.weight_precision, spec.layer_type)
-            ));
+        if !self.allowed_precisions.is_empty()
+            && !self.allowed_precisions.contains(&spec.weight_precision)
+        {
+            return Err(MixedPrecisionError::ValidationError(format!(
+                "Precision {:?} is not allowed for layer type {:?}",
+                spec.weight_precision, spec.layer_type
+            )));
         }
 
         // Check required components
         for &required_component in &self.required_components {
             if !spec.component_precisions.contains_key(&required_component) {
-                return Err(MixedPrecisionError::ValidationError(
-                    format!("Required component {:?} not specified for layer type {:?}", 
-                        required_component, spec.layer_type)
-                ));
+                return Err(MixedPrecisionError::ValidationError(format!(
+                    "Required component {:?} not specified for layer type {:?}",
+                    required_component, spec.layer_type
+                )));
             }
         }
 
@@ -583,16 +615,23 @@ mod tests {
             BitNetDType::I8,
             BitNetDType::I8,
             BitNetDType::BitNet158,
-        ).with_component_precision(ComponentType::Bias, BitNetDType::F16);
+        )
+        .with_component_precision(ComponentType::Bias, BitNetDType::F16);
 
-        assert_eq!(spec.get_component_precision(ComponentType::Bias), BitNetDType::F16);
-        assert_eq!(spec.get_component_precision(ComponentType::Weights), BitNetDType::BitNet158);
+        assert_eq!(
+            spec.get_component_precision(ComponentType::Bias),
+            BitNetDType::F16
+        );
+        assert_eq!(
+            spec.get_component_precision(ComponentType::Weights),
+            BitNetDType::BitNet158
+        );
     }
 
     #[test]
     fn test_layer_precision_manager() {
         let manager = LayerPrecisionManager::new();
-        
+
         let spec = LayerPrecisionSpec::new(
             "test_layer".to_string(),
             LayerType::Linear,
@@ -602,7 +641,7 @@ mod tests {
         );
 
         assert!(manager.register_layer(spec).is_ok());
-        
+
         let retrieved_spec = manager.get_layer_spec("test_layer");
         assert!(retrieved_spec.is_some());
         assert_eq!(retrieved_spec.unwrap().layer_type, LayerType::Linear);
@@ -611,7 +650,7 @@ mod tests {
     #[test]
     fn test_precision_optimization() {
         let manager = LayerPrecisionManager::new();
-        
+
         let spec = LayerPrecisionSpec::new(
             "test_layer".to_string(),
             LayerType::Linear,
@@ -621,10 +660,10 @@ mod tests {
         );
 
         manager.register_layer(spec).unwrap();
-        
+
         let optimizations = manager.optimize_for_memory(0.5).unwrap();
         assert!(!optimizations.is_empty());
-        
+
         let (layer_id, new_precision) = &optimizations[0];
         assert_eq!(layer_id, "test_layer");
         assert_ne!(*new_precision, BitNetDType::F32); // Should suggest a more efficient precision
@@ -662,7 +701,7 @@ mod tests {
     #[test]
     fn test_performance_metrics() {
         let manager = LayerPrecisionManager::new();
-        
+
         let metrics = LayerPerformanceMetrics {
             execution_time_ms: 10.5,
             memory_usage_bytes: 1024,
@@ -671,8 +710,10 @@ mod tests {
             energy_consumption_j: 0.5,
         };
 
-        assert!(manager.record_performance("test_layer", metrics.clone()).is_ok());
-        
+        assert!(manager
+            .record_performance("test_layer", metrics.clone())
+            .is_ok());
+
         let retrieved_metrics = manager.get_performance_metrics("test_layer");
         assert!(retrieved_metrics.is_some());
         assert_eq!(retrieved_metrics.unwrap().execution_time_ms, 10.5);

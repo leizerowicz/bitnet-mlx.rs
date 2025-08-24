@@ -4,7 +4,7 @@
 //! system and implements memory-aware optimization strategies.
 
 use crate::bitlinear::error::{BitLinearError, BitLinearResult};
-use bitnet_core::memory::{HybridMemoryPool, MemoryMetrics, tracking};
+use bitnet_core::memory::{tracking, HybridMemoryPool, MemoryMetrics};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 
@@ -23,7 +23,7 @@ impl From<tracking::MemoryPressureLevel> for MemoryPressureLevel {
     fn from(level: tracking::MemoryPressureLevel) -> Self {
         match level {
             tracking::MemoryPressureLevel::Low => MemoryPressureLevel::Low,
-            tracking::MemoryPressureLevel::High => MemoryPressureLevel::High, 
+            tracking::MemoryPressureLevel::High => MemoryPressureLevel::High,
             tracking::MemoryPressureLevel::Critical => MemoryPressureLevel::Critical,
             tracking::MemoryPressureLevel::None => MemoryPressureLevel::Low, // Map None to Low
             tracking::MemoryPressureLevel::Medium => MemoryPressureLevel::High, // Map Medium to High
@@ -52,8 +52,8 @@ impl Default for PressureConfig {
     fn default() -> Self {
         Self {
             enable_monitoring: true,
-            check_interval_seconds: 0.1, // 100ms check interval
-            high_pressure_threshold: 75.0, // 75% memory usage
+            check_interval_seconds: 0.1,       // 100ms check interval
+            high_pressure_threshold: 75.0,     // 75% memory usage
             critical_pressure_threshold: 90.0, // 90% memory usage
             auto_cache_eviction: true,
             enable_compaction: true,
@@ -62,7 +62,7 @@ impl Default for PressureConfig {
 }
 
 /// Memory Pressure Integration Manager
-/// 
+///
 /// Integrates with the existing HybridMemoryPool pressure detection
 /// and provides memory-aware optimization for BitLinear layers.
 pub struct MemoryPressureIntegrator {
@@ -80,7 +80,7 @@ impl MemoryPressureIntegrator {
     /// Create a new memory pressure integrator
     pub fn new(
         config: PressureConfig,
-        memory_pool: Arc<HybridMemoryPool>
+        memory_pool: Arc<HybridMemoryPool>,
     ) -> BitLinearResult<Self> {
         Ok(Self {
             config,
@@ -97,10 +97,11 @@ impl MemoryPressureIntegrator {
         }
 
         // Check if enough time has passed since last check
-        let mut last_check = self.last_check
+        let mut last_check = self
+            .last_check
             .lock()
             .map_err(|_| BitLinearError::cache_lock_error("last check"))?;
-        
+
         let now = Instant::now();
         if let Some(last) = *last_check {
             let elapsed = now.duration_since(last);
@@ -116,9 +117,10 @@ impl MemoryPressureIntegrator {
         // Get current memory metrics
         let metrics = self.memory_pool.get_metrics();
         let pressure_level = self.calculate_pressure_level(&metrics)?;
-        
+
         // Update current pressure
-        let mut current_pressure = self.current_pressure
+        let mut current_pressure = self
+            .current_pressure
             .write()
             .map_err(|_| BitLinearError::cache_lock_error("pressure level"))?;
         *current_pressure = pressure_level.clone();
@@ -129,20 +131,24 @@ impl MemoryPressureIntegrator {
 
     /// Get current pressure level
     pub fn get_current_pressure(&self) -> BitLinearResult<MemoryPressureLevel> {
-        let pressure = self.current_pressure
+        let pressure = self
+            .current_pressure
             .read()
             .map_err(|_| BitLinearError::cache_lock_error("last check"))?;
         Ok(pressure.clone())
     }
 
     /// Calculate pressure level based on memory metrics
-    fn calculate_pressure_level(&self, metrics: &MemoryMetrics) -> BitLinearResult<MemoryPressureLevel> {
+    fn calculate_pressure_level(
+        &self,
+        metrics: &MemoryMetrics,
+    ) -> BitLinearResult<MemoryPressureLevel> {
         let total_allocated = metrics.total_allocated;
-        
+
         // Simple pressure calculation based on allocation percentage
         // In a real implementation, this might consider system memory limits
         let usage_percentage = (total_allocated as f32 / (1024.0 * 1024.0 * 1024.0)) * 100.0; // Convert to GB percentage
-        
+
         if usage_percentage >= self.config.critical_pressure_threshold {
             Ok(MemoryPressureLevel::Critical)
         } else if usage_percentage >= self.config.high_pressure_threshold {
@@ -191,14 +197,14 @@ mod tests {
         assert!(config.critical_pressure_threshold > config.high_pressure_threshold);
     }
 
-    #[test] 
+    #[test]
     fn test_pressure_integrator_creation() {
         let memory_pool = Arc::new(HybridMemoryPool::new().unwrap());
         let config = PressureConfig::default();
-        
+
         let integrator = MemoryPressureIntegrator::new(config, memory_pool);
         assert!(integrator.is_ok());
-        
+
         let integrator = integrator.unwrap();
         let pressure = integrator.get_current_pressure().unwrap();
         assert_eq!(pressure, MemoryPressureLevel::Low);

@@ -1,34 +1,32 @@
 //! Phase 3.3 Integration Validation Example
-//! 
+//!
 //! This example demonstrates the integration and functionality of all Phase 3.3 components
 
 use bitnet_quant::metrics::{
+    cosine_similarity::calculate_cosine_similarity, mse::calculate_mse, sqnr::calculate_sqnr,
     QuantizationMetrics,
-    mse::calculate_mse, 
-    sqnr::calculate_sqnr,
-    cosine_similarity::calculate_cosine_similarity,
 };
-use candle_core::{Device, Tensor, Result};
+use candle_core::{Device, Result, Tensor};
 
 fn main() -> Result<()> {
     println!("🚀 BitNet-Rust Phase 3.3 Integration Validation");
-    println!("{}",  "=".repeat(60));
+    println!("{}", "=".repeat(60));
 
     let device = &Device::Cpu;
-    
+
     // Create test data
     let original = Tensor::randn(0f32, 1f32, (1000,), device)?;
     let quantized = original.add(&Tensor::randn(0f32, 0.1f32, (1000,), device)?)?;
 
     println!("\n📊 Testing Core Metrics Components");
     println!("{}", "-".repeat(40));
-    
+
     // Test MSE Calculator
     print!("Testing MSE Calculator... ");
     let mse = calculate_mse(&original, &quantized)?;
     println!("✅ MSE: {mse:.6}");
 
-    // Test SQNR Calculator  
+    // Test SQNR Calculator
     print!("Testing SQNR Calculator... ");
     let sqnr = calculate_sqnr(&original, &quantized)?;
     println!("✅ SQNR: {sqnr:.2} dB");
@@ -37,7 +35,7 @@ fn main() -> Result<()> {
     print!("Testing Cosine Similarity... ");
     let similarity = calculate_cosine_similarity(&original, &quantized)?;
     println!("✅ Similarity: {similarity:.4}");
-    
+
     // Create comprehensive metrics
     let metrics = QuantizationMetrics {
         mse,
@@ -67,6 +65,6 @@ fn main() -> Result<()> {
     println!("\n🎉 Phase 3.3 Integration Validation Complete!");
     println!("✅ All core metrics components functioning correctly");
     println!("✅ Error analysis and metrics system ready for production");
-    
+
     Ok(())
 }

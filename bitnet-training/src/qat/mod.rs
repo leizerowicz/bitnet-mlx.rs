@@ -1,73 +1,47 @@
 // QAT Module - Phase 3.2 Quantization-Aware Training Infrastructure
 // Builds on completed BitLinear implementation from Phase 2
 
-pub mod straight_through;
 pub mod autograd;
-pub mod loss;  
-pub mod optimizer;
-pub mod regularization;
 pub mod distillation;
+pub mod loss;
+pub mod optimizer;
 pub mod progressive;
+pub mod regularization;
 pub mod state_tracking;
+pub mod straight_through;
 
 // Re-export core QAT functionality
-pub use straight_through::{
-    StraightThroughEstimator,
-    STEVariant,
-    STEConfig,
-    quantize_with_ste,
-};
+pub use straight_through::{quantize_with_ste, STEConfig, STEVariant, StraightThroughEstimator};
 
-pub use autograd::{
-    QATAutograd,
-    QuantizationFunction,  
-    create_quantization_function,
-};
+pub use autograd::{create_quantization_function, QATAutograd, QuantizationFunction};
 
 pub use optimizer::{
-    QATOptimizer,
-    QuantizationAwareAdam,
+    QATAdam, QATAdamW, QATOptimizer, QATSGDWithMomentum, QuantizationAwareAdam,
     QuantizationAwareAdamW,
 };
 
 pub use loss::{
-    QATLoss,
+    DistillationLoss, DistillationLossComponents, ProgressiveLossComponents, QATLoss,
     QuantizationAwareLoss,
-    DistillationLoss,
-    DistillationLossComponents,
-    ProgressiveLossComponents,
 };
 
 pub use regularization::{
-    QATRegularization,
-    RegularizationConfig,
-    RegularizationStats,
-    QuantizationRegularizer,
+    QATRegularization, QuantizationRegularizer, RegularizationConfig, RegularizationStats,
 };
 
 pub use distillation::{
-    KnowledgeDistillation,
-    DistillationConfig,
-    TeacherStudentPair,
-    DistillationMetrics,
+    DistillationConfig, DistillationMetrics, KnowledgeDistillation, TeacherStudentPair,
 };
 
 pub use progressive::{
-    ProgressiveQuantization,
+    CompletionCriteria, LayerWiseQuantization, LayerWiseQuantizationScheduler,
+    ProgressiveQuantization, ProgressiveQuantizationScheduler, ProgressiveStrategy,
     QuantizationPhase,
-    LayerWiseQuantization,
-    ProgressiveStrategy,
-    CompletionCriteria,
 };
 
-pub use state_tracking::{
-    QATTrainingState,
-    QATStateTracker,
-    CheckpointManager,
-    TrainingMetrics,
-};
+pub use state_tracking::{CheckpointManager, QATStateTracker, QATTrainingState, TrainingMetrics};
 
-use candle_core::{Device, DType};
+use candle_core::{DType, Device};
 use std::collections::HashMap;
 
 /// QAT Training Configuration
@@ -251,7 +225,7 @@ mod tests {
         let config = QATConfig::default();
         let device = Device::Cpu;
         let context = QATContext::new(config, device);
-        
+
         assert_eq!(context.current_bit_width(), 1);
         assert!(!context.is_progressive_active());
     }

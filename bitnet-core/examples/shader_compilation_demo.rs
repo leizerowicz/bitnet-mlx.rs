@@ -23,7 +23,10 @@ fn main() -> Result<()> {
             shaders
         }
         Err(e) => {
-            println!("   ⚠ Failed to load shaders (expected if shader files don't exist): {}", e);
+            println!(
+                "   ⚠ Failed to load shaders (expected if shader files don't exist): {}",
+                e
+            );
             println!("   This is normal in a fresh checkout - shader files need to be in the correct location.");
             return Ok(());
         }
@@ -34,7 +37,7 @@ fn main() -> Result<()> {
     let available_shaders = shaders.get_available_shaders();
     for shader_name in &available_shaders {
         println!("   • {}", shader_name);
-        
+
         // List functions in each shader
         if let Ok(functions) = shaders.get_shader_functions(shader_name) {
             for function in functions {
@@ -57,18 +60,25 @@ fn main() -> Result<()> {
                 println!("   ✓ Created pipeline for {}", function.function_name());
             }
             Err(e) => {
-                println!("   ✗ Failed to create pipeline for {}: {}", function.function_name(), e);
+                println!(
+                    "   ✗ Failed to create pipeline for {}: {}",
+                    function.function_name(),
+                    e
+                );
             }
         }
     }
 
     // Demonstrate buffer creation and basic compute setup
     println!("\n5. Setting up compute operation...");
-    
+
     // Create test data
     let input_data = vec![1.0f32, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
     let input_buffer = create_buffer(&device, &input_data)?;
-    println!("   ✓ Created input buffer with {} elements", input_data.len());
+    println!(
+        "   ✓ Created input buffer with {} elements",
+        input_data.len()
+    );
 
     // Create output buffer
     let output_buffer = create_empty_buffer(
@@ -83,36 +93,40 @@ fn main() -> Result<()> {
     println!("   ✓ Created command buffer");
 
     // Try to create a ReLU forward encoder (simplest activation function)
-    match shaders.create_compute_encoder_with_pipeline(command_buffer, BitNetShaderFunction::ReluForward) {
+    match shaders
+        .create_compute_encoder_with_pipeline(command_buffer, BitNetShaderFunction::ReluForward)
+    {
         Ok(encoder) => {
             println!("   ✓ Created ReLU forward compute encoder");
-            
+
             // Set up the compute operation
-            encoder.set_buffer(0, Some(&input_buffer), 0);  // input
+            encoder.set_buffer(0, Some(&input_buffer), 0); // input
             encoder.set_buffer(1, Some(&output_buffer), 0); // output
             set_compute_bytes(&encoder, &[input_data.len() as u32], 2); // count
-            
+
             // Calculate dispatch parameters
-            if let Ok((threads, threadgroup)) = shaders.calculate_dispatch_params(
-                BitNetShaderFunction::ReluForward,
-                input_data.len(),
-            ) {
-                println!("   ✓ Calculated dispatch: threads={:?}, threadgroup={:?}", threads, threadgroup);
-                
+            if let Ok((threads, threadgroup)) = shaders
+                .calculate_dispatch_params(BitNetShaderFunction::ReluForward, input_data.len())
+            {
+                println!(
+                    "   ✓ Calculated dispatch: threads={:?}, threadgroup={:?}",
+                    threads, threadgroup
+                );
+
                 // Dispatch the compute operation
                 dispatch_compute(&encoder, threads, threadgroup);
                 encoder.end_encoding();
-                
+
                 // Execute and wait
                 command_buffer.commit();
                 command_buffer.wait_until_completed();
-                
+
                 // Read results
                 let output_data: Vec<f32> = read_buffer(&output_buffer)?;
                 println!("   ✓ ReLU operation completed");
                 println!("     Input:  {:?}", input_data);
                 println!("     Output: {:?}", output_data);
-                
+
                 // Verify ReLU operation (should be max(0, x))
                 let expected: Vec<f32> = input_data.iter().map(|&x| x.max(0.0)).collect();
                 if output_data == expected {

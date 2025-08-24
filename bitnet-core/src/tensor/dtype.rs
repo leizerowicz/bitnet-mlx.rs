@@ -4,8 +4,8 @@
 //! including support for standard floating point types, integer types, and
 //! BitNet-specific quantized types.
 
-use std::fmt;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, warn};
@@ -23,11 +23,11 @@ pub enum BitNetDType {
     F16,
     /// Brain floating point 16-bit
     BF16,
-    
+
     // Integer types
     /// 8-bit signed integer
     I8,
-    /// 16-bit signed integer  
+    /// 16-bit signed integer
     I16,
     /// 32-bit signed integer
     I32,
@@ -41,11 +41,11 @@ pub enum BitNetDType {
     U32,
     /// 64-bit unsigned integer
     U64,
-    
+
     // Boolean type
     /// Boolean values
     Bool,
-    
+
     // BitNet-specific quantized types
     /// 1.58-bit quantized type (ternary: -1, 0, +1)
     BitNet158,
@@ -126,7 +126,8 @@ impl BitNetDType {
     /// assert!(!BitNetDType::I32.is_floating_point());
     /// ```
     pub fn is_floating_point(self) -> bool {
-        matches!(self,
+        matches!(
+            self,
             BitNetDType::F32 | BitNetDType::F16 | BitNetDType::BF16
         )
     }
@@ -142,9 +143,16 @@ impl BitNetDType {
     /// assert!(!BitNetDType::F32.is_integer());
     /// ```
     pub fn is_integer(self) -> bool {
-        matches!(self,
-            BitNetDType::I8 | BitNetDType::I16 | BitNetDType::I32 | BitNetDType::I64 |
-            BitNetDType::U8 | BitNetDType::U16 | BitNetDType::U32 | BitNetDType::U64
+        matches!(
+            self,
+            BitNetDType::I8
+                | BitNetDType::I16
+                | BitNetDType::I32
+                | BitNetDType::I64
+                | BitNetDType::U8
+                | BitNetDType::U16
+                | BitNetDType::U32
+                | BitNetDType::U64
         )
     }
 
@@ -160,11 +168,21 @@ impl BitNetDType {
     /// assert!(BitNetDType::F32.is_signed()); // Floating point types are considered signed
     /// ```
     pub fn is_signed(self) -> bool {
-        matches!(self,
-            BitNetDType::F32 | BitNetDType::F16 | BitNetDType::BF16 |
-            BitNetDType::I8 | BitNetDType::I16 | BitNetDType::I32 | BitNetDType::I64 |
-            BitNetDType::BitNet158 | BitNetDType::BitNet11 | BitNetDType::BitNet1 | BitNetDType::Int4 |
-            BitNetDType::QInt8 | BitNetDType::QInt4
+        matches!(
+            self,
+            BitNetDType::F32
+                | BitNetDType::F16
+                | BitNetDType::BF16
+                | BitNetDType::I8
+                | BitNetDType::I16
+                | BitNetDType::I32
+                | BitNetDType::I64
+                | BitNetDType::BitNet158
+                | BitNetDType::BitNet11
+                | BitNetDType::BitNet1
+                | BitNetDType::Int4
+                | BitNetDType::QInt8
+                | BitNetDType::QInt4
         )
     }
 
@@ -179,9 +197,14 @@ impl BitNetDType {
     /// assert!(!BitNetDType::F32.is_quantized());
     /// ```
     pub fn is_quantized(self) -> bool {
-        matches!(self,
-            BitNetDType::BitNet158 | BitNetDType::BitNet11 | BitNetDType::BitNet1 |
-            BitNetDType::Int4 | BitNetDType::QInt8 | BitNetDType::QInt4
+        matches!(
+            self,
+            BitNetDType::BitNet158
+                | BitNetDType::BitNet11
+                | BitNetDType::BitNet1
+                | BitNetDType::Int4
+                | BitNetDType::QInt8
+                | BitNetDType::QInt4
         )
     }
 
@@ -196,9 +219,13 @@ impl BitNetDType {
     /// assert!(!BitNetDType::F32.is_packed());
     /// ```
     pub fn is_packed(self) -> bool {
-        matches!(self,
-            BitNetDType::BitNet158 | BitNetDType::BitNet11 | BitNetDType::BitNet1 |
-            BitNetDType::Int4 | BitNetDType::QInt4
+        matches!(
+            self,
+            BitNetDType::BitNet158
+                | BitNetDType::BitNet11
+                | BitNetDType::BitNet1
+                | BitNetDType::Int4
+                | BitNetDType::QInt4
         )
     }
 
@@ -343,7 +370,10 @@ impl BitNetDType {
             // BitNet-specific types don't have candle equivalents
             _ => {
                 #[cfg(feature = "tracing")]
-                debug!("Converting BitNet-specific type {:?} to candle DType not supported", self);
+                debug!(
+                    "Converting BitNet-specific type {:?} to candle DType not supported",
+                    self
+                );
                 None
             }
         }
@@ -438,14 +468,17 @@ pub enum DataTypeError {
     /// Unsupported conversion between data types
     #[error("Unsupported conversion from {from} to {to}")]
     UnsupportedConversion { from: String, to: String },
-    
+
     /// Value out of range for target data type
     #[error("Value {value} out of range for data type {dtype}")]
     ValueOutOfRange { value: f64, dtype: BitNetDType },
-    
+
     /// Invalid data type for operation
     #[error("Invalid data type {dtype} for operation {operation}")]
-    InvalidDataType { dtype: BitNetDType, operation: String },
+    InvalidDataType {
+        dtype: BitNetDType,
+        operation: String,
+    },
 }
 
 /// Result type for data type operations
@@ -506,19 +539,19 @@ impl DataTypeUtils {
         match (lhs, rhs) {
             // Same types are always compatible
             (a, b) if a == b => true,
-            
+
             // Floating point types are compatible with each other
-            (BitNetDType::F32, BitNetDType::F16) |
-            (BitNetDType::F16, BitNetDType::F32) |
-            (BitNetDType::F32, BitNetDType::BF16) |
-            (BitNetDType::BF16, BitNetDType::F32) => true,
-            
+            (BitNetDType::F32, BitNetDType::F16)
+            | (BitNetDType::F16, BitNetDType::F32)
+            | (BitNetDType::F32, BitNetDType::BF16)
+            | (BitNetDType::BF16, BitNetDType::F32) => true,
+
             // Integer types with same signedness are compatible
             (a, b) if a.is_integer() && b.is_integer() && a.is_signed() == b.is_signed() => true,
-            
+
             // BitNet quantized types are compatible with each other
             (a, b) if a.is_quantized() && b.is_quantized() => true,
-            
+
             // Other combinations are not compatible
             _ => false,
         }
@@ -545,16 +578,16 @@ impl DataTypeUtils {
     /// ```
     pub fn promote_types(lhs: BitNetDType, rhs: BitNetDType) -> BitNetDType {
         use BitNetDType::*;
-        
+
         match (lhs, rhs) {
             // Same types promote to themselves
             (a, b) if a == b => a,
-            
+
             // Floating point promotion hierarchy: F32 > BF16 > F16
             (F32, _) | (_, F32) => F32,
             (BF16, F16) | (F16, BF16) | (BF16, _) | (_, BF16) => BF16,
             (F16, _) | (_, F16) => F16,
-            
+
             // Integer promotion based on size and signedness
             (I64, _) | (_, I64) => I64,
             (U64, a) if !a.is_signed() => U64,
@@ -566,12 +599,12 @@ impl DataTypeUtils {
             (U16, a) if !a.is_signed() => U16,
             (a, U16) if !a.is_signed() => U16,
             (I8, _) | (_, I8) => I8,
-            
+
             // BitNet quantized types promote to the most general
             (BitNet158, _) | (_, BitNet158) => BitNet158,
             (BitNet11, _) | (_, BitNet11) => BitNet11,
             (BitNet1, _) | (_, BitNet1) => BitNet1,
-            
+
             // Default fallback
             _ => F32,
         }
@@ -594,17 +627,17 @@ mod tests {
     fn test_dtype_properties() {
         assert!(BitNetDType::F32.is_floating_point());
         assert!(!BitNetDType::I32.is_floating_point());
-        
+
         assert!(BitNetDType::I32.is_integer());
         assert!(!BitNetDType::F32.is_integer());
-        
+
         assert!(BitNetDType::I32.is_signed());
         assert!(!BitNetDType::U32.is_signed());
         assert!(BitNetDType::F32.is_signed());
-        
+
         assert!(BitNetDType::BitNet158.is_quantized());
         assert!(!BitNetDType::F32.is_quantized());
-        
+
         assert!(BitNetDType::BitNet158.is_packed());
         assert!(!BitNetDType::F32.is_packed());
     }
@@ -618,11 +651,20 @@ mod tests {
 
     #[test]
     fn test_candle_dtype_conversion() {
-        assert_eq!(BitNetDType::F32.to_candle_dtype(), Some(candle_core::DType::F32));
+        assert_eq!(
+            BitNetDType::F32.to_candle_dtype(),
+            Some(candle_core::DType::F32)
+        );
         assert_eq!(BitNetDType::BitNet158.to_candle_dtype(), None);
-        
-        assert_eq!(BitNetDType::from_candle_dtype(candle_core::DType::F32), BitNetDType::F32);
-        assert_eq!(BitNetDType::from_candle_dtype(candle_core::DType::F16), BitNetDType::F16);
+
+        assert_eq!(
+            BitNetDType::from_candle_dtype(candle_core::DType::F32),
+            BitNetDType::F32
+        );
+        assert_eq!(
+            BitNetDType::from_candle_dtype(candle_core::DType::F16),
+            BitNetDType::F16
+        );
     }
 
     #[test]
@@ -642,24 +684,51 @@ mod tests {
 
     #[test]
     fn test_compatibility() {
-        assert!(DataTypeUtils::are_compatible(BitNetDType::F32, BitNetDType::F32));
-        assert!(DataTypeUtils::are_compatible(BitNetDType::F32, BitNetDType::F16));
-        assert!(!DataTypeUtils::are_compatible(BitNetDType::F32, BitNetDType::BitNet158));
-        assert!(DataTypeUtils::are_compatible(BitNetDType::BitNet158, BitNetDType::BitNet1));
+        assert!(DataTypeUtils::are_compatible(
+            BitNetDType::F32,
+            BitNetDType::F32
+        ));
+        assert!(DataTypeUtils::are_compatible(
+            BitNetDType::F32,
+            BitNetDType::F16
+        ));
+        assert!(!DataTypeUtils::are_compatible(
+            BitNetDType::F32,
+            BitNetDType::BitNet158
+        ));
+        assert!(DataTypeUtils::are_compatible(
+            BitNetDType::BitNet158,
+            BitNetDType::BitNet1
+        ));
     }
 
     #[test]
     fn test_type_promotion() {
-        assert_eq!(DataTypeUtils::promote_types(BitNetDType::F16, BitNetDType::F32), BitNetDType::F32);
-        assert_eq!(DataTypeUtils::promote_types(BitNetDType::I8, BitNetDType::I32), BitNetDType::I32);
-        assert_eq!(DataTypeUtils::promote_types(BitNetDType::U8, BitNetDType::U16), BitNetDType::U16);
-        assert_eq!(DataTypeUtils::promote_types(BitNetDType::BitNet1, BitNetDType::BitNet158), BitNetDType::BitNet158);
+        assert_eq!(
+            DataTypeUtils::promote_types(BitNetDType::F16, BitNetDType::F32),
+            BitNetDType::F32
+        );
+        assert_eq!(
+            DataTypeUtils::promote_types(BitNetDType::I8, BitNetDType::I32),
+            BitNetDType::I32
+        );
+        assert_eq!(
+            DataTypeUtils::promote_types(BitNetDType::U8, BitNetDType::U16),
+            BitNetDType::U16
+        );
+        assert_eq!(
+            DataTypeUtils::promote_types(BitNetDType::BitNet1, BitNetDType::BitNet158),
+            BitNetDType::BitNet158
+        );
     }
 
     #[test]
     fn test_default_types() {
         assert_eq!(BitNetDType::default_type(), BitNetDType::F32);
-        assert_eq!(BitNetDType::default_quantized_type(), BitNetDType::BitNet158);
+        assert_eq!(
+            BitNetDType::default_quantized_type(),
+            BitNetDType::BitNet158
+        );
         assert_eq!(BitNetDType::default(), BitNetDType::F32);
     }
 
@@ -675,7 +744,7 @@ mod tests {
         assert!(all_types.contains(&BitNetDType::F32));
         assert!(all_types.contains(&BitNetDType::BitNet158));
         assert!(all_types.len() > 10);
-        
+
         let quantized_types = BitNetDType::quantized_types();
         assert!(quantized_types.contains(&BitNetDType::BitNet158));
         assert!(!quantized_types.contains(&BitNetDType::F32));

@@ -4,17 +4,15 @@
 //! providing seamless precision-aware quantization operations.
 
 use super::{
-    QuantizationPrecision, QuantizationStats,
-    QuantizationResult, Quantizer, QuantizationError,
-    weights::{WeightQuantizer, WeightQuantizationConfig, QuantizedWeight},
-    activations::{ActivationQuantizer, ActivationQuantizationConfig, QuantizedActivation},
-};
-use bitnet_core::mixed_precision::{
-    MixedPrecisionConfig, ComponentType, MixedPrecisionStrategy,
-    PrecisionManager, LayerPrecisionSpec, PrecisionConverter,
-    conversion::ConversionConfig,
+    activations::{ActivationQuantizationConfig, ActivationQuantizer, QuantizedActivation},
+    weights::{QuantizedWeight, WeightQuantizationConfig, WeightQuantizer},
+    QuantizationError, QuantizationPrecision, QuantizationResult, QuantizationStats, Quantizer,
 };
 use bitnet_core::memory::tensor::{BitNetDType, BitNetTensor};
+use bitnet_core::mixed_precision::{
+    conversion::ConversionConfig, ComponentType, LayerPrecisionSpec, MixedPrecisionConfig,
+    MixedPrecisionStrategy, PrecisionConverter, PrecisionManager,
+};
 use candle_core::Device;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -77,14 +75,17 @@ impl MixedPrecisionQuantizationConfig {
     /// Validate the configuration
     pub fn validate(&self) -> QuantizationResult<()> {
         // Validate mixed precision configuration
-        self.mixed_precision.validate()
+        self.mixed_precision
+            .validate()
             .map_err(|e| QuantizationError::ConfigurationError(e.to_string()))?;
 
         // Validate quantization configurations
-        self.weight_quantization.validate()
+        self.weight_quantization
+            .validate()
             .map_err(|e| QuantizationError::ConfigurationError(e.to_string()))?;
 
-        self.activation_quantization.validate()
+        self.activation_quantization
+            .validate()
             .map_err(|e| QuantizationError::ConfigurationError(e.to_string()))?;
 
         // Validate adjustment parameters
@@ -131,31 +132,31 @@ impl PrecisionAdjustmentParams {
     pub fn validate(&self) -> QuantizationResult<()> {
         if self.accuracy_threshold <= 0.0 || self.accuracy_threshold > 1.0 {
             return Err(QuantizationError::ConfigurationError(
-                "Accuracy threshold must be between 0 and 1".to_string()
+                "Accuracy threshold must be between 0 and 1".to_string(),
             ));
         }
 
         if self.memory_pressure_threshold <= 0.0 || self.memory_pressure_threshold > 1.0 {
             return Err(QuantizationError::ConfigurationError(
-                "Memory pressure threshold must be between 0 and 1".to_string()
+                "Memory pressure threshold must be between 0 and 1".to_string(),
             ));
         }
 
         if self.performance_threshold <= 0.0 || self.performance_threshold > 1.0 {
             return Err(QuantizationError::ConfigurationError(
-                "Performance threshold must be between 0 and 1".to_string()
+                "Performance threshold must be between 0 and 1".to_string(),
             ));
         }
 
         if self.adjustment_step == 0 {
             return Err(QuantizationError::ConfigurationError(
-                "Adjustment step must be greater than 0".to_string()
+                "Adjustment step must be greater than 0".to_string(),
             ));
         }
 
         if self.evaluation_window == 0 {
             return Err(QuantizationError::ConfigurationError(
-                "Evaluation window must be greater than 0".to_string()
+                "Evaluation window must be greater than 0".to_string(),
             ));
         }
 
@@ -193,7 +194,7 @@ impl MixedPrecisionQuantizer {
         // Create precision manager
         let precision_manager = Arc::new(
             PrecisionManager::new(config.mixed_precision.clone())
-                .map_err(|e| QuantizationError::ConfigurationError(e.to_string()))?
+                .map_err(|e| QuantizationError::ConfigurationError(e.to_string()))?,
         );
 
         // Create precision converter
@@ -208,19 +209,20 @@ impl MixedPrecisionQuantizer {
 
         let precision_converter = Arc::new(Mutex::new(
             PrecisionConverter::new(conversion_config)
-                .map_err(|e| QuantizationError::ConfigurationError(e.to_string()))?
+                .map_err(|e| QuantizationError::ConfigurationError(e.to_string()))?,
         ));
 
         // Initialize quantizers for different precisions
         let mut weight_quantizers: HashMap<BitNetDType, Box<dyn WeightQuantizer>> = HashMap::new();
-        let mut activation_quantizers: HashMap<BitNetDType, Box<dyn ActivationQuantizer>> = HashMap::new();
+        let mut activation_quantizers: HashMap<BitNetDType, Box<dyn ActivationQuantizer>> =
+            HashMap::new();
 
         // Create quantizers for all supported precisions
         for &precision in BitNetDType::all_types() {
             // Create weight quantizer configuration for this precision
             let mut weight_config = config.weight_quantization.clone();
             weight_config.base.precision = precision_to_quantization_precision(precision);
-            
+
             if let Ok(quantizer) = super::weights::create_weight_quantizer(weight_config) {
                 weight_quantizers.insert(precision, quantizer);
             }
@@ -228,8 +230,10 @@ impl MixedPrecisionQuantizer {
             // Create activation quantizer configuration for this precision
             let mut activation_config = config.activation_quantization.clone();
             activation_config.base.precision = precision_to_quantization_precision(precision);
-            
-            if let Ok(quantizer) = super::activations::create_activation_quantizer(activation_config) {
+
+            if let Ok(quantizer) =
+                super::activations::create_activation_quantizer(activation_config)
+            {
                 activation_quantizers.insert(precision, quantizer);
             }
         }
@@ -247,7 +251,8 @@ impl MixedPrecisionQuantizer {
 
     /// Register a layer with the precision manager
     pub fn register_layer(&self, spec: LayerPrecisionSpec) -> QuantizationResult<()> {
-        self.precision_manager.register_layer(spec)
+        self.precision_manager
+            .register_layer(spec)
             .map_err(|e| QuantizationError::ConfigurationError(e.to_string()))
     }
 
@@ -258,7 +263,8 @@ impl MixedPrecisionQuantizer {
         layer_id: &str,
     ) -> QuantizationResult<QuantizedWeight> {
         // Get optimal precision for weights
-        let target_precision = self.precision_manager
+        let target_precision = self
+            .precision_manager
             .get_optimal_precision(layer_id, ComponentType::Weights, weights)
             .map_err(|e| QuantizationError::ConfigurationError(e.to_string()))?;
 
@@ -272,11 +278,16 @@ impl MixedPrecisionQuantizer {
         };
 
         // Get appropriate quantizer for the target precision
-        let quantizer = self.weight_quantizers.get(&target_precision)
-            .ok_or_else(|| QuantizationError::UnsupportedPrecision(format!("{target_precision:?}")))?;
+        let quantizer = self
+            .weight_quantizers
+            .get(&target_precision)
+            .ok_or_else(|| {
+                QuantizationError::UnsupportedPrecision(format!("{target_precision:?}"))
+            })?;
 
         // Convert to candle tensor for quantization
-        let candle_weights = converted_weights.to_candle()
+        let candle_weights = converted_weights
+            .to_candle()
             .map_err(|e| QuantizationError::ConversionError(e.to_string()))?;
 
         // Perform quantization
@@ -295,7 +306,8 @@ impl MixedPrecisionQuantizer {
         layer_id: &str,
     ) -> QuantizationResult<QuantizedActivation> {
         // Get optimal precision for activations
-        let target_precision = self.precision_manager
+        let target_precision = self
+            .precision_manager
             .get_optimal_precision(layer_id, ComponentType::Activations, activations)
             .map_err(|e| QuantizationError::ConfigurationError(e.to_string()))?;
 
@@ -309,11 +321,16 @@ impl MixedPrecisionQuantizer {
         };
 
         // Get appropriate quantizer for the target precision
-        let quantizer = self.activation_quantizers.get(&target_precision)
-            .ok_or_else(|| QuantizationError::UnsupportedPrecision(format!("{target_precision:?}")))?;
+        let quantizer = self
+            .activation_quantizers
+            .get(&target_precision)
+            .ok_or_else(|| {
+                QuantizationError::UnsupportedPrecision(format!("{target_precision:?}"))
+            })?;
 
         // Convert to candle tensor for quantization
-        let candle_activations = converted_activations.to_candle()
+        let candle_activations = converted_activations
+            .to_candle()
             .map_err(|e| QuantizationError::ConversionError(e.to_string()))?;
 
         // Perform quantization
@@ -345,7 +362,8 @@ impl MixedPrecisionQuantizer {
         // Quantize bias if provided
         let quantized_bias = if let Some(bias_tensor) = bias {
             // Get optimal precision for bias
-            let target_precision = self.precision_manager
+            let target_precision = self
+                .precision_manager
                 .get_optimal_precision(layer_id, ComponentType::Bias, bias_tensor)
                 .map_err(|e| QuantizationError::ConfigurationError(e.to_string()))?;
 
@@ -366,13 +384,16 @@ impl MixedPrecisionQuantizer {
         let quantization_time = start_time.elapsed();
 
         // Calculate compression statistics
-        let original_size = weights.size_bytes() + 
-            activations.map(|a| a.size_bytes()).unwrap_or(0) +
-            bias.map(|b| b.size_bytes()).unwrap_or(0);
+        let original_size = weights.size_bytes()
+            + activations.map(|a| a.size_bytes()).unwrap_or(0)
+            + bias.map(|b| b.size_bytes()).unwrap_or(0);
 
-        let quantized_size = quantized_weights.memory_footprint() +
-            quantized_activations.as_ref().map(|a| a.memory_footprint()).unwrap_or(0) +
-            quantized_bias.as_ref().map(|b| b.size_bytes()).unwrap_or(0);
+        let quantized_size = quantized_weights.memory_footprint()
+            + quantized_activations
+                .as_ref()
+                .map(|a| a.memory_footprint())
+                .unwrap_or(0)
+            + quantized_bias.as_ref().map(|b| b.size_bytes()).unwrap_or(0);
 
         let compression_ratio = original_size as f32 / quantized_size as f32;
 
@@ -401,9 +422,9 @@ impl MixedPrecisionQuantizer {
         let params = &self.config.adjustment_params;
 
         // Check if adjustment is needed
-        let needs_adjustment = performance_metrics.accuracy < params.accuracy_threshold ||
-            performance_metrics.memory_pressure > params.memory_pressure_threshold ||
-            performance_metrics.performance_score < params.performance_threshold;
+        let needs_adjustment = performance_metrics.accuracy < params.accuracy_threshold
+            || performance_metrics.memory_pressure > params.memory_pressure_threshold
+            || performance_metrics.performance_score < params.performance_threshold;
 
         if !needs_adjustment {
             return Ok(());
@@ -442,7 +463,7 @@ impl MixedPrecisionQuantizer {
     /// Update quantization statistics
     fn update_quantization_stats(&mut self, quantized: &QuantizedWeight) {
         self.stats.elements_count += quantized.stats.elements_count;
-        self.stats.compression_ratio = 
+        self.stats.compression_ratio =
             (self.stats.compression_ratio + quantized.stats.compression_ratio) / 2.0;
         // Update other statistics as needed
     }
@@ -529,7 +550,6 @@ pub fn create_mixed_precision_quantizer(
 mod tests {
     use super::*;
     use bitnet_core::device::get_cpu_device;
-    
 
     #[test]
     fn test_mixed_precision_quantization_config() {
@@ -555,7 +575,7 @@ mod tests {
     fn test_mixed_precision_quantizer_creation() {
         let config = MixedPrecisionQuantizationConfig::default();
         let device = get_cpu_device();
-        
+
         let quantizer = MixedPrecisionQuantizer::new(config, device);
         assert!(quantizer.is_ok());
     }

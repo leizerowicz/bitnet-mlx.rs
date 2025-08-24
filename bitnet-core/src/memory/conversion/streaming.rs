@@ -4,14 +4,13 @@
 //! to minimize memory usage and enable processing of tensors larger than available memory.
 
 use crate::memory::conversion::{
-    ConversionResult, ConversionError, ConversionContext, Converter,
-    config::StreamingConfig
+    config::StreamingConfig, ConversionContext, ConversionError, ConversionResult, Converter,
 };
-use crate::memory::tensor::{BitNetTensor, BitNetDType};
+use crate::memory::tensor::{BitNetDType, BitNetTensor};
 use crate::memory::HybridMemoryPool;
+use crossbeam_channel::bounded;
 use std::sync::Arc;
 use std::thread;
-use crossbeam_channel::bounded;
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, info, warn};
@@ -24,8 +23,10 @@ pub struct StreamingConverter {
 impl StreamingConverter {
     /// Creates a new streaming converter with the given configuration
     pub fn new(config: StreamingConfig) -> ConversionResult<Self> {
-        config.validate().map_err(|e| ConversionError::ConfigError { reason: e })?;
-        
+        config
+            .validate()
+            .map_err(|e| ConversionError::ConfigError { reason: e })?;
+
         Ok(Self { config })
     }
 
@@ -44,30 +45,41 @@ impl StreamingConverter {
         let source_dtype = source.dtype();
         let shape = source.shape();
         let device = source.device();
-        
+
         #[cfg(feature = "tracing")]
-        info!("Starting streaming conversion from {} to {} for tensor shape {:?}", 
-              source_dtype, target_dtype, shape);
+        info!(
+            "Starting streaming conversion from {} to {} for tensor shape {:?}",
+            source_dtype, target_dtype, shape
+        );
 
         // Check if streaming is actually needed
         let total_size = source.size_bytes();
         if total_size < self.config.streaming_threshold {
             #[cfg(feature = "tracing")]
-            debug!("Tensor size {} bytes is below streaming threshold, using standard conversion", total_size);
+            debug!(
+                "Tensor size {} bytes is below streaming threshold, using standard conversion",
+                total_size
+            );
             return self.standard_convert(source, target_dtype, pool);
         }
 
         // Calculate chunk parameters
         let element_count: usize = shape.iter().product();
         let chunk_info = self.calculate_chunk_parameters(&shape, source_dtype, target_dtype)?;
-        
+
         #[cfg(feature = "tracing")]
-        debug!("Streaming conversion: {} chunks of {} elements each", 
-               chunk_info.num_chunks, chunk_info.elements_per_chunk);
+        debug!(
+            "Streaming conversion: {} chunks of {} elements each",
+            chunk_info.num_chunks, chunk_info.elements_per_chunk
+        );
 
         // Create target tensor
-        let target_tensor = BitNetTensor::zeros(&shape, target_dtype, &device, pool)
-            .map_err(|e| ConversionError::InternalError { reason: e.to_string() })?;
+        let target_tensor =
+            BitNetTensor::zeros(&shape, target_dtype, &device, pool).map_err(|e| {
+                ConversionError::InternalError {
+                    reason: e.to_string(),
+                }
+            })?;
 
         // Process chunks
         if self.config.parallel_chunks > 1 {
@@ -91,15 +103,21 @@ impl StreamingConverter {
     ) -> ConversionResult<BitNetTensor> {
         let shape = source.shape();
         let device = source.device();
-        
-        let target_tensor = BitNetTensor::zeros(&shape, target_dtype, &device, pool)
-            .map_err(|e| ConversionError::InternalError { reason: e.to_string() })?;
+
+        let target_tensor =
+            BitNetTensor::zeros(&shape, target_dtype, &device, pool).map_err(|e| {
+                ConversionError::InternalError {
+                    reason: e.to_string(),
+                }
+            })?;
 
         // Perform element-wise conversion
         self.convert_elements(
-            source, &target_tensor, 
-            0, shape.iter().product(), 
-            &ConversionParams::new(source.dtype(), target_dtype)
+            source,
+            &target_tensor,
+            0,
+            shape.iter().product(),
+            &ConversionParams::new(source.dtype(), target_dtype),
         )?;
 
         Ok(target_tensor)
@@ -114,19 +132,28 @@ impl StreamingConverter {
         pool: &Arc<HybridMemoryPool>,
     ) -> ConversionResult<()> {
         let conversion_params = ConversionParams::new(source.dtype(), target.dtype());
-        
+
         for chunk_idx in 0..chunk_info.num_chunks {
             let start_element = chunk_idx * chunk_info.elements_per_chunk;
             let end_element = std::cmp::min(
                 start_element + chunk_info.elements_per_chunk,
-                chunk_info.total_elements
+                chunk_info.total_elements,
             );
-            
-            #[cfg(feature = "tracing")]
-            debug!("Processing chunk {} ({}-{})", chunk_idx, start_element, end_element);
 
-            self.convert_elements(source, target, start_element, end_element, &conversion_params)?;
-            
+            #[cfg(feature = "tracing")]
+            debug!(
+                "Processing chunk {} ({}-{})",
+                chunk_idx, start_element, end_element
+            );
+
+            self.convert_elements(
+                source,
+                target,
+                start_element,
+                end_element,
+                &conversion_params,
+            )?;
+
             // Optional: yield to other threads
             if chunk_idx % 10 == 0 {
                 thread::yield_now();
@@ -146,7 +173,8 @@ impl StreamingConverter {
     ) -> ConversionResult<()> {
         let num_workers = std::cmp::min(self.config.parallel_chunks, chunk_info.num_chunks);
         let (task_sender, task_receiver) = bounded::<ChunkTask>(num_workers * 2);
-        let (result_sender, result_receiver) = bounded::<ConversionResult<()>>(chunk_info.num_chunks);
+        let (result_sender, result_receiver) =
+            bounded::<ConversionResult<()>>(chunk_info.num_chunks);
 
         #[cfg(feature = "tracing")]
         debug!("Starting parallel streaming with {} workers", num_workers);
@@ -166,11 +194,13 @@ impl StreamingConverter {
 
                 while let Ok(task) = task_rx.recv() {
                     let result = Self::convert_elements_static(
-                        &source_clone, &target_clone,
-                        task.start_element, task.end_element,
-                        &conversion_params
+                        &source_clone,
+                        &target_clone,
+                        task.start_element,
+                        task.end_element,
+                        &conversion_params,
                     );
-                    
+
                     if result_tx.send(result).is_err() {
                         break;
                     }
@@ -179,7 +209,7 @@ impl StreamingConverter {
                 #[cfg(feature = "tracing")]
                 debug!("Worker {} finished", worker_id);
             });
-            
+
             workers.push(worker);
         }
 
@@ -188,7 +218,7 @@ impl StreamingConverter {
             let start_element = chunk_idx * chunk_info.elements_per_chunk;
             let end_element = std::cmp::min(
                 start_element + chunk_info.elements_per_chunk,
-                chunk_info.total_elements
+                chunk_info.total_elements,
             );
 
             let task = ChunkTask {
@@ -197,9 +227,11 @@ impl StreamingConverter {
                 end_element,
             };
 
-            task_sender.send(task).map_err(|_| ConversionError::StreamingError {
-                reason: "Failed to send task to worker".to_string()
-            })?;
+            task_sender
+                .send(task)
+                .map_err(|_| ConversionError::StreamingError {
+                    reason: "Failed to send task to worker".to_string(),
+                })?;
         }
 
         // Close task channel
@@ -209,10 +241,10 @@ impl StreamingConverter {
         let mut errors = Vec::new();
         for _ in 0..chunk_info.num_chunks {
             match result_receiver.recv() {
-                Ok(Ok(())) => {}, // Success
+                Ok(Ok(())) => {} // Success
                 Ok(Err(e)) => errors.push(e),
                 Err(_) => errors.push(ConversionError::StreamingError {
-                    reason: "Failed to receive result from worker".to_string()
+                    reason: "Failed to receive result from worker".to_string(),
                 }),
             }
         }
@@ -252,13 +284,17 @@ impl StreamingConverter {
     ) -> ConversionResult<()> {
         let source_bytes_per_element = params.source_dtype.bits_per_element() / 8;
         let target_bytes_per_element = params.target_dtype.bits_per_element() / 8;
-        
+
         let start_byte_offset = start_element * source_bytes_per_element;
         let target_start_byte_offset = start_element * target_bytes_per_element;
 
         unsafe {
             let source_ptr = source.data.memory_handle.as_ptr().add(start_byte_offset);
-            let target_ptr = target.data.memory_handle.as_ptr().add(target_start_byte_offset) as *mut u8;
+            let target_ptr = target
+                .data
+                .memory_handle
+                .as_ptr()
+                .add(target_start_byte_offset) as *mut u8;
 
             // Perform the actual conversion based on data types
             match (params.source_dtype, params.target_dtype) {
@@ -280,11 +316,19 @@ impl StreamingConverter {
                 }
                 // F32 to BitNet 1.58b quantization
                 (BitNetDType::F32, BitNetDType::BitNet158) => {
-                    Self::convert_f32_to_bitnet158(source_ptr, target_ptr, end_element - start_element)?;
+                    Self::convert_f32_to_bitnet158(
+                        source_ptr,
+                        target_ptr,
+                        end_element - start_element,
+                    )?;
                 }
                 // BitNet 1.58b to F32 dequantization
                 (BitNetDType::BitNet158, BitNetDType::F32) => {
-                    Self::convert_bitnet158_to_f32(source_ptr, target_ptr, end_element - start_element)?;
+                    Self::convert_bitnet158_to_f32(
+                        source_ptr,
+                        target_ptr,
+                        end_element - start_element,
+                    )?;
                 }
                 // Add more conversion cases as needed
                 _ => {
@@ -309,12 +353,14 @@ impl StreamingConverter {
         let total_elements: usize = shape.iter().product();
         let source_bytes_per_element = source_dtype.bits_per_element() / 8;
         let target_bytes_per_element = target_dtype.bits_per_element() / 8;
-        
+
         // Calculate elements per chunk based on memory constraints
-        let max_bytes_per_chunk = std::cmp::min(self.config.chunk_size, self.config.buffer_size / 2);
-        let elements_per_chunk = max_bytes_per_chunk / std::cmp::max(source_bytes_per_element, target_bytes_per_element);
+        let max_bytes_per_chunk =
+            std::cmp::min(self.config.chunk_size, self.config.buffer_size / 2);
+        let elements_per_chunk =
+            max_bytes_per_chunk / std::cmp::max(source_bytes_per_element, target_bytes_per_element);
         let elements_per_chunk = std::cmp::max(1, elements_per_chunk);
-        
+
         let num_chunks = (total_elements + elements_per_chunk - 1) / elements_per_chunk;
 
         Ok(ChunkInfo {
@@ -342,14 +388,18 @@ impl StreamingConverter {
             let f16_bits = if f32_val.is_nan() {
                 0x7E00u16 // NaN
             } else if f32_val.is_infinite() {
-                if f32_val.is_sign_positive() { 0x7C00u16 } else { 0xFC00u16 }
+                if f32_val.is_sign_positive() {
+                    0x7C00u16
+                } else {
+                    0xFC00u16
+                }
             } else {
                 // Simplified conversion - truncate mantissa
                 let bits = f32_val.to_bits();
                 let sign = (bits >> 16) & 0x8000;
                 let exp = ((bits >> 23) & 0xFF) as i32 - 127 + 15;
                 let mantissa = (bits >> 13) & 0x3FF;
-                
+
                 if exp <= 0 {
                     sign as u16 // Underflow to zero
                 } else if exp >= 31 {
@@ -448,7 +498,7 @@ impl StreamingConverter {
         element_count: usize,
     ) -> ConversionResult<()> {
         let source = std::slice::from_raw_parts(source_ptr as *const f32, element_count);
-        
+
         // BitNet 1.58b uses 2 bits per element, packed 4 elements per byte
         let byte_count = (element_count + 3) / 4;
         let target = std::slice::from_raw_parts_mut(target_ptr, byte_count);
@@ -466,7 +516,7 @@ impl StreamingConverter {
 
             let byte_idx = i / 4;
             let bit_offset = (i % 4) * 2;
-            
+
             if bit_offset == 0 {
                 target[byte_idx] = quantized;
             } else {
@@ -492,10 +542,10 @@ impl StreamingConverter {
             let quantized = (source[byte_idx] >> bit_offset) & 0x3;
 
             let f32_val = match quantized {
-                0 => 0.0f32,   // 00 -> 0
-                1 => 1.0f32,   // 01 -> +1
-                3 => -1.0f32,  // 11 -> -1
-                _ => 0.0f32,   // Invalid, default to 0
+                0 => 0.0f32,  // 00 -> 0
+                1 => 1.0f32,  // 01 -> +1
+                3 => -1.0f32, // 11 -> -1
+                _ => 0.0f32,  // Invalid, default to 0
             };
 
             target[i] = f32_val;
@@ -517,24 +567,25 @@ impl Converter for StreamingConverter {
 
     fn supports(&self, context: &ConversionContext) -> bool {
         // Streaming converter supports most conversions
-        !context.is_zero_copy_compatible() && 
-        std::mem::discriminant(&context.source_device) == std::mem::discriminant(&context.target_device)
+        !context.is_zero_copy_compatible()
+            && std::mem::discriminant(&context.source_device)
+                == std::mem::discriminant(&context.target_device)
     }
 
     fn estimate_time_ms(&self, context: &ConversionContext) -> u64 {
         let element_count: usize = context.shape.iter().product();
         let size_bytes = context.source_dtype.bytes_for_elements(element_count);
-        
+
         // Estimate based on processing speed (~1 GB/s for conversions)
         let base_time = (size_bytes as f64) / (1024.0 * 1024.0 * 1024.0) * 1000.0;
-        
+
         // Add overhead for chunking and parallel processing
         let overhead_factor = if size_bytes > self.config.streaming_threshold {
             1.2 // 20% overhead for streaming
         } else {
             1.0
         };
-        
+
         (base_time * overhead_factor) as u64
     }
 }
@@ -590,14 +641,12 @@ mod tests {
     fn test_chunk_calculation() {
         let config = StreamingConfig::default();
         let converter = StreamingConverter::new(config).unwrap();
-        
+
         let shape = vec![1000, 1000];
-        let chunk_info = converter.calculate_chunk_parameters(
-            &shape, 
-            BitNetDType::F32, 
-            BitNetDType::F16
-        ).unwrap();
-        
+        let chunk_info = converter
+            .calculate_chunk_parameters(&shape, BitNetDType::F32, BitNetDType::F16)
+            .unwrap();
+
         assert_eq!(chunk_info.total_elements, 1_000_000);
         assert!(chunk_info.num_chunks > 1);
         assert!(chunk_info.elements_per_chunk > 0);
@@ -611,7 +660,9 @@ mod tests {
         let converter = StreamingConverter::new(config).unwrap();
 
         let source = BitNetTensor::ones(&[10, 10], BitNetDType::F32, &device, &pool).unwrap();
-        let result = converter.stream_convert(&source, BitNetDType::F16, &pool).unwrap();
+        let result = converter
+            .stream_convert(&source, BitNetDType::F16, &pool)
+            .unwrap();
 
         assert_eq!(result.dtype(), BitNetDType::F16);
         assert_eq!(result.shape(), vec![10, 10]);
@@ -644,7 +695,7 @@ mod tests {
         let converter = StreamingConverter::new(config).unwrap();
 
         let source = BitNetTensor::zeros(&[10, 10], BitNetDType::F32, &device, &pool).unwrap();
-        
+
         // Test with an unsupported conversion (this would need to be implemented)
         // For now, most conversions are supported, so this test checks the error path
         let result = converter.stream_convert(&source, BitNetDType::I4, &pool);

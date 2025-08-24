@@ -39,9 +39,9 @@
 //! # }
 //! ```
 
+use super::{TensorOpError, TensorOpResult};
 use crate::tensor::core::BitNetTensor;
-use crate::tensor::shape::{TensorShape, BroadcastCompatible};
-use super::{TensorOpResult, TensorOpError};
+use crate::tensor::shape::{BroadcastCompatible, TensorShape};
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, trace, warn};
@@ -62,7 +62,7 @@ pub enum BroadcastStrategy {
     None,
     /// Left tensor needs broadcasting
     BroadcastLeft,
-    /// Right tensor needs broadcasting  
+    /// Right tensor needs broadcasting
     BroadcastRight,
     /// Both tensors need broadcasting to a common shape
     BroadcastBoth,
@@ -98,7 +98,7 @@ pub struct BroadcastInfo {
 pub fn can_broadcast(a: &BitNetTensor, b: &BitNetTensor) -> TensorOpResult<bool> {
     let shape_a = a.shape();
     let shape_b = b.shape();
-    
+
     Ok(shape_a.is_broadcast_compatible(shape_b))
 }
 
@@ -114,24 +114,27 @@ pub fn can_broadcast(a: &BitNetTensor, b: &BitNetTensor) -> TensorOpResult<bool>
 pub fn compute_broadcast_shape(a: &BitNetTensor, b: &BitNetTensor) -> TensorOpResult<Vec<usize>> {
     let shape_a = a.shape();
     let shape_b = b.shape();
-    
+
     if !shape_a.is_broadcast_compatible(shape_b) {
         return Err(TensorOpError::BroadcastError {
             reason: "Shapes are not compatible for broadcasting".to_string(),
             lhs_shape: shape_a.dims().to_vec(),
             rhs_shape: shape_b.dims().to_vec(),
             operation: "broadcasting".to_string(),
-        }.into());
+        }
+        .into());
     }
-    
-    let broadcast_shape = shape_a.broadcast_shape(shape_b)
-        .map_err(|_| TensorOpError::BroadcastError {
-            reason: "Failed to compute broadcast shape".to_string(),
-            lhs_shape: shape_a.dims().to_vec(),
-            rhs_shape: shape_b.dims().to_vec(),
-            operation: "broadcasting".to_string(),
-        })?;
-    
+
+    let broadcast_shape =
+        shape_a
+            .broadcast_shape(shape_b)
+            .map_err(|_| TensorOpError::BroadcastError {
+                reason: "Failed to compute broadcast shape".to_string(),
+                lhs_shape: shape_a.dims().to_vec(),
+                rhs_shape: shape_b.dims().to_vec(),
+                operation: "broadcasting".to_string(),
+            })?;
+
     Ok(broadcast_shape.dims().to_vec())
 }
 
@@ -143,7 +146,7 @@ pub fn compute_broadcast_shape(a: &BitNetTensor, b: &BitNetTensor) -> TensorOpRe
 pub fn analyze_broadcast(a: &BitNetTensor, b: &BitNetTensor) -> TensorOpResult<BroadcastInfo> {
     let shape_a = a.shape().dims();
     let shape_b = b.shape().dims();
-    
+
     // Check if broadcasting is possible
     if !can_broadcast(a, b)? {
         return Err(TensorOpError::BroadcastError {
@@ -151,12 +154,13 @@ pub fn analyze_broadcast(a: &BitNetTensor, b: &BitNetTensor) -> TensorOpResult<B
             lhs_shape: shape_a.to_vec(),
             rhs_shape: shape_b.to_vec(),
             operation: "broadcasting".to_string(),
-        }.into());
+        }
+        .into());
     }
-    
+
     let broadcast_shape = compute_broadcast_shape(a, b)?;
     let result_elements: usize = broadcast_shape.iter().product();
-    
+
     // Determine broadcasting strategy
     let strategy = if shape_a == shape_b {
         BroadcastStrategy::None
@@ -167,7 +171,7 @@ pub fn analyze_broadcast(a: &BitNetTensor, b: &BitNetTensor) -> TensorOpResult<B
     } else {
         BroadcastStrategy::BroadcastBoth
     };
-    
+
     // Check if zero-copy broadcasting is possible
     let zero_copy = match strategy {
         BroadcastStrategy::None => true,
@@ -177,21 +181,21 @@ pub fn analyze_broadcast(a: &BitNetTensor, b: &BitNetTensor) -> TensorOpResult<B
         }
         BroadcastStrategy::BroadcastBoth => false,
     };
-    
+
     // Calculate strides for efficient iteration
     let left_strides = calculate_broadcast_strides(shape_a, &broadcast_shape);
     let right_strides = calculate_broadcast_strides(shape_b, &broadcast_shape);
-    
+
     // Estimate result memory requirements
     let dtype_size = a.dtype().size_bytes().unwrap_or(4); // Default to 4 bytes
     let result_bytes = result_elements * dtype_size;
-    
+
     #[cfg(feature = "tracing")]
     debug!(
         "Broadcasting analysis: {:?} + {:?} -> {:?}, strategy: {:?}, zero_copy: {}",
         shape_a, shape_b, broadcast_shape, strategy, zero_copy
     );
-    
+
     Ok(BroadcastInfo {
         broadcast_shape,
         strategy,
@@ -207,7 +211,7 @@ pub fn analyze_broadcast(a: &BitNetTensor, b: &BitNetTensor) -> TensorOpResult<B
 fn calculate_broadcast_strides(shape: &[usize], target_shape: &[usize]) -> Vec<usize> {
     let mut strides = Vec::with_capacity(target_shape.len());
     let shape_offset = target_shape.len() - shape.len();
-    
+
     let mut current_stride = 1;
     for i in (0..target_shape.len()).rev() {
         if i < shape_offset {
@@ -225,7 +229,7 @@ fn calculate_broadcast_strides(shape: &[usize], target_shape: &[usize]) -> Vec<u
             }
         }
     }
-    
+
     strides.reverse();
     strides
 }
@@ -244,7 +248,7 @@ fn can_zero_copy_broadcast(shape_a: &[usize], shape_b: &[usize], target_shape: &
 /// without copying data by adjusting strides.
 pub fn broadcast_to(tensor: &BitNetTensor, target_shape: &[usize]) -> TensorOpResult<BitNetTensor> {
     let current_shape = tensor.shape().dims();
-    
+
     // Check if broadcasting is valid
     let temp_shape = TensorShape::new(target_shape);
     if !tensor.shape().is_broadcast_compatible(&temp_shape) {
@@ -253,21 +257,30 @@ pub fn broadcast_to(tensor: &BitNetTensor, target_shape: &[usize]) -> TensorOpRe
             lhs_shape: current_shape.to_vec(),
             rhs_shape: target_shape.to_vec(),
             operation: "broadcasting".to_string(),
-        }.into());
+        }
+        .into());
     }
-    
+
     // If shapes are already equal, return a clone
     if current_shape == target_shape {
         return Ok(tensor.clone());
     }
-    
+
     // For now, create a new tensor with the target shape
     // In a full implementation, this would use stride manipulation for zero-copy
-    let result = BitNetTensor::zeros(target_shape, tensor.dtype(), Some(clone_device(tensor.device())))?;
-    
+    let result = BitNetTensor::zeros(
+        target_shape,
+        tensor.dtype(),
+        Some(clone_device(tensor.device())),
+    )?;
+
     #[cfg(feature = "tracing")]
-    trace!("Created broadcast view: {:?} -> {:?}", current_shape, target_shape);
-    
+    trace!(
+        "Created broadcast view: {:?} -> {:?}",
+        current_shape,
+        target_shape
+    );
+
     Ok(result)
 }
 
@@ -277,12 +290,12 @@ pub fn broadcast_to(tensor: &BitNetTensor, target_shape: &[usize]) -> TensorOpRe
 /// to perform element-wise operations efficiently, including any necessary
 /// broadcasting.
 pub fn prepare_elementwise_broadcast(
-    a: &BitNetTensor, 
-    b: &BitNetTensor
+    a: &BitNetTensor,
+    b: &BitNetTensor,
 ) -> TensorOpResult<(BroadcastInfo, Option<BitNetTensor>, Option<BitNetTensor>)> {
     // Analyze broadcasting requirements
     let broadcast_info = analyze_broadcast(a, b)?;
-    
+
     // Create broadcast tensors if needed
     let broadcast_a = match broadcast_info.strategy {
         BroadcastStrategy::None | BroadcastStrategy::BroadcastRight => None,
@@ -290,20 +303,20 @@ pub fn prepare_elementwise_broadcast(
             Some(broadcast_to(a, &broadcast_info.broadcast_shape)?)
         }
     };
-    
+
     let broadcast_b = match broadcast_info.strategy {
         BroadcastStrategy::None | BroadcastStrategy::BroadcastLeft => None,
         BroadcastStrategy::BroadcastRight | BroadcastStrategy::BroadcastBoth => {
             Some(broadcast_to(b, &broadcast_info.broadcast_shape)?)
         }
     };
-    
+
     #[cfg(feature = "tracing")]
     debug!(
         "Prepared elementwise broadcast: strategy {:?}, zero_copy: {}",
         broadcast_info.strategy, broadcast_info.zero_copy
     );
-    
+
     Ok((broadcast_info, broadcast_a, broadcast_b))
 }
 
@@ -325,7 +338,7 @@ impl BroadcastIterator {
     pub fn new(broadcast_info: &BroadcastInfo) -> Self {
         let shape = broadcast_info.broadcast_shape.clone();
         let current_indices = vec![0; shape.len()];
-        
+
         Self {
             left_strides: broadcast_info.left_strides.clone(),
             right_strides: broadcast_info.right_strides.clone(),
@@ -334,33 +347,37 @@ impl BroadcastIterator {
             shape,
         }
     }
-    
+
     /// Get the current linear indices for both tensors
     pub fn current_indices(&self) -> (usize, usize) {
-        let left_idx = self.current_indices.iter()
+        let left_idx = self
+            .current_indices
+            .iter()
             .zip(&self.left_strides)
             .map(|(&idx, &stride)| idx * stride)
             .sum();
-            
-        let right_idx = self.current_indices.iter()
+
+        let right_idx = self
+            .current_indices
+            .iter()
             .zip(&self.right_strides)
             .map(|(&idx, &stride)| idx * stride)
             .sum();
-            
+
         (left_idx, right_idx)
     }
 }
 
 impl Iterator for BroadcastIterator {
     type Item = (usize, usize);
-    
+
     fn next(&mut self) -> Option<Self::Item> {
         if self.finished {
             return None;
         }
-        
+
         let result = self.current_indices();
-        
+
         // Advance indices
         let mut carry = 1;
         for i in (0..self.current_indices.len()).rev() {
@@ -371,14 +388,14 @@ impl Iterator for BroadcastIterator {
             }
             self.current_indices[i] = 0;
         }
-        
+
         if carry == 1 {
             self.finished = true;
         }
-        
+
         Some(result)
     }
-    
+
     fn size_hint(&self) -> (usize, Option<usize>) {
         if self.finished {
             (0, Some(0))
@@ -392,70 +409,70 @@ impl Iterator for BroadcastIterator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tensor::{BitNetTensor, BitNetDType};
-    
+    use crate::tensor::{BitNetDType, BitNetTensor};
+
     #[test]
     fn test_can_broadcast() -> TensorOpResult<()> {
         let a = BitNetTensor::ones(&[3, 1, 4], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[2, 1], BitNetDType::F32, None)?;
-        
+
         assert!(can_broadcast(&a, &b)?);
-        
+
         let c = BitNetTensor::ones(&[3, 2], BitNetDType::F32, None)?;
         let d = BitNetTensor::ones(&[4, 2], BitNetDType::F32, None)?;
-        
+
         assert!(!can_broadcast(&c, &d)?);
-        
+
         Ok(())
     }
-    
+
     #[test]
     fn test_compute_broadcast_shape() -> TensorOpResult<()> {
         let a = BitNetTensor::ones(&[3, 1, 4], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[2, 1], BitNetDType::F32, None)?;
-        
+
         let broadcast_shape = compute_broadcast_shape(&a, &b)?;
         assert_eq!(broadcast_shape, vec![3, 2, 4]);
-        
+
         Ok(())
     }
-    
+
     #[test]
     fn test_analyze_broadcast() -> TensorOpResult<()> {
         let a = BitNetTensor::ones(&[3, 1], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[3, 4], BitNetDType::F32, None)?;
-        
+
         let info = analyze_broadcast(&a, &b)?;
-        
+
         assert_eq!(info.broadcast_shape, vec![3, 4]);
         assert_eq!(info.strategy, BroadcastStrategy::BroadcastLeft);
         assert_eq!(info.result_elements, 12);
-        
+
         Ok(())
     }
-    
+
     #[test]
     fn test_broadcast_strides() {
         let strides = calculate_broadcast_strides(&[3, 1], &[3, 4]);
         assert_eq!(strides, vec![4, 0]);
-        
+
         let strides2 = calculate_broadcast_strides(&[1, 4], &[3, 4]);
         assert_eq!(strides2, vec![0, 1]);
     }
-    
+
     #[test]
     fn test_broadcast_iterator() -> TensorOpResult<()> {
         let a = BitNetTensor::ones(&[2, 1], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[1, 3], BitNetDType::F32, None)?;
-        
+
         let info = analyze_broadcast(&a, &b)?;
         let iter = BroadcastIterator::new(&info);
-        
+
         let indices: Vec<_> = iter.take(6).collect();
-        
+
         // Should iterate through all 6 elements (2x3 broadcast)
         assert_eq!(indices.len(), 6);
-        
+
         Ok(())
     }
 }

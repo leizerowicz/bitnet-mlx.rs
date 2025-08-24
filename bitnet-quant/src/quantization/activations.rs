@@ -1,11 +1,14 @@
 //! Activation quantization module for BitNet models
-//! 
+//!
 //! This module provides specialized quantization for neural network activations,
 //! including dynamic quantization and calibration-based approaches.
 
-use super::{Quantizer, QuantizationConfig, QuantizationStats, QuantizationResult, QuantizationPrecision, QuantizationStrategy, CalibrationQuantizer};
+use super::{
+    CalibrationQuantizer, QuantizationConfig, QuantizationPrecision, QuantizationResult,
+    QuantizationStats, QuantizationStrategy, Quantizer,
+};
 use crate::quantization::utils::QuantizationError;
-use candle_core::{Tensor, DType, Device, Shape};
+use candle_core::{DType, Device, Shape, Tensor};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
@@ -66,15 +69,21 @@ impl ActivationQuantizationConfig {
     /// Validate the activation quantization configuration
     pub fn validate(&self) -> QuantizationResult<()> {
         if self.moving_average_window == 0 {
-            return Err(QuantizationError::ConfigurationError("Moving average window cannot be zero".to_string()));
+            return Err(QuantizationError::ConfigurationError(
+                "Moving average window cannot be zero".to_string(),
+            ));
         }
 
         if self.outlier_percentile <= 0.0 || self.outlier_percentile > 100.0 {
-            return Err(QuantizationError::ConfigurationError("Outlier percentile must be in range (0, 100]".to_string()));
+            return Err(QuantizationError::ConfigurationError(
+                "Outlier percentile must be in range (0, 100]".to_string(),
+            ));
         }
 
         if self.ema_decay < 0.0 || self.ema_decay > 1.0 {
-            return Err(QuantizationError::ConfigurationError("EMA decay must be in range [0, 1]".to_string()));
+            return Err(QuantizationError::ConfigurationError(
+                "EMA decay must be in range [0, 1]".to_string(),
+            ));
         }
 
         Ok(())
@@ -146,32 +155,45 @@ impl QuantizedActivation {
     pub fn memory_footprint(&self) -> usize {
         let values_size = self.values.elem_count() * self.quantized_dtype.size_in_bytes();
         let scales_size = self.scales.elem_count() * self.scales.dtype().size_in_bytes();
-        let zero_points_size = self.zero_points
+        let zero_points_size = self
+            .zero_points
             .as_ref()
             .map(|zp| zp.elem_count() * zp.dtype().size_in_bytes())
             .unwrap_or(0);
-        
+
         values_size + scales_size + zero_points_size
     }
 }
 
 /// Trait for activation quantization operations
-pub trait ActivationQuantizer: Quantizer<Input = Tensor, Output = QuantizedActivation, Config = ActivationQuantizationConfig, Error = QuantizationError> {
+pub trait ActivationQuantizer:
+    Quantizer<
+    Input = Tensor,
+    Output = QuantizedActivation,
+    Config = ActivationQuantizationConfig,
+    Error = QuantizationError,
+>
+{
     /// Quantize activations with dynamic scaling
-    fn quantize_dynamic(&mut self, activations: &Tensor) -> QuantizationResult<QuantizedActivation>;
-    
+    fn quantize_dynamic(&mut self, activations: &Tensor)
+        -> QuantizationResult<QuantizedActivation>;
+
     /// Quantize attention scores specifically
-    fn quantize_attention(&self, attention_scores: &Tensor, sequence_length: usize) -> QuantizationResult<QuantizedActivation>;
-    
+    fn quantize_attention(
+        &self,
+        attention_scores: &Tensor,
+        sequence_length: usize,
+    ) -> QuantizationResult<QuantizedActivation>;
+
     /// Update dynamic quantization parameters
     fn update_dynamic_params(&mut self, activations: &Tensor) -> QuantizationResult<()>;
-    
+
     /// Get current dynamic scaling factors
     fn get_dynamic_scales(&self) -> QuantizationResult<Tensor>;
-    
+
     /// Reset dynamic quantization state
     fn reset_dynamic_state(&mut self);
-    
+
     /// Validate activation tensor for quantization
     fn validate_activations(&self, activations: &Tensor) -> QuantizationResult<()>;
 }
@@ -213,7 +235,7 @@ impl DynamicActivationQuantizer {
     /// Compute dynamic scale based on activation statistics
     fn compute_dynamic_scale(&mut self, activations: &Tensor) -> QuantizationResult<f32> {
         let abs_max = activations.abs()?.max_all()?.to_scalar::<f32>()?;
-        
+
         // Update exponential moving average
         let current_scale = match self.config.base.precision {
             QuantizationPrecision::OneFiveFiveBit => abs_max / 1.0, // Scale for ternary
@@ -222,7 +244,9 @@ impl DynamicActivationQuantizer {
         };
 
         self.ema_scale = Some(match self.ema_scale {
-            Some(prev) => self.config.ema_decay * prev + (1.0 - self.config.ema_decay) * current_scale,
+            Some(prev) => {
+                self.config.ema_decay * prev + (1.0 - self.config.ema_decay) * current_scale
+            }
             None => current_scale,
         });
 
@@ -244,18 +268,22 @@ impl DynamicActivationQuantizer {
     }
 
     /// Quantize to ternary values for 1.58-bit
-    fn quantize_ternary_activation(&self, activations: &Tensor, scale: f32) -> QuantizationResult<Tensor> {
+    fn quantize_ternary_activation(
+        &self,
+        activations: &Tensor,
+        scale: f32,
+    ) -> QuantizationResult<Tensor> {
         let scaled = activations.div(&Tensor::new(scale, &self.device)?)?;
-        
+
         // Use a threshold-based approach for activations
         let threshold = 0.5;
         let pos_mask = scaled.gt(&Tensor::new(threshold, &self.device)?)?;
         let neg_mask = scaled.lt(&Tensor::new(-threshold, &self.device)?)?;
-        
+
         let pos_values = pos_mask.to_dtype(activations.dtype())?;
         let neg_values = neg_mask.to_dtype(activations.dtype())?.neg()?;
         let quantized = pos_values.add(&neg_values)?;
-        
+
         Ok(quantized)
     }
 
@@ -279,24 +307,34 @@ impl Quantizer for DynamicActivationQuantizer {
 
     fn quantize(&self, activations: &Tensor) -> QuantizationResult<QuantizedActivation> {
         self.validate_input(activations)?;
-        
+
         // Use current EMA scale or compute a new one
         let scale = self.ema_scale.unwrap_or_else(|| {
-            activations.abs().unwrap().max_all().unwrap().to_scalar::<f32>().unwrap_or(1.0)
+            activations
+                .abs()
+                .unwrap()
+                .max_all()
+                .unwrap()
+                .to_scalar::<f32>()
+                .unwrap_or(1.0)
         });
 
         let (quantized_values, quantized_dtype) = match self.config.base.precision {
-            QuantizationPrecision::OneFiveFiveBit => {
-                (self.quantize_ternary_activation(activations, scale)?, DType::U8)
+            QuantizationPrecision::OneFiveFiveBit => (
+                self.quantize_ternary_activation(activations, scale)?,
+                DType::U8,
+            ),
+            QuantizationPrecision::EightBit => (self.quantize_int8(activations, scale)?, DType::U8),
+            _ => {
+                return Err(QuantizationError::UnsupportedPrecision(format!(
+                    "{:?}",
+                    self.config.base.precision
+                )))
             }
-            QuantizationPrecision::EightBit => {
-                (self.quantize_int8(activations, scale)?, DType::U8)
-            }
-            _ => return Err(QuantizationError::UnsupportedPrecision(format!("{:?}", self.config.base.precision))),
         };
 
         let scales = Tensor::new(scale, &self.device)?;
-        
+
         let stats = QuantizationStats {
             elements_count: activations.elem_count(),
             scale_factor: scale,
@@ -317,7 +355,10 @@ impl Quantizer for DynamicActivationQuantizer {
     }
 
     fn dequantize(&self, quantized: &QuantizedActivation) -> QuantizationResult<Tensor> {
-        let dequantized = quantized.values.to_dtype(DType::F32)?.mul(&quantized.scales)?;
+        let dequantized = quantized
+            .values
+            .to_dtype(DType::F32)?
+            .mul(&quantized.scales)?;
         Ok(dequantized)
     }
 
@@ -327,13 +368,17 @@ impl Quantizer for DynamicActivationQuantizer {
 
     fn validate_input(&self, activations: &Tensor) -> QuantizationResult<()> {
         if activations.rank() < 1 {
-            return Err(QuantizationError::InvalidInput("Activation tensor must have at least 1 dimension".to_string()));
+            return Err(QuantizationError::InvalidInput(
+                "Activation tensor must have at least 1 dimension".to_string(),
+            ));
         }
-        
+
         if activations.dtype() != DType::F32 && activations.dtype() != DType::F16 {
-            return Err(QuantizationError::InvalidInput("Activation tensor must be float type".to_string()));
+            return Err(QuantizationError::InvalidInput(
+                "Activation tensor must be float type".to_string(),
+            ));
         }
-        
+
         Ok(())
     }
 
@@ -343,32 +388,41 @@ impl Quantizer for DynamicActivationQuantizer {
 }
 
 impl ActivationQuantizer for DynamicActivationQuantizer {
-    fn quantize_dynamic(&mut self, activations: &Tensor) -> QuantizationResult<QuantizedActivation> {
+    fn quantize_dynamic(
+        &mut self,
+        activations: &Tensor,
+    ) -> QuantizationResult<QuantizedActivation> {
         self.step_count += 1;
-        
+
         // Update dynamic parameters
         self.update_dynamic_params(activations)?;
-        
+
         // Perform quantization
         self.quantize(activations)
     }
 
-    fn quantize_attention(&self, attention_scores: &Tensor, sequence_length: usize) -> QuantizationResult<QuantizedActivation> {
+    fn quantize_attention(
+        &self,
+        attention_scores: &Tensor,
+        sequence_length: usize,
+    ) -> QuantizationResult<QuantizedActivation> {
         if !self.config.quantize_attention {
-            return Err(QuantizationError::InvalidInput("Attention quantization is disabled".to_string()));
+            return Err(QuantizationError::InvalidInput(
+                "Attention quantization is disabled".to_string(),
+            ));
         }
 
         // Attention scores typically have different characteristics
         // Use a specialized approach for attention quantization
         let mut result = self.quantize(attention_scores)?;
         result.sequence_length = Some(sequence_length);
-        
+
         Ok(result)
     }
 
     fn update_dynamic_params(&mut self, activations: &Tensor) -> QuantizationResult<()> {
         let _scale = self.compute_dynamic_scale(activations)?;
-        
+
         // Store calibration data during warmup
         if self.step_count <= self.config.calibration_warmup {
             if self.calibration_data.len() < self.config.calibration_warmup {
@@ -377,7 +431,7 @@ impl ActivationQuantizer for DynamicActivationQuantizer {
         } else if !self.calibrated {
             self.calibrated = true;
         }
-        
+
         Ok(())
     }
 
@@ -404,12 +458,14 @@ impl CalibrationQuantizer for DynamicActivationQuantizer {
 
     fn calibrate(&mut self, data: &[Tensor]) -> QuantizationResult<()> {
         if data.is_empty() {
-            return Err(QuantizationError::InvalidInput("Calibration data cannot be empty".to_string()));
+            return Err(QuantizationError::InvalidInput(
+                "Calibration data cannot be empty".to_string(),
+            ));
         }
 
         // Compute statistics across all calibration data
         let mut all_scales = Vec::new();
-        
+
         for tensor in data {
             let abs_max = tensor.abs()?.max_all()?.to_scalar::<f32>()?;
             all_scales.push(abs_max);
@@ -417,7 +473,8 @@ impl CalibrationQuantizer for DynamicActivationQuantizer {
 
         // Use median or percentile-based scale
         all_scales.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        let percentile_idx = (all_scales.len() as f32 * self.config.outlier_percentile / 100.0) as usize;
+        let percentile_idx =
+            (all_scales.len() as f32 * self.config.outlier_percentile / 100.0) as usize;
         let calibrated_scale = all_scales[percentile_idx.min(all_scales.len() - 1)];
 
         self.ema_scale = Some(calibrated_scale);
@@ -436,10 +493,12 @@ impl CalibrationQuantizer for DynamicActivationQuantizer {
 }
 
 /// Factory function to create activation quantizers
-pub fn create_activation_quantizer(config: ActivationQuantizationConfig) -> QuantizationResult<Box<dyn ActivationQuantizer>> {
+pub fn create_activation_quantizer(
+    config: ActivationQuantizationConfig,
+) -> QuantizationResult<Box<dyn ActivationQuantizer>> {
     // Validate configuration first
     config.validate()?;
-    
+
     let device = Device::Cpu; // Default to CPU, can be configured
     Ok(Box::new(DynamicActivationQuantizer::new(config, device)))
 }
@@ -471,10 +530,10 @@ pub fn create_activation_quantizer(config: ActivationQuantizationConfig) -> Quan
 pub fn absmax_quantize_activations(
     activations: &Tensor,
     device: &Device,
-    precision: Option<QuantizationPrecision>
+    precision: Option<QuantizationPrecision>,
 ) -> QuantizationResult<QuantizedActivation> {
     let precision = precision.unwrap_or(QuantizationPrecision::OneFiveFiveBit);
-    
+
     // Create configuration for absolute maximum scaling
     let config = ActivationQuantizationConfig {
         base: QuantizationConfig {
@@ -485,22 +544,22 @@ pub fn absmax_quantize_activations(
             qat_enabled: false,
             calibration_size: None,
         },
-        moving_average_window: 1, // Use current value only for absmax
+        moving_average_window: 1,  // Use current value only for absmax
         outlier_percentile: 100.0, // No outlier clipping for absmax
         per_token: false,
         calibration_warmup: 0, // No warmup needed for absmax
-        ema_decay: 1.0, // No smoothing for absmax
+        ema_decay: 1.0,        // No smoothing for absmax
         quantize_attention: true,
     };
-    
+
     let quantizer = DynamicActivationQuantizer::new(config.clone(), device.clone());
-    
+
     // Validate input activations
     quantizer.validate_input(activations)?;
-    
+
     // Compute absolute maximum for scaling
     let abs_max = activations.abs()?.max_all()?.to_scalar::<f32>()?;
-    
+
     // Prevent division by zero
     let scale = if abs_max < f32::EPSILON {
         1.0
@@ -508,11 +567,11 @@ pub fn absmax_quantize_activations(
         match precision {
             QuantizationPrecision::OneFiveFiveBit => abs_max, // Scale for ternary range [-1, 1]
             QuantizationPrecision::EightBit => abs_max / 127.0, // Scale for int8 range [-127, 127]
-            QuantizationPrecision::FourBit => abs_max / 7.0, // Scale for 4-bit range [-7, 7]
+            QuantizationPrecision::FourBit => abs_max / 7.0,  // Scale for 4-bit range [-7, 7]
             _ => abs_max / ((1 << (get_effective_bits(precision) as u32 - 1)) - 1) as f32,
         }
     };
-    
+
     // Quantize based on precision
     let (quantized_values, quantized_dtype) = match precision {
         QuantizationPrecision::OneFiveFiveBit => {
@@ -520,16 +579,18 @@ pub fn absmax_quantize_activations(
             let scale_tensor = Tensor::new(scale, device)?.broadcast_as(activations.shape())?;
             let scaled = activations.div(&scale_tensor)?;
             let threshold = 0.5f32; // Standard threshold for activations
-            
-            let threshold_tensor = Tensor::new(threshold, device)?.broadcast_as(activations.shape())?;
-            let neg_threshold_tensor = Tensor::new(-threshold, device)?.broadcast_as(activations.shape())?;
+
+            let threshold_tensor =
+                Tensor::new(threshold, device)?.broadcast_as(activations.shape())?;
+            let neg_threshold_tensor =
+                Tensor::new(-threshold, device)?.broadcast_as(activations.shape())?;
             let pos_mask = scaled.gt(&threshold_tensor)?;
             let neg_mask = scaled.lt(&neg_threshold_tensor)?;
-            
+
             let pos_values = pos_mask.to_dtype(activations.dtype())?;
             let neg_values = neg_mask.to_dtype(activations.dtype())?.neg()?;
             let quantized = pos_values.add(&neg_values)?;
-            
+
             (quantized, DType::U8)
         }
         QuantizationPrecision::EightBit => {
@@ -541,18 +602,22 @@ pub fn absmax_quantize_activations(
             (quantized, DType::U8)
         }
         _ => {
-            return Err(QuantizationError::UnsupportedPrecision(format!("{precision:?}")));
+            return Err(QuantizationError::UnsupportedPrecision(format!(
+                "{precision:?}"
+            )));
         }
     };
-    
+
     let scales = Tensor::new(scale, device)?;
-    
+
     // Compute quantization statistics
     let scales_broadcast = scales.broadcast_as(quantized_values.shape())?;
-    let dequantized = quantized_values.to_dtype(DType::F32)?.mul(&scales_broadcast)?;
+    let dequantized = quantized_values
+        .to_dtype(DType::F32)?
+        .mul(&scales_broadcast)?;
     let diff = activations.sub(&dequantized)?;
     let mse = diff.sqr()?.mean_all()?.to_scalar::<f32>()?;
-    
+
     let stats = QuantizationStats {
         elements_count: activations.elem_count(),
         quantization_error: mse,
@@ -562,7 +627,7 @@ pub fn absmax_quantize_activations(
         scale_factor: scale,
         zero_point: None, // Symmetric quantization
     };
-    
+
     Ok(QuantizedActivation::new(
         quantized_values,
         scales,
@@ -591,9 +656,13 @@ pub mod activation_utils {
     use super::*;
 
     /// Analyze activation patterns for optimal quantization
-    pub fn analyze_activation_patterns(activations: &[Tensor]) -> QuantizationResult<ActivationPatternAnalysis> {
+    pub fn analyze_activation_patterns(
+        activations: &[Tensor],
+    ) -> QuantizationResult<ActivationPatternAnalysis> {
         if activations.is_empty() {
-            return Err(QuantizationError::InvalidInput("No activation data provided".to_string()));
+            return Err(QuantizationError::InvalidInput(
+                "No activation data provided".to_string(),
+            ));
         }
 
         let mut min_vals = Vec::new();
@@ -627,10 +696,10 @@ pub mod activation_utils {
         // Attention scores are typically in [0, 1] after softmax
         let max_val = attention_scores.max_all()?.to_scalar::<f32>()?;
         let min_val = attention_scores.min_all()?.to_scalar::<f32>()?;
-        
+
         // For attention, we often want to preserve precision around 0
         let scale = max_val.max(min_val.abs());
-        
+
         Ok(AttentionQuantParams {
             scale,
             sequence_length,
@@ -642,7 +711,10 @@ pub mod activation_utils {
     fn compute_attention_sparsity(attention: &Tensor) -> QuantizationResult<f32> {
         let threshold = 0.01; // 1% threshold for attention sparsity
         let low_attention = attention.lt(&Tensor::new(threshold, attention.device())?)?;
-        let sparsity = low_attention.to_dtype(DType::F32)?.mean_all()?.to_scalar::<f32>()?;
+        let sparsity = low_attention
+            .to_dtype(DType::F32)?
+            .mean_all()?
+            .to_scalar::<f32>()?;
         Ok(sparsity)
     }
 }
@@ -697,34 +769,44 @@ mod tests {
         let shape = Shape::from_dims(&[10, 10]);
         let config = ActivationQuantizationConfig::default();
         let stats = QuantizationStats::default();
-        
-        let quantized = QuantizedActivation::new(
-            values, scales, None, shape, DType::U8, config, stats, None
-        );
-        
+
+        let quantized =
+            QuantizedActivation::new(values, scales, None, shape, DType::U8, config, stats, None);
+
         assert_eq!(quantized.effective_bit_width(), 1.58);
     }
 
     #[test]
     fn test_absmax_quantize_activations_basic() {
         let device = Device::Cpu;
-        let activations = Tensor::new(&[1.5f32, -0.8, 0.2, -2.1, 0.0, 1.0], &device).unwrap()
-            .reshape((2, 3)).unwrap();
-        
+        let activations = Tensor::new(&[1.5f32, -0.8, 0.2, -2.1, 0.0, 1.0], &device)
+            .unwrap()
+            .reshape((2, 3))
+            .unwrap();
+
         let quantized = absmax_quantize_activations(&activations, &device, None).unwrap();
-        
+
         // Check that quantized values are ternary for 1.58-bit precision
-        let quantized_data = quantized.values.flatten_all().unwrap().to_vec1::<f32>().unwrap();
+        let quantized_data = quantized
+            .values
+            .flatten_all()
+            .unwrap()
+            .to_vec1::<f32>()
+            .unwrap();
         for &val in &quantized_data {
-            assert!(val == -1.0 || val == 0.0 || val == 1.0, "Value {} is not ternary", val);
+            assert!(
+                val == -1.0 || val == 0.0 || val == 1.0,
+                "Value {} is not ternary",
+                val
+            );
         }
-        
+
         // Check that we have scaling factors
         assert!(quantized.scales.elem_count() > 0);
-        
+
         // Check compression ratio
         assert!(quantized.stats.compression_ratio > 1.0);
-        
+
         // Check that original shape is preserved
         assert_eq!(quantized.original_shape, *activations.shape());
     }
@@ -733,19 +815,25 @@ mod tests {
     fn test_absmax_quantize_activations_8bit() {
         let device = Device::Cpu;
         let activations = Tensor::new(&[100.0f32, -50.0, 25.0, -75.0], &device).unwrap();
-        
+
         let quantized = absmax_quantize_activations(
             &activations,
             &device,
-            Some(QuantizationPrecision::EightBit)
-        ).unwrap();
-        
+            Some(QuantizationPrecision::EightBit),
+        )
+        .unwrap();
+
         // Check that quantized dtype is correct
         assert_eq!(quantized.quantized_dtype, DType::U8);
-        
+
         // Check that values are in valid uint8 range
         // Convert to F32 first since quantized values are stored as U8
-        let quantized_data = quantized.values.to_dtype(DType::F32).unwrap().to_vec1::<f32>().unwrap();
+        let quantized_data = quantized
+            .values
+            .to_dtype(DType::F32)
+            .unwrap()
+            .to_vec1::<f32>()
+            .unwrap();
         for &val in &quantized_data {
             assert!(val >= -127.0 && val <= 127.0);
         }
@@ -755,10 +843,10 @@ mod tests {
     fn test_absmax_quantize_activations_preserves_signs() {
         let device = Device::Cpu;
         let activations = Tensor::new(&[3.0f32, -3.0, 0.1, -0.1], &device).unwrap();
-        
+
         let quantized = absmax_quantize_activations(&activations, &device, None).unwrap();
         let quantized_data = quantized.values.to_vec1::<f32>().unwrap();
-        
+
         // Large positive should become +1, large negative should become -1
         assert!(quantized_data[0] > 0.0); // 3.0 -> positive
         assert!(quantized_data[1] < 0.0); // -3.0 -> negative
@@ -768,9 +856,9 @@ mod tests {
     fn test_absmax_quantize_activations_scaling() {
         let device = Device::Cpu;
         let activations = Tensor::new(&[4.0f32, -2.0, 1.0, -3.0], &device).unwrap();
-        
+
         let quantized = absmax_quantize_activations(&activations, &device, None).unwrap();
-        
+
         // Check that scale factor is based on absolute maximum (4.0)
         let expected_scale = 4.0; // abs_max for 1.58-bit
         assert!((quantized.stats.scale_factor - expected_scale).abs() < 1e-6);
@@ -780,18 +868,28 @@ mod tests {
     fn test_absmax_quantize_activations_dequantization() {
         let device = Device::Cpu;
         let activations = Tensor::new(&[2.0f32, -1.5, 0.5, -0.3], &device).unwrap();
-        
+
         let quantized = absmax_quantize_activations(&activations, &device, None).unwrap();
-        
+
         // Test dequantization
         let config = ActivationQuantizationConfig::default();
         let quantizer = DynamicActivationQuantizer::new(config, device);
         // Create a simple dequantization by multiplying values with scales
-        let dequantized = quantized.values.to_dtype(DType::F32).unwrap().mul(&quantized.scales.broadcast_as(quantized.values.shape()).unwrap()).unwrap();
-        
+        let dequantized = quantized
+            .values
+            .to_dtype(DType::F32)
+            .unwrap()
+            .mul(
+                &quantized
+                    .scales
+                    .broadcast_as(quantized.values.shape())
+                    .unwrap(),
+            )
+            .unwrap();
+
         // Check that dequantized tensor has same shape
         assert_eq!(dequantized.shape(), activations.shape());
-        
+
         // Check that quantization error is reasonable
         assert!(quantized.stats.quantization_error < 2.0);
     }
@@ -800,9 +898,9 @@ mod tests {
     fn test_absmax_quantize_activations_statistics() {
         let device = Device::Cpu;
         let activations = Tensor::new(&[1.0f32, -1.0, 0.5, -0.5, 0.0, 2.0], &device).unwrap();
-        
+
         let quantized = absmax_quantize_activations(&activations, &device, None).unwrap();
-        
+
         // Check statistics
         assert_eq!(quantized.stats.elements_count, 6);
         assert!(quantized.stats.scale_factor > 0.0);
@@ -813,16 +911,23 @@ mod tests {
     #[test]
     fn test_absmax_quantize_activations_edge_cases() {
         let device = Device::Cpu;
-        
+
         // Test with all zeros
         let zeros = Tensor::zeros((2, 2), DType::F32, &device).unwrap();
         let quantized_zeros = absmax_quantize_activations(&zeros, &device, None).unwrap();
         // Flatten the 2D tensor to 1D before converting to vec
-        let quantized_data = quantized_zeros.values.flatten_all().unwrap().to_dtype(DType::F32).unwrap().to_vec1::<f32>().unwrap();
+        let quantized_data = quantized_zeros
+            .values
+            .flatten_all()
+            .unwrap()
+            .to_dtype(DType::F32)
+            .unwrap()
+            .to_vec1::<f32>()
+            .unwrap();
         for &val in &quantized_data {
             assert_eq!(val, 0.0);
         }
-        
+
         // Test with very small values
         let small_vals = Tensor::new(&[1e-6f32, -1e-6, 1e-7, -1e-7], &device).unwrap();
         let quantized_small = absmax_quantize_activations(&small_vals, &device, None).unwrap();
@@ -834,27 +939,32 @@ mod tests {
     fn test_absmax_quantize_activations_different_precisions() {
         let device = Device::Cpu;
         let activations = Tensor::new(&[1.0f32, -0.5, 0.25, -0.75], &device).unwrap();
-        
+
         // Test 1.58-bit precision
         let quantized_158 = absmax_quantize_activations(
             &activations,
             &device,
-            Some(QuantizationPrecision::OneFiveFiveBit)
-        ).unwrap();
+            Some(QuantizationPrecision::OneFiveFiveBit),
+        )
+        .unwrap();
         assert_eq!(quantized_158.effective_bit_width(), 1.58);
-        
+
         // Test 8-bit precision
         let quantized_8bit = absmax_quantize_activations(
             &activations,
             &device,
-            Some(QuantizationPrecision::EightBit)
-        ).unwrap();
+            Some(QuantizationPrecision::EightBit),
+        )
+        .unwrap();
         assert_eq!(quantized_8bit.effective_bit_width(), 8.0);
     }
 
     #[test]
     fn test_get_effective_bits_helper() {
-        assert_eq!(get_effective_bits(QuantizationPrecision::OneFiveFiveBit), 1.58);
+        assert_eq!(
+            get_effective_bits(QuantizationPrecision::OneFiveFiveBit),
+            1.58
+        );
         assert_eq!(get_effective_bits(QuantizationPrecision::OneBit), 1.0);
         assert_eq!(get_effective_bits(QuantizationPrecision::TwoBit), 2.0);
         assert_eq!(get_effective_bits(QuantizationPrecision::FourBit), 4.0);

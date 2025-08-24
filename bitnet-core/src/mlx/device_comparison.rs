@@ -1,19 +1,21 @@
 //! MLX Device-Specific Performance Comparison
-//! 
+//!
 //! This module provides comprehensive device comparison capabilities for MLX operations,
 //! including CPU vs GPU analysis, cross-device optimization, and device selection recommendations.
 
 use crate::mlx::{
-    MlxTensor, BitNetMlxDevice,
-    performance::{MlxPerformanceBenchmarker, PerformanceMetrics, BenchmarkConfig, ComparisonResult},
-    memory_tracker::{MlxMemoryTracker, MemoryOptimization},
-    metrics::{MlxMetricsCollector, MlxMetrics, OperationContext},
-    profiler::{MlxAdvancedProfiler, ProfilingSession, ProfilerConfig},
+    memory_tracker::{MemoryOptimization, MlxMemoryTracker},
+    metrics::{MlxMetrics, MlxMetricsCollector, OperationContext},
+    performance::{
+        BenchmarkConfig, ComparisonResult, MlxPerformanceBenchmarker, PerformanceMetrics,
+    },
+    profiler::{MlxAdvancedProfiler, ProfilerConfig, ProfilingSession},
+    BitNetMlxDevice, MlxTensor,
 };
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
-use serde::{Serialize, Deserialize};
 
 /// Device comparison configuration
 #[derive(Debug, Clone)]
@@ -404,10 +406,13 @@ impl MlxDeviceComparison {
 
     /// Run comprehensive device comparison
     pub fn run_comparison(&mut self) -> Result<DeviceComparisonResult> {
-        let comparison_id = format!("comparison_{}", SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs());
+        let comparison_id = format!(
+            "comparison_{}",
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs()
+        );
 
         let mut device_results = HashMap::new();
         let mut all_metrics: Vec<crate::mlx::metrics::MlxMetrics> = Vec::new();
@@ -424,13 +429,16 @@ impl MlxDeviceComparison {
         let cross_device_comparisons = self.generate_cross_device_comparisons(&device_results)?;
 
         // Generate optimization recommendations
-        let optimization_recommendations = self.generate_optimization_recommendations(&device_results)?;
+        let optimization_recommendations =
+            self.generate_optimization_recommendations(&device_results)?;
 
         // Generate device selection guide
-        let device_selection_guide = self.generate_device_selection_guide(&device_results, &cross_device_comparisons)?;
+        let device_selection_guide =
+            self.generate_device_selection_guide(&device_results, &cross_device_comparisons)?;
 
         // Generate summary
-        let summary = self.generate_comparison_summary(&device_results, &cross_device_comparisons)?;
+        let summary =
+            self.generate_comparison_summary(&device_results, &cross_device_comparisons)?;
 
         Ok(DeviceComparisonResult {
             comparison_id,
@@ -482,7 +490,8 @@ impl MlxDeviceComparison {
         let scalability_analysis = self.analyze_scalability(device)?;
 
         // Calculate efficiency metrics
-        let efficiency_metrics = self.calculate_efficiency_metrics(device, &operation_performance)?;
+        let efficiency_metrics =
+            self.calculate_efficiency_metrics(device, &operation_performance)?;
 
         Ok(DevicePerformanceProfile {
             device_name,
@@ -496,7 +505,11 @@ impl MlxDeviceComparison {
     }
 
     /// Profile a specific operation on a device
-    fn profile_operation(&mut self, device: &BitNetMlxDevice, operation: &str) -> Result<OperationPerformanceProfile> {
+    fn profile_operation(
+        &mut self,
+        device: &BitNetMlxDevice,
+        operation: &str,
+    ) -> Result<OperationPerformanceProfile> {
         let mut performance_by_size = HashMap::new();
         let mut performance_by_dtype = HashMap::new();
 
@@ -509,14 +522,18 @@ impl MlxDeviceComparison {
             };
 
             let size_key = format!("{:?}", size);
-            performance_by_size.insert(size_key, SizePerformanceMetrics {
-                tensor_size: size.clone(),
-                average_latency: metrics.execution_time,
-                peak_throughput: metrics.throughput,
-                memory_usage: (metrics.memory_usage.allocated_memory_mb * 1024.0 * 1024.0) as usize,
-                efficiency_score: metrics.memory_usage.memory_efficiency,
-                scalability_factor: 1.0, // Would calculate based on size scaling
-            });
+            performance_by_size.insert(
+                size_key,
+                SizePerformanceMetrics {
+                    tensor_size: size.clone(),
+                    average_latency: metrics.execution_time,
+                    peak_throughput: metrics.throughput,
+                    memory_usage: (metrics.memory_usage.allocated_memory_mb * 1024.0 * 1024.0)
+                        as usize,
+                    efficiency_score: metrics.memory_usage.memory_efficiency,
+                    scalability_factor: 1.0, // Would calculate based on size scaling
+                },
+            );
         }
 
         // Test different data types
@@ -527,20 +544,28 @@ impl MlxDeviceComparison {
                 op => self.benchmarker.benchmark_elementwise(device, op)?,
             };
 
-            performance_by_dtype.insert(dtype.clone(), DtypePerformanceMetrics {
-                data_type: dtype.clone(),
-                average_latency: metrics.execution_time,
-                throughput: metrics.throughput,
-                memory_efficiency: metrics.memory_usage.memory_efficiency,
-                precision_impact: if dtype == "f16" { 0.95 } else { 1.0 }, // Placeholder
-            });
+            performance_by_dtype.insert(
+                dtype.clone(),
+                DtypePerformanceMetrics {
+                    data_type: dtype.clone(),
+                    average_latency: metrics.execution_time,
+                    throughput: metrics.throughput,
+                    memory_efficiency: metrics.memory_usage.memory_efficiency,
+                    precision_impact: if dtype == "f16" { 0.95 } else { 1.0 }, // Placeholder
+                },
+            );
         }
 
         // Generate optimal configurations
-        let optimal_configurations = self.generate_optimal_configurations(operation, &performance_by_size, &performance_by_dtype)?;
+        let optimal_configurations = self.generate_optimal_configurations(
+            operation,
+            &performance_by_size,
+            &performance_by_dtype,
+        )?;
 
         // Analyze performance characteristics
-        let performance_characteristics = self.analyze_performance_characteristics(operation, &performance_by_size)?;
+        let performance_characteristics =
+            self.analyze_performance_characteristics(operation, &performance_by_size)?;
 
         Ok(OperationPerformanceProfile {
             operation_name: operation.to_string(),
@@ -552,7 +577,10 @@ impl MlxDeviceComparison {
     }
 
     /// Generate cross-device comparisons
-    fn generate_cross_device_comparisons(&self, device_results: &HashMap<String, DevicePerformanceProfile>) -> Result<Vec<CrossDeviceComparison>> {
+    fn generate_cross_device_comparisons(
+        &self,
+        device_results: &HashMap<String, DevicePerformanceProfile>,
+    ) -> Result<Vec<CrossDeviceComparison>> {
         let mut comparisons = Vec::new();
         let devices: Vec<_> = device_results.keys().collect();
 
@@ -568,17 +596,18 @@ impl MlxDeviceComparison {
                 for operation in &self.config.operations_to_test {
                     if let (Some(perf_a), Some(perf_b)) = (
                         profile_a.operation_performance.get(operation),
-                        profile_b.operation_performance.get(operation)
+                        profile_b.operation_performance.get(operation),
                     ) {
                         // Compare for each tensor size
                         for size in &self.config.tensor_sizes {
                             let size_key = format!("{:?}", size);
                             if let (Some(metrics_a), Some(metrics_b)) = (
                                 perf_a.performance_by_size.get(&size_key),
-                                perf_b.performance_by_size.get(&size_key)
+                                perf_b.performance_by_size.get(&size_key),
                             ) {
                                 let comparison = self.compare_device_performance(
-                                    device_a, device_b, operation, size, "f32", metrics_a, metrics_b
+                                    device_a, device_b, operation, size, "f32", metrics_a,
+                                    metrics_b,
                                 )?;
                                 comparisons.push(comparison);
                             }
@@ -602,9 +631,11 @@ impl MlxDeviceComparison {
         metrics_a: &SizePerformanceMetrics,
         metrics_b: &SizePerformanceMetrics,
     ) -> Result<CrossDeviceComparison> {
-        let speedup = metrics_a.average_latency.as_secs_f64() / metrics_b.average_latency.as_secs_f64();
+        let speedup =
+            metrics_a.average_latency.as_secs_f64() / metrics_b.average_latency.as_secs_f64();
         let throughput_ratio = metrics_b.peak_throughput / metrics_a.peak_throughput;
-        let latency_ratio = metrics_b.average_latency.as_secs_f64() / metrics_a.average_latency.as_secs_f64();
+        let latency_ratio =
+            metrics_b.average_latency.as_secs_f64() / metrics_a.average_latency.as_secs_f64();
         let efficiency_ratio = metrics_b.efficiency_score / metrics_a.efficiency_score;
 
         let performance_comparison = PerformanceComparison {
@@ -619,7 +650,7 @@ impl MlxDeviceComparison {
             memory_usage_ratio: metrics_b.memory_usage as f64 / metrics_a.memory_usage as f64,
             allocation_efficiency_ratio: 1.0, // Placeholder
             bandwidth_utilization_ratio: 1.0, // Placeholder
-            fragmentation_comparison: 0.0, // Placeholder
+            fragmentation_comparison: 0.0,    // Placeholder
         };
 
         let recommended_device = if speedup > 1.2 {
@@ -634,13 +665,23 @@ impl MlxDeviceComparison {
             recommended_device: recommended_device.clone(),
             confidence: 0.8,
             reasoning: vec![
-                format!("Device {} shows {:.2}x speedup", recommended_device, speedup.max(1.0 / speedup)),
+                format!(
+                    "Device {} shows {:.2}x speedup",
+                    recommended_device,
+                    speedup.max(1.0 / speedup)
+                ),
                 format!("Throughput ratio: {:.2}", throughput_ratio),
             ],
             use_case_suitability: {
                 let mut suitability = HashMap::new();
-                suitability.insert("training".to_string(), if device_b == "gpu" { 0.9 } else { 0.6 });
-                suitability.insert("inference".to_string(), if device_b == "gpu" { 0.8 } else { 0.7 });
+                suitability.insert(
+                    "training".to_string(),
+                    if device_b == "gpu" { 0.9 } else { 0.6 },
+                );
+                suitability.insert(
+                    "inference".to_string(),
+                    if device_b == "gpu" { 0.8 } else { 0.7 },
+                );
                 suitability.insert("development".to_string(), 0.8);
                 suitability
             },
@@ -697,7 +738,10 @@ impl MlxDeviceComparison {
         })
     }
 
-    fn analyze_memory_characteristics(&self, device: &BitNetMlxDevice) -> Result<MemoryCharacteristics> {
+    fn analyze_memory_characteristics(
+        &self,
+        device: &BitNetMlxDevice,
+    ) -> Result<MemoryCharacteristics> {
         Ok(MemoryCharacteristics {
             allocation_overhead: Duration::from_micros(10),
             deallocation_overhead: Duration::from_micros(5),
@@ -712,7 +756,10 @@ impl MlxDeviceComparison {
         })
     }
 
-    fn analyze_power_characteristics(&self, device: &BitNetMlxDevice) -> Result<PowerCharacteristics> {
+    fn analyze_power_characteristics(
+        &self,
+        device: &BitNetMlxDevice,
+    ) -> Result<PowerCharacteristics> {
         Ok(PowerCharacteristics {
             idle_power: match device.device_type() {
                 "gpu" => 5.0,
@@ -758,11 +805,16 @@ impl MlxDeviceComparison {
         })
     }
 
-    fn calculate_efficiency_metrics(&self, device: &BitNetMlxDevice, operation_performance: &HashMap<String, OperationPerformanceProfile>) -> Result<DeviceEfficiencyMetrics> {
+    fn calculate_efficiency_metrics(
+        &self,
+        device: &BitNetMlxDevice,
+        operation_performance: &HashMap<String, OperationPerformanceProfile>,
+    ) -> Result<DeviceEfficiencyMetrics> {
         let compute_efficiency = 0.75; // Placeholder
         let memory_efficiency = 0.80;
         let utilization_efficiency = 0.70;
-        let overall_efficiency_score = (compute_efficiency + memory_efficiency + utilization_efficiency) / 3.0;
+        let overall_efficiency_score =
+            (compute_efficiency + memory_efficiency + utilization_efficiency) / 3.0;
 
         Ok(DeviceEfficiencyMetrics {
             compute_efficiency,
@@ -773,13 +825,22 @@ impl MlxDeviceComparison {
         })
     }
 
-    fn generate_optimal_configurations(&self, operation: &str, performance_by_size: &HashMap<String, SizePerformanceMetrics>, performance_by_dtype: &HashMap<String, DtypePerformanceMetrics>) -> Result<Vec<OptimalConfiguration>> {
+    fn generate_optimal_configurations(
+        &self,
+        operation: &str,
+        performance_by_size: &HashMap<String, SizePerformanceMetrics>,
+        performance_by_dtype: &HashMap<String, DtypePerformanceMetrics>,
+    ) -> Result<Vec<OptimalConfiguration>> {
         let mut configs = Vec::new();
 
         // Find best size for throughput
-        if let Some((best_size_key, best_size_metrics)) = performance_by_size.iter()
-            .max_by(|a, b| a.1.peak_throughput.partial_cmp(&b.1.peak_throughput).unwrap()) {
-            
+        if let Some((best_size_key, best_size_metrics)) =
+            performance_by_size.iter().max_by(|a, b| {
+                a.1.peak_throughput
+                    .partial_cmp(&b.1.peak_throughput)
+                    .unwrap()
+            })
+        {
             configs.push(OptimalConfiguration {
                 configuration_name: "High Throughput".to_string(),
                 tensor_size: best_size_metrics.tensor_size.clone(),
@@ -792,9 +853,10 @@ impl MlxDeviceComparison {
         }
 
         // Find best size for low latency
-        if let Some((_, best_latency_metrics)) = performance_by_size.iter()
-            .min_by(|a, b| a.1.average_latency.cmp(&b.1.average_latency)) {
-            
+        if let Some((_, best_latency_metrics)) = performance_by_size
+            .iter()
+            .min_by(|a, b| a.1.average_latency.cmp(&b.1.average_latency))
+        {
             configs.push(OptimalConfiguration {
                 configuration_name: "Low Latency".to_string(),
                 tensor_size: best_latency_metrics.tensor_size.clone(),
@@ -809,19 +871,23 @@ impl MlxDeviceComparison {
         Ok(configs)
     }
 
-    fn analyze_performance_characteristics(&self, operation: &str, performance_by_size: &HashMap<String, SizePerformanceMetrics>) -> Result<PerformanceCharacteristics> {
+    fn analyze_performance_characteristics(
+        &self,
+        operation: &str,
+        performance_by_size: &HashMap<String, SizePerformanceMetrics>,
+    ) -> Result<PerformanceCharacteristics> {
         let mut bottleneck_analysis = Vec::new();
-        
+
         // Analyze if compute or memory bound
         let is_compute_bound = match operation {
             "matmul" => true,
             "quantization" => true,
             _ => false,
         };
-        
+
         let is_memory_bound = !is_compute_bound;
         let is_bandwidth_bound = false; // Would analyze based on actual metrics
-        
+
         if is_compute_bound {
             bottleneck_analysis.push("Operation is compute-bound".to_string());
         }
@@ -838,7 +904,10 @@ impl MlxDeviceComparison {
         })
     }
 
-    fn generate_optimization_recommendations(&self, device_results: &HashMap<String, DevicePerformanceProfile>) -> Result<Vec<DeviceOptimizationRecommendation>> {
+    fn generate_optimization_recommendations(
+        &self,
+        device_results: &HashMap<String, DevicePerformanceProfile>,
+    ) -> Result<Vec<DeviceOptimizationRecommendation>> {
         let mut recommendations = Vec::new();
 
         for (device_name, profile) in device_results {
@@ -850,17 +919,21 @@ impl MlxDeviceComparison {
                         device: device_name.clone(),
                         operation: operation_name.clone(),
                         optimization_type: DeviceOptimizationType::BatchSizeOptimization,
-                        description: "Increase batch size to improve device utilization".to_string(),
+                        description: "Increase batch size to improve device utilization"
+                            .to_string(),
                         expected_improvement: 1.5,
                         implementation_complexity: ImplementationComplexity::Simple,
-                        code_example: Some(r#"
+                        code_example: Some(
+                            r#"
 // Increase batch size for better utilization
 let batch_size = 64; // Instead of 32
 let batched_inputs = inputs.chunks(batch_size);
 for batch in batched_inputs {
     let result = mlx_operation(batch)?;
 }
-"#.to_string()),
+"#
+                            .to_string(),
+                        ),
                     });
                 }
 
@@ -870,14 +943,18 @@ for batch in batched_inputs {
                         device: device_name.clone(),
                         operation: operation_name.clone(),
                         optimization_type: DeviceOptimizationType::MemoryLayoutOptimization,
-                        description: "Optimize memory layout for better cache performance".to_string(),
+                        description: "Optimize memory layout for better cache performance"
+                            .to_string(),
                         expected_improvement: 1.2,
                         implementation_complexity: ImplementationComplexity::Moderate,
-                        code_example: Some(r#"
+                        code_example: Some(
+                            r#"
 // Use contiguous memory layout
 let tensor = tensor.contiguous()?;
 let result = mlx_operation(&tensor)?;
-"#.to_string()),
+"#
+                            .to_string(),
+                        ),
                     });
                 }
             }
@@ -886,26 +963,28 @@ let result = mlx_operation(&tensor)?;
         Ok(recommendations)
     }
 
-    fn generate_device_selection_guide(&self, device_results: &HashMap<String, DevicePerformanceProfile>, comparisons: &[CrossDeviceComparison]) -> Result<DeviceSelectionGuide> {
+    fn generate_device_selection_guide(
+        &self,
+        device_results: &HashMap<String, DevicePerformanceProfile>,
+        comparisons: &[CrossDeviceComparison],
+    ) -> Result<DeviceSelectionGuide> {
         // Create decision tree
-        let decision_tree = vec![
-            DecisionNode {
-                condition: "Tensor size > 1024x1024".to_string(),
-                true_branch: Box::new(Some(DecisionNode {
-                    condition: "Throughput priority".to_string(),
-                    true_branch: Box::new(None),
-                    false_branch: Box::new(None),
-                    recommendation: Some("gpu".to_string()),
-                })),
-                false_branch: Box::new(Some(DecisionNode {
-                    condition: "Low latency required".to_string(),
-                    true_branch: Box::new(None),
-                    false_branch: Box::new(None),
-                    recommendation: Some("cpu".to_string()),
-                })),
-                recommendation: None,
-            }
-        ];
+        let decision_tree = vec![DecisionNode {
+            condition: "Tensor size > 1024x1024".to_string(),
+            true_branch: Box::new(Some(DecisionNode {
+                condition: "Throughput priority".to_string(),
+                true_branch: Box::new(None),
+                false_branch: Box::new(None),
+                recommendation: Some("gpu".to_string()),
+            })),
+            false_branch: Box::new(Some(DecisionNode {
+                condition: "Low latency required".to_string(),
+                true_branch: Box::new(None),
+                false_branch: Box::new(None),
+                recommendation: Some("cpu".to_string()),
+            })),
+            recommendation: None,
+        }];
 
         // Create use case recommendations
         let mut use_case_recommendations = HashMap::new();
@@ -937,18 +1016,24 @@ let result = mlx_operation(&tensor)?;
 
         // Create cost-benefit analysis
         let mut device_costs = HashMap::new();
-        device_costs.insert("cpu".to_string(), DeviceCost {
-            hardware_cost: 1000.0,
-            power_cost_per_hour: 0.05,
-            maintenance_cost: 100.0,
-            total_cost_of_ownership: 1500.0,
-        });
-        device_costs.insert("gpu".to_string(), DeviceCost {
-            hardware_cost: 2000.0,
-            power_cost_per_hour: 0.15,
-            maintenance_cost: 200.0,
-            total_cost_of_ownership: 3000.0,
-        });
+        device_costs.insert(
+            "cpu".to_string(),
+            DeviceCost {
+                hardware_cost: 1000.0,
+                power_cost_per_hour: 0.05,
+                maintenance_cost: 100.0,
+                total_cost_of_ownership: 1500.0,
+            },
+        );
+        device_costs.insert(
+            "gpu".to_string(),
+            DeviceCost {
+                hardware_cost: 2000.0,
+                power_cost_per_hour: 0.15,
+                maintenance_cost: 200.0,
+                total_cost_of_ownership: 3000.0,
+            },
+        );
 
         let mut performance_benefits = HashMap::new();
         performance_benefits.insert("cpu".to_string(), 1.0);
@@ -957,7 +1042,10 @@ let result = mlx_operation(&tensor)?;
         let mut roi_analysis = HashMap::new();
         for device in &devices {
             let benefit = performance_benefits.get(device).unwrap_or(&1.0);
-            let cost = device_costs.get(device).map(|c| c.total_cost_of_ownership).unwrap_or(1000.0);
+            let cost = device_costs
+                .get(device)
+                .map(|c| c.total_cost_of_ownership)
+                .unwrap_or(1000.0);
             roi_analysis.insert(device.clone(), benefit / (cost / 1000.0));
         }
 
@@ -975,50 +1063,84 @@ let result = mlx_operation(&tensor)?;
         })
     }
 
-    fn generate_comparison_summary(&self, device_results: &HashMap<String, DevicePerformanceProfile>, comparisons: &[CrossDeviceComparison]) -> Result<ComparisonSummary> {
+    fn generate_comparison_summary(
+        &self,
+        device_results: &HashMap<String, DevicePerformanceProfile>,
+        comparisons: &[CrossDeviceComparison],
+    ) -> Result<ComparisonSummary> {
         // Find best devices for different criteria
-        let best_overall_device = device_results.iter()
-            .max_by(|a, b| a.1.efficiency_metrics.overall_efficiency_score
-                .partial_cmp(&b.1.efficiency_metrics.overall_efficiency_score).unwrap())
+        let best_overall_device = device_results
+            .iter()
+            .max_by(|a, b| {
+                a.1.efficiency_metrics
+                    .overall_efficiency_score
+                    .partial_cmp(&b.1.efficiency_metrics.overall_efficiency_score)
+                    .unwrap()
+            })
             .map(|(name, _)| name.clone())
             .unwrap_or_else(|| "unknown".to_string());
 
-        let best_performance_device = device_results.iter()
-            .max_by(|a, b| a.1.efficiency_metrics.compute_efficiency
-                .partial_cmp(&b.1.efficiency_metrics.compute_efficiency).unwrap())
+        let best_performance_device = device_results
+            .iter()
+            .max_by(|a, b| {
+                a.1.efficiency_metrics
+                    .compute_efficiency
+                    .partial_cmp(&b.1.efficiency_metrics.compute_efficiency)
+                    .unwrap()
+            })
             .map(|(name, _)| name.clone())
             .unwrap_or_else(|| "unknown".to_string());
 
-        let best_efficiency_device = device_results.iter()
-            .max_by(|a, b| a.1.efficiency_metrics.overall_efficiency_score
-                .partial_cmp(&b.1.efficiency_metrics.overall_efficiency_score).unwrap())
+        let best_efficiency_device = device_results
+            .iter()
+            .max_by(|a, b| {
+                a.1.efficiency_metrics
+                    .overall_efficiency_score
+                    .partial_cmp(&b.1.efficiency_metrics.overall_efficiency_score)
+                    .unwrap()
+            })
             .map(|(name, _)| name.clone())
             .unwrap_or_else(|| "unknown".to_string());
 
-        let best_memory_device = device_results.iter()
-            .max_by(|a, b| a.1.efficiency_metrics.memory_efficiency
-                .partial_cmp(&b.1.efficiency_metrics.memory_efficiency).unwrap())
+        let best_memory_device = device_results
+            .iter()
+            .max_by(|a, b| {
+                a.1.efficiency_metrics
+                    .memory_efficiency
+                    .partial_cmp(&b.1.efficiency_metrics.memory_efficiency)
+                    .unwrap()
+            })
             .map(|(name, _)| name.clone())
             .unwrap_or_else(|| "unknown".to_string());
 
         // Generate key insights
         let mut key_insights = Vec::new();
-        let gpu_speedups: Vec<f64> = comparisons.iter()
+        let gpu_speedups: Vec<f64> = comparisons
+            .iter()
             .filter(|c| c.device_b == "gpu")
             .map(|c| c.performance_comparison.speedup)
             .collect();
 
         if !gpu_speedups.is_empty() {
             let avg_speedup = gpu_speedups.iter().sum::<f64>() / gpu_speedups.len() as f64;
-            key_insights.push(format!("GPU shows average {:.1}x speedup over CPU", avg_speedup));
+            key_insights.push(format!(
+                "GPU shows average {:.1}x speedup over CPU",
+                avg_speedup
+            ));
         }
 
-        key_insights.push("Large tensor operations benefit significantly from GPU acceleration".to_string());
-        key_insights.push("CPU is more suitable for small tensor operations and development".to_string());
+        key_insights.push(
+            "Large tensor operations benefit significantly from GPU acceleration".to_string(),
+        );
+        key_insights
+            .push("CPU is more suitable for small tensor operations and development".to_string());
 
         // Generate performance highlights
         let performance_highlights = vec![
-            format!("{} provides best overall performance", best_performance_device),
+            format!(
+                "{} provides best overall performance",
+                best_performance_device
+            ),
             "GPU excels at parallel matrix operations".to_string(),
             "CPU offers consistent low-latency performance".to_string(),
         ];
@@ -1054,16 +1176,28 @@ let result = mlx_operation(&tensor)?;
     /// Generate text summary of comparison results
     fn generate_text_summary(&self, results: &DeviceComparisonResult) -> Result<String> {
         let mut summary = String::new();
-        
+
         summary.push_str("# MLX Device Comparison Summary\n\n");
         summary.push_str(&format!("Comparison ID: {}\n", results.comparison_id));
         summary.push_str(&format!("Generated: {:?}\n\n", results.timestamp));
 
         summary.push_str("## Best Devices\n");
-        summary.push_str(&format!("- Overall: {}\n", results.summary.best_overall_device));
-        summary.push_str(&format!("- Performance: {}\n", results.summary.best_performance_device));
-        summary.push_str(&format!("- Efficiency: {}\n", results.summary.best_efficiency_device));
-        summary.push_str(&format!("- Memory: {}\n\n", results.summary.best_memory_device));
+        summary.push_str(&format!(
+            "- Overall: {}\n",
+            results.summary.best_overall_device
+        ));
+        summary.push_str(&format!(
+            "- Performance: {}\n",
+            results.summary.best_performance_device
+        ));
+        summary.push_str(&format!(
+            "- Efficiency: {}\n",
+            results.summary.best_efficiency_device
+        ));
+        summary.push_str(&format!(
+            "- Memory: {}\n\n",
+            results.summary.best_memory_device
+        ));
 
         summary.push_str("## Key Insights\n");
         for insight in &results.summary.key_insights {
@@ -1074,15 +1208,26 @@ let result = mlx_operation(&tensor)?;
         summary.push_str("## Device Performance Profiles\n");
         for (device_name, profile) in &results.device_results {
             summary.push_str(&format!("### {}\n", device_name));
-            summary.push_str(&format!("- Compute Efficiency: {:.1}%\n", profile.efficiency_metrics.compute_efficiency * 100.0));
-            summary.push_str(&format!("- Memory Efficiency: {:.1}%\n", profile.efficiency_metrics.memory_efficiency * 100.0));
-            summary.push_str(&format!("- Overall Score: {:.1}%\n\n", profile.efficiency_metrics.overall_efficiency_score * 100.0));
+            summary.push_str(&format!(
+                "- Compute Efficiency: {:.1}%\n",
+                profile.efficiency_metrics.compute_efficiency * 100.0
+            ));
+            summary.push_str(&format!(
+                "- Memory Efficiency: {:.1}%\n",
+                profile.efficiency_metrics.memory_efficiency * 100.0
+            ));
+            summary.push_str(&format!(
+                "- Overall Score: {:.1}%\n\n",
+                profile.efficiency_metrics.overall_efficiency_score * 100.0
+            ));
         }
 
         summary.push_str("## Optimization Recommendations\n");
         for rec in &results.optimization_recommendations {
-            summary.push_str(&format!("- {}: {} (Expected improvement: {:.1}x)\n",
-                rec.device, rec.description, rec.expected_improvement));
+            summary.push_str(&format!(
+                "- {}: {} (Expected improvement: {:.1}x)\n",
+                rec.device, rec.description, rec.expected_improvement
+            ));
         }
 
         Ok(summary)

@@ -1,17 +1,15 @@
 //! Quantization Performance Benchmarks
-//! 
+//!
 //! This benchmark suite provides comprehensive performance testing for different
 //! quantization schemes used in BitNet implementations.
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use candle_core::{Tensor, Device};
+use candle_core::{Device, Tensor};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
-use serde::{Serialize, Deserialize};
 
 #[cfg(feature = "mlx")]
-use bitnet_core::mlx::{
-    MlxTensor, BitNetMlxDevice, operations::BitNetMlxOps,
-};
+use bitnet_core::mlx::{operations::BitNetMlxOps, BitNetMlxDevice, MlxTensor};
 
 /// Quantization scheme configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -90,7 +88,7 @@ struct QuantizationMeasurement {
 /// BitNet 1.58-bit quantization benchmarks
 fn bench_bitnet_quantization(c: &mut Criterion) {
     let mut group = c.benchmark_group("bitnet_quantization");
-    
+
     group.warm_up_time(Duration::from_secs(2));
     group.measurement_time(Duration::from_secs(8));
 
@@ -114,14 +112,14 @@ fn bench_bitnet_quantization(c: &mut Criterion) {
                 let device = Device::Cpu;
                 let tensor = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
                 let scale = 0.1f32;
-                
+
                 bencher.iter(|| {
                     // Quantize to {-1, 0, +1}
                     let scale_tensor = Tensor::new(scale, &device).unwrap();
                     let scaled = tensor.broadcast_div(&scale_tensor).unwrap();
                     let clamped = scaled.clamp(-1.0, 1.0).unwrap();
                     let quantized = clamped.round().unwrap();
-                    
+
                     // Dequantize
                     let dequantized = quantized.broadcast_mul(&scale_tensor).unwrap();
                     black_box((quantized, dequantized))
@@ -139,10 +137,12 @@ fn bench_bitnet_quantization(c: &mut Criterion) {
                     use bitnet_core::memory::tensor::BitNetDType;
                     let device = BitNetMlxDevice::default();
                     let tensor = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device).unwrap();
-                    
+
                     bencher.iter(|| {
-                        let quantized = BitNetMlxOps::quantize_1_58_bit(&tensor, Some(0.1)).unwrap();
-                        let dequantized = BitNetMlxOps::dequantize_1_58_bit(&quantized, Some(0.1)).unwrap();
+                        let quantized =
+                            BitNetMlxOps::quantize_1_58_bit(&tensor, Some(0.1)).unwrap();
+                        let dequantized =
+                            BitNetMlxOps::dequantize_1_58_bit(&quantized, Some(0.1)).unwrap();
                         black_box((quantized, dequantized))
                     })
                 },
@@ -156,15 +156,11 @@ fn bench_bitnet_quantization(c: &mut Criterion) {
 /// INT8 quantization benchmarks
 fn bench_int8_quantization(c: &mut Criterion) {
     let mut group = c.benchmark_group("int8_quantization");
-    
+
     group.warm_up_time(Duration::from_secs(2));
     group.measurement_time(Duration::from_secs(8));
 
-    let tensor_sizes = vec![
-        (512, 512),
-        (1024, 1024),
-        (2048, 2048),
-    ];
+    let tensor_sizes = vec![(512, 512), (1024, 1024), (2048, 2048)];
 
     for &(rows, cols) in &tensor_sizes {
         let elements = rows * cols;
@@ -178,14 +174,14 @@ fn bench_int8_quantization(c: &mut Criterion) {
                 let device = Device::Cpu;
                 let tensor = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
                 let scale = 127.0f32;
-                
+
                 bencher.iter(|| {
                     // Quantize to INT8 range [-128, 127]
                     let scale_tensor = Tensor::new(scale, &device).unwrap();
                     let scaled = tensor.broadcast_mul(&scale_tensor).unwrap();
                     let clamped = scaled.clamp(-128.0, 127.0).unwrap();
                     let quantized = clamped.round().unwrap();
-                    
+
                     // Dequantize
                     let dequantized = quantized.broadcast_div(&scale_tensor).unwrap();
                     black_box((quantized, dequantized))
@@ -202,17 +198,17 @@ fn bench_int8_quantization(c: &mut Criterion) {
                 let tensor = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
                 let scale = 255.0f32;
                 let zero_point = 128.0f32;
-                
+
                 bencher.iter(|| {
                     // Quantize to UINT8 range [0, 255] with zero point
                     let scale_tensor = Tensor::new(scale, &device).unwrap();
                     let zero_tensor = Tensor::new(zero_point, &device).unwrap();
-                    
+
                     let scaled = tensor.broadcast_mul(&scale_tensor).unwrap();
                     let shifted = scaled.broadcast_add(&zero_tensor).unwrap();
                     let clamped = shifted.clamp(0.0, 255.0).unwrap();
                     let quantized = clamped.round().unwrap();
-                    
+
                     // Dequantize
                     let unshifted = quantized.broadcast_sub(&zero_tensor).unwrap();
                     let dequantized = unshifted.broadcast_div(&scale_tensor).unwrap();
@@ -228,15 +224,11 @@ fn bench_int8_quantization(c: &mut Criterion) {
 /// INT4 quantization benchmarks
 fn bench_int4_quantization(c: &mut Criterion) {
     let mut group = c.benchmark_group("int4_quantization");
-    
+
     group.warm_up_time(Duration::from_secs(2));
     group.measurement_time(Duration::from_secs(8));
 
-    let tensor_sizes = vec![
-        (512, 512),
-        (1024, 1024),
-        (2048, 2048),
-    ];
+    let tensor_sizes = vec![(512, 512), (1024, 1024), (2048, 2048)];
 
     for &(rows, cols) in &tensor_sizes {
         let elements = rows * cols;
@@ -250,14 +242,14 @@ fn bench_int4_quantization(c: &mut Criterion) {
                 let device = Device::Cpu;
                 let tensor = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
                 let scale = 7.0f32; // 4-bit signed range: [-8, 7]
-                
+
                 bencher.iter(|| {
                     // Quantize to INT4 range [-8, 7]
                     let scale_tensor = Tensor::new(scale, &device).unwrap();
                     let scaled = tensor.broadcast_mul(&scale_tensor).unwrap();
                     let clamped = scaled.clamp(-8.0, 7.0).unwrap();
                     let quantized = clamped.round().unwrap();
-                    
+
                     // Dequantize
                     let dequantized = quantized.broadcast_div(&scale_tensor).unwrap();
                     black_box((quantized, dequantized))
@@ -272,7 +264,7 @@ fn bench_int4_quantization(c: &mut Criterion) {
 /// Per-channel vs per-tensor quantization comparison
 fn bench_quantization_granularity(c: &mut Criterion) {
     let mut group = c.benchmark_group("quantization_granularity");
-    
+
     group.warm_up_time(Duration::from_secs(2));
     group.measurement_time(Duration::from_secs(8));
 
@@ -284,17 +276,19 @@ fn bench_quantization_granularity(c: &mut Criterion) {
     group.bench_function("per_tensor_quantization", |bencher| {
         let device = Device::Cpu;
         let tensor = Tensor::randn(0f32, 1f32, tensor_size, &device).unwrap();
-        
+
         bencher.iter(|| {
             // Calculate global scale
             let abs_tensor = tensor.abs().unwrap();
             let max_val = abs_tensor.max(1).unwrap().max(0).unwrap();
-            let scale = max_val.broadcast_div(&Tensor::new(127.0f32, &device).unwrap()).unwrap();
-            
+            let scale = max_val
+                .broadcast_div(&Tensor::new(127.0f32, &device).unwrap())
+                .unwrap();
+
             // Quantize
             let scaled = tensor.broadcast_div(&scale).unwrap();
             let quantized = scaled.clamp(-127.0, 127.0).unwrap().round().unwrap();
-            
+
             // Dequantize
             let dequantized = quantized.broadcast_mul(&scale).unwrap();
             black_box((quantized, dequantized))
@@ -305,21 +299,26 @@ fn bench_quantization_granularity(c: &mut Criterion) {
     group.bench_function("per_channel_quantization", |bencher| {
         let device = Device::Cpu;
         let tensor = Tensor::randn(0f32, 1f32, tensor_size, &device).unwrap();
-        
+
         bencher.iter(|| {
             // Calculate per-channel scales (per row)
             let abs_tensor = tensor.abs().unwrap();
             let max_vals = abs_tensor.max(1).unwrap(); // Max per row
-            let scales = max_vals.broadcast_div(&Tensor::new(127.0f32, &device).unwrap()).unwrap();
-            
+            let scales = max_vals
+                .broadcast_div(&Tensor::new(127.0f32, &device).unwrap())
+                .unwrap();
+
             // Expand scales for broadcasting
-            let expanded_scales = scales.unsqueeze(1).unwrap()
-                .broadcast_as(tensor.shape()).unwrap();
-            
+            let expanded_scales = scales
+                .unsqueeze(1)
+                .unwrap()
+                .broadcast_as(tensor.shape())
+                .unwrap();
+
             // Quantize
             let scaled = tensor.broadcast_div(&expanded_scales).unwrap();
             let quantized = scaled.clamp(-127.0, 127.0).unwrap().round().unwrap();
-            
+
             // Dequantize
             let dequantized = quantized.broadcast_mul(&expanded_scales).unwrap();
             black_box((quantized, dequantized))
@@ -332,7 +331,7 @@ fn bench_quantization_granularity(c: &mut Criterion) {
 /// Dynamic vs static quantization comparison
 fn bench_dynamic_vs_static_quantization(c: &mut Criterion) {
     let mut group = c.benchmark_group("dynamic_vs_static_quantization");
-    
+
     group.warm_up_time(Duration::from_secs(2));
     group.measurement_time(Duration::from_secs(8));
 
@@ -345,7 +344,7 @@ fn bench_dynamic_vs_static_quantization(c: &mut Criterion) {
         let device = Device::Cpu;
         let tensor = Tensor::randn(0f32, 1f32, tensor_size, &device).unwrap();
         let static_scale = Tensor::new(0.1f32, &device).unwrap(); // Pre-computed scale
-        
+
         bencher.iter(|| {
             // Use pre-computed scale
             let scaled = tensor.broadcast_div(&static_scale).unwrap();
@@ -359,13 +358,15 @@ fn bench_dynamic_vs_static_quantization(c: &mut Criterion) {
     group.bench_function("dynamic_quantization", |bencher| {
         let device = Device::Cpu;
         let tensor = Tensor::randn(0f32, 1f32, tensor_size, &device).unwrap();
-        
+
         bencher.iter(|| {
             // Compute scale dynamically
             let abs_tensor = tensor.abs().unwrap();
             let max_val = abs_tensor.max(1).unwrap().max(0).unwrap();
-            let scale = max_val.broadcast_div(&Tensor::new(127.0f32, &device).unwrap()).unwrap();
-            
+            let scale = max_val
+                .broadcast_div(&Tensor::new(127.0f32, &device).unwrap())
+                .unwrap();
+
             // Quantize
             let scaled = tensor.broadcast_div(&scale).unwrap();
             let quantized = scaled.clamp(-127.0, 127.0).unwrap().round().unwrap();
@@ -380,16 +381,11 @@ fn bench_dynamic_vs_static_quantization(c: &mut Criterion) {
 /// Quantized matrix multiplication performance
 fn bench_quantized_matmul(c: &mut Criterion) {
     let mut group = c.benchmark_group("quantized_matmul");
-    
+
     group.warm_up_time(Duration::from_secs(3));
     group.measurement_time(Duration::from_secs(10));
 
-    let matrix_sizes = vec![
-        (256, 256),
-        (512, 512),
-        (1024, 1024),
-        (2048, 2048),
-    ];
+    let matrix_sizes = vec![(256, 256), (512, 512), (1024, 1024), (2048, 2048)];
 
     for &(rows, cols) in &matrix_sizes {
         let elements = rows * cols * cols; // For matrix multiplication
@@ -403,7 +399,7 @@ fn bench_quantized_matmul(c: &mut Criterion) {
                 let device = Device::Cpu;
                 let a = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
                 let b = Tensor::randn(0f32, 1f32, (cols, rows), &device).unwrap();
-                
+
                 bencher.iter(|| {
                     let result = a.matmul(&b).unwrap();
                     black_box(result)
@@ -419,12 +415,12 @@ fn bench_quantized_matmul(c: &mut Criterion) {
                 let device = Device::Cpu;
                 let a = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
                 let b = Tensor::randn(0f32, 1f32, (cols, rows), &device).unwrap();
-                
+
                 bencher.iter(|| {
                     // Quantize matrices
                     let a_quantized = a.clamp(-1.0, 1.0).unwrap().round().unwrap();
                     let b_quantized = b.clamp(-1.0, 1.0).unwrap().round().unwrap();
-                    
+
                     // Perform quantized matrix multiplication
                     let result = a_quantized.matmul(&b_quantized).unwrap();
                     black_box(result)
@@ -440,26 +436,26 @@ fn bench_quantized_matmul(c: &mut Criterion) {
                 let device = Device::Cpu;
                 let a = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
                 let b = Tensor::randn(0f32, 1f32, (cols, rows), &device).unwrap();
-                
+
                 bencher.iter(|| {
                     // Quantize to INT8
                     let scale = 127.0f32;
                     let scale_tensor = Tensor::new(scale, &device).unwrap();
-                    
+
                     let a_scaled = a.broadcast_mul(&scale_tensor).unwrap();
                     let a_quantized = a_scaled.clamp(-128.0, 127.0).unwrap().round().unwrap();
-                    
+
                     let b_scaled = b.broadcast_mul(&scale_tensor).unwrap();
                     let b_quantized = b_scaled.clamp(-128.0, 127.0).unwrap().round().unwrap();
-                    
+
                     // Perform quantized matrix multiplication
                     let result_quantized = a_quantized.matmul(&b_quantized).unwrap();
-                    
+
                     // Dequantize result
                     let scale_squared = scale * scale;
                     let dequant_scale = Tensor::new(1.0 / scale_squared, &device).unwrap();
                     let result = result_quantized.broadcast_mul(&dequant_scale).unwrap();
-                    
+
                     black_box(result)
                 })
             },
@@ -472,7 +468,7 @@ fn bench_quantized_matmul(c: &mut Criterion) {
 /// Quantization accuracy vs performance trade-offs
 fn bench_accuracy_performance_tradeoffs(c: &mut Criterion) {
     let mut group = c.benchmark_group("accuracy_performance_tradeoffs");
-    
+
     group.warm_up_time(Duration::from_secs(2));
     group.measurement_time(Duration::from_secs(8));
 
@@ -485,7 +481,10 @@ fn bench_accuracy_performance_tradeoffs(c: &mut Criterion) {
         ("fp32_baseline", None),
         ("bitnet_1_58", Some(QuantizationConfig::bitnet_1_58())),
         ("int8_symmetric", Some(QuantizationConfig::int8_symmetric())),
-        ("int8_asymmetric", Some(QuantizationConfig::int8_asymmetric())),
+        (
+            "int8_asymmetric",
+            Some(QuantizationConfig::int8_asymmetric()),
+        ),
         ("int4_symmetric", Some(QuantizationConfig::int4_symmetric())),
         ("fp16", Some(QuantizationConfig::fp16_quantization())),
     ];
@@ -494,33 +493,33 @@ fn bench_accuracy_performance_tradeoffs(c: &mut Criterion) {
         group.bench_function(scheme_name, |bencher| {
             let device = Device::Cpu;
             let tensor = Tensor::randn(0f32, 1f32, tensor_size, &device).unwrap();
-            
+
             bencher.iter(|| {
                 let result = match &config_opt {
                     None => {
                         // FP32 baseline - no quantization
                         tensor.clone()
-                    },
+                    }
                     Some(config) => {
                         match config.bits {
                             16 => {
                                 // FP16 simulation (using FP32 operations)
                                 tensor.clone()
-                            },
+                            }
                             8 => {
                                 // INT8 quantization based on config
                                 let scale = config.scale_factor.unwrap_or(127.0);
                                 let scale_tensor = Tensor::new(scale, &device).unwrap();
                                 let scaled = tensor.broadcast_mul(&scale_tensor).unwrap();
-                                let range = if config.symmetric { 
-                                    (-128.0, 127.0) 
-                                } else { 
-                                    (0.0, 255.0) 
+                                let range = if config.symmetric {
+                                    (-128.0, 127.0)
+                                } else {
+                                    (0.0, 255.0)
                                 };
                                 let clamped = scaled.clamp(range.0, range.1).unwrap();
                                 let quantized = clamped.round().unwrap();
                                 quantized.broadcast_div(&scale_tensor).unwrap()
-                            },
+                            }
                             4 => {
                                 // INT4 quantization
                                 let scale = config.scale_factor.unwrap_or(7.0);
@@ -528,7 +527,7 @@ fn bench_accuracy_performance_tradeoffs(c: &mut Criterion) {
                                 let scaled = tensor.broadcast_mul(&scale_tensor).unwrap();
                                 let quantized = scaled.clamp(-8.0, 7.0).unwrap().round().unwrap();
                                 quantized.broadcast_div(&scale_tensor).unwrap()
-                            },
+                            }
                             2 => {
                                 // BitNet 1.58-bit quantization
                                 let scale = config.scale_factor.unwrap_or(0.1);
@@ -536,12 +535,12 @@ fn bench_accuracy_performance_tradeoffs(c: &mut Criterion) {
                                 let scaled = tensor.broadcast_div(&scale_tensor).unwrap();
                                 let quantized = scaled.clamp(-1.0, 1.0).unwrap().round().unwrap();
                                 quantized.broadcast_mul(&scale_tensor).unwrap()
-                            },
+                            }
                             _ => tensor.clone(),
                         }
-                    },
+                    }
                 };
-                
+
                 black_box(result)
             })
         });

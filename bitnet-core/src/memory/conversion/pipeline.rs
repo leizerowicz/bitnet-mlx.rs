@@ -4,11 +4,10 @@
 //! operations while optimizing memory usage through intelligent pooling and reuse.
 
 use crate::memory::conversion::{
-    ConversionResult, ConversionError, ConversionContext, Converter, ConversionStrategy,
-    ZeroCopyConverter, StreamingConverter, InPlaceConverter,
-    config::ConversionConfig
+    config::ConversionConfig, ConversionContext, ConversionError, ConversionResult,
+    ConversionStrategy, Converter, InPlaceConverter, StreamingConverter, ZeroCopyConverter,
 };
-use crate::memory::tensor::{BitNetTensor, BitNetDType};
+use crate::memory::tensor::{BitNetDType, BitNetTensor};
 use crate::memory::HybridMemoryPool;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex, RwLock};
@@ -33,7 +32,9 @@ pub struct ConversionPipeline {
 impl ConversionPipeline {
     /// Creates a new conversion pipeline
     pub fn new(config: ConversionConfig, pool: Arc<HybridMemoryPool>) -> ConversionResult<Self> {
-        config.validate().map_err(|e| ConversionError::ConfigError { reason: e })?;
+        config
+            .validate()
+            .map_err(|e| ConversionError::ConfigError { reason: e })?;
 
         Ok(Self {
             config,
@@ -57,9 +58,9 @@ impl ConversionPipeline {
 
     /// Adds a conversion stage with specific strategy
     pub fn add_stage_with_strategy(
-        mut self, 
-        target_dtype: BitNetDType, 
-        strategy: ConversionStrategy
+        mut self,
+        target_dtype: BitNetDType,
+        strategy: ConversionStrategy,
     ) -> Self {
         let stage = PipelineStage {
             target_dtype,
@@ -88,28 +89,38 @@ impl ConversionPipeline {
         }
 
         #[cfg(feature = "tracing")]
-        info!("Executing conversion pipeline with {} stages", self.stages.len());
+        info!(
+            "Executing conversion pipeline with {} stages",
+            self.stages.len()
+        );
 
         let mut current_tensor = input.clone();
         let mut stage_results = Vec::new();
 
         // Track memory usage
         {
-            let mut tracker = self.memory_tracker.lock()
-                .map_err(|_| ConversionError::InternalError {
-                    reason: "Failed to acquire memory tracker lock".to_string()
-                })?;
+            let mut tracker =
+                self.memory_tracker
+                    .lock()
+                    .map_err(|_| ConversionError::InternalError {
+                        reason: "Failed to acquire memory tracker lock".to_string(),
+                    })?;
             tracker.start_pipeline(input.size_bytes());
         }
 
         // Execute each stage
         for (stage_idx, stage) in self.stages.iter().enumerate() {
             #[cfg(feature = "tracing")]
-            debug!("Executing pipeline stage {} -> {}", stage_idx, stage.target_dtype);
+            debug!(
+                "Executing pipeline stage {} -> {}",
+                stage_idx, stage.target_dtype
+            );
 
             // Check cache first
             if stage.cache_intermediate {
-                if let Some(cached_result) = self.check_cache(&current_tensor, stage.target_dtype)? {
+                if let Some(cached_result) =
+                    self.check_cache(&current_tensor, stage.target_dtype)?
+                {
                     #[cfg(feature = "tracing")]
                     debug!("Using cached result for stage {}", stage_idx);
                     current_tensor = cached_result;
@@ -119,7 +130,7 @@ impl ConversionPipeline {
 
             // Execute conversion
             let converted = self.execute_stage(&current_tensor, stage, stage_idx)?;
-            
+
             // Cache result if requested
             if stage.cache_intermediate {
                 self.cache_result(&current_tensor, &converted)?;
@@ -138,10 +149,12 @@ impl ConversionPipeline {
 
         // Update memory tracker
         {
-            let mut tracker = self.memory_tracker.lock()
-                .map_err(|_| ConversionError::InternalError {
-                    reason: "Failed to acquire memory tracker lock".to_string()
-                })?;
+            let mut tracker =
+                self.memory_tracker
+                    .lock()
+                    .map_err(|_| ConversionError::InternalError {
+                        reason: "Failed to acquire memory tracker lock".to_string(),
+                    })?;
             tracker.finish_pipeline(current_tensor.size_bytes(), stage_results);
         }
 
@@ -205,13 +218,15 @@ impl ConversionPipeline {
             device.clone(),
             device.clone(),
             input.shape(),
-        ).with_strategy(stage.strategy);
+        )
+        .with_strategy(stage.strategy);
 
         // Select appropriate converter
         let converter = self.select_converter(&context)?;
-        
+
         // Execute conversion
-        converter.convert(input, &context, &self.pool)
+        converter
+            .convert(input, &context, &self.pool)
             .map_err(|e| ConversionError::PipelineError {
                 stage: stage_idx,
                 reason: format!("Stage conversion failed: {}", e),
@@ -219,7 +234,10 @@ impl ConversionPipeline {
     }
 
     /// Selects the appropriate converter for the given context
-    fn select_converter(&self, context: &ConversionContext) -> ConversionResult<Box<dyn Converter + Send + Sync>> {
+    fn select_converter(
+        &self,
+        context: &ConversionContext,
+    ) -> ConversionResult<Box<dyn Converter + Send + Sync>> {
         let strategy = if context.strategy == ConversionStrategy::Auto {
             context.optimal_strategy()
         } else {
@@ -227,23 +245,19 @@ impl ConversionPipeline {
         };
 
         match strategy {
-            ConversionStrategy::ZeroCopy => {
-                Ok(Box::new(ZeroCopyConverter::new()))
-            }
-            ConversionStrategy::InPlace => {
-                Ok(Box::new(InPlaceConverter::new_lossy()))
-            }
+            ConversionStrategy::ZeroCopy => Ok(Box::new(ZeroCopyConverter::new())),
+            ConversionStrategy::InPlace => Ok(Box::new(InPlaceConverter::new_lossy())),
             ConversionStrategy::Streaming => {
-                let converter = StreamingConverter::default()
-                    .map_err(|e| ConversionError::InternalError {
-                        reason: format!("Failed to create streaming converter: {}", e)
+                let converter =
+                    StreamingConverter::default().map_err(|e| ConversionError::InternalError {
+                        reason: format!("Failed to create streaming converter: {}", e),
                     })?;
                 Ok(Box::new(converter))
             }
             ConversionStrategy::Standard => {
-                let converter = StreamingConverter::default()
-                    .map_err(|e| ConversionError::InternalError {
-                        reason: format!("Failed to create standard converter: {}", e)
+                let converter =
+                    StreamingConverter::default().map_err(|e| ConversionError::InternalError {
+                        reason: format!("Failed to create standard converter: {}", e),
                     })?;
                 Ok(Box::new(converter))
             }
@@ -259,9 +273,11 @@ impl ConversionPipeline {
         input: &BitNetTensor,
         target_dtype: BitNetDType,
     ) -> ConversionResult<Option<BitNetTensor>> {
-        let mut cache = self.cache.write()
+        let mut cache = self
+            .cache
+            .write()
             .map_err(|_| ConversionError::InternalError {
-                reason: "Failed to acquire cache write lock".to_string()
+                reason: "Failed to acquire cache write lock".to_string(),
             })?;
 
         let key = CacheKey {
@@ -273,14 +289,12 @@ impl ConversionPipeline {
     }
 
     /// Caches a conversion result
-    fn cache_result(
-        &self,
-        input: &BitNetTensor,
-        output: &BitNetTensor,
-    ) -> ConversionResult<()> {
-        let mut cache = self.cache.write()
+    fn cache_result(&self, input: &BitNetTensor, output: &BitNetTensor) -> ConversionResult<()> {
+        let mut cache = self
+            .cache
+            .write()
             .map_err(|_| ConversionError::InternalError {
-                reason: "Failed to acquire cache write lock".to_string()
+                reason: "Failed to acquire cache write lock".to_string(),
             })?;
 
         let key = CacheKey {
@@ -295,10 +309,12 @@ impl ConversionPipeline {
     /// Cleans up cache and intermediate results if memory pressure is high
     fn cleanup_if_needed(&self) -> ConversionResult<()> {
         let should_cleanup = {
-            let tracker = self.memory_tracker.lock()
-                .map_err(|_| ConversionError::InternalError {
-                    reason: "Failed to acquire memory tracker lock".to_string()
-                })?;
+            let tracker =
+                self.memory_tracker
+                    .lock()
+                    .map_err(|_| ConversionError::InternalError {
+                        reason: "Failed to acquire memory tracker lock".to_string(),
+                    })?;
             tracker.should_cleanup()
         };
 
@@ -306,9 +322,11 @@ impl ConversionPipeline {
             #[cfg(feature = "tracing")]
             debug!("Performing pipeline cleanup due to memory pressure");
 
-            let mut cache = self.cache.write()
+            let mut cache = self
+                .cache
+                .write()
                 .map_err(|_| ConversionError::InternalError {
-                    reason: "Failed to acquire cache write lock".to_string()
+                    reason: "Failed to acquire cache write lock".to_string(),
                 })?;
             cache.cleanup_lru();
         }
@@ -318,14 +336,18 @@ impl ConversionPipeline {
 
     /// Returns pipeline statistics
     pub fn get_stats(&self) -> ConversionResult<PipelineStats> {
-        let tracker = self.memory_tracker.lock()
+        let tracker = self
+            .memory_tracker
+            .lock()
             .map_err(|_| ConversionError::InternalError {
-                reason: "Failed to acquire memory tracker lock".to_string()
+                reason: "Failed to acquire memory tracker lock".to_string(),
             })?;
 
-        let cache = self.cache.read()
+        let cache = self
+            .cache
+            .read()
             .map_err(|_| ConversionError::InternalError {
-                reason: "Failed to acquire cache read lock".to_string()
+                reason: "Failed to acquire cache read lock".to_string(),
             })?;
 
         Ok(PipelineStats {
@@ -341,9 +363,11 @@ impl ConversionPipeline {
 
     /// Clears the pipeline cache
     pub fn clear_cache(&self) -> ConversionResult<()> {
-        let mut cache = self.cache.write()
+        let mut cache = self
+            .cache
+            .write()
             .map_err(|_| ConversionError::InternalError {
-                reason: "Failed to acquire cache write lock".to_string()
+                reason: "Failed to acquire cache write lock".to_string(),
             })?;
         cache.clear();
         Ok(())
@@ -355,14 +379,12 @@ impl ConversionPipeline {
         // 1. Zero-copy conversions first
         // 2. In-place conversions next
         // 3. Other conversions last
-        self.stages.sort_by_key(|stage| {
-            match stage.strategy {
-                ConversionStrategy::ZeroCopy => 0,
-                ConversionStrategy::InPlace => 1,
-                ConversionStrategy::Auto => 2,
-                ConversionStrategy::Standard => 3,
-                ConversionStrategy::Streaming => 4,
-            }
+        self.stages.sort_by_key(|stage| match stage.strategy {
+            ConversionStrategy::ZeroCopy => 0,
+            ConversionStrategy::InPlace => 1,
+            ConversionStrategy::Auto => 2,
+            ConversionStrategy::Standard => 3,
+            ConversionStrategy::Streaming => 4,
         });
 
         self
@@ -488,9 +510,10 @@ impl MemoryTracker {
     fn finish_pipeline(&mut self, output_size: usize, stage_results: Vec<StageResult>) {
         self.total_stages_executed += stage_results.len() as u64;
         self.current_memory_usage = output_size;
-        
+
         // Calculate peak memory during pipeline execution
-        let max_intermediate = stage_results.iter()
+        let max_intermediate = stage_results
+            .iter()
             .map(|r| r.input_size.max(r.output_size))
             .max()
             .unwrap_or(0);
@@ -572,10 +595,11 @@ mod tests {
     fn test_pipeline_stage_addition() {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let config = ConversionConfig::default();
-        let pipeline = ConversionPipeline::new(config, pool).unwrap()
+        let pipeline = ConversionPipeline::new(config, pool)
+            .unwrap()
             .add_stage(BitNetDType::F16)
             .add_stage(BitNetDType::I8);
-        
+
         assert_eq!(pipeline.stages.len(), 2);
         assert_eq!(pipeline.stages[0].target_dtype, BitNetDType::F16);
         assert_eq!(pipeline.stages[1].target_dtype, BitNetDType::I8);
@@ -600,7 +624,8 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         let config = ConversionConfig::default();
-        let pipeline = ConversionPipeline::new(config, pool.clone()).unwrap()
+        let pipeline = ConversionPipeline::new(config, pool.clone())
+            .unwrap()
             .add_stage(BitNetDType::F16);
 
         let input = BitNetTensor::ones(&[2, 2], BitNetDType::F32, &device, &pool).unwrap();
@@ -615,7 +640,8 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         let config = ConversionConfig::default();
-        let pipeline = ConversionPipeline::new(config, pool.clone()).unwrap()
+        let pipeline = ConversionPipeline::new(config, pool.clone())
+            .unwrap()
             .add_stage(BitNetDType::F16)
             .add_stage(BitNetDType::I8);
 
@@ -631,7 +657,8 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         let config = ConversionConfig::default();
-        let pipeline = ConversionPipeline::new(config, pool.clone()).unwrap()
+        let pipeline = ConversionPipeline::new(config, pool.clone())
+            .unwrap()
             .add_stage(BitNetDType::F16);
 
         let inputs = vec![
@@ -641,7 +668,7 @@ mod tests {
 
         let results = pipeline.execute_batch(&inputs).unwrap();
         assert_eq!(results.len(), 2);
-        
+
         for result in &results {
             assert_eq!(result.dtype(), BitNetDType::F16);
         }
@@ -652,7 +679,8 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         let config = ConversionConfig::default();
-        let pipeline = ConversionPipeline::new(config, pool.clone()).unwrap()
+        let pipeline = ConversionPipeline::new(config, pool.clone())
+            .unwrap()
             .add_stage(BitNetDType::F16);
 
         let input = BitNetTensor::ones(&[2, 2], BitNetDType::F32, &device, &pool).unwrap();
@@ -690,7 +718,8 @@ mod tests {
     fn test_pipeline_optimization() {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let config = ConversionConfig::default();
-        let pipeline = ConversionPipeline::new(config, pool).unwrap()
+        let pipeline = ConversionPipeline::new(config, pool)
+            .unwrap()
             .add_stage_with_strategy(BitNetDType::F16, ConversionStrategy::Streaming)
             .add_stage_with_strategy(BitNetDType::I8, ConversionStrategy::ZeroCopy)
             .add_stage_with_strategy(BitNetDType::I4, ConversionStrategy::InPlace)

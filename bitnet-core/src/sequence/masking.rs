@@ -89,13 +89,13 @@ pub fn create_padding_mask(sequence: &[u32], pad_token: u32) -> Vec<u8> {
 /// 2D causal mask where mask[i][j] = 1 if position i can attend to position j
 pub fn create_causal_mask(sequence_length: usize) -> Vec<Vec<u8>> {
     let mut mask = vec![vec![0; sequence_length]; sequence_length];
-    
+
     for i in 0..sequence_length {
         for j in 0..=i {
             mask[i][j] = 1;
         }
     }
-    
+
     mask
 }
 
@@ -109,7 +109,7 @@ pub fn create_causal_mask(sequence_length: usize) -> Vec<Vec<u8>> {
 pub fn create_bidirectional_mask(attention_mask: &[u8]) -> Vec<Vec<u8>> {
     let seq_len = attention_mask.len();
     let mut mask = vec![vec![0; seq_len]; seq_len];
-    
+
     for i in 0..seq_len {
         for j in 0..seq_len {
             // Can attend if both positions are real tokens
@@ -118,7 +118,7 @@ pub fn create_bidirectional_mask(attention_mask: &[u8]) -> Vec<Vec<u8>> {
             }
         }
     }
-    
+
     mask
 }
 
@@ -133,10 +133,10 @@ pub fn create_bidirectional_mask(attention_mask: &[u8]) -> Vec<Vec<u8>> {
 pub fn create_causal_padding_mask(sequence: &[u32], pad_token: u32) -> Vec<Vec<u8>> {
     let attention_mask = create_attention_mask(sequence, pad_token);
     let causal_mask = create_causal_mask(sequence.len());
-    
+
     // Combine causal mask with attention mask
     let mut combined_mask = vec![vec![0; sequence.len()]; sequence.len()];
-    
+
     for i in 0..sequence.len() {
         for j in 0..sequence.len() {
             // Can attend if causal constraint is satisfied AND both positions are real tokens
@@ -145,7 +145,7 @@ pub fn create_causal_padding_mask(sequence: &[u32], pad_token: u32) -> Vec<Vec<u
             }
         }
     }
-    
+
     combined_mask
 }
 
@@ -164,16 +164,14 @@ pub fn create_batch_masks(
     mask_type: AttentionMaskType,
 ) -> SequenceResult<Vec<Vec<Vec<u8>>>> {
     let mut batch_masks = Vec::with_capacity(sequences.len());
-    
+
     for sequence in sequences {
         let mask = match mask_type {
             AttentionMaskType::Standard => {
                 let attention_mask = create_attention_mask(sequence, pad_token);
                 vec![attention_mask] // Convert 1D to 2D for consistency
             }
-            AttentionMaskType::Causal => {
-                create_causal_padding_mask(sequence, pad_token)
-            }
+            AttentionMaskType::Causal => create_causal_padding_mask(sequence, pad_token),
             AttentionMaskType::Bidirectional => {
                 let attention_mask = create_attention_mask(sequence, pad_token);
                 create_bidirectional_mask(&attention_mask)
@@ -184,10 +182,10 @@ pub fn create_batch_masks(
                 });
             }
         };
-        
+
         batch_masks.push(mask);
     }
-    
+
     Ok(batch_masks)
 }
 
@@ -199,18 +197,24 @@ pub fn create_batch_masks(
 ///
 /// # Returns
 /// Mask where 1 indicates positions that should be masked
-pub fn create_position_mask(sequence_length: usize, masked_positions: &[usize]) -> SequenceResult<Vec<u8>> {
+pub fn create_position_mask(
+    sequence_length: usize,
+    masked_positions: &[usize],
+) -> SequenceResult<Vec<u8>> {
     let mut mask = vec![0; sequence_length];
-    
+
     for &pos in masked_positions {
         if pos >= sequence_length {
             return Err(SequenceError::ConfigError {
-                message: format!("Position {} exceeds sequence length {}", pos, sequence_length),
+                message: format!(
+                    "Position {} exceeds sequence length {}",
+                    pos, sequence_length
+                ),
             });
         }
         mask[pos] = 1;
     }
-    
+
     Ok(mask)
 }
 
@@ -224,16 +228,16 @@ pub fn create_position_mask(sequence_length: usize, masked_positions: &[usize]) 
 /// 2D mask where each position can only attend to tokens within the window
 pub fn create_sliding_window_mask(sequence_length: usize, window_size: usize) -> Vec<Vec<u8>> {
     let mut mask = vec![vec![0; sequence_length]; sequence_length];
-    
+
     for i in 0..sequence_length {
         let start = i.saturating_sub(window_size / 2);
         let end = (i + window_size / 2 + 1).min(sequence_length);
-        
+
         for j in start..end {
             mask[i][j] = 1;
         }
     }
-    
+
     mask
 }
 
@@ -247,16 +251,16 @@ pub fn create_sliding_window_mask(sequence_length: usize, window_size: usize) ->
 /// 2D mask with block diagonal structure
 pub fn create_block_diagonal_mask(sequence_length: usize, block_size: usize) -> Vec<Vec<u8>> {
     let mut mask = vec![vec![0; sequence_length]; sequence_length];
-    
+
     for i in 0..sequence_length {
         let block_start = (i / block_size) * block_size;
         let block_end = (block_start + block_size).min(sequence_length);
-        
+
         for j in block_start..block_end {
             mask[i][j] = 1;
         }
     }
-    
+
     mask
 }
 
@@ -285,14 +289,14 @@ pub fn combine_masks(
     if mask1.len() != mask2.len() {
         return Err(SequenceError::InconsistentBatchLengths);
     }
-    
+
     let mut combined = vec![vec![0; mask1[0].len()]; mask1.len()];
-    
+
     for i in 0..mask1.len() {
         if mask1[i].len() != mask2[i].len() {
             return Err(SequenceError::InconsistentBatchLengths);
         }
-        
+
         for j in 0..mask1[i].len() {
             combined[i][j] = match op {
                 MaskCombineOp::And => mask1[i][j] & mask2[i][j],
@@ -301,7 +305,7 @@ pub fn combine_masks(
             };
         }
     }
-    
+
     Ok(combined)
 }
 
@@ -326,7 +330,7 @@ impl MaskStats {
         } else {
             0.0
         };
-        
+
         Self {
             total_positions,
             masked_positions,
@@ -335,7 +339,7 @@ impl MaskStats {
             sparsity: 1.0 - mask_ratio,
         }
     }
-    
+
     /// Calculate statistics for a 2D mask
     pub fn from_2d_mask(mask: &[Vec<u8>]) -> Self {
         let total_positions: usize = mask.iter().map(|row| row.len()).sum();
@@ -349,7 +353,7 @@ impl MaskStats {
         } else {
             0.0
         };
-        
+
         Self {
             total_positions,
             masked_positions,
@@ -394,13 +398,13 @@ mod tests {
     fn test_create_bidirectional_mask() {
         let attention_mask = vec![1, 1, 1, 0]; // Last token is padding
         let mask = create_bidirectional_mask(&attention_mask);
-        
+
         // Real tokens (0, 1, 2) should be able to attend to each other
         assert_eq!(mask[0][0], 1);
         assert_eq!(mask[0][1], 1);
         assert_eq!(mask[0][2], 1);
         assert_eq!(mask[0][3], 0); // Cannot attend to padding
-        
+
         assert_eq!(mask[3][0], 0); // Padding cannot attend to anything
         assert_eq!(mask[3][3], 0);
     }
@@ -408,7 +412,7 @@ mod tests {
     #[test]
     fn test_create_sliding_window_mask() {
         let mask = create_sliding_window_mask(5, 3);
-        
+
         // Position 2 should attend to positions 1, 2, 3
         assert_eq!(mask[2][0], 0);
         assert_eq!(mask[2][1], 1);
@@ -420,12 +424,12 @@ mod tests {
     #[test]
     fn test_create_block_diagonal_mask() {
         let mask = create_block_diagonal_mask(6, 2);
-        
+
         // Positions 0,1 should attend to each other
         assert_eq!(mask[0][0], 1);
         assert_eq!(mask[0][1], 1);
         assert_eq!(mask[0][2], 0);
-        
+
         // Positions 2,3 should attend to each other
         assert_eq!(mask[2][2], 1);
         assert_eq!(mask[2][3], 1);
@@ -434,25 +438,13 @@ mod tests {
 
     #[test]
     fn test_combine_masks() {
-        let mask1 = vec![
-            vec![1, 1, 0],
-            vec![1, 1, 1],
-            vec![0, 1, 1],
-        ];
-        
-        let mask2 = vec![
-            vec![1, 0, 1],
-            vec![0, 1, 1],
-            vec![1, 1, 0],
-        ];
-        
+        let mask1 = vec![vec![1, 1, 0], vec![1, 1, 1], vec![0, 1, 1]];
+
+        let mask2 = vec![vec![1, 0, 1], vec![0, 1, 1], vec![1, 1, 0]];
+
         let combined = combine_masks(&mask1, &mask2, MaskCombineOp::And).unwrap();
-        let expected = vec![
-            vec![1, 0, 0],
-            vec![0, 1, 1],
-            vec![0, 1, 0],
-        ];
-        
+        let expected = vec![vec![1, 0, 0], vec![0, 1, 1], vec![0, 1, 0]];
+
         assert_eq!(combined, expected);
     }
 
@@ -460,7 +452,7 @@ mod tests {
     fn test_mask_stats_1d() {
         let mask = vec![1, 1, 0, 0, 1];
         let stats = MaskStats::from_1d_mask(&mask);
-        
+
         assert_eq!(stats.total_positions, 5);
         assert_eq!(stats.masked_positions, 3);
         assert_eq!(stats.unmasked_positions, 2);

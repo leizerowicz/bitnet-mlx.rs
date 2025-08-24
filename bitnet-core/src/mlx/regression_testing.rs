@@ -1,19 +1,19 @@
 //! MLX Performance Regression Testing
-//! 
+//!
 //! This module provides comprehensive regression testing capabilities for MLX operations,
 //! including baseline management, automated testing, and regression detection.
 
 use crate::mlx::{
-    performance::{MlxPerformanceBenchmarker, PerformanceMetrics, BenchmarkConfig},
-    memory_tracker::{MlxMemoryTracker, MemoryEvent},
-    metrics::{MlxMetricsCollector, MlxMetrics, OperationContext},
-    device_comparison::{MlxDeviceComparison, DeviceComparisonConfig},
+    device_comparison::{DeviceComparisonConfig, MlxDeviceComparison},
+    memory_tracker::{MemoryEvent, MlxMemoryTracker},
+    metrics::{MlxMetrics, MlxMetricsCollector, OperationContext},
+    performance::{BenchmarkConfig, MlxPerformanceBenchmarker, PerformanceMetrics},
 };
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
-use serde::{Serialize, Deserialize};
 
 /// Regression testing configuration
 #[derive(Debug, Clone)]
@@ -52,7 +52,7 @@ impl Default for RegressionTestConfig {
             ],
             data_types: vec!["f32".to_string(), "f16".to_string()],
             regression_threshold: 10.0, // 10% performance degradation
-            improvement_threshold: 5.0,  // 5% performance improvement
+            improvement_threshold: 5.0, // 5% performance improvement
             iterations_per_test: 5,
             warmup_iterations: 2,
             enable_memory_regression_testing: true,
@@ -238,10 +238,10 @@ pub enum RegressionType {
 /// Regression severity
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RegressionSeverity {
-    Minor,      // < 15% degradation
-    Moderate,   // 15-30% degradation
-    Major,      // 30-50% degradation
-    Critical,   // > 50% degradation
+    Minor,    // < 15% degradation
+    Moderate, // 15-30% degradation
+    Major,    // 30-50% degradation
+    Critical, // > 50% degradation
 }
 
 /// Improvement detection
@@ -369,7 +369,11 @@ impl MlxRegressionTester {
     }
 
     /// Create a new performance baseline
-    pub fn create_baseline(&mut self, baseline_id: String, description: String) -> Result<PerformanceBaseline> {
+    pub fn create_baseline(
+        &mut self,
+        baseline_id: String,
+        description: String,
+    ) -> Result<PerformanceBaseline> {
         let mut performance_metrics = HashMap::new();
         let mut memory_baselines = HashMap::new();
 
@@ -378,21 +382,32 @@ impl MlxRegressionTester {
         let devices = self.config.test_devices.clone();
         let tensor_sizes = self.config.tensor_sizes.clone();
         let data_types = self.config.data_types.clone();
-        
+
         for operation in &operations {
             for device_name in &devices {
                 for tensor_size in &tensor_sizes {
                     for data_type in &data_types {
-                        let test_key = self.generate_test_key(operation, device_name, tensor_size, data_type);
-                        
+                        let test_key =
+                            self.generate_test_key(operation, device_name, tensor_size, data_type);
+
                         // Run performance benchmark
                         let device = self.create_device(device_name)?;
-                        let metrics = self.run_baseline_benchmark(&device, operation, tensor_size, data_type)?;
+                        let metrics = self.run_baseline_benchmark(
+                            &device,
+                            operation,
+                            tensor_size,
+                            data_type,
+                        )?;
                         performance_metrics.insert(test_key.clone(), metrics);
 
                         // Run memory benchmark if enabled
                         if self.config.enable_memory_regression_testing {
-                            let memory_baseline = self.run_memory_baseline(&device, operation, tensor_size, data_type)?;
+                            let memory_baseline = self.run_memory_baseline(
+                                &device,
+                                operation,
+                                tensor_size,
+                                data_type,
+                            )?;
                             memory_baselines.insert(test_key, memory_baseline);
                         }
                     }
@@ -426,10 +441,13 @@ impl MlxRegressionTester {
     /// Run regression tests against a baseline
     pub fn run_regression_tests(&mut self, baseline_id: &str) -> Result<RegressionTestResult> {
         let baseline = self.baseline_manager.load_baseline(baseline_id)?;
-        let test_id = format!("regression_test_{}", SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs());
+        let test_id = format!(
+            "regression_test_{}",
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs()
+        );
 
         let mut test_results = Vec::new();
         let mut regressions_detected = Vec::new();
@@ -445,7 +463,8 @@ impl MlxRegressionTester {
                 &baseline_metrics.data_type,
             )?;
 
-            let performance_change = self.calculate_performance_change(baseline_metrics, &current_metrics)?;
+            let performance_change =
+                self.calculate_performance_change(baseline_metrics, &current_metrics)?;
             let status = self.determine_test_status(&performance_change)?;
 
             let test_case_result = TestCaseResult {
@@ -470,14 +489,17 @@ impl MlxRegressionTester {
 
             // Check for improvements
             if matches!(status, TestCaseStatus::Improvement) {
-                let improvement = self.analyze_improvement(baseline_metrics, &performance_change)?;
+                let improvement =
+                    self.analyze_improvement(baseline_metrics, &performance_change)?;
                 improvements_detected.push(improvement);
             }
 
             // Check for memory regressions
             if self.config.enable_memory_regression_testing {
                 if let Some(memory_baseline) = baseline.memory_baselines.get(test_key) {
-                    if let Some(memory_regression) = self.check_memory_regression(memory_baseline, test_key)? {
+                    if let Some(memory_regression) =
+                        self.check_memory_regression(memory_baseline, test_key)?
+                    {
                         memory_regressions.push(memory_regression);
                     }
                 }
@@ -485,7 +507,11 @@ impl MlxRegressionTester {
         }
 
         let overall_status = self.determine_overall_status(&test_results, &regressions_detected)?;
-        let summary = self.generate_test_summary(&test_results, &regressions_detected, &improvements_detected)?;
+        let summary = self.generate_test_summary(
+            &test_results,
+            &regressions_detected,
+            &improvements_detected,
+        )?;
 
         Ok(RegressionTestResult {
             test_id,
@@ -510,8 +536,20 @@ impl MlxRegressionTester {
     }
 
     /// Helper methods
-    fn generate_test_key(&self, operation: &str, device: &str, tensor_size: &[usize], data_type: &str) -> String {
-        format!("{}_{}_{}_{}", operation, device, format!("{:?}", tensor_size), data_type)
+    fn generate_test_key(
+        &self,
+        operation: &str,
+        device: &str,
+        tensor_size: &[usize],
+        data_type: &str,
+    ) -> String {
+        format!(
+            "{}_{}_{}_{}",
+            operation,
+            device,
+            format!("{:?}", tensor_size),
+            data_type
+        )
     }
 
     fn create_device(&self, device_name: &str) -> Result<crate::mlx::BitNetMlxDevice> {
@@ -522,7 +560,13 @@ impl MlxRegressionTester {
         }
     }
 
-    fn run_baseline_benchmark(&mut self, device: &crate::mlx::BitNetMlxDevice, operation: &str, tensor_size: &[usize], data_type: &str) -> Result<BaselineMetrics> {
+    fn run_baseline_benchmark(
+        &mut self,
+        device: &crate::mlx::BitNetMlxDevice,
+        operation: &str,
+        tensor_size: &[usize],
+        data_type: &str,
+    ) -> Result<BaselineMetrics> {
         let mut execution_times = Vec::new();
         let mut throughputs = Vec::new();
         let mut memory_usages = Vec::new();
@@ -542,7 +586,10 @@ impl MlxRegressionTester {
 
         // Calculate statistics
         let average_execution_time = Duration::from_nanos(
-            (execution_times.iter().map(|d| d.as_nanos()).sum::<u128>() / execution_times.len() as u128).try_into().unwrap_or(0)
+            (execution_times.iter().map(|d| d.as_nanos()).sum::<u128>()
+                / execution_times.len() as u128)
+                .try_into()
+                .unwrap_or(0),
         );
         let min_execution_time = *execution_times.iter().min().unwrap();
         let max_execution_time = *execution_times.iter().max().unwrap();
@@ -551,12 +598,14 @@ impl MlxRegressionTester {
 
         // Calculate standard deviation
         let mean_nanos = average_execution_time.as_nanos() as f64;
-        let variance = execution_times.iter()
+        let variance = execution_times
+            .iter()
             .map(|d| {
                 let diff = d.as_nanos() as f64 - mean_nanos;
                 diff * diff
             })
-            .sum::<f64>() / execution_times.len() as f64;
+            .sum::<f64>()
+            / execution_times.len() as f64;
         let std_dev = Duration::from_nanos(variance.sqrt() as u64);
 
         // Calculate confidence interval (95%)
@@ -567,7 +616,12 @@ impl MlxRegressionTester {
         );
 
         Ok(BaselineMetrics {
-            test_key: self.generate_test_key(operation, device.device_type(), tensor_size, data_type),
+            test_key: self.generate_test_key(
+                operation,
+                device.device_type(),
+                tensor_size,
+                data_type,
+            ),
             operation: operation.to_string(),
             device: device.device_type().to_string(),
             tensor_size: tensor_size.to_vec(),
@@ -583,11 +637,22 @@ impl MlxRegressionTester {
         })
     }
 
-    fn run_memory_baseline(&self, device: &crate::mlx::BitNetMlxDevice, operation: &str, tensor_size: &[usize], data_type: &str) -> Result<MemoryBaseline> {
+    fn run_memory_baseline(
+        &self,
+        device: &crate::mlx::BitNetMlxDevice,
+        operation: &str,
+        tensor_size: &[usize],
+        data_type: &str,
+    ) -> Result<MemoryBaseline> {
         // Placeholder implementation
         Ok(MemoryBaseline {
-            test_key: self.generate_test_key(operation, device.device_type(), tensor_size, data_type),
-            peak_memory_usage: 1024 * 1024, // 1MB
+            test_key: self.generate_test_key(
+                operation,
+                device.device_type(),
+                tensor_size,
+                data_type,
+            ),
+            peak_memory_usage: 1024 * 1024,   // 1MB
             average_memory_usage: 512 * 1024, // 512KB
             allocation_count: 10,
             deallocation_count: 10,
@@ -596,20 +661,37 @@ impl MlxRegressionTester {
         })
     }
 
-    fn run_current_benchmark(&mut self, operation: &str, device_name: &str, tensor_size: &[usize], data_type: &str) -> Result<BaselineMetrics> {
+    fn run_current_benchmark(
+        &mut self,
+        operation: &str,
+        device_name: &str,
+        tensor_size: &[usize],
+        data_type: &str,
+    ) -> Result<BaselineMetrics> {
         let device = self.create_device(device_name)?;
         self.run_baseline_benchmark(&device, operation, tensor_size, data_type)
     }
 
-    fn calculate_performance_change(&self, baseline: &BaselineMetrics, current: &BaselineMetrics) -> Result<PerformanceChange> {
-        let execution_time_change = ((current.average_execution_time.as_secs_f64() - baseline.average_execution_time.as_secs_f64()) 
-            / baseline.average_execution_time.as_secs_f64()) * 100.0;
-        
-        let throughput_change = ((current.throughput - baseline.throughput) / baseline.throughput) * 100.0;
-        let memory_usage_change = ((current.memory_usage - baseline.memory_usage) / baseline.memory_usage) * 100.0;
+    fn calculate_performance_change(
+        &self,
+        baseline: &BaselineMetrics,
+        current: &BaselineMetrics,
+    ) -> Result<PerformanceChange> {
+        let execution_time_change = ((current.average_execution_time.as_secs_f64()
+            - baseline.average_execution_time.as_secs_f64())
+            / baseline.average_execution_time.as_secs_f64())
+            * 100.0;
+
+        let throughput_change =
+            ((current.throughput - baseline.throughput) / baseline.throughput) * 100.0;
+        let memory_usage_change =
+            ((current.memory_usage - baseline.memory_usage) / baseline.memory_usage) * 100.0;
 
         // Simple significance test based on confidence intervals
-        let is_significant = !self.confidence_intervals_overlap(&baseline.confidence_interval, &current.confidence_interval);
+        let is_significant = !self.confidence_intervals_overlap(
+            &baseline.confidence_interval,
+            &current.confidence_interval,
+        );
 
         Ok(PerformanceChange {
             execution_time_change,
@@ -620,11 +702,18 @@ impl MlxRegressionTester {
         })
     }
 
-    fn confidence_intervals_overlap(&self, interval1: &(Duration, Duration), interval2: &(Duration, Duration)) -> bool {
+    fn confidence_intervals_overlap(
+        &self,
+        interval1: &(Duration, Duration),
+        interval2: &(Duration, Duration),
+    ) -> bool {
         interval1.1 >= interval2.0 && interval2.1 >= interval1.0
     }
 
-    fn determine_test_status(&self, performance_change: &PerformanceChange) -> Result<TestCaseStatus> {
+    fn determine_test_status(
+        &self,
+        performance_change: &PerformanceChange,
+    ) -> Result<TestCaseStatus> {
         if !performance_change.is_significant {
             return Ok(TestCaseStatus::Pass);
         }
@@ -638,7 +727,11 @@ impl MlxRegressionTester {
         }
     }
 
-    fn analyze_regression(&self, baseline: &BaselineMetrics, performance_change: &PerformanceChange) -> Result<RegressionDetection> {
+    fn analyze_regression(
+        &self,
+        baseline: &BaselineMetrics,
+        performance_change: &PerformanceChange,
+    ) -> Result<RegressionDetection> {
         let severity = if performance_change.execution_time_change > 50.0 {
             RegressionSeverity::Critical
         } else if performance_change.execution_time_change > 30.0 {
@@ -664,14 +757,19 @@ impl MlxRegressionTester {
             severity,
             performance_degradation: performance_change.execution_time_change,
             baseline_value: baseline.average_execution_time.as_secs_f64(),
-            current_value: baseline.average_execution_time.as_secs_f64() * (1.0 + performance_change.execution_time_change / 100.0),
+            current_value: baseline.average_execution_time.as_secs_f64()
+                * (1.0 + performance_change.execution_time_change / 100.0),
             confidence: performance_change.confidence_level,
             potential_causes,
             bisection_result: None, // Would be filled by automated bisection
         })
     }
 
-    fn analyze_improvement(&self, baseline: &BaselineMetrics, performance_change: &PerformanceChange) -> Result<ImprovementDetection> {
+    fn analyze_improvement(
+        &self,
+        baseline: &BaselineMetrics,
+        performance_change: &PerformanceChange,
+    ) -> Result<ImprovementDetection> {
         let likely_causes = vec![
             "Algorithm optimizations".to_string(),
             "Compiler improvements".to_string(),
@@ -685,18 +783,26 @@ impl MlxRegressionTester {
             improvement_type: ImprovementType::PerformanceImprovement,
             performance_improvement: -performance_change.execution_time_change, // Negative because it's an improvement
             baseline_value: baseline.average_execution_time.as_secs_f64(),
-            current_value: baseline.average_execution_time.as_secs_f64() * (1.0 + performance_change.execution_time_change / 100.0),
+            current_value: baseline.average_execution_time.as_secs_f64()
+                * (1.0 + performance_change.execution_time_change / 100.0),
             confidence: performance_change.confidence_level,
             likely_causes,
         })
     }
 
-    fn check_memory_regression(&self, memory_baseline: &MemoryBaseline, test_key: &str) -> Result<Option<MemoryRegressionDetection>> {
+    fn check_memory_regression(
+        &self,
+        memory_baseline: &MemoryBaseline,
+        test_key: &str,
+    ) -> Result<Option<MemoryRegressionDetection>> {
         // Placeholder implementation - would check current memory usage against baseline
         let current_memory = 1200 * 1024; // 1.2MB (20% increase)
-        let memory_increase = ((current_memory - memory_baseline.peak_memory_usage) as f64 / memory_baseline.peak_memory_usage as f64) * 100.0;
+        let memory_increase = ((current_memory - memory_baseline.peak_memory_usage) as f64
+            / memory_baseline.peak_memory_usage as f64)
+            * 100.0;
 
-        if memory_increase > 15.0 { // 15% threshold
+        if memory_increase > 15.0 {
+            // 15% threshold
             Ok(Some(MemoryRegressionDetection {
                 test_key: test_key.to_string(),
                 operation: "test_operation".to_string(), // Would extract from test_key
@@ -712,10 +818,18 @@ impl MlxRegressionTester {
         }
     }
 
-    fn determine_overall_status(&self, test_results: &[TestCaseResult], regressions: &[RegressionDetection]) -> Result<TestStatus> {
-        let has_critical = regressions.iter().any(|r| matches!(r.severity, RegressionSeverity::Critical));
+    fn determine_overall_status(
+        &self,
+        test_results: &[TestCaseResult],
+        regressions: &[RegressionDetection],
+    ) -> Result<TestStatus> {
+        let has_critical = regressions
+            .iter()
+            .any(|r| matches!(r.severity, RegressionSeverity::Critical));
         let has_regressions = !regressions.is_empty();
-        let has_failures = test_results.iter().any(|r| matches!(r.status, TestCaseStatus::Failed));
+        let has_failures = test_results
+            .iter()
+            .any(|r| matches!(r.status, TestCaseStatus::Failed));
 
         if has_failures {
             Ok(TestStatus::HasFailures)
@@ -728,26 +842,47 @@ impl MlxRegressionTester {
         }
     }
 
-    fn generate_test_summary(&self, test_results: &[TestCaseResult], regressions: &[RegressionDetection], improvements: &[ImprovementDetection]) -> Result<RegressionTestSummary> {
+    fn generate_test_summary(
+        &self,
+        test_results: &[TestCaseResult],
+        regressions: &[RegressionDetection],
+        improvements: &[ImprovementDetection],
+    ) -> Result<RegressionTestSummary> {
         let total_tests = test_results.len();
-        let passed_tests = test_results.iter().filter(|r| matches!(r.status, TestCaseStatus::Pass)).count();
-        let failed_tests = test_results.iter().filter(|r| matches!(r.status, TestCaseStatus::Failed)).count();
+        let passed_tests = test_results
+            .iter()
+            .filter(|r| matches!(r.status, TestCaseStatus::Pass))
+            .count();
+        let failed_tests = test_results
+            .iter()
+            .filter(|r| matches!(r.status, TestCaseStatus::Failed))
+            .count();
         let regression_count = regressions.len();
         let improvement_count = improvements.len();
-        let critical_regressions = regressions.iter().filter(|r| matches!(r.severity, RegressionSeverity::Critical)).count();
+        let critical_regressions = regressions
+            .iter()
+            .filter(|r| matches!(r.severity, RegressionSeverity::Critical))
+            .count();
 
         let overall_performance_change = if !test_results.is_empty() {
-            test_results.iter().map(|r| r.performance_change.execution_time_change).sum::<f64>() / test_results.len() as f64
+            test_results
+                .iter()
+                .map(|r| r.performance_change.execution_time_change)
+                .sum::<f64>()
+                / test_results.len() as f64
         } else {
             0.0
         };
 
         let mut recommendations = Vec::new();
         if critical_regressions > 0 {
-            recommendations.push("Investigate critical performance regressions immediately".to_string());
+            recommendations
+                .push("Investigate critical performance regressions immediately".to_string());
         }
         if regression_count > improvement_count {
-            recommendations.push("Consider reverting recent changes or optimizing affected operations".to_string());
+            recommendations.push(
+                "Consider reverting recent changes or optimizing affected operations".to_string(),
+            );
         }
         if improvement_count > 0 {
             recommendations.push("Document and preserve performance improvements".to_string());
@@ -782,7 +917,7 @@ impl MlxRegressionTester {
             architecture: std::env::consts::ARCH.to_string(),
             cpu_model: "Unknown".to_string(), // Would query actual CPU info
             gpu_model: Some("Apple Silicon GPU".to_string()),
-            total_memory: 16 * 1024 * 1024 * 1024, // 16GB
+            total_memory: 16 * 1024 * 1024 * 1024,     // 16GB
             gpu_memory: Some(16 * 1024 * 1024 * 1024), // Unified memory
             cpu_cores: 8,
             gpu_cores: Some(32),
@@ -792,7 +927,7 @@ impl MlxRegressionTester {
     /// Generate regression test report
     pub fn generate_report(&self, test_result: &RegressionTestResult) -> Result<String> {
         let mut report = String::new();
-        
+
         report.push_str("# MLX Performance Regression Test Report\n\n");
         report.push_str(&format!("Test ID: {}\n", test_result.test_id));
         report.push_str(&format!("Baseline: {}\n", test_result.baseline_id));
@@ -801,11 +936,23 @@ impl MlxRegressionTester {
         // Overall status
         report.push_str("## Overall Status\n");
         report.push_str(&format!("Status: {:?}\n", test_result.overall_status));
-        report.push_str(&format!("Total Tests: {}\n", test_result.summary.total_tests));
+        report.push_str(&format!(
+            "Total Tests: {}\n",
+            test_result.summary.total_tests
+        ));
         report.push_str(&format!("Passed: {}\n", test_result.summary.passed_tests));
-        report.push_str(&format!("Regressions: {}\n", test_result.summary.regression_count));
-        report.push_str(&format!("Improvements: {}\n", test_result.summary.improvement_count));
-        report.push_str(&format!("Critical Regressions: {}\n\n", test_result.summary.critical_regressions));
+        report.push_str(&format!(
+            "Regressions: {}\n",
+            test_result.summary.regression_count
+        ));
+        report.push_str(&format!(
+            "Improvements: {}\n",
+            test_result.summary.improvement_count
+        ));
+        report.push_str(&format!(
+            "Critical Regressions: {}\n\n",
+            test_result.summary.critical_regressions
+        ));
 
         // Regressions
         if !test_result.regressions_detected.is_empty() {
@@ -815,9 +962,15 @@ impl MlxRegressionTester {
                     "### {} on {} ({:?})\n",
                     regression.operation, regression.device, regression.severity
                 ));
-                report.push_str(&format!("- Performance degradation: {:.1}%\n", regression.performance_degradation));
-                report.push_str(&format!("- Confidence: {:.1}%\n", regression.confidence * 100.0));
-                
+                report.push_str(&format!(
+                    "- Performance degradation: {:.1}%\n",
+                    regression.performance_degradation
+                ));
+                report.push_str(&format!(
+                    "- Confidence: {:.1}%\n",
+                    regression.confidence * 100.0
+                ));
+
                 if !regression.potential_causes.is_empty() {
                     report.push_str("- Potential causes:\n");
                     for cause in &regression.potential_causes {
@@ -836,8 +989,14 @@ impl MlxRegressionTester {
                     "### {} on {}\n",
                     improvement.operation, improvement.device
                 ));
-                report.push_str(&format!("- Performance improvement: {:.1}%\n", improvement.performance_improvement));
-                report.push_str(&format!("- Confidence: {:.1}%\n\n", improvement.confidence * 100.0));
+                report.push_str(&format!(
+                    "- Performance improvement: {:.1}%\n",
+                    improvement.performance_improvement
+                ));
+                report.push_str(&format!(
+                    "- Confidence: {:.1}%\n\n",
+                    improvement.confidence * 100.0
+                ));
             }
         }
 
@@ -853,7 +1012,11 @@ impl MlxRegressionTester {
     }
 
     /// Export test results
-    pub fn export_results(&self, test_result: &RegressionTestResult, format: &str) -> Result<String> {
+    pub fn export_results(
+        &self,
+        test_result: &RegressionTestResult,
+        format: &str,
+    ) -> Result<String> {
         match format {
             "json" => serde_json::to_string_pretty(test_result)
                 .map_err(|e| anyhow::anyhow!("Failed to serialize test results: {}", e)),
@@ -878,13 +1041,13 @@ impl BaselineManager {
     pub fn save_baseline(&self, baseline: &PerformanceBaseline) -> Result<()> {
         // Create directory if it doesn't exist
         std::fs::create_dir_all(&self.baseline_directory)?;
-        
+
         let filename = format!("{}.json", baseline.baseline_id);
         let filepath = self.baseline_directory.join(filename);
-        
+
         let json = serde_json::to_string_pretty(baseline)?;
         std::fs::write(filepath, json)?;
-        
+
         Ok(())
     }
 
@@ -892,26 +1055,26 @@ impl BaselineManager {
     pub fn load_baseline(&self, baseline_id: &str) -> Result<PerformanceBaseline> {
         let filename = format!("{}.json", baseline_id);
         let filepath = self.baseline_directory.join(filename);
-        
+
         if !filepath.exists() {
             return Err(anyhow::anyhow!("Baseline not found: {}", baseline_id));
         }
-        
+
         let json = std::fs::read_to_string(filepath)?;
         let baseline: PerformanceBaseline = serde_json::from_str(&json)?;
-        
+
         Ok(baseline)
     }
 
     /// List all available baselines
     pub fn list_baselines(&self) -> Result<Vec<String>> {
         let mut baselines = Vec::new();
-        
+
         if self.baseline_directory.exists() {
             for entry in std::fs::read_dir(&self.baseline_directory)? {
                 let entry = entry?;
                 let path = entry.path();
-                
+
                 if path.extension().and_then(|s| s.to_str()) == Some("json") {
                     if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
                         baselines.push(stem.to_string());
@@ -919,7 +1082,7 @@ impl BaselineManager {
                 }
             }
         }
-        
+
         Ok(baselines)
     }
 
@@ -927,11 +1090,11 @@ impl BaselineManager {
     pub fn delete_baseline(&self, baseline_id: &str) -> Result<()> {
         let filename = format!("{}.json", baseline_id);
         let filepath = self.baseline_directory.join(filename);
-        
+
         if filepath.exists() {
             std::fs::remove_file(filepath)?;
         }
-        
+
         Ok(())
     }
 
@@ -962,25 +1125,33 @@ pub mod utils {
             return 0.0;
         }
 
-        let baseline_mean = baseline_times.iter().map(|d| d.as_secs_f64()).sum::<f64>() / baseline_times.len() as f64;
-        let current_mean = current_times.iter().map(|d| d.as_secs_f64()).sum::<f64>() / current_times.len() as f64;
+        let baseline_mean = baseline_times.iter().map(|d| d.as_secs_f64()).sum::<f64>()
+            / baseline_times.len() as f64;
+        let current_mean =
+            current_times.iter().map(|d| d.as_secs_f64()).sum::<f64>() / current_times.len() as f64;
 
-        let baseline_var = baseline_times.iter()
+        let baseline_var = baseline_times
+            .iter()
             .map(|d| (d.as_secs_f64() - baseline_mean).powi(2))
-            .sum::<f64>() / (baseline_times.len() - 1) as f64;
+            .sum::<f64>()
+            / (baseline_times.len() - 1) as f64;
 
-        let current_var = current_times.iter()
+        let current_var = current_times
+            .iter()
             .map(|d| (d.as_secs_f64() - current_mean).powi(2))
-            .sum::<f64>() / (current_times.len() - 1) as f64;
+            .sum::<f64>()
+            / (current_times.len() - 1) as f64;
 
-        let pooled_std = ((baseline_var / baseline_times.len() as f64) + (current_var / current_times.len() as f64)).sqrt();
-        
+        let pooled_std = ((baseline_var / baseline_times.len() as f64)
+            + (current_var / current_times.len() as f64))
+            .sqrt();
+
         if pooled_std == 0.0 {
             return 0.0;
         }
 
         let t_stat = (current_mean - baseline_mean) / pooled_std;
-        
+
         // Return p-value approximation (simplified)
         1.0 - (t_stat.abs() / 3.0).min(1.0)
     }
@@ -991,7 +1162,8 @@ pub mod utils {
             return PerformanceTrend::Insufficient;
         }
 
-        let changes: Vec<f64> = test_results.iter()
+        let changes: Vec<f64> = test_results
+            .iter()
             .map(|r| r.summary.overall_performance_change)
             .collect();
 

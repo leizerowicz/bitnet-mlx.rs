@@ -4,12 +4,12 @@
 //! It uses a fixed-size block allocation strategy with multiple size classes
 //! to minimize fragmentation and provide fast allocation/deallocation.
 
+use crate::memory::handle::{CpuMemoryMetadata, PoolType};
+use crate::memory::{MemoryError, MemoryHandle, MemoryResult};
+use candle_core::Device;
+use std::alloc::{alloc, dealloc, Layout};
 use std::ptr::NonNull;
 use std::sync::{Arc, Mutex};
-use std::alloc::{alloc, dealloc, Layout};
-use candle_core::Device;
-use crate::memory::{MemoryError, MemoryResult, MemoryHandle};
-use crate::memory::handle::{PoolType, CpuMemoryMetadata};
 
 #[cfg(feature = "tracing")]
 use tracing::debug;
@@ -18,42 +18,42 @@ use tracing::debug;
 /// Each size class represents a fixed block size that can accommodate
 /// allocations up to that size with minimal waste
 const SIZE_CLASSES: &[usize] = &[
-    16,      // 16 bytes
-    32,      // 32 bytes
-    64,      // 64 bytes
-    128,     // 128 bytes
-    256,     // 256 bytes
-    512,     // 512 bytes
-    1024,    // 1 KB
-    2048,    // 2 KB
-    4096,    // 4 KB
-    8192,    // 8 KB
-    16384,   // 16 KB
-    32768,   // 32 KB
-    65536,   // 64 KB
-    131072,  // 128 KB
-    262144,  // 256 KB
-    524288,  // 512 KB
+    16,     // 16 bytes
+    32,     // 32 bytes
+    64,     // 64 bytes
+    128,    // 128 bytes
+    256,    // 256 bytes
+    512,    // 512 bytes
+    1024,   // 1 KB
+    2048,   // 2 KB
+    4096,   // 4 KB
+    8192,   // 8 KB
+    16384,  // 16 KB
+    32768,  // 32 KB
+    65536,  // 64 KB
+    131072, // 128 KB
+    262144, // 256 KB
+    524288, // 512 KB
 ];
 
 /// Number of blocks to allocate per chunk for each size class
 const BLOCKS_PER_CHUNK: &[usize] = &[
-    1024,    // 16 bytes -> 16KB chunks
-    512,     // 32 bytes -> 16KB chunks
-    256,     // 64 bytes -> 16KB chunks
-    128,     // 128 bytes -> 16KB chunks
-    64,      // 256 bytes -> 16KB chunks
-    32,      // 512 bytes -> 16KB chunks
-    16,      // 1 KB -> 16KB chunks
-    8,       // 2 KB -> 16KB chunks
-    4,       // 4 KB -> 16KB chunks
-    2,       // 8 KB -> 16KB chunks
-    1,       // 16 KB -> 16KB chunks
-    1,       // 32 KB -> 32KB chunks
-    1,       // 64 KB -> 64KB chunks
-    1,       // 128 KB -> 128KB chunks
-    1,       // 256 KB -> 256KB chunks
-    1,       // 512 KB -> 512KB chunks
+    1024, // 16 bytes -> 16KB chunks
+    512,  // 32 bytes -> 16KB chunks
+    256,  // 64 bytes -> 16KB chunks
+    128,  // 128 bytes -> 16KB chunks
+    64,   // 256 bytes -> 16KB chunks
+    32,   // 512 bytes -> 16KB chunks
+    16,   // 1 KB -> 16KB chunks
+    8,    // 2 KB -> 16KB chunks
+    4,    // 4 KB -> 16KB chunks
+    2,    // 8 KB -> 16KB chunks
+    1,    // 16 KB -> 16KB chunks
+    1,    // 32 KB -> 32KB chunks
+    1,    // 64 KB -> 64KB chunks
+    1,    // 128 KB -> 128KB chunks
+    1,    // 256 KB -> 256KB chunks
+    1,    // 512 KB -> 512KB chunks
 ];
 
 /// Small block memory pool for efficient allocation of small memory blocks
@@ -138,12 +138,16 @@ impl SmallBlockPool {
     /// A Result containing the new pool or an error if creation fails
     pub fn new(initial_size: usize, max_size: usize, device: &Device) -> MemoryResult<Self> {
         #[cfg(feature = "tracing")]
-        debug!("Creating small block pool: initial_size={}, max_size={}, device={:?}", 
-               initial_size, max_size, device);
+        debug!(
+            "Creating small block pool: initial_size={}, max_size={}, device={:?}",
+            initial_size, max_size, device
+        );
 
         // Validate parameters
         if max_size == 0 {
-            return Err(MemoryError::InvalidAlignment { alignment: max_size });
+            return Err(MemoryError::InvalidAlignment {
+                alignment: max_size,
+            });
         }
 
         // Initialize free lists for each size class
@@ -209,15 +213,18 @@ impl SmallBlockPool {
         let actual_size = SIZE_CLASSES[size_class];
 
         #[cfg(feature = "tracing")]
-        debug!("Allocating {} bytes (actual: {}) from size class {}", 
-               size, actual_size, size_class);
+        debug!(
+            "Allocating {} bytes (actual: {}) from size class {}",
+            size, actual_size, size_class
+        );
 
         // Get a block from the free list
         let ptr = self.get_block(size_class)?;
 
         // Generate unique handle ID
         let handle_id = {
-            let mut counter = handle_id_counter.lock()
+            let mut counter = handle_id_counter
+                .lock()
                 .map_err(|_| MemoryError::InternalError {
                     reason: "Failed to acquire handle ID counter lock".to_string(),
                 })?;
@@ -288,7 +295,11 @@ impl SmallBlockPool {
         let ptr = unsafe { handle.as_non_null() };
 
         #[cfg(feature = "tracing")]
-        debug!("Deallocating block with handle ID {}, size {}", handle.id(), size);
+        debug!(
+            "Deallocating block with handle ID {}, size {}",
+            handle.id(),
+            size
+        );
 
         // Find the size class
         let size_class = self.find_size_class(size, alignment)?;
@@ -298,11 +309,14 @@ impl SmallBlockPool {
 
         // Update statistics
         self.stats.deallocations += 1;
-        self.free_lists[size_class].used_blocks = 
+        self.free_lists[size_class].used_blocks =
             self.free_lists[size_class].used_blocks.saturating_sub(1);
 
         #[cfg(feature = "tracing")]
-        debug!("Successfully deallocated block with handle ID {}", handle.id());
+        debug!(
+            "Successfully deallocated block with handle ID {}",
+            handle.id()
+        );
 
         Ok(())
     }
@@ -332,7 +346,7 @@ impl SmallBlockPool {
                 // CUDA device comparison not implemented yet
                 // For now, treat all CUDA devices as different
                 false
-            },
+            }
             _ => false,
         }
     }
@@ -359,7 +373,9 @@ impl SmallBlockPool {
         self.allocate_chunk(size_class)?;
 
         // Try again after chunk allocation
-        self.free_lists[size_class].free_blocks.pop()
+        self.free_lists[size_class]
+            .free_blocks
+            .pop()
             .ok_or_else(|| MemoryError::InternalError {
                 reason: "Failed to get block after chunk allocation".to_string(),
             })
@@ -377,8 +393,10 @@ impl SmallBlockPool {
         }
 
         #[cfg(feature = "tracing")]
-        debug!("Allocating new chunk for size class {}: {} blocks of {} bytes",
-               size_class, blocks_per_chunk, block_size);
+        debug!(
+            "Allocating new chunk for size class {}: {} blocks of {} bytes",
+            size_class, blocks_per_chunk, block_size
+        );
 
         // Allocate chunk based on device type
         let (ptr, layout) = match &self.device {
@@ -405,9 +423,7 @@ impl SmallBlockPool {
         // Split chunk into individual blocks and add to free list
         let free_list = &mut self.free_lists[size_class];
         for i in 0..blocks_per_chunk {
-            let block_ptr = unsafe {
-                NonNull::new_unchecked(ptr.as_ptr().add(i * block_size))
-            };
+            let block_ptr = unsafe { NonNull::new_unchecked(ptr.as_ptr().add(i * block_size)) };
             free_list.free_blocks.push(block_ptr);
         }
 
@@ -425,13 +441,19 @@ impl SmallBlockPool {
         });
 
         #[cfg(feature = "tracing")]
-        debug!("Successfully allocated chunk: {} blocks, {} bytes total",
-               blocks_per_chunk, chunk_size);
+        debug!(
+            "Successfully allocated chunk: {} blocks, {} bytes total",
+            blocks_per_chunk, chunk_size
+        );
 
         Ok(())
     }
 
-    fn allocate_cpu_chunk(&self, chunk_size: usize, alignment: usize) -> MemoryResult<(NonNull<u8>, Layout)> {
+    fn allocate_cpu_chunk(
+        &self,
+        chunk_size: usize,
+        alignment: usize,
+    ) -> MemoryResult<(NonNull<u8>, Layout)> {
         let layout = Layout::from_size_align(chunk_size, alignment)
             .map_err(|_| MemoryError::InvalidAlignment { alignment })?;
 
@@ -449,7 +471,11 @@ impl SmallBlockPool {
     }
 
     #[cfg(feature = "metal")]
-    fn allocate_metal_chunk(&self, chunk_size: usize, _alignment: usize) -> MemoryResult<(NonNull<u8>, Layout)> {
+    fn allocate_metal_chunk(
+        &self,
+        chunk_size: usize,
+        _alignment: usize,
+    ) -> MemoryResult<(NonNull<u8>, Layout)> {
         // For Metal, we still allocate CPU memory but mark it as Metal-accessible
         // In a real implementation, this would use Metal buffer allocation
         self.allocate_cpu_chunk(chunk_size, _alignment)
@@ -496,16 +522,17 @@ impl SmallBlockPool {
 impl Drop for SmallBlockPool {
     fn drop(&mut self) {
         #[cfg(feature = "tracing")]
-        debug!("Dropping small block pool, deallocating {} chunks", self.chunks.len());
+        debug!(
+            "Dropping small block pool, deallocating {} chunks",
+            self.chunks.len()
+        );
 
         // Deallocate all chunks
         for chunk in &self.chunks {
             match &self.device {
-                Device::Cpu => {
-                    unsafe {
-                        dealloc(chunk.ptr.as_ptr(), chunk.layout);
-                    }
-                }
+                Device::Cpu => unsafe {
+                    dealloc(chunk.ptr.as_ptr(), chunk.layout);
+                },
                 Device::Metal(_) => {
                     #[cfg(feature = "metal")]
                     {
@@ -539,7 +566,7 @@ mod tests {
     fn test_small_block_pool_creation() {
         let device = get_cpu_device();
         let pool = SmallBlockPool::new(1024 * 1024, 16 * 1024 * 1024, &device).unwrap();
-        
+
         assert_eq!(pool.current_usage(), 0);
         assert_eq!(pool.max_size(), 16 * 1024 * 1024);
     }
@@ -548,13 +575,13 @@ mod tests {
     fn test_size_class_finding() {
         let device = get_cpu_device();
         let pool = SmallBlockPool::new(1024 * 1024, 16 * 1024 * 1024, &device).unwrap();
-        
+
         // Test various sizes
-        assert_eq!(pool.find_size_class(10, 1).unwrap(), 0);  // 16 bytes
-        assert_eq!(pool.find_size_class(20, 1).unwrap(), 1);  // 32 bytes
+        assert_eq!(pool.find_size_class(10, 1).unwrap(), 0); // 16 bytes
+        assert_eq!(pool.find_size_class(20, 1).unwrap(), 1); // 32 bytes
         assert_eq!(pool.find_size_class(100, 1).unwrap(), 3); // 128 bytes
         assert_eq!(pool.find_size_class(1000, 1).unwrap(), 6); // 1024 bytes
-        
+
         // Test alignment requirements
         assert_eq!(pool.find_size_class(10, 32).unwrap(), 1); // 32 bytes for alignment
         assert_eq!(pool.find_size_class(10, 64).unwrap(), 2); // 64 bytes for alignment
@@ -565,19 +592,21 @@ mod tests {
         let device = get_cpu_device();
         let mut pool = SmallBlockPool::new(1024 * 1024, 16 * 1024 * 1024, &device).unwrap();
         let handle_counter = Arc::new(Mutex::new(1));
-        
+
         // Allocate a small block
-        let handle = pool.allocate(100, 16, &device, handle_counter.clone()).unwrap();
+        let handle = pool
+            .allocate(100, 16, &device, handle_counter.clone())
+            .unwrap();
         assert_eq!(handle.size(), 100);
         assert_eq!(handle.alignment(), 16);
         assert!(handle.is_cpu());
-        
+
         // Pool should have allocated a chunk
         assert!(pool.current_usage() > 0);
-        
+
         // Deallocate the block
         pool.deallocate(handle).unwrap();
-        
+
         // Pool size should remain the same (chunk is not freed)
         assert!(pool.current_usage() > 0);
     }
@@ -587,23 +616,25 @@ mod tests {
         let device = get_cpu_device();
         let mut pool = SmallBlockPool::new(1024 * 1024, 16 * 1024 * 1024, &device).unwrap();
         let handle_counter = Arc::new(Mutex::new(1));
-        
+
         let mut handles = Vec::new();
-        
+
         // Allocate multiple blocks
         for i in 0..10 {
-            let handle = pool.allocate(64, 16, &device, handle_counter.clone()).unwrap();
+            let handle = pool
+                .allocate(64, 16, &device, handle_counter.clone())
+                .unwrap();
             assert_eq!(handle.size(), 64);
             handles.push(handle);
         }
-        
+
         // All handles should be unique
         for i in 0..handles.len() {
-            for j in i+1..handles.len() {
+            for j in i + 1..handles.len() {
                 assert_ne!(handles[i].id(), handles[j].id());
             }
         }
-        
+
         // Deallocate all blocks
         for handle in handles {
             pool.deallocate(handle).unwrap();
@@ -614,7 +645,7 @@ mod tests {
     fn test_size_too_large() {
         let device = get_cpu_device();
         let pool = SmallBlockPool::new(1024 * 1024, 16 * 1024 * 1024, &device).unwrap();
-        
+
         // Try to allocate something larger than the largest size class
         let result = pool.find_size_class(1024 * 1024, 1);
         assert!(result.is_err());
@@ -625,13 +656,15 @@ mod tests {
         let device = get_cpu_device();
         let mut pool = SmallBlockPool::new(1024, 32768, &device).unwrap(); // Small but reasonable max size
         let handle_counter = Arc::new(Mutex::new(1));
-        
+
         // First allocation should succeed
-        let handle1 = pool.allocate(64, 16, &device, handle_counter.clone()).unwrap();
-        
+        let handle1 = pool
+            .allocate(64, 16, &device, handle_counter.clone())
+            .unwrap();
+
         // Second allocation should also succeed with this size limit
         let result = pool.allocate(64, 16, &device, handle_counter.clone());
-        
+
         // Clean up
         pool.deallocate(handle1).unwrap();
         if let Ok(handle2) = result {
@@ -647,14 +680,14 @@ mod tests {
         let device = get_cpu_device();
         let mut pool = SmallBlockPool::new(1024 * 1024, 16 * 1024 * 1024, &device).unwrap();
         let handle_counter = Arc::new(Mutex::new(1));
-        
+
         // Try to allocate with a different device
         let other_device = get_cpu_device(); // Same type but different instance
         let result = pool.allocate(64, 16, &other_device, handle_counter);
-        
+
         // Should succeed since both are CPU devices
         assert!(result.is_ok());
-        
+
         if let Ok(handle) = result {
             pool.deallocate(handle).unwrap();
         }

@@ -49,11 +49,11 @@ use tracing::{debug, info, warn, error};
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// // Create a tensor filled with zeros
 /// let tensor = BitNetTensor::zeros(&[2, 3], BitNetDType::F32)?;
-/// 
+///
 /// // Create from data
 /// let data = vec![1.0f32, 2.0, 3.0, 4.0];
 /// let tensor = BitNetTensor::from_vec(data, &[2, 2], BitNetDType::F32)?;
-/// 
+///
 /// // Reshape
 /// let reshaped = tensor.reshape(&[4, 1])?;
 /// # Ok(())
@@ -88,7 +88,7 @@ impl BitNetTensor {
     ///
     /// ```rust
     /// use bitnet_core::tensor::{BitNetTensor, BitNetDType};
-    /// 
+    ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let tensor = BitNetTensor::new(&[2, 3], BitNetDType::F32, None)?;
     /// assert_eq!(tensor.shape().dims(), &[2, 3]);
@@ -102,7 +102,7 @@ impl BitNetTensor {
         device: Option<Device>,
     ) -> MemoryResult<Self> {
         let tensor_shape = TensorShape::new(shape);
-        
+
         // Get or create memory manager
         let memory_manager = super::memory_integration::get_global_memory_pool()
             .ok_or_else(|| MemoryError::InternalError {
@@ -156,7 +156,7 @@ impl BitNetTensor {
     ///
     /// ```rust
     /// use bitnet_core::tensor::{BitNetTensor, BitNetDType};
-    /// 
+    ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let tensor = BitNetTensor::zeros(&[2, 3], BitNetDType::F32)?;
     /// assert_eq!(tensor.shape().dims(), &[2, 3]);
@@ -169,7 +169,7 @@ impl BitNetTensor {
         device: Option<Device>,
     ) -> MemoryResult<Self> {
         let tensor_shape = TensorShape::new(shape);
-        
+
         let device_clone = device.clone();
         let memory_manager = super::memory_integration::get_global_memory_pool()
             .ok_or_else(|| MemoryError::InternalError {
@@ -211,7 +211,7 @@ impl BitNetTensor {
         device: Option<Device>,
     ) -> MemoryResult<Self> {
         let tensor_shape = TensorShape::new(shape);
-        
+
         let device_clone = device.clone();
         let memory_manager = super::memory_integration::get_global_memory_pool()
             .ok_or_else(|| MemoryError::InternalError {
@@ -263,7 +263,7 @@ impl BitNetTensor {
     ///
     /// ```rust
     /// use bitnet_core::tensor::{BitNetTensor, BitNetDType};
-    /// 
+    ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let data = vec![1.0f32, 2.0, 3.0, 4.0, 5.0, 6.0];
     /// let tensor = BitNetTensor::from_vec(data, &[2, 3], BitNetDType::F32, None)?;
@@ -282,7 +282,7 @@ impl BitNetTensor {
         T: Copy + 'static,
     {
         let tensor_shape = TensorShape::new(shape);
-        
+
         let device_clone = device.clone();
         let memory_manager = super::memory_integration::get_global_memory_pool()
             .ok_or_else(|| MemoryError::InternalError {
@@ -372,7 +372,7 @@ impl BitNetTensor {
     ///
     /// ```rust
     /// use bitnet_core::tensor::{BitNetTensor, BitNetDType};
-    /// 
+    ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let tensor = BitNetTensor::zeros(&[2, 3], BitNetDType::F32)?;
     /// let reshaped = tensor.reshape(&[3, 2])?;
@@ -383,7 +383,7 @@ impl BitNetTensor {
     /// ```
     pub fn reshape(&self, new_shape: &[usize]) -> MemoryResult<Self> {
         let new_tensor_shape = TensorShape::new(new_shape);
-        
+
         if new_tensor_shape.num_elements() != self.num_elements() {
             return Err(MemoryError::InternalError {
                 reason: format!(
@@ -406,7 +406,7 @@ impl BitNetTensor {
         )?);
 
         #[cfg(feature = "tracing")]
-        debug!("Reshaped tensor {} from {:?} to {:?}", 
+        debug!("Reshaped tensor {} from {:?} to {:?}",
                self.tensor_id, self.shape().dims(), new_shape);
 
         Ok(Self {
@@ -431,7 +431,7 @@ impl BitNetTensor {
     ///
     /// ```rust
     /// use bitnet_core::tensor::{BitNetTensor, BitNetDType};
-    /// 
+    ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let mut tensor = BitNetTensor::zeros(&[2, 3], BitNetDType::F32)?;
     /// tensor.fill(5.0)?;
@@ -465,7 +465,7 @@ impl BitNetTensor {
         };
 
         self.storage = new_storage;
-        
+
         #[cfg(feature = "tracing")]
         debug!("Filled tensor {} with value {}", self.tensor_id, value);
 
@@ -537,7 +537,7 @@ impl BitNetTensor {
     ///
     /// Result containing new BitNetTensor
     pub fn from_candle(
-        candle_tensor: &CandleTensor, 
+        candle_tensor: &CandleTensor,
         target_dtype: BitNetDType,
     ) -> MemoryResult<Self> {
         let shape = candle_tensor.dims();
@@ -576,7 +576,7 @@ impl BitNetTensor {
     ///
     /// ```rust
     /// use bitnet_core::tensor::BitNetTensor;
-    /// 
+    ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let tensor = BitNetTensor::bitnet_158(&[10, 20], None)?;
     /// assert_eq!(tensor.dtype(), bitnet_core::tensor::BitNetDType::BitNet158);
@@ -625,7 +625,7 @@ impl fmt::Display for TensorMemoryStats {
         write!(
             f,
             "Tensor ID: {}, Storage ID: {}, Shape: {:?}, Type: {:?}, Device: {:?}, Size: {} bytes ({} elements), Shared: {}",
-            self.tensor_id, self.storage_id, self.shape, self.dtype, self.device, 
+            self.tensor_id, self.storage_id, self.shape, self.dtype, self.device,
             self.size_bytes, self.num_elements, self.is_shared
         )
     }
@@ -639,7 +639,7 @@ impl Clone for BitNetTensor {
     fn clone(&self) -> Self {
         #[cfg(feature = "tracing")]
         debug!("Cloning BitNetTensor {}", self.tensor_id);
-        
+
         Self {
             storage: Arc::clone(&self.storage),
             memory_manager: self.memory_manager.clone(),
@@ -653,7 +653,7 @@ impl Drop for BitNetTensor {
     fn drop(&mut self) {
         #[cfg(feature = "tracing")]
         debug!("Dropping BitNetTensor {}", self.tensor_id);
-        
+
         // Arc will handle the actual storage cleanup
         // Additional cleanup can be added here if needed
     }
@@ -664,11 +664,11 @@ impl BroadcastCompatible for BitNetTensor {
     fn is_broadcast_compatible(&self, other: &Self) -> bool {
         self.shape().is_broadcast_compatible(other.shape())
     }
-    
+
     fn broadcast_shape(&self, other: &Self) -> super::shape::ShapeResult<TensorShape> {
         self.shape().broadcast_shape(other.shape())
     }
-    
+
     fn can_broadcast_to(&self, target: &Self) -> bool {
         self.shape().can_broadcast_to(target.shape())
     }
@@ -691,7 +691,7 @@ mod tests {
     fn test_tensor_from_vec() {
         let data = vec![1.0f32, 2.0, 3.0, 4.0, 5.0, 6.0];
         let tensor = BitNetTensor::from_vec(data, &[2, 3], BitNetDType::F32, None).unwrap();
-        
+
         assert_eq!(tensor.shape().dims(), &[2, 3]);
         assert_eq!(tensor.num_elements(), 6);
     }
@@ -700,7 +700,7 @@ mod tests {
     fn test_tensor_reshape() {
         let tensor = BitNetTensor::zeros(&[2, 3], BitNetDType::F32, None).unwrap();
         let reshaped = tensor.reshape(&[3, 2]).unwrap();
-        
+
         assert_eq!(reshaped.shape().dims(), &[3, 2]);
         assert_eq!(reshaped.num_elements(), 6);
     }
@@ -729,7 +729,7 @@ mod tests {
     fn test_tensor_clone() {
         let tensor = BitNetTensor::zeros(&[2, 3], BitNetDType::F32, None).unwrap();
         let cloned = tensor.clone();
-        
+
         assert_eq!(tensor.tensor_id(), cloned.tensor_id());
         assert_eq!(tensor.shape().dims(), cloned.shape().dims());
         assert_eq!(tensor.dtype(), cloned.dtype());
@@ -745,7 +745,7 @@ mod tests {
     fn test_tensor_memory_stats() {
         let tensor = BitNetTensor::zeros(&[2, 3], BitNetDType::F32, None).unwrap();
         let stats = tensor.memory_stats().unwrap();
-        
+
         assert_eq!(stats.shape, vec![2, 3]);
         assert_eq!(stats.dtype, BitNetDType::F32);
         assert_eq!(stats.num_elements, 6);
@@ -757,7 +757,7 @@ mod tests {
         let tensor1 = BitNetTensor::zeros(&[2, 3], BitNetDType::F32, None).unwrap();
         let tensor2 = BitNetTensor::zeros(&[1, 3], BitNetDType::F32, None).unwrap();
         let tensor3 = BitNetTensor::zeros(&[2, 4], BitNetDType::F32, None).unwrap();
-        
+
         assert!(tensor1.can_broadcast_with(&tensor2));
         assert!(!tensor1.can_broadcast_with(&tensor3));
     }

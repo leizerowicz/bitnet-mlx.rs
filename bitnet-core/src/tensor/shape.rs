@@ -4,12 +4,12 @@
 //! including advanced broadcasting compatible with NumPy/PyTorch semantics,
 //! shape validation, and dimension manipulation utilities.
 
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::ops::Range;
-use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, warn, error};
+use tracing::{debug, error, warn};
 
 /// Slice indexing operations for tensor views
 ///
@@ -127,7 +127,7 @@ impl TensorShape {
     /// ```
     pub fn new(dims: &[usize]) -> Self {
         let strides = Self::compute_c_contiguous_strides(dims);
-        
+
         Self {
             dims: dims.to_vec(),
             strides: Some(strides),
@@ -151,10 +151,14 @@ impl TensorShape {
     /// assert_eq!(shape.strides().unwrap(), &[3, 1]);
     /// ```
     pub fn with_strides(dims: &[usize], strides: &[isize]) -> Self {
-        assert_eq!(dims.len(), strides.len(), "Dimensions and strides must have same length");
-        
+        assert_eq!(
+            dims.len(),
+            strides.len(),
+            "Dimensions and strides must have same length"
+        );
+
         let c_contiguous = Self::is_c_contiguous_strides(dims, strides);
-        
+
         Self {
             dims: dims.to_vec(),
             strides: Some(strides.to_vec()),
@@ -357,15 +361,18 @@ impl TensorShape {
     pub fn reshape(&self, new_dims: &[usize]) -> ShapeResult<TensorShape> {
         let current_elements = self.num_elements();
         let new_elements: usize = new_dims.iter().product();
-        
+
         if current_elements != new_elements {
             return Err(ShapeError::IncompatibleReshape {
                 from: self.clone(),
                 to: TensorShape::new(new_dims),
-                reason: format!("Element count mismatch: {} != {}", current_elements, new_elements),
+                reason: format!(
+                    "Element count mismatch: {} != {}",
+                    current_elements, new_elements
+                ),
             });
         }
-        
+
         Ok(TensorShape::new(new_dims))
     }
 
@@ -401,7 +408,7 @@ impl TensorShape {
         let mut sorted_axes = axes.to_vec();
         sorted_axes.sort_unstable();
         let expected: Vec<usize> = (0..self.rank()).collect();
-        
+
         if sorted_axes != expected {
             return Err(ShapeError::InvalidTranspose {
                 shape: self.clone(),
@@ -412,7 +419,7 @@ impl TensorShape {
 
         // Apply transpose to dimensions
         let new_dims: Vec<usize> = axes.iter().map(|&i| self.dims[i]).collect();
-        
+
         // Apply transpose to strides if available
         let new_strides = if let Some(ref strides) = self.strides {
             Some(axes.iter().map(|&i| strides[i]).collect())
@@ -423,7 +430,8 @@ impl TensorShape {
         let mut result = TensorShape::new(&new_dims);
         if let Some(strides) = new_strides {
             result.strides = Some(strides);
-            result.c_contiguous = Self::is_c_contiguous_strides(&new_dims, &result.strides.as_ref().unwrap());
+            result.c_contiguous =
+                Self::is_c_contiguous_strides(&new_dims, &result.strides.as_ref().unwrap());
         }
 
         Ok(result)
@@ -514,12 +522,12 @@ impl TensorShape {
 
         let mut strides = Vec::with_capacity(dims.len());
         let mut stride = 1isize;
-        
+
         for &dim in dims.iter().rev() {
             strides.push(stride);
             stride *= dim as isize;
         }
-        
+
         strides.reverse();
         strides
     }
@@ -562,7 +570,7 @@ impl TensorShape {
     /// let shape = TensorShape::new(&[4, 6, 8]);
     /// let slices = vec![
     ///     SliceIndex::Range(0..2),  // First 2 rows
-    ///     SliceIndex::Full,         // All columns  
+    ///     SliceIndex::Full,         // All columns
     ///     SliceIndex::Range(2..6),  // Columns 2-5
     /// ];
     /// let view = shape.view(&slices).unwrap();
@@ -572,7 +580,11 @@ impl TensorShape {
         if slices.len() > self.rank() {
             return Err(ShapeError::InvalidSlice {
                 shape: self.clone(),
-                reason: format!("Too many slice indices: {} for tensor of rank {}", slices.len(), self.rank()),
+                reason: format!(
+                    "Too many slice indices: {} for tensor of rank {}",
+                    slices.len(),
+                    self.rank()
+                ),
             });
         }
 
@@ -605,15 +617,17 @@ impl TensorShape {
                 SliceIndex::Range(range) => {
                     let start = range.start.min(dim_size);
                     let end = range.end.min(dim_size);
-                    
+
                     if start >= end {
                         return Err(ShapeError::InvalidSlice {
                             shape: self.clone(),
-                            reason: format!("Invalid range {}..{} for dimension {} of size {}", 
-                                           start, end, i, dim_size),
+                            reason: format!(
+                                "Invalid range {}..{} for dimension {} of size {}",
+                                start, end, i, dim_size
+                            ),
                         });
                     }
-                    
+
                     new_dims.push(end - start);
                     new_strides.push(stride);
                 }
@@ -627,12 +641,14 @@ impl TensorShape {
 
                     let start = range.start.min(dim_size);
                     let end = range.end.min(dim_size);
-                    
+
                     if start >= end {
                         return Err(ShapeError::InvalidSlice {
                             shape: self.clone(),
-                            reason: format!("Invalid range {}..{} for dimension {} of size {}", 
-                                           start, end, i, dim_size),
+                            reason: format!(
+                                "Invalid range {}..{} for dimension {} of size {}",
+                                start, end, i, dim_size
+                            ),
                         });
                     }
 
@@ -676,7 +692,11 @@ impl TensorShape {
             return Err(ShapeError::InvalidIndices {
                 shape: self.clone(),
                 indices: indices.to_vec(),
-                reason: format!("Index count {} doesn't match tensor rank {}", indices.len(), self.rank()),
+                reason: format!(
+                    "Index count {} doesn't match tensor rank {}",
+                    indices.len(),
+                    self.rank()
+                ),
             });
         }
 
@@ -715,15 +735,15 @@ impl TensorShape {
     /// ```
     pub fn linear_offset(&self, indices: &[usize]) -> ShapeResult<usize> {
         self.validate_indices(indices)?;
-        
+
         let default_strides = Self::compute_c_contiguous_strides(&self.dims);
         let strides = self.strides().unwrap_or(&default_strides);
         let mut offset = 0isize;
-        
+
         for (&index, &stride) in indices.iter().zip(strides.iter()) {
             offset += (index as isize) * stride;
         }
-        
+
         Ok(offset as usize)
     }
 
@@ -842,7 +862,7 @@ impl TensorShape {
     pub fn memory_requirements(&self, element_size: usize) -> MemoryRequirements {
         let num_elements = self.num_elements();
         let total_bytes = num_elements * element_size;
-        
+
         // Calculate alignment requirements
         let alignment = if element_size <= 4 {
             element_size
@@ -937,17 +957,19 @@ impl TensorShape {
     /// ```
     pub fn apply_operations(&self, operations: &[ShapeOperation]) -> ShapeResult<TensorShape> {
         let mut current_shape = self.clone();
-        
+
         for operation in operations {
             current_shape = match operation {
                 ShapeOperation::Reshape(new_dims) => current_shape.reshape(new_dims)?,
                 ShapeOperation::Transpose(axes) => current_shape.transpose(axes)?,
                 ShapeOperation::Squeeze(axis) => current_shape.squeeze(*axis)?,
                 ShapeOperation::Unsqueeze(axis) => current_shape.unsqueeze(*axis)?,
-                ShapeOperation::PadToRank(rank, prepend) => current_shape.pad_to_rank(*rank, *prepend),
+                ShapeOperation::PadToRank(rank, prepend) => {
+                    current_shape.pad_to_rank(*rank, *prepend)
+                }
             };
         }
-        
+
         Ok(current_shape)
     }
 
@@ -1001,24 +1023,27 @@ impl TensorShape {
 
         // Heuristics for optimal layout
         let is_contiguous_recommended = match rank {
-            0..=1 => true, // Scalars and vectors are always contiguous
-            2 => num_elements > 1000, // Large matrices benefit from contiguous layout
+            0..=1 => true,                 // Scalars and vectors are always contiguous
+            2 => num_elements > 1000,      // Large matrices benefit from contiguous layout
             3..=4 => num_elements > 10000, // 3D/4D tensors need larger sizes
-            _ => num_elements > 100000, // High-dimensional tensors need very large sizes
+            _ => num_elements > 100000,    // High-dimensional tensors need very large sizes
         };
 
         let cache_friendly = num_elements < 1_000_000; // Fits in typical L3 cache
-        let simd_friendly = self.dims.last().map_or(false, |&d| d % 4 == 0 || d % 8 == 0);
-        
+        let simd_friendly = self
+            .dims
+            .last()
+            .map_or(false, |&d| d % 4 == 0 || d % 8 == 0);
+
         LayoutRecommendation {
             is_contiguous_recommended,
             cache_friendly,
             simd_friendly,
             recommended_alignment: if simd_friendly { 32 } else { 16 },
-            memory_access_pattern: if rank <= 2 { 
-                MemoryAccessPattern::Sequential 
-            } else { 
-                MemoryAccessPattern::Strided 
+            memory_access_pattern: if rank <= 2 {
+                MemoryAccessPattern::Sequential
+            } else {
+                MemoryAccessPattern::Strided
             },
         }
     }
@@ -1073,23 +1098,23 @@ impl BroadcastCompatible for TensorShape {
     fn is_broadcast_compatible(&self, other: &Self) -> bool {
         let dims1 = &self.dims;
         let dims2 = &other.dims;
-        
+
         // Iterate from the trailing dimensions
         let max_rank = dims1.len().max(dims2.len());
-        
+
         for i in 0..max_rank {
             let dim1 = if i < dims1.len() {
                 Some(dims1[dims1.len() - 1 - i])
             } else {
                 None
             };
-            
+
             let dim2 = if i < dims2.len() {
                 Some(dims2[dims2.len() - 1 - i])
             } else {
                 None
             };
-            
+
             match (dim1, dim2) {
                 (Some(d1), Some(d2)) => {
                     // Dimensions must be equal or one must be 1
@@ -1104,7 +1129,7 @@ impl BroadcastCompatible for TensorShape {
                 (None, None) => break,
             }
         }
-        
+
         true
     }
 
@@ -1120,23 +1145,23 @@ impl BroadcastCompatible for TensorShape {
         let dims2 = &other.dims;
         let max_rank = dims1.len().max(dims2.len());
         let mut result_dims = Vec::with_capacity(max_rank);
-        
+
         for i in 0..max_rank {
             let dim1 = if i < dims1.len() {
                 dims1[dims1.len() - 1 - i]
             } else {
                 1
             };
-            
+
             let dim2 = if i < dims2.len() {
                 dims2[dims2.len() - 1 - i]
             } else {
                 1
             };
-            
+
             result_dims.push(dim1.max(dim2));
         }
-        
+
         result_dims.reverse();
         Ok(TensorShape::new(&result_dims))
     }
@@ -1144,23 +1169,23 @@ impl BroadcastCompatible for TensorShape {
     fn can_broadcast_to(&self, target: &Self) -> bool {
         let src_dims = &self.dims;
         let target_dims = &target.dims;
-        
+
         // Source must have rank <= target rank
         if src_dims.len() > target_dims.len() {
             return false;
         }
-        
+
         // Check from trailing dimensions
         for i in 0..src_dims.len() {
             let src_dim = src_dims[src_dims.len() - 1 - i];
             let target_dim = target_dims[target_dims.len() - 1 - i];
-            
+
             // Source dimension must be 1 or equal to target dimension
             if src_dim != 1 && src_dim != target_dim {
                 return false;
             }
         }
-        
+
         true
     }
 }
@@ -1171,23 +1196,35 @@ pub enum ShapeError {
     /// Incompatible shapes for broadcasting
     #[error("Cannot broadcast shapes {lhs} and {rhs}")]
     IncompatibleBroadcast { lhs: TensorShape, rhs: TensorShape },
-    
+
     /// Invalid reshape operation
     #[error("Cannot reshape {from} to {to}: {reason}")]
-    IncompatibleReshape { from: TensorShape, to: TensorShape, reason: String },
-    
+    IncompatibleReshape {
+        from: TensorShape,
+        to: TensorShape,
+        reason: String,
+    },
+
     /// Invalid transpose operation
     #[error("Cannot transpose {shape:?} with axes {axes:?}: {reason}")]
-    InvalidTranspose { shape: TensorShape, axes: Vec<usize>, reason: String },
-    
+    InvalidTranspose {
+        shape: TensorShape,
+        axes: Vec<usize>,
+        reason: String,
+    },
+
     /// Invalid axis for operation
     #[error("Axis {axis} is invalid for tensor of rank {rank}")]
     InvalidAxis { axis: usize, rank: usize },
-    
+
     /// Cannot squeeze dimension that is not size 1
     #[error("Cannot squeeze dimension {axis} of size {size} in shape {shape:?}")]
-    CannotSqueeze { shape: TensorShape, axis: usize, size: usize },
-    
+    CannotSqueeze {
+        shape: TensorShape,
+        axis: usize,
+        size: usize,
+    },
+
     /// Invalid shape dimensions
     #[error("Invalid shape dimensions: {reason}")]
     InvalidDimensions { reason: String },
@@ -1198,11 +1235,20 @@ pub enum ShapeError {
 
     /// Index out of bounds
     #[error("Index {index} is out of bounds for axis {axis} of size {size} in shape {shape:?}")]
-    IndexOutOfBounds { shape: TensorShape, axis: usize, index: usize, size: usize },
+    IndexOutOfBounds {
+        shape: TensorShape,
+        axis: usize,
+        index: usize,
+        size: usize,
+    },
 
     /// Invalid multi-dimensional indices
     #[error("Invalid indices {indices:?} for shape {shape:?}: {reason}")]
-    InvalidIndices { shape: TensorShape, indices: Vec<usize>, reason: String },
+    InvalidIndices {
+        shape: TensorShape,
+        indices: Vec<usize>,
+        reason: String,
+    },
 }
 
 /// Result type for shape operations
@@ -1267,7 +1313,7 @@ mod tests {
         let shape = TensorShape::new(&[2, 6]);
         let reshaped = shape.reshape(&[3, 4]).unwrap();
         assert_eq!(reshaped.dims(), &[3, 4]);
-        
+
         // Invalid reshape
         let result = shape.reshape(&[3, 5]);
         assert!(result.is_err());
@@ -1278,11 +1324,11 @@ mod tests {
         let shape = TensorShape::new(&[2, 3, 4]);
         let transposed = shape.transpose(&[2, 0, 1]).unwrap();
         assert_eq!(transposed.dims(), &[4, 2, 3]);
-        
+
         // Invalid transpose
         let result = shape.transpose(&[0, 1]); // Wrong number of axes
         assert!(result.is_err());
-        
+
         let result = shape.transpose(&[0, 1, 3]); // Invalid axis
         assert!(result.is_err());
     }
@@ -1290,15 +1336,15 @@ mod tests {
     #[test]
     fn test_squeeze() {
         let shape = TensorShape::new(&[2, 1, 3, 1]);
-        
+
         // Squeeze all
         let squeezed = shape.squeeze(None).unwrap();
         assert_eq!(squeezed.dims(), &[2, 3]);
-        
+
         // Squeeze specific axis
         let squeezed = shape.squeeze(Some(1)).unwrap();
         assert_eq!(squeezed.dims(), &[2, 3, 1]);
-        
+
         // Invalid squeeze
         let result = shape.squeeze(Some(0)); // Dimension is not 1
         assert!(result.is_err());
@@ -1309,10 +1355,10 @@ mod tests {
         let shape = TensorShape::new(&[2, 3]);
         let unsqueezed = shape.unsqueeze(1).unwrap();
         assert_eq!(unsqueezed.dims(), &[2, 1, 3]);
-        
+
         let unsqueezed = shape.unsqueeze(0).unwrap();
         assert_eq!(unsqueezed.dims(), &[1, 2, 3]);
-        
+
         // Invalid axis
         let result = shape.unsqueeze(3);
         assert!(result.is_err());
@@ -1323,15 +1369,15 @@ mod tests {
         let shape1 = TensorShape::new(&[2, 3, 4]);
         let shape2 = TensorShape::new(&[3, 1]);
         let shape3 = TensorShape::new(&[2, 5]); // This should be incompatible (3 != 5, neither is 1)
-        
+
         assert!(shape1.is_broadcast_compatible(&shape2));
         assert!(!shape1.is_broadcast_compatible(&shape3));
-        
+
         // Additional compatibility tests
         let shape4 = TensorShape::new(&[1, 3, 1]);
         let shape5 = TensorShape::new(&[2, 1, 4]);
         assert!(shape4.is_broadcast_compatible(&shape5)); // Should result in [2, 3, 4]
-        
+
         let shape6 = TensorShape::new(&[3, 4]);
         let shape7 = TensorShape::new(&[5, 4]);
         assert!(!shape6.is_broadcast_compatible(&shape7)); // Incompatible: 3 != 5, neither is 1
@@ -1341,15 +1387,15 @@ mod tests {
     fn test_broadcast_shape() {
         let shape1 = TensorShape::new(&[2, 3, 1]);
         let shape2 = TensorShape::new(&[4]);
-        
+
         let broadcast = shape1.broadcast_shape(&shape2).unwrap();
         assert_eq!(broadcast.dims(), &[2, 3, 4]);
-        
+
         // This should actually be compatible: [2,3,1] + [5] -> [2,3,5]
         let shape3 = TensorShape::new(&[5]);
         let broadcast2 = shape1.broadcast_shape(&shape3).unwrap();
         assert_eq!(broadcast2.dims(), &[2, 3, 5]);
-        
+
         // Test truly incompatible broadcast: [2,3,4] + [5] -> incompatible (4 != 5, neither is 1)
         let incompatible1 = TensorShape::new(&[2, 3, 4]);
         let incompatible2 = TensorShape::new(&[5]);
@@ -1361,9 +1407,9 @@ mod tests {
     fn test_can_broadcast_to() {
         let source = TensorShape::new(&[1, 3]);
         let target = TensorShape::new(&[2, 3]);
-        
+
         assert!(source.can_broadcast_to(&target));
-        
+
         let invalid_target = TensorShape::new(&[2, 4]);
         assert!(!source.can_broadcast_to(&invalid_target));
     }
@@ -1379,25 +1425,25 @@ mod tests {
     #[test]
     fn test_view_slicing() {
         let shape = TensorShape::new(&[4, 6, 8]);
-        
+
         // Test full slice
         let slices = vec![SliceIndex::Full, SliceIndex::Full, SliceIndex::Full];
         let view = shape.view(&slices).unwrap();
         assert_eq!(view.dims(), &[4, 6, 8]);
-        
+
         // Test range slice
         let slices = vec![
-            SliceIndex::Range(0..2),  // First 2 rows
-            SliceIndex::Full,         // All columns  
-            SliceIndex::Range(2..6),  // Columns 2-5
+            SliceIndex::Range(0..2), // First 2 rows
+            SliceIndex::Full,        // All columns
+            SliceIndex::Range(2..6), // Columns 2-5
         ];
         let view = shape.view(&slices).unwrap();
         assert_eq!(view.dims(), &[2, 6, 4]);
-        
+
         // Test index slice (removes dimension)
         let slices = vec![
-            SliceIndex::Index(1),     // Select second row
-            SliceIndex::Full,         // All columns
+            SliceIndex::Index(1), // Select second row
+            SliceIndex::Full,     // All columns
         ];
         let view = shape.view(&slices).unwrap();
         assert_eq!(view.dims(), &[6, 8]);
@@ -1406,10 +1452,10 @@ mod tests {
     #[test]
     fn test_view_step_slicing() {
         let shape = TensorShape::new(&[10, 20]);
-        
+
         // Test step slicing
         let slices = vec![
-            SliceIndex::Step(0..8, 2),  // Every other element from 0 to 8
+            SliceIndex::Step(0..8, 2), // Every other element from 0 to 8
             SliceIndex::Full,
         ];
         let view = shape.view(&slices).unwrap();
@@ -1419,22 +1465,22 @@ mod tests {
     #[test]
     fn test_view_error_cases() {
         let shape = TensorShape::new(&[4, 6]);
-        
+
         // Too many slice indices
         let slices = vec![SliceIndex::Full, SliceIndex::Full, SliceIndex::Full];
         let result = shape.view(&slices);
         assert!(result.is_err());
-        
+
         // Index out of bounds
         let slices = vec![SliceIndex::Index(5), SliceIndex::Full]; // Index 5 >= dimension 4
         let result = shape.view(&slices);
         assert!(result.is_err());
-        
+
         // Invalid range
         let slices = vec![SliceIndex::Range(3..2), SliceIndex::Full]; // start >= end
         let result = shape.view(&slices);
         assert!(result.is_err());
-        
+
         // Zero step
         let slices = vec![SliceIndex::Step(0..4, 0), SliceIndex::Full];
         let result = shape.view(&slices);
@@ -1444,16 +1490,16 @@ mod tests {
     #[test]
     fn test_validate_indices() {
         let shape = TensorShape::new(&[3, 4, 5]);
-        
+
         // Valid indices
         assert!(shape.validate_indices(&[1, 2, 3]).is_ok());
         assert!(shape.validate_indices(&[0, 0, 0]).is_ok());
         assert!(shape.validate_indices(&[2, 3, 4]).is_ok());
-        
+
         // Invalid indices - wrong count
         assert!(shape.validate_indices(&[1, 2]).is_err());
         assert!(shape.validate_indices(&[1, 2, 3, 4]).is_err());
-        
+
         // Invalid indices - out of bounds
         assert!(shape.validate_indices(&[3, 2, 1]).is_err()); // First index out of bounds
         assert!(shape.validate_indices(&[1, 4, 1]).is_err()); // Second index out of bounds
@@ -1463,18 +1509,18 @@ mod tests {
     #[test]
     fn test_linear_offset() {
         let shape = TensorShape::new(&[3, 4]);
-        
+
         // Test various positions
         assert_eq!(shape.linear_offset(&[0, 0]).unwrap(), 0);
         assert_eq!(shape.linear_offset(&[0, 1]).unwrap(), 1);
         assert_eq!(shape.linear_offset(&[1, 0]).unwrap(), 4);
         assert_eq!(shape.linear_offset(&[1, 2]).unwrap(), 6); // 1*4 + 2
         assert_eq!(shape.linear_offset(&[2, 3]).unwrap(), 11); // 2*4 + 3
-        
+
         // Test 3D tensor
         let shape_3d = TensorShape::new(&[2, 3, 4]);
         assert_eq!(shape_3d.linear_offset(&[1, 1, 1]).unwrap(), 17); // 1*12 + 1*4 + 1
-        
+
         // Invalid indices
         assert!(shape.linear_offset(&[3, 0]).is_err());
         assert!(shape.linear_offset(&[0, 4]).is_err());
@@ -1484,18 +1530,18 @@ mod tests {
     #[test]
     fn test_indices_from_offset() {
         let shape = TensorShape::new(&[3, 4]);
-        
+
         // Test various offsets
         assert_eq!(shape.indices_from_offset(0).unwrap(), vec![0, 0]);
         assert_eq!(shape.indices_from_offset(1).unwrap(), vec![0, 1]);
         assert_eq!(shape.indices_from_offset(4).unwrap(), vec![1, 0]);
         assert_eq!(shape.indices_from_offset(6).unwrap(), vec![1, 2]);
         assert_eq!(shape.indices_from_offset(11).unwrap(), vec![2, 3]);
-        
+
         // Test 3D tensor
         let shape_3d = TensorShape::new(&[2, 3, 4]);
         assert_eq!(shape_3d.indices_from_offset(17).unwrap(), vec![1, 1, 1]);
-        
+
         // Invalid offset
         assert!(shape.indices_from_offset(12).is_err()); // >= num_elements (12)
     }
@@ -1503,7 +1549,7 @@ mod tests {
     #[test]
     fn test_offset_indices_roundtrip() {
         let shape = TensorShape::new(&[5, 6, 7]);
-        
+
         // Test roundtrip: indices -> offset -> indices
         for i in 0..5 {
             for j in 0..6 {
@@ -1521,7 +1567,7 @@ mod tests {
     fn test_is_contiguous() {
         let shape = TensorShape::new(&[3, 4]);
         assert!(shape.is_contiguous());
-        
+
         let custom_strides = TensorShape::with_strides(&[3, 4], &[8, 1]); // Non-contiguous
         assert!(!custom_strides.is_contiguous());
     }
@@ -1532,7 +1578,7 @@ mod tests {
         let contiguous = shape.contiguous();
         assert!(contiguous.is_contiguous());
         assert_eq!(contiguous.dims(), shape.dims());
-        
+
         let custom_strides = TensorShape::with_strides(&[3, 4], &[8, 1]); // Non-contiguous
         let made_contiguous = custom_strides.contiguous();
         assert!(made_contiguous.is_contiguous());
@@ -1543,18 +1589,18 @@ mod tests {
     fn test_memory_requirements() {
         let shape = TensorShape::new(&[100, 200]);
         let memory_req = shape.memory_requirements(4); // 4 bytes per f32
-        
+
         assert_eq!(memory_req.total_bytes, 80000);
         assert_eq!(memory_req.element_count, 20000);
         assert_eq!(memory_req.element_size, 4);
         assert_eq!(memory_req.alignment, 4);
         assert!(memory_req.aligned_bytes >= memory_req.total_bytes);
         assert!(memory_req.is_contiguous);
-        
+
         // Test larger element size alignment
         let memory_req_f64 = shape.memory_requirements(8); // 8 bytes per f64
         assert_eq!(memory_req_f64.alignment, 8);
-        
+
         let memory_req_large = shape.memory_requirements(32); // Large element
         assert_eq!(memory_req_large.alignment, 16); // Max 16-byte alignment for SIMD
     }
@@ -1565,7 +1611,7 @@ mod tests {
         assert_eq!(SliceIndex::Index(5), SliceIndex::Index(5));
         assert_eq!(SliceIndex::Range(0..5), SliceIndex::Range(0..5));
         assert_eq!(SliceIndex::Step(0..10, 2), SliceIndex::Step(0..10, 2));
-        
+
         assert_ne!(SliceIndex::Index(5), SliceIndex::Index(6));
         assert_ne!(SliceIndex::Range(0..5), SliceIndex::Range(0..6));
         assert_ne!(SliceIndex::Step(0..10, 2), SliceIndex::Step(0..10, 3));
@@ -1581,7 +1627,7 @@ mod tests {
             element_size: 4,
             is_contiguous: true,
         };
-        
+
         let req2 = MemoryRequirements {
             total_bytes: 100,
             aligned_bytes: 104,
@@ -1590,9 +1636,9 @@ mod tests {
             element_size: 4,
             is_contiguous: true,
         };
-        
+
         assert_eq!(req1, req2);
-        
+
         let req3 = MemoryRequirements {
             total_bytes: 200,
             aligned_bytes: 104,
@@ -1601,7 +1647,7 @@ mod tests {
             element_size: 4,
             is_contiguous: true,
         };
-        
+
         assert_ne!(req1, req3);
     }
 }

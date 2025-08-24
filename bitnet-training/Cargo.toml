@@ -1,6 +1,6 @@
 [package]
 name = "bitnet-training"
-version = "0.2.4"
+version = "0.2.5"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -66,3 +66,4 @@ tch = { version = "0.13", optional = true }
 criterion.workspace = true
 proptest.workspace = true
 tokio = { workspace = true, features = ["test-util"] }
+tempfile = "3.0"

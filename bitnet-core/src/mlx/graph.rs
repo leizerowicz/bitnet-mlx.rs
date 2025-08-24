@@ -1,5 +1,5 @@
 //! MLX computation graph optimization utilities
-//! 
+//!
 //! This module provides computation graph analysis and optimization
 //! capabilities for MLX operations, enabling advanced optimizations
 //! like operation fusion, memory layout optimization, and execution planning.
@@ -47,7 +47,9 @@ impl fmt::Display for Operation {
             Operation::Dequantize { scale } => write!(f, "Dequantize(scale={})", scale),
             Operation::Reshape { new_shape } => write!(f, "Reshape({:?})", new_shape),
             Operation::Transpose { axes } => write!(f, "Transpose({:?})", axes),
-            Operation::BitLinear { quantize_weights } => write!(f, "BitLinear(quantize={})", quantize_weights),
+            Operation::BitLinear { quantize_weights } => {
+                write!(f, "BitLinear(quantize={})", quantize_weights)
+            }
             Operation::Activation { function } => write!(f, "Activation({})", function),
             Operation::Output(name) => write!(f, "Output({})", name),
         }
@@ -195,7 +197,10 @@ impl MlxComputationGraph {
             if let Operation::Quantize { scale } = &node.operation {
                 for &output_id in &node.outputs {
                     if let Some(output_node) = self.nodes.get(&output_id) {
-                        if let Operation::Dequantize { scale: dequant_scale } = &output_node.operation {
+                        if let Operation::Dequantize {
+                            scale: dequant_scale,
+                        } = &output_node.operation
+                        {
                             if (scale - dequant_scale).abs() < f32::EPSILON {
                                 opportunities.push(FusionOpportunity {
                                     pattern: FusionPattern::QuantizeDequantize,
@@ -321,7 +326,7 @@ impl MlxComputationGraph {
 
         for node in self.nodes.values() {
             let elements: usize = node.shape.iter().map(|&x| x as usize).product();
-            
+
             // Rough estimates based on operation type and tensor size
             let operation_time = match &node.operation {
                 Operation::MatMul => elements as f64 * 2e-9, // 2 ns per element
@@ -409,13 +414,19 @@ impl GraphBuilder {
 
     /// Add a matrix multiplication node
     pub fn matmul(&mut self, a: usize, b: usize, device: &str) -> Result<usize> {
-        let a_node = self.graph.get_node(a).ok_or_else(|| anyhow::anyhow!("Node {} not found", a))?;
-        let b_node = self.graph.get_node(b).ok_or_else(|| anyhow::anyhow!("Node {} not found", b))?;
+        let a_node = self
+            .graph
+            .get_node(a)
+            .ok_or_else(|| anyhow::anyhow!("Node {} not found", a))?;
+        let b_node = self
+            .graph
+            .get_node(b)
+            .ok_or_else(|| anyhow::anyhow!("Node {} not found", b))?;
 
         // Calculate output shape for matrix multiplication
         let a_shape = &a_node.shape;
         let b_shape = &b_node.shape;
-        
+
         if a_shape.len() < 2 || b_shape.len() < 2 {
             return Err(anyhow::anyhow!("MatMul requires at least 2D tensors"));
         }
@@ -433,8 +444,11 @@ impl GraphBuilder {
 
     /// Add an addition node
     pub fn add(&mut self, a: usize, b: usize, device: &str) -> Result<usize> {
-        let a_node = self.graph.get_node(a).ok_or_else(|| anyhow::anyhow!("Node {} not found", a))?;
-        
+        let a_node = self
+            .graph
+            .get_node(a)
+            .ok_or_else(|| anyhow::anyhow!("Node {} not found", a))?;
+
         Ok(self.graph.add_node(
             Operation::Add,
             vec![a, b],
@@ -446,8 +460,11 @@ impl GraphBuilder {
 
     /// Add a quantization node
     pub fn quantize(&mut self, input: usize, scale: f32, device: &str) -> Result<usize> {
-        let input_node = self.graph.get_node(input).ok_or_else(|| anyhow::anyhow!("Node {} not found", input))?;
-        
+        let input_node = self
+            .graph
+            .get_node(input)
+            .ok_or_else(|| anyhow::anyhow!("Node {} not found", input))?;
+
         Ok(self.graph.add_node(
             Operation::Quantize { scale },
             vec![input],
@@ -459,8 +476,11 @@ impl GraphBuilder {
 
     /// Add an output node
     pub fn output(&mut self, input: usize, name: &str) -> Result<usize> {
-        let input_node = self.graph.get_node(input).ok_or_else(|| anyhow::anyhow!("Node {} not found", input))?;
-        
+        let input_node = self
+            .graph
+            .get_node(input)
+            .ok_or_else(|| anyhow::anyhow!("Node {} not found", input))?;
+
         Ok(self.graph.add_node(
             Operation::Output(name.to_string()),
             vec![input],

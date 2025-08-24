@@ -1,46 +1,46 @@
 //! Candle Operations for Benchmarking
-//! 
+//!
 //! This module provides Candle-based implementations of operations
 //! that can be compared against MLX equivalents.
 
-use candle_core::{Tensor, Device, DType, Result};
+use candle_core::{DType, Device, Result, Tensor};
 
 /// Candle-based operations for BitNet benchmarking
 pub struct CandleOps;
 
 impl CandleOps {
     /// Perform 1.58-bit quantization using Candle
-    /// 
+    ///
     /// This implements a simplified BitNet quantization scheme where weights are
     /// quantized to {-1, 0, +1} values.
     pub fn quantize_1_58_bit(tensor: &Tensor, scale: Option<f32>) -> Result<Tensor> {
         let scale = scale.unwrap_or(1.0);
-        
+
         // Quantization: divide by scale, clamp to [-1, 1], then round
         let device = tensor.device();
         let scale_tensor = Tensor::new(scale, device)?;
-        
+
         let scaled = tensor.broadcast_div(&scale_tensor)?;
         let clamped = scaled.clamp(-1.0, 1.0)?;
         let quantized = clamped.round()?;
-        
+
         Ok(quantized)
     }
 
     /// Dequantize from 1.58-bit representation
     pub fn dequantize_1_58_bit(tensor: &Tensor, scale: Option<f32>) -> Result<Tensor> {
         let scale = scale.unwrap_or(1.0);
-        
+
         // Dequantization: multiply by scale
         let device = tensor.device();
         let scale_tensor = Tensor::new(scale, device)?;
-        
+
         let dequantized = tensor.broadcast_mul(&scale_tensor)?;
         Ok(dequantized)
     }
 
     /// BitLinear layer forward pass using Candle
-    /// 
+    ///
     /// Implements the BitLinear operation: output = input @ quantized_weight + bias
     pub fn bitlinear_forward(
         input: &Tensor,
@@ -87,13 +87,13 @@ impl CandleOps {
     pub fn create_causal_mask(seq_len: usize, device: &Device) -> Result<Tensor> {
         // Create lower triangular matrix (causal mask)
         let mut mask_data = vec![0.0f32; seq_len * seq_len];
-        
+
         for i in 0..seq_len {
             for j in 0..=i {
                 mask_data[i * seq_len + j] = 1.0;
             }
         }
-        
+
         Tensor::from_vec(mask_data, (seq_len, seq_len), device)
     }
 
@@ -167,23 +167,23 @@ impl CandleOps {
     ) -> Result<Tensor> {
         let mean = tensor.mean_keepdim(tensor.rank() - 1)?;
         let var = tensor.var_keepdim(tensor.rank() - 1)?;
-        
+
         // Create eps tensor with the same shape as var for proper broadcasting
         let eps_tensor = Tensor::full(eps as f32, var.shape(), tensor.device())?;
         let std = (var + eps_tensor)?.sqrt()?;
-        
+
         let normalized = tensor.broadcast_sub(&mean)?.broadcast_div(&std)?;
-        
+
         let mut result = normalized;
-        
+
         if let Some(weight) = weight {
             result = result.broadcast_mul(weight)?;
         }
-        
+
         if let Some(bias) = bias {
             result = result.broadcast_add(bias)?;
         }
-        
+
         Ok(result)
     }
 
@@ -192,7 +192,7 @@ impl CandleOps {
         // For batch matrix multiplication, we need to handle the batch dimension
         let a_shape = a.shape().dims();
         let b_shape = b.shape().dims();
-        
+
         if a_shape.len() < 3 || b_shape.len() < 3 {
             return Err(candle_core::Error::ShapeMismatchBinaryOp {
                 lhs: a.shape().clone(),
@@ -200,7 +200,7 @@ impl CandleOps {
                 op: "batch_matmul",
             });
         }
-        
+
         // Use the built-in matmul which handles batching
         a.matmul(b)
     }
@@ -208,9 +208,11 @@ impl CandleOps {
     /// Concatenate tensors along specified dimension
     pub fn concat(tensors: &[&Tensor], dim: usize) -> Result<Tensor> {
         if tensors.is_empty() {
-            return Err(candle_core::Error::Msg("Cannot concatenate empty tensor list".to_string()));
+            return Err(candle_core::Error::Msg(
+                "Cannot concatenate empty tensor list".to_string(),
+            ));
         }
-        
+
         Tensor::cat(tensors, dim)
     }
 
@@ -218,16 +220,16 @@ impl CandleOps {
     pub fn split(tensor: &Tensor, split_size: usize, dim: usize) -> Result<Vec<Tensor>> {
         let total_size = tensor.shape().dims()[dim];
         let num_splits = total_size.div_ceil(split_size); // Ceiling division
-        
+
         let mut results = Vec::new();
         for i in 0..num_splits {
             let start = i * split_size;
             let end = std::cmp::min(start + split_size, total_size);
-            
+
             let slice = tensor.narrow(dim, start, end - start)?;
             results.push(slice);
         }
-        
+
         Ok(results)
     }
 
@@ -237,7 +239,12 @@ impl CandleOps {
     }
 
     /// Scatter operation
-    pub fn scatter_add(tensor: &Tensor, indices: &Tensor, src: &Tensor, dim: usize) -> Result<Tensor> {
+    pub fn scatter_add(
+        tensor: &Tensor,
+        indices: &Tensor,
+        src: &Tensor,
+        dim: usize,
+    ) -> Result<Tensor> {
         tensor.scatter_add(indices, src, dim)
     }
 
@@ -255,7 +262,7 @@ impl CandleOps {
         padding: usize,
     ) -> Result<Tensor> {
         let conv_result = input.conv1d(weight, padding, stride, 1, 1)?;
-        
+
         if let Some(bias) = bias {
             // For 1D convolution, bias should be reshaped to [1, out_channels, 1] to broadcast correctly
             // with the conv result which has shape [batch, out_channels, width]
@@ -311,7 +318,7 @@ impl CandlePerformanceUtils {
     /// Check if device supports specific operations efficiently
     pub fn device_capabilities(device: &Device) -> Vec<String> {
         let mut capabilities = vec!["basic_ops".to_string()];
-        
+
         match device {
             Device::Cpu => {
                 capabilities.push("cpu_optimized".to_string());
@@ -326,7 +333,7 @@ impl CandlePerformanceUtils {
                 capabilities.push("apple_silicon_optimized".to_string());
             }
         }
-        
+
         capabilities
     }
 
@@ -337,12 +344,12 @@ impl CandlePerformanceUtils {
         if let Ok(metal_device) = Device::new_metal(0) {
             return metal_device;
         }
-        
+
         // Try CUDA (if available)
         if let Ok(cuda_device) = Device::new_cuda(0) {
             return cuda_device;
         }
-        
+
         // Fallback to CPU
         Device::Cpu
     }
@@ -356,10 +363,10 @@ mod tests {
     fn test_quantize_dequantize() {
         let device = Device::Cpu;
         let tensor = Tensor::randn(0f32, 1f32, (2, 2), &device).unwrap();
-        
+
         let quantized = CandleOps::quantize_1_58_bit(&tensor, Some(0.1)).unwrap();
         let dequantized = CandleOps::dequantize_1_58_bit(&quantized, Some(0.1)).unwrap();
-        
+
         assert_eq!(quantized.shape(), tensor.shape());
         assert_eq!(dequantized.shape(), tensor.shape());
     }
@@ -370,7 +377,7 @@ mod tests {
         let input = Tensor::randn(0f32, 1f32, (2, 4), &device).unwrap();
         let weight = Tensor::randn(0f32, 1f32, (4, 3), &device).unwrap();
         let bias = Tensor::randn(0f32, 1f32, (3,), &device).unwrap();
-        
+
         let output = CandleOps::bitlinear_forward(&input, &weight, Some(&bias), true).unwrap();
         assert_eq!(output.shape().dims(), &[2, 3]);
     }

@@ -13,21 +13,21 @@ async fn test_infrastructure_validation() -> Result<(), Box<dyn std::error::Erro
     // Test memory pool creation (existing API)
     let config = HybridMemoryPoolConfig::default();
     let memory_pool = Arc::new(HybridMemoryPool::with_config(config)?);
-    
+
     // Test basic tensor creation (existing API)
     let device = Device::Cpu;
     let tensor = BitNetTensor::zeros(&[2, 2], BitNetDType::F32, Some(device))?;
-    
+
     // Validate tensor properties
     assert_eq!(tensor.dtype(), BitNetDType::F32);
     assert_eq!(tensor.device().location(), candle_core::DeviceLocation::Cpu);
-    
+
     // Test shape validation
     let shape = tensor.shape();
     assert_eq!(shape.dims().len(), 2);
     assert_eq!(shape.dims()[0], 2);
     assert_eq!(shape.dims()[1], 2);
-    
+
     println!("✅ Infrastructure validation test passed!");
     Ok(())
 }
@@ -40,7 +40,7 @@ fn test_error_handling_infrastructure() {
         expected: BitNetDType::F32,
         actual: BitNetDType::I32,
     };
-    
+
     match error {
         TensorOpError::DTypeMismatch { expected, actual } => {
             assert_eq!(expected, BitNetDType::F32);
@@ -48,7 +48,7 @@ fn test_error_handling_infrastructure() {
         }
         _ => panic!("Expected DTypeMismatch error"),
     }
-    
+
     println!("✅ Error handling infrastructure test passed!");
 }
 
@@ -57,16 +57,16 @@ fn test_error_handling_infrastructure() {
 async fn test_memory_integration() -> Result<(), Box<dyn std::error::Error>> {
     let config = HybridMemoryPoolConfig::default();
     let _memory_pool = Arc::new(HybridMemoryPool::with_config(config)?);
-    
+
     // Create multiple tensors to test memory allocation
     let device = Device::Cpu;
     let tensor1 = BitNetTensor::zeros(&[10, 10], BitNetDType::F32, Some(device.clone()))?;
     let tensor2 = BitNetTensor::ones(&[5, 5], BitNetDType::F32, Some(device))?;
-    
+
     // Validate both tensors were created successfully
     assert_eq!(tensor1.dtype(), BitNetDType::F32);
     assert_eq!(tensor2.dtype(), BitNetDType::F32);
-    
+
     println!("✅ Memory integration test passed!");
     Ok(())
 }
@@ -75,21 +75,21 @@ async fn test_memory_integration() -> Result<(), Box<dyn std::error::Error>> {
 #[tokio::test]
 async fn test_tensor_creation_patterns() -> Result<(), Box<dyn std::error::Error>> {
     let device = Device::Cpu;
-    
+
     // Test different creation methods
     let zeros_tensor = BitNetTensor::zeros(&[3, 3], BitNetDType::F32, Some(device.clone()))?;
     let ones_tensor = BitNetTensor::ones(&[3, 3], BitNetDType::F32, Some(device.clone()))?;
-    
+
     // Test different data types
     let i32_tensor = BitNetTensor::zeros(&[2, 2], BitNetDType::I32, Some(device.clone()))?;
     let f64_tensor = BitNetTensor::zeros(&[2, 2], BitNetDType::F64, Some(device))?;
-    
+
     // Validate properties
     assert_eq!(zeros_tensor.dtype(), BitNetDType::F32);
     assert_eq!(ones_tensor.dtype(), BitNetDType::F32);
     assert_eq!(i32_tensor.dtype(), BitNetDType::I32);
     assert_eq!(f64_tensor.dtype(), BitNetDType::F64);
-    
+
     println!("✅ Tensor creation patterns test passed!");
     Ok(())
 }
@@ -101,17 +101,17 @@ fn test_validation_helpers_concept() {
     let shape1 = vec![2, 3, 4];
     let shape2 = vec![2, 3, 4];
     let shape3 = vec![2, 3, 5];
-    
+
     assert_eq!(shape1, shape2);
     assert_ne!(shape1, shape3);
-    
+
     // Test dtype validation concept
     let dtype1 = BitNetDType::F32;
     let dtype2 = BitNetDType::F32;
     let dtype3 = BitNetDType::I32;
-    
+
     assert_eq!(dtype1, dtype2);
     assert_ne!(dtype1, dtype3);
-    
+
     println!("✅ Validation helpers concept test passed!");
 }

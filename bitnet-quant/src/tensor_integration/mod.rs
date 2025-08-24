@@ -1,7 +1,7 @@
 //! Tensor Integration Module for BitNet Quantization
 //!
-//! This module provides comprehensive integration between BitNet tensor operations 
-//! and quantization systems, enabling seamless quantization-aware tensor operations 
+//! This module provides comprehensive integration between BitNet tensor operations
+//! and quantization systems, enabling seamless quantization-aware tensor operations
 //! with production-ready performance and memory efficiency.
 //!
 //! # Features
@@ -21,22 +21,19 @@
 //! - [`qat_tensor`]: Quantization-Aware Training tensor operations
 //! - [`precision_tensor`]: Mixed precision tensor support
 
-pub mod bitnet_ops;
-pub mod quantized_tensor;
 pub mod bitlinear_tensor;
+pub mod bitnet_ops;
 pub mod calibration_tensor;
-pub mod qat_tensor;
 pub mod precision_tensor;
+pub mod qat_tensor;
+pub mod quantized_tensor;
 
 // Re-export core types
-pub use bitnet_ops::{
-    BitNetTensorOps, BitNetQuantizationConfig
-};
+pub use bitnet_ops::{BitNetQuantizationConfig, BitNetTensorOps};
 
 pub use quantized_tensor::{
-    QuantizedTensor, QuantizedTensorConfig, ScaleZeroPoint, 
-    QuantizationParameters, DequantizationStrategy, QuantizedTensorError,
-    QuantizedStorage, QuantizedLayout, CompressionRatio
+    CompressionRatio, DequantizationStrategy, QuantizationParameters, QuantizedLayout,
+    QuantizedStorage, QuantizedTensor, QuantizedTensorConfig, QuantizedTensorError, ScaleZeroPoint,
 };
 
 // pub use bitlinear_tensor::{
@@ -46,22 +43,22 @@ pub use quantized_tensor::{
 // };
 
 pub use bitlinear_tensor::{
-    BitLinearTensorOpsImpl as BitLinearTensorOps, BitLinearConfig, WeightQuantizationTensor,
-    ActivationQuantizationTensor, BitLinearTensorError, LayerNormIntegration,
-    ResidualConnectionSupport, MixedPrecisionBitLinearOps, MixedPrecisionConfig,
-    MixedPrecisionStats, HardwareProfile, HardwareDeviceType, InstructionSet,
-    PrecisionSummary, ActivationStats, StatsSummary
+    ActivationQuantizationTensor, ActivationStats, BitLinearConfig, BitLinearTensorError,
+    BitLinearTensorOpsImpl as BitLinearTensorOps, HardwareDeviceType, HardwareProfile,
+    InstructionSet, LayerNormIntegration, MixedPrecisionBitLinearOps, MixedPrecisionConfig,
+    MixedPrecisionStats, PrecisionSummary, ResidualConnectionSupport, StatsSummary,
+    WeightQuantizationTensor,
 };
 
 pub use qat_tensor::{
-    QATTensorOps, QATConfig, StraightThroughEstimator, QATTensorType,
-    QuantizationParameters as QATQuantizationParameters, QuantizationStats, GradientStats, QATError
+    GradientStats, QATConfig, QATError, QATTensorOps, QATTensorType,
+    QuantizationParameters as QATQuantizationParameters, QuantizationStats,
+    StraightThroughEstimator,
 };
 
 pub use calibration_tensor::{
-    CalibrationTensor, CalibrationConfig, CalibrationDataset,
-    StatisticsCollector, CalibrationError, DatasetProcessor,
-    StatisticalMoments, DistributionAnalysis
+    CalibrationConfig, CalibrationDataset, CalibrationError, CalibrationTensor, DatasetProcessor,
+    DistributionAnalysis, StatisticalMoments, StatisticsCollector,
 };
 
 // pub use qat_tensor::{
@@ -71,51 +68,52 @@ pub use calibration_tensor::{
 // };
 
 pub use precision_tensor::{
-    MixedPrecisionTensor, PrecisionPolicy, PrecisionTensorOps,
-    PrecisionConfig, MixedPrecisionError, PrecisionSelector,
-    PerformanceOptimizedPrecision, AccuracyOptimizedPrecision
+    AccuracyOptimizedPrecision, MixedPrecisionError, MixedPrecisionTensor,
+    PerformanceOptimizedPrecision, PrecisionConfig, PrecisionPolicy, PrecisionSelector,
+    PrecisionTensorOps,
 };
 
-use std::sync::Arc;
 use candle_core::Device;
+use std::sync::Arc;
 
-use bitnet_core::BitNetTensor;use crate::quantization::{
-    QuantizationPrecision, QuantizationStrategy, QuantizationConfig, QuantizationError
+use crate::quantization::{
+    QuantizationConfig, QuantizationError, QuantizationPrecision, QuantizationStrategy,
 };
+use bitnet_core::BitNetTensor;
 
 /// Core tensor integration error types
 #[derive(Debug, thiserror::Error)]
 pub enum TensorIntegrationError {
     #[error("Quantization error: {0}")]
     Quantization(#[from] QuantizationError),
-    
+
     #[error("Memory error: {0}")]
     Memory(#[from] bitnet_core::MemoryError),
-    
+
     #[error("Candle error: {0}")]
     Candle(#[from] candle_core::Error),
-    
+
     #[error("Tensor operation error: {message}")]
     TensorOp { message: String },
-    
+
     #[error("Device compatibility error: expected {expected:?}, found {found:?}")]
     DeviceCompatibility { expected: Device, found: Device },
-    
+
     #[error("Shape mismatch error: {message}")]
     ShapeMismatch { message: String },
-    
+
     #[error("Quantization parameter mismatch: {message}")]
     QuantizationMismatch { message: String },
-    
+
     #[error("Unsupported operation: {operation} for quantization precision {precision:?}")]
-    UnsupportedOperation { 
-        operation: String, 
-        precision: QuantizationPrecision 
+    UnsupportedOperation {
+        operation: String,
+        precision: QuantizationPrecision,
     },
-    
+
     #[error("Configuration error: {message}")]
     Configuration { message: String },
-    
+
     #[error("Tensor operation failed: {message}")]
     TensorOperation { message: String },
 }
@@ -127,29 +125,40 @@ pub type TensorIntegrationResult<T> = std::result::Result<T, TensorIntegrationEr
 pub trait QuantizationAwareTensorOps {
     /// The underlying tensor type
     type Tensor;
-    
+
     /// Quantize a tensor with the given configuration
-    fn quantize(&self, tensor: &Self::Tensor, config: &QuantizationConfig) 
-        -> TensorIntegrationResult<QuantizedTensor>;
-    
+    fn quantize(
+        &self,
+        tensor: &Self::Tensor,
+        config: &QuantizationConfig,
+    ) -> TensorIntegrationResult<QuantizedTensor>;
+
     /// Dequantize a tensor back to full precision
-    fn dequantize(&self, tensor: &QuantizedTensor) 
-        -> TensorIntegrationResult<Self::Tensor>;
-    
+    fn dequantize(&self, tensor: &QuantizedTensor) -> TensorIntegrationResult<Self::Tensor>;
+
     /// Perform quantized arithmetic operation
-    fn quantized_add(&self, lhs: &QuantizedTensor, rhs: &QuantizedTensor)
-        -> TensorIntegrationResult<QuantizedTensor>;
-    
+    fn quantized_add(
+        &self,
+        lhs: &QuantizedTensor,
+        rhs: &QuantizedTensor,
+    ) -> TensorIntegrationResult<QuantizedTensor>;
+
     /// Perform quantized matrix multiplication
-    fn quantized_matmul(&self, lhs: &QuantizedTensor, rhs: &QuantizedTensor)
-        -> TensorIntegrationResult<QuantizedTensor>;
-    
+    fn quantized_matmul(
+        &self,
+        lhs: &QuantizedTensor,
+        rhs: &QuantizedTensor,
+    ) -> TensorIntegrationResult<QuantizedTensor>;
+
     /// Check if two quantized tensors are compatible for operations
     fn are_compatible(&self, lhs: &QuantizedTensor, rhs: &QuantizedTensor) -> bool;
-    
+
     /// Convert between quantization precisions
-    fn convert_precision(&self, tensor: &QuantizedTensor, target_precision: QuantizationPrecision)
-        -> TensorIntegrationResult<QuantizedTensor>;
+    fn convert_precision(
+        &self,
+        tensor: &QuantizedTensor,
+        target_precision: QuantizationPrecision,
+    ) -> TensorIntegrationResult<QuantizedTensor>;
 }
 
 /// Factory for creating quantization-aware tensor operations
@@ -160,35 +169,37 @@ impl TensorIntegrationFactory {
     pub fn create_bitnet_ops() -> Arc<bitnet_ops::BitNetTensorOps> {
         Arc::new(bitnet_ops::BitNetTensorOps::new())
     }
-    
+
     /// Create quantized tensor from BitNet tensor
     pub fn create_quantized_tensor(
         tensor: BitNetTensor,
-        config: QuantizedTensorConfig
+        config: QuantizedTensorConfig,
     ) -> TensorIntegrationResult<QuantizedTensor> {
         quantized_tensor::QuantizedTensor::from_bitnet_tensor(tensor, config)
     }
-    
+
     /// Create BitLinear tensor operations
     pub fn create_bitlinear_ops() -> Arc<bitlinear_tensor::BitLinearTensorOpsImpl> {
         Arc::new(bitlinear_tensor::BitLinearTensorOpsImpl::default())
     }
-    
+
     /// Create calibration tensor processor
-    pub fn create_calibration_processor(config: calibration_tensor::CalibrationConfig) 
-        -> calibration_tensor::CalibrationTensor {
+    pub fn create_calibration_processor(
+        config: calibration_tensor::CalibrationConfig,
+    ) -> calibration_tensor::CalibrationTensor {
         calibration_tensor::CalibrationTensor::new(config)
     }
-    
+
     /// Create QAT tensor operations
-    // pub fn create_qat_ops(config: qat_tensor::QATConfig) 
+    // pub fn create_qat_ops(config: qat_tensor::QATConfig)
     //     -> Arc<qat_tensor::QATensorOpsImpl> {
     //     Arc::new(qat_tensor::QATensorOpsImpl::new(config))
     // }
-    
+
     /// Create mixed precision tensor operations
-    pub fn create_mixed_precision_ops(config: precision_tensor::PrecisionConfig)
-        -> Arc<precision_tensor::MixedPrecisionTensorOpsImpl> {
+    pub fn create_mixed_precision_ops(
+        config: precision_tensor::PrecisionConfig,
+    ) -> Arc<precision_tensor::MixedPrecisionTensorOpsImpl> {
         Arc::new(precision_tensor::MixedPrecisionTensorOpsImpl::new(config))
     }
 }
@@ -198,16 +209,16 @@ impl TensorIntegrationFactory {
 pub struct GlobalTensorIntegrationConfig {
     /// Default quantization precision
     pub default_precision: QuantizationPrecision,
-    
+
     /// Default quantization strategy
     pub default_strategy: QuantizationStrategy,
-    
+
     /// Memory pool configuration for quantized tensors
     pub memory_pool_config: MemoryPoolIntegrationConfig,
-    
+
     /// Device acceleration preferences
     pub acceleration_config: AccelerationIntegrationConfig,
-    
+
     /// Error handling configuration
     pub error_handling_config: ErrorHandlingConfig,
 }
@@ -229,13 +240,13 @@ impl Default for GlobalTensorIntegrationConfig {
 pub struct MemoryPoolIntegrationConfig {
     /// Use existing HybridMemoryPool for quantized tensors
     pub use_hybrid_pool: bool,
-    
+
     /// Quantized tensor allocation preferences
     pub quantized_allocation_strategy: QuantizedAllocationStrategy,
-    
+
     /// Memory alignment for quantized data
     pub alignment_bytes: usize,
-    
+
     /// Enable memory usage tracking
     pub enable_usage_tracking: bool,
 }
@@ -256,13 +267,13 @@ impl Default for MemoryPoolIntegrationConfig {
 pub enum QuantizedAllocationStrategy {
     /// Optimize for memory usage
     MemoryOptimal,
-    
+
     /// Optimize for access speed
     SpeedOptimal,
-    
+
     /// Balance memory and speed
     Balanced,
-    
+
     /// Pack data optimally for quantization level
     PackedOptimal,
 }
@@ -272,16 +283,16 @@ pub enum QuantizedAllocationStrategy {
 pub struct AccelerationIntegrationConfig {
     /// Enable MLX acceleration for Apple Silicon
     pub enable_mlx: bool,
-    
+
     /// Enable Metal GPU acceleration
     pub enable_metal: bool,
-    
+
     /// Enable SIMD optimization
     pub enable_simd: bool,
-    
+
     /// Automatic fallback strategy
     pub auto_fallback: bool,
-    
+
     /// Minimum tensor size for acceleration
     pub acceleration_threshold: usize,
 }
@@ -303,13 +314,13 @@ impl Default for AccelerationIntegrationConfig {
 pub struct ErrorHandlingConfig {
     /// Enable automatic error recovery
     pub auto_recovery: bool,
-    
+
     /// Maximum retry attempts
     pub max_retries: u32,
-    
+
     /// Enable detailed error logging
     pub detailed_logging: bool,
-    
+
     /// Fallback to CPU on GPU errors
     pub gpu_fallback: bool,
 }
@@ -328,32 +339,35 @@ impl Default for ErrorHandlingConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_tensor_integration_factory_creation() {
         let bitnet_ops = TensorIntegrationFactory::create_bitnet_ops();
         assert!(!std::ptr::eq(bitnet_ops.as_ref(), std::ptr::null()));
-        
+
         let bitlinear_ops = TensorIntegrationFactory::create_bitlinear_ops();
         assert!(!std::ptr::eq(bitlinear_ops.as_ref(), std::ptr::null()));
     }
-    
+
     #[test]
     fn test_global_config_defaults() {
         let config = GlobalTensorIntegrationConfig::default();
-        assert_eq!(config.default_precision, QuantizationPrecision::OneFiveFiveBit);
+        assert_eq!(
+            config.default_precision,
+            QuantizationPrecision::OneFiveFiveBit
+        );
         assert_eq!(config.default_strategy, QuantizationStrategy::Symmetric);
         assert!(config.memory_pool_config.use_hybrid_pool);
         assert!(config.acceleration_config.enable_mlx);
     }
-    
+
     #[test]
     fn test_error_types() {
         let error = TensorIntegrationError::TensorOp {
-            message: "Test error".to_string()
+            message: "Test error".to_string(),
         };
         assert!(error.to_string().contains("Test error"));
-        
+
         let error = TensorIntegrationError::UnsupportedOperation {
             operation: "custom_op".to_string(),
             precision: QuantizationPrecision::OneFiveFiveBit,

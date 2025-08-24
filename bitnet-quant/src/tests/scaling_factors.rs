@@ -5,7 +5,7 @@
 
 use crate::quantization::{QuantizationResult, TernaryMethod, create_ternary_quantizer};
 use crate::tests::helpers::{
-    TestPattern, generate_test_tensor, validate_scaling_factor, 
+    TestPattern, generate_test_tensor, validate_scaling_factor,
     ScalingFactorValidationResult, create_test_device
 };
 use candle_core::{Device, Tensor};
@@ -43,7 +43,7 @@ pub struct PatternScalingResults {
 /// Run comprehensive scaling factor validation tests
 pub fn run_scaling_factor_tests(device: &Device) -> QuantizationResult<ScalingFactorResults> {
     let mut results = ScalingFactorResults::default();
-    
+
     let methods = vec![
         TernaryMethod::MeanThreshold,
         TernaryMethod::MedianThreshold,
@@ -85,7 +85,7 @@ pub fn run_scaling_factor_tests(device: &Device) -> QuantizationResult<ScalingFa
                             method_passed += 1;
                         } else {
                             results.failed_validations.push(
-                                format!("Pattern: {:?}, Method: {:?}, Shape: {:?} - {}", 
+                                format!("Pattern: {:?}, Method: {:?}, Shape: {:?} - {}",
                                        pattern, method, shape, validation.validation_details)
                             );
                         }
@@ -102,7 +102,7 @@ pub fn run_scaling_factor_tests(device: &Device) -> QuantizationResult<ScalingFa
                     }
                     Err(e) => {
                         results.failed_validations.push(
-                            format!("Test error: Pattern: {:?}, Method: {:?}, Shape: {:?} - {}", 
+                            format!("Test error: Pattern: {:?}, Method: {:?}, Shape: {:?} - {}",
                                    pattern, method, shape, e)
                         );
                     }
@@ -139,9 +139,9 @@ fn test_scaling_factor_correctness(
     let original = generate_test_tensor(pattern, shape, device)?;
     let quantizer = create_ternary_quantizer(method, Some(0.7))?;
     let quantized_result = quantizer.quantize(&original)?;
-    
+
     let computed_scale = quantized_result.stats.scale_factor;
-    
+
     validate_scaling_factor(&original, &quantized_result.values, computed_scale)
 }
 
@@ -153,7 +153,7 @@ mod tests {
     fn test_scaling_factor_validation() {
         let device = create_test_device();
         let results = run_scaling_factor_tests(&device).unwrap();
-        
+
         assert!(results.overall_success_rate > 0.7);
         assert!(!results.method_performance.is_empty());
     }

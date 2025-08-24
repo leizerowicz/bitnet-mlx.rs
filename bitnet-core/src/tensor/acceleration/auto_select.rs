@@ -5,11 +5,11 @@
 //! characteristics. It automatically detects available hardware and
 //! optimizes backend selection for maximum performance.
 
-use std::sync::{Arc, Mutex, RwLock};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex, RwLock};
 
+use super::{AccelerationBackend, AccelerationError, AccelerationResult};
 use crate::tensor::dtype::BitNetDType;
-use super::{AccelerationResult, AccelerationError, AccelerationBackend};
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, info, warn};
@@ -41,9 +41,15 @@ impl AccelerationCapabilities {
                 backend,
                 max_tensor_size: usize::MAX,
                 supported_dtypes: vec![
-                    BitNetDType::F32, BitNetDType::F16, BitNetDType::I8,
-                    BitNetDType::I16, BitNetDType::I32, BitNetDType::U8,
-                    BitNetDType::U16, BitNetDType::U32, BitNetDType::Bool,
+                    BitNetDType::F32,
+                    BitNetDType::F16,
+                    BitNetDType::I8,
+                    BitNetDType::I16,
+                    BitNetDType::I32,
+                    BitNetDType::U8,
+                    BitNetDType::U16,
+                    BitNetDType::U32,
+                    BitNetDType::Bool,
                 ],
                 zero_copy_support: true,
                 parallel_execution: true,
@@ -54,8 +60,11 @@ impl AccelerationCapabilities {
                 backend,
                 max_tensor_size: 1_000_000_000, // 1B elements
                 supported_dtypes: vec![
-                    BitNetDType::F32, BitNetDType::F16, BitNetDType::I32,
-                    BitNetDType::U32, BitNetDType::Bool,
+                    BitNetDType::F32,
+                    BitNetDType::F16,
+                    BitNetDType::I32,
+                    BitNetDType::U32,
+                    BitNetDType::Bool,
                 ],
                 zero_copy_support: false, // Requires GPU memory transfer
                 parallel_execution: true,
@@ -65,9 +74,7 @@ impl AccelerationCapabilities {
             AccelerationBackend::SIMD => Self {
                 backend,
                 max_tensor_size: 100_000_000, // 100M elements
-                supported_dtypes: vec![
-                    BitNetDType::F32, BitNetDType::I32, BitNetDType::U32,
-                ],
+                supported_dtypes: vec![BitNetDType::F32, BitNetDType::I32, BitNetDType::U32],
                 zero_copy_support: true,
                 parallel_execution: true,
                 memory_bandwidth_gbps: 50.0, // Typical CPU memory bandwidth
@@ -77,9 +84,14 @@ impl AccelerationCapabilities {
                 backend,
                 max_tensor_size: 10_000_000, // 10M elements
                 supported_dtypes: vec![
-                    BitNetDType::F32, BitNetDType::I8,
-                    BitNetDType::I16, BitNetDType::I32, BitNetDType::U8,
-                    BitNetDType::U16, BitNetDType::U32, BitNetDType::Bool,
+                    BitNetDType::F32,
+                    BitNetDType::I8,
+                    BitNetDType::I16,
+                    BitNetDType::I32,
+                    BitNetDType::U8,
+                    BitNetDType::U16,
+                    BitNetDType::U32,
+                    BitNetDType::Bool,
                 ],
                 zero_copy_support: true,
                 parallel_execution: false,
@@ -88,24 +100,29 @@ impl AccelerationCapabilities {
             },
         }
     }
-    
+
     /// Check if backend supports a specific data type
     pub fn supports_dtype(&self, dtype: BitNetDType) -> bool {
         self.supported_dtypes.contains(&dtype)
     }
-    
+
     /// Check if backend can handle a tensor of given size
     pub fn can_handle_size(&self, size: usize) -> bool {
         size <= self.max_tensor_size
     }
-    
+
     /// Get efficiency score for a given operation
-    pub fn efficiency_score(&self, flops: u64, memory_bytes: usize, prefer_low_latency: bool) -> f64 {
+    pub fn efficiency_score(
+        &self,
+        flops: u64,
+        memory_bytes: usize,
+        prefer_low_latency: bool,
+    ) -> f64 {
         let compute_score = (flops as f64) / self.compute_throughput_gflops / 1e9;
         let memory_score = (memory_bytes as f64) / self.memory_bandwidth_gbps / 1e9;
-        
+
         let total_time = compute_score.max(memory_score);
-        
+
         if prefer_low_latency {
             // For latency, prefer faster absolute time
             1.0 / (total_time + 1e-9)
@@ -162,7 +179,7 @@ impl HardwareDetector {
             capabilities_cache: Mutex::new(None),
         }
     }
-    
+
     /// Detect hardware capabilities
     pub fn detect_capabilities(&self) -> AccelerationResult<HardwareCapabilities> {
         // Check cache first
@@ -171,31 +188,31 @@ impl HardwareDetector {
                 return Ok(capabilities.clone());
             }
         }
-        
+
         let capabilities = self.perform_detection()?;
-        
+
         // Cache the result
         if let Ok(mut cache) = self.capabilities_cache.lock() {
             *cache = Some(capabilities.clone());
         }
-        
+
         #[cfg(feature = "tracing")]
         info!("Detected hardware capabilities: {:?}", capabilities);
-        
+
         Ok(capabilities)
     }
-    
+
     /// Perform actual hardware detection
     fn perform_detection(&self) -> AccelerationResult<HardwareCapabilities> {
         let is_apple_silicon = cfg!(target_arch = "aarch64") && cfg!(target_os = "macos");
-        
+
         let simd_capabilities = self.detect_simd_capabilities();
         let system_memory_gb = self.detect_system_memory();
         let cpu_cores = self.detect_cpu_cores();
-        
+
         let (has_metal_gpu, gpu_memory_gb) = self.detect_metal_gpu();
         let has_mlx = self.detect_mlx_availability();
-        
+
         Ok(HardwareCapabilities {
             is_apple_silicon,
             has_metal_gpu,
@@ -206,7 +223,7 @@ impl HardwareDetector {
             gpu_memory_gb,
         })
     }
-    
+
     /// Detect SIMD instruction set support
     fn detect_simd_capabilities(&self) -> SimdCapabilities {
         SimdCapabilities {
@@ -216,7 +233,7 @@ impl HardwareDetector {
             sse42: cfg!(target_feature = "sse4.2") || self.runtime_check_sse42(),
         }
     }
-    
+
     /// Runtime check for AVX2 support
     fn runtime_check_avx2(&self) -> bool {
         #[cfg(target_arch = "x86_64")]
@@ -226,7 +243,7 @@ impl HardwareDetector {
         #[cfg(not(target_arch = "x86_64"))]
         false
     }
-    
+
     /// Runtime check for AVX-512 support
     fn runtime_check_avx512(&self) -> bool {
         #[cfg(target_arch = "x86_64")]
@@ -236,7 +253,7 @@ impl HardwareDetector {
         #[cfg(not(target_arch = "x86_64"))]
         false
     }
-    
+
     /// Runtime check for NEON support
     fn runtime_check_neon(&self) -> bool {
         #[cfg(target_arch = "aarch64")]
@@ -247,7 +264,7 @@ impl HardwareDetector {
         #[cfg(not(target_arch = "aarch64"))]
         false
     }
-    
+
     /// Runtime check for SSE 4.2 support
     fn runtime_check_sse42(&self) -> bool {
         #[cfg(target_arch = "x86_64")]
@@ -257,7 +274,7 @@ impl HardwareDetector {
         #[cfg(not(target_arch = "x86_64"))]
         false
     }
-    
+
     /// Detect system memory
     fn detect_system_memory(&self) -> f64 {
         // This would use system APIs to get actual memory
@@ -268,14 +285,14 @@ impl HardwareDetector {
             8.0 // Assume 8GB for other systems
         }
     }
-    
+
     /// Detect CPU core count
     fn detect_cpu_cores(&self) -> usize {
         std::thread::available_parallelism()
             .map(|p| p.get())
             .unwrap_or(4)
     }
-    
+
     /// Detect Metal GPU availability
     fn detect_metal_gpu(&self) -> (bool, Option<f64>) {
         #[cfg(feature = "metal")]
@@ -292,7 +309,7 @@ impl HardwareDetector {
             (false, None)
         }
     }
-    
+
     /// Detect MLX availability
     fn detect_mlx_availability(&self) -> bool {
         #[cfg(feature = "mlx")]
@@ -322,52 +339,58 @@ impl AutoAccelerationSelector {
         let detector = HardwareDetector::new();
         let backend_capabilities = RwLock::new(HashMap::new());
         let performance_cache = Arc::new(Mutex::new(HashMap::new()));
-        
+
         let mut selector = Self {
             detector,
             backend_capabilities,
             performance_cache,
         };
-        
+
         // Initialize backend capabilities
         selector.initialize_capabilities()?;
-        
+
         Ok(selector)
     }
-    
+
     /// Initialize backend capabilities based on detected hardware
     fn initialize_capabilities(&mut self) -> AccelerationResult<()> {
         let hardware = self.detector.detect_capabilities()?;
         let mut capabilities = HashMap::new();
-        
+
         // MLX backend (Apple Silicon only)
         if hardware.has_mlx {
             capabilities.insert(
                 AccelerationBackend::MLX,
-                AccelerationCapabilities::default_for_backend(AccelerationBackend::MLX)
+                AccelerationCapabilities::default_for_backend(AccelerationBackend::MLX),
             );
-            
+
             #[cfg(feature = "tracing")]
             info!("MLX acceleration available");
         }
-        
+
         // Metal backend (Apple platforms)
         if hardware.has_metal_gpu {
-            let mut metal_caps = AccelerationCapabilities::default_for_backend(AccelerationBackend::Metal);
+            let mut metal_caps =
+                AccelerationCapabilities::default_for_backend(AccelerationBackend::Metal);
             if let Some(gpu_memory_gb) = hardware.gpu_memory_gb {
                 // Adjust max tensor size based on GPU memory
-                metal_caps.max_tensor_size = ((gpu_memory_gb * 0.8 * 1e9) / 4.0) as usize; // 80% of GPU memory, 4 bytes per f32
+                metal_caps.max_tensor_size = ((gpu_memory_gb * 0.8 * 1e9) / 4.0) as usize;
+                // 80% of GPU memory, 4 bytes per f32
             }
             capabilities.insert(AccelerationBackend::Metal, metal_caps);
-            
+
             #[cfg(feature = "tracing")]
             info!("Metal acceleration available");
         }
-        
+
         // SIMD backend (based on detected instruction sets)
-        if hardware.simd_capabilities.avx2 || hardware.simd_capabilities.neon || hardware.simd_capabilities.sse42 {
-            let mut simd_caps = AccelerationCapabilities::default_for_backend(AccelerationBackend::SIMD);
-            
+        if hardware.simd_capabilities.avx2
+            || hardware.simd_capabilities.neon
+            || hardware.simd_capabilities.sse42
+        {
+            let mut simd_caps =
+                AccelerationCapabilities::default_for_backend(AccelerationBackend::SIMD);
+
             // Adjust performance based on available instruction sets
             if hardware.simd_capabilities.avx512 {
                 simd_caps.compute_throughput_gflops *= 2.0;
@@ -376,29 +399,33 @@ impl AutoAccelerationSelector {
             } else if hardware.simd_capabilities.neon {
                 simd_caps.compute_throughput_gflops *= 1.3;
             }
-            
+
             capabilities.insert(AccelerationBackend::SIMD, simd_caps);
-            
+
             #[cfg(feature = "tracing")]
-            info!("SIMD acceleration available: AVX2={}, AVX512={}, NEON={}, SSE4.2={}",
-                  hardware.simd_capabilities.avx2, hardware.simd_capabilities.avx512,
-                  hardware.simd_capabilities.neon, hardware.simd_capabilities.sse42);
+            info!(
+                "SIMD acceleration available: AVX2={}, AVX512={}, NEON={}, SSE4.2={}",
+                hardware.simd_capabilities.avx2,
+                hardware.simd_capabilities.avx512,
+                hardware.simd_capabilities.neon,
+                hardware.simd_capabilities.sse42
+            );
         }
-        
+
         // CPU backend (always available)
         capabilities.insert(
             AccelerationBackend::CPU,
-            AccelerationCapabilities::default_for_backend(AccelerationBackend::CPU)
+            AccelerationCapabilities::default_for_backend(AccelerationBackend::CPU),
         );
-        
+
         // Update capabilities
         if let Ok(mut caps) = self.backend_capabilities.write() {
             *caps = capabilities;
         }
-        
+
         Ok(())
     }
-    
+
     /// Get available acceleration backends
     pub fn get_available_backends(&self) -> Vec<AccelerationBackend> {
         if let Ok(capabilities) = self.backend_capabilities.read() {
@@ -407,16 +434,19 @@ impl AutoAccelerationSelector {
             vec![]
         }
     }
-    
+
     /// Get capabilities for a specific backend
-    pub fn get_backend_capabilities(&self, backend: AccelerationBackend) -> Option<AccelerationCapabilities> {
+    pub fn get_backend_capabilities(
+        &self,
+        backend: AccelerationBackend,
+    ) -> Option<AccelerationCapabilities> {
         if let Ok(capabilities) = self.backend_capabilities.read() {
             capabilities.get(&backend).cloned()
         } else {
             None
         }
     }
-    
+
     /// Select best backend for given requirements
     pub fn select_best_backend(
         &self,
@@ -426,37 +456,39 @@ impl AutoAccelerationSelector {
         estimated_memory_bytes: usize,
         prefer_low_latency: bool,
     ) -> AccelerationResult<AccelerationBackend> {
-        let capabilities = self.backend_capabilities.read()
-            .map_err(|_| AccelerationError::InitializationFailed {
+        let capabilities = self.backend_capabilities.read().map_err(|_| {
+            AccelerationError::InitializationFailed {
                 backend: "Selector".to_string(),
                 reason: "Failed to acquire capabilities lock".to_string(),
-            })?;
-        
+            }
+        })?;
+
         let mut candidates = Vec::new();
-        
+
         // Filter backends by requirements
         for (backend, caps) in capabilities.iter() {
             if caps.supports_dtype(dtype) && caps.can_handle_size(tensor_size) {
                 let efficiency_score = caps.efficiency_score(
-                    estimated_flops, 
-                    estimated_memory_bytes, 
-                    prefer_low_latency
+                    estimated_flops,
+                    estimated_memory_bytes,
+                    prefer_low_latency,
                 );
-                
+
                 candidates.push((*backend, efficiency_score));
             }
         }
-        
+
         // Sort by efficiency score (higher is better)
         candidates.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        
-        candidates.first()
+
+        candidates
+            .first()
             .map(|(backend, _)| *backend)
             .ok_or_else(|| AccelerationError::BackendNotAvailable {
                 backend: "Any suitable".to_string(),
             })
     }
-    
+
     /// Select backend with fallback chain
     pub fn select_with_fallback(
         &self,
@@ -468,14 +500,14 @@ impl AutoAccelerationSelector {
             Ok(caps) => caps,
             Err(_) => return AccelerationBackend::CPU,
         };
-        
+
         // Try preferred backend first
         if let Some(caps) = capabilities.get(&preferred) {
             if caps.supports_dtype(dtype) && caps.can_handle_size(tensor_size) {
                 return preferred;
             }
         }
-        
+
         // Fallback order
         let fallback_order = [
             AccelerationBackend::MLX,
@@ -483,36 +515,45 @@ impl AutoAccelerationSelector {
             AccelerationBackend::SIMD,
             AccelerationBackend::CPU,
         ];
-        
+
         for &backend in &fallback_order {
             if backend == preferred {
                 continue; // Already tried
             }
-            
+
             if let Some(caps) = capabilities.get(&backend) {
                 if caps.supports_dtype(dtype) && caps.can_handle_size(tensor_size) {
                     return backend;
                 }
             }
         }
-        
+
         // Ultimate fallback
         AccelerationBackend::CPU
     }
-    
+
     /// Benchmark and update performance cache
-    pub fn update_performance_cache(&self, operation: &str, backend: AccelerationBackend, speedup: f64) {
+    pub fn update_performance_cache(
+        &self,
+        operation: &str,
+        backend: AccelerationBackend,
+        speedup: f64,
+    ) {
         let key = format!("{}_{}", operation, backend);
-        
+
         if let Ok(mut cache) = self.performance_cache.lock() {
             cache.insert(key, speedup);
         }
     }
-    
+
     /// Get cached performance data
-    pub fn get_cached_performance(&self, operation: &str, backend: AccelerationBackend) -> Option<f64> {
+    pub fn get_cached_performance(
+        &self,
+        operation: &str,
+        backend: AccelerationBackend,
+    ) -> Option<f64> {
         let key = format!("{}_{}", operation, backend);
-        
+
         self.performance_cache.lock().ok()?.get(&key).copied()
     }
 }
@@ -520,14 +561,14 @@ impl AutoAccelerationSelector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_hardware_detector_creation() {
         let detector = HardwareDetector::new();
         let capabilities = detector.detect_capabilities();
         assert!(capabilities.is_ok());
     }
-    
+
     #[test]
     fn test_acceleration_capabilities() {
         let caps = AccelerationCapabilities::default_for_backend(AccelerationBackend::MLX);
@@ -536,52 +577,52 @@ mod tests {
         assert!(caps.parallel_execution);
         assert!(caps.supports_dtype(BitNetDType::F32));
     }
-    
+
     #[test]
     fn test_auto_selector_creation() {
         let selector = AutoAccelerationSelector::new();
         assert!(selector.is_ok());
-        
+
         if let Ok(selector) = selector {
             let backends = selector.get_available_backends();
             assert!(!backends.is_empty()); // Should at least have CPU
             assert!(backends.contains(&AccelerationBackend::CPU));
         }
     }
-    
+
     #[test]
     fn test_backend_selection_fallback() {
         let selector = AutoAccelerationSelector::new().unwrap();
-        
-        let backend = selector.select_with_fallback(
-            AccelerationBackend::MLX,
-            1000,
-            BitNetDType::F32
-        );
-        
+
+        let backend =
+            selector.select_with_fallback(AccelerationBackend::MLX, 1000, BitNetDType::F32);
+
         // Should return a valid backend
-        assert!(matches!(backend, 
-            AccelerationBackend::MLX | AccelerationBackend::Metal | 
-            AccelerationBackend::SIMD | AccelerationBackend::CPU
+        assert!(matches!(
+            backend,
+            AccelerationBackend::MLX
+                | AccelerationBackend::Metal
+                | AccelerationBackend::SIMD
+                | AccelerationBackend::CPU
         ));
     }
-    
+
     #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
     #[test]
     fn test_apple_silicon_detection() {
         let detector = HardwareDetector::new();
         let capabilities = detector.detect_capabilities().unwrap();
-        
+
         assert!(capabilities.is_apple_silicon);
         assert!(capabilities.simd_capabilities.neon);
     }
-    
+
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn test_x86_simd_detection() {
         let detector = HardwareDetector::new();
         let capabilities = detector.detect_capabilities().unwrap();
-        
+
         assert!(!capabilities.is_apple_silicon);
         // At least SSE should be available on modern x86_64
     }

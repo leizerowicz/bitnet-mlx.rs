@@ -4,12 +4,12 @@
 //! data conversion system, including different conversion strategies, performance
 //! optimization, and monitoring capabilities.
 
-use bitnet_core::memory::{
-    HybridMemoryPool,
-    conversion::{ConversionEngine, ConversionConfig},
-    tensor::{BitNetTensor, BitNetDType}
-};
 use bitnet_core::device::get_cpu_device;
+use bitnet_core::memory::{
+    conversion::{ConversionConfig, ConversionEngine},
+    tensor::{BitNetDType, BitNetTensor},
+    HybridMemoryPool,
+};
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -51,7 +51,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn demo_basic_conversions(pool: &Arc<HybridMemoryPool>, device: &candle_core::Device) -> Result<(), Box<dyn std::error::Error>> {
+fn demo_basic_conversions(
+    pool: &Arc<HybridMemoryPool>,
+    device: &candle_core::Device,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("1. Basic Conversions");
     println!("-------------------");
 
@@ -60,7 +63,11 @@ fn demo_basic_conversions(pool: &Arc<HybridMemoryPool>, device: &candle_core::De
 
     // Create a test tensor
     let tensor = BitNetTensor::ones(&[64, 64], BitNetDType::F32, device, pool)?;
-    println!("Original tensor: {} ({} bytes)", tensor.dtype(), tensor.size_bytes());
+    println!(
+        "Original tensor: {} ({} bytes)",
+        tensor.dtype(),
+        tensor.size_bytes()
+    );
 
     // Convert to different data types
     let conversions = vec![
@@ -77,16 +84,24 @@ fn demo_basic_conversions(pool: &Arc<HybridMemoryPool>, device: &candle_core::De
         let duration = start.elapsed();
 
         let compression_ratio = tensor.size_bytes() as f64 / result.size_bytes() as f64;
-        println!("  {} -> {}: {:.2}x compression, {} bytes, {:?}",
-                 tensor.dtype(), target_dtype, compression_ratio, 
-                 result.size_bytes(), duration);
+        println!(
+            "  {} -> {}: {:.2}x compression, {} bytes, {:?}",
+            tensor.dtype(),
+            target_dtype,
+            compression_ratio,
+            result.size_bytes(),
+            duration
+        );
     }
 
     println!();
     Ok(())
 }
 
-fn demo_zero_copy_conversions(pool: &Arc<HybridMemoryPool>, device: &candle_core::Device) -> Result<(), Box<dyn std::error::Error>> {
+fn demo_zero_copy_conversions(
+    pool: &Arc<HybridMemoryPool>,
+    device: &candle_core::Device,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("2. Zero-Copy Conversions");
     println!("-----------------------");
 
@@ -109,13 +124,19 @@ fn demo_zero_copy_conversions(pool: &Arc<HybridMemoryPool>, device: &candle_core
 
     // Verify sizes are the same
     assert_eq!(f16_tensor.size_bytes(), bf16_result.size_bytes());
-    println!("  ✓ Memory usage unchanged: {} bytes", bf16_result.size_bytes());
+    println!(
+        "  ✓ Memory usage unchanged: {} bytes",
+        bf16_result.size_bytes()
+    );
 
     println!();
     Ok(())
 }
 
-fn demo_in_place_conversions(pool: &Arc<HybridMemoryPool>, device: &candle_core::Device) -> Result<(), Box<dyn std::error::Error>> {
+fn demo_in_place_conversions(
+    pool: &Arc<HybridMemoryPool>,
+    device: &candle_core::Device,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("3. In-Place Conversions");
     println!("----------------------");
 
@@ -132,17 +153,26 @@ fn demo_in_place_conversions(pool: &Arc<HybridMemoryPool>, device: &candle_core:
     engine.in_place_convert(&mut tensor, BitNetDType::F16)?;
     let duration = start.elapsed();
 
-    println!("  After in-place conversion: {} ({} bytes)", tensor.dtype(), tensor.size_bytes());
+    println!(
+        "  After in-place conversion: {} ({} bytes)",
+        tensor.dtype(),
+        tensor.size_bytes()
+    );
     println!("  Time: {duration:?}");
-    println!("  Memory saved: {} bytes ({:.1}x reduction)", 
-             original_size - tensor.size_bytes(),
-             original_size as f64 / tensor.size_bytes() as f64);
+    println!(
+        "  Memory saved: {} bytes ({:.1}x reduction)",
+        original_size - tensor.size_bytes(),
+        original_size as f64 / tensor.size_bytes() as f64
+    );
 
     println!();
     Ok(())
 }
 
-fn demo_streaming_conversions(pool: &Arc<HybridMemoryPool>, device: &candle_core::Device) -> Result<(), Box<dyn std::error::Error>> {
+fn demo_streaming_conversions(
+    pool: &Arc<HybridMemoryPool>,
+    device: &candle_core::Device,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("4. Streaming Conversions");
     println!("-----------------------");
 
@@ -151,23 +181,31 @@ fn demo_streaming_conversions(pool: &Arc<HybridMemoryPool>, device: &candle_core
 
     // Create a larger tensor that will trigger streaming
     let large_tensor = BitNetTensor::ones(&[512, 512], BitNetDType::F32, device, pool)?;
-    println!("  Large tensor: {} elements ({} bytes)", 
-             large_tensor.element_count(), large_tensor.size_bytes());
+    println!(
+        "  Large tensor: {} elements ({} bytes)",
+        large_tensor.element_count(),
+        large_tensor.size_bytes()
+    );
 
     let start = Instant::now();
     let result = engine.streaming_convert(&large_tensor, BitNetDType::I8, 64 * 1024)?;
     let duration = start.elapsed();
 
     println!("  Streaming conversion F32 -> I8: {duration:?}");
-    println!("  Result: {} bytes ({:.1}x compression)",
-             result.size_bytes(),
-             large_tensor.size_bytes() as f64 / result.size_bytes() as f64);
+    println!(
+        "  Result: {} bytes ({:.1}x compression)",
+        result.size_bytes(),
+        large_tensor.size_bytes() as f64 / result.size_bytes() as f64
+    );
 
     println!();
     Ok(())
 }
 
-fn demo_batch_conversions(pool: &Arc<HybridMemoryPool>, device: &candle_core::Device) -> Result<(), Box<dyn std::error::Error>> {
+fn demo_batch_conversions(
+    pool: &Arc<HybridMemoryPool>,
+    device: &candle_core::Device,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("5. Batch Conversions");
     println!("-------------------");
 
@@ -192,21 +230,28 @@ fn demo_batch_conversions(pool: &Arc<HybridMemoryPool>, device: &candle_core::De
     let duration = start.elapsed();
 
     println!("  Batch conversion F32 -> F16: {duration:?}");
-    println!("  Throughput: {:.2} tensors/sec", 
-             tensor_count as f64 / duration.as_secs_f64());
+    println!(
+        "  Throughput: {:.2} tensors/sec",
+        tensor_count as f64 / duration.as_secs_f64()
+    );
 
     // Calculate total memory savings
     let original_size: usize = tensors.iter().map(|t| t.size_bytes()).sum();
     let converted_size: usize = results.iter().map(|t| t.size_bytes()).sum();
-    println!("  Total memory saved: {} bytes ({:.1}x reduction)",
-             original_size - converted_size,
-             original_size as f64 / converted_size as f64);
+    println!(
+        "  Total memory saved: {} bytes ({:.1}x reduction)",
+        original_size - converted_size,
+        original_size as f64 / converted_size as f64
+    );
 
     println!();
     Ok(())
 }
 
-fn demo_performance_comparison(pool: &Arc<HybridMemoryPool>, device: &candle_core::Device) -> Result<(), Box<dyn std::error::Error>> {
+fn demo_performance_comparison(
+    pool: &Arc<HybridMemoryPool>,
+    device: &candle_core::Device,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("6. Performance Comparison");
     println!("------------------------");
 
@@ -222,11 +267,11 @@ fn demo_performance_comparison(pool: &Arc<HybridMemoryPool>, device: &candle_cor
 
     for (name, config) in configs {
         let engine = ConversionEngine::new(config, pool.clone())?;
-        
+
         let start = Instant::now();
         let _result = engine.convert(&tensor, BitNetDType::I8)?;
         let duration = start.elapsed();
-        
+
         println!("  {name}: {duration:?}");
     }
 
@@ -234,7 +279,10 @@ fn demo_performance_comparison(pool: &Arc<HybridMemoryPool>, device: &candle_cor
     Ok(())
 }
 
-fn demo_memory_efficiency(pool: &Arc<HybridMemoryPool>, device: &candle_core::Device) -> Result<(), Box<dyn std::error::Error>> {
+fn demo_memory_efficiency(
+    pool: &Arc<HybridMemoryPool>,
+    device: &candle_core::Device,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("7. Memory Efficiency Analysis");
     println!("-----------------------------");
 
@@ -242,9 +290,11 @@ fn demo_memory_efficiency(pool: &Arc<HybridMemoryPool>, device: &candle_core::De
     let engine = ConversionEngine::new(config, pool.clone())?;
 
     let tensor = BitNetTensor::ones(&[256, 256], BitNetDType::F32, device, pool)?;
-    println!("  Base tensor: {} elements, {} KB", 
-             tensor.element_count(), 
-             tensor.size_bytes() / 1024);
+    println!(
+        "  Base tensor: {} elements, {} KB",
+        tensor.element_count(),
+        tensor.size_bytes() / 1024
+    );
 
     let data_types = vec![
         BitNetDType::F32,
@@ -272,38 +322,49 @@ fn demo_memory_efficiency(pool: &Arc<HybridMemoryPool>, device: &candle_core::De
         let compression = tensor.size_bytes() as f64 / converted.size_bytes() as f64;
         let efficiency = dtype.memory_efficiency();
 
-        println!("  {:11} | {:8.2} | {:10.1}x | {:15.1}x",
-                 format!("{}", dtype), size_kb, compression, efficiency);
+        println!(
+            "  {:11} | {:8.2} | {:10.1}x | {:15.1}x",
+            format!("{}", dtype),
+            size_kb,
+            compression,
+            efficiency
+        );
     }
 
     println!();
     Ok(())
 }
 
-fn demo_configuration_options(pool: &Arc<HybridMemoryPool>, device: &candle_core::Device) -> Result<(), Box<dyn std::error::Error>> {
+fn demo_configuration_options(
+    pool: &Arc<HybridMemoryPool>,
+    device: &candle_core::Device,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("8. Configuration Options");
     println!("-----------------------");
 
     // Custom configuration example
     let mut config = ConversionConfig::default();
-    
+
     // Customize streaming settings
     config.streaming.chunk_size = 2 * 1024 * 1024; // 2MB chunks
     config.streaming.parallel_chunks = 4;
     config.streaming.enable_prefetch = true;
-    
+
     // Customize batch settings
     config.batch.max_batch_size = 64;
     config.batch.enable_parallel_processing = true;
     config.batch.sort_by_size = true;
-    
+
     // Customize performance settings
     config.performance.use_simd = true;
     config.performance.use_vectorization = true;
     config.performance.memory_alignment = 64;
 
     println!("  Custom configuration created:");
-    println!("    Streaming chunk size: {} KB", config.streaming.chunk_size / 1024);
+    println!(
+        "    Streaming chunk size: {} KB",
+        config.streaming.chunk_size / 1024
+    );
     println!("    Parallel chunks: {}", config.streaming.parallel_chunks);
     println!("    Max batch size: {}", config.batch.max_batch_size);
     println!("    SIMD enabled: {}", config.performance.use_simd);
@@ -323,7 +384,10 @@ fn demo_configuration_options(pool: &Arc<HybridMemoryPool>, device: &candle_core
     Ok(())
 }
 
-fn demo_metrics_and_monitoring(pool: &Arc<HybridMemoryPool>, device: &candle_core::Device) -> Result<(), Box<dyn std::error::Error>> {
+fn demo_metrics_and_monitoring(
+    pool: &Arc<HybridMemoryPool>,
+    device: &candle_core::Device,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("9. Metrics and Monitoring");
     println!("-------------------------");
 
@@ -331,9 +395,11 @@ fn demo_metrics_and_monitoring(pool: &Arc<HybridMemoryPool>, device: &candle_cor
     let engine = ConversionEngine::new(config, pool.clone())?;
 
     // Perform several conversions to generate metrics
-    let tensors = [BitNetTensor::ones(&[32, 32], BitNetDType::F32, device, pool)?,
+    let tensors = [
+        BitNetTensor::ones(&[32, 32], BitNetDType::F32, device, pool)?,
         BitNetTensor::ones(&[64, 64], BitNetDType::F32, device, pool)?,
-        BitNetTensor::ones(&[128, 128], BitNetDType::F32, device, pool)?];
+        BitNetTensor::ones(&[128, 128], BitNetDType::F32, device, pool)?,
+    ];
 
     let targets = [BitNetDType::F16, BitNetDType::I8, BitNetDType::I4];
 
@@ -343,13 +409,16 @@ fn demo_metrics_and_monitoring(pool: &Arc<HybridMemoryPool>, device: &candle_cor
 
     // Get and display metrics
     let stats = engine.get_stats();
-    
+
     println!("  Conversion Statistics:");
     println!("    Total conversions: {}", stats.total_conversions);
     println!("    Success rate: {:.1}%", stats.success_rate());
     println!("    Average time: {:.2}ms", stats.average_time_ms());
     println!("    Total bytes processed: {}", stats.total_bytes_processed);
-    println!("    Throughput: {:.2} MB/s", stats.throughput_bytes_per_sec() / (1024.0 * 1024.0));
+    println!(
+        "    Throughput: {:.2} MB/s",
+        stats.throughput_bytes_per_sec() / (1024.0 * 1024.0)
+    );
 
     // Strategy usage
     if let Some(most_used) = stats.most_used_strategy() {
@@ -362,9 +431,18 @@ fn demo_metrics_and_monitoring(pool: &Arc<HybridMemoryPool>, device: &candle_cor
 
     // Memory statistics
     println!("  Memory Statistics:");
-    println!("    Peak usage: {} KB", stats.memory_stats.peak_memory_usage / 1024);
-    println!("    Zero-copy percentage: {:.1}%", stats.memory_stats.zero_copy_percentage);
-    println!("    In-place percentage: {:.1}%", stats.memory_stats.in_place_percentage);
+    println!(
+        "    Peak usage: {} KB",
+        stats.memory_stats.peak_memory_usage / 1024
+    );
+    println!(
+        "    Zero-copy percentage: {:.1}%",
+        stats.memory_stats.zero_copy_percentage
+    );
+    println!(
+        "    In-place percentage: {:.1}%",
+        stats.memory_stats.in_place_percentage
+    );
 
     // Error statistics
     println!("  Error Statistics:");
@@ -389,13 +467,13 @@ mod tests {
     fn test_basic_conversion_functionality() {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
-        
+
         let config = ConversionConfig::default();
         let engine = ConversionEngine::new(config, pool.clone()).unwrap();
-        
+
         let tensor = BitNetTensor::ones(&[16, 16], BitNetDType::F32, &device, &pool).unwrap();
         let result = engine.convert(&tensor, BitNetDType::F16).unwrap();
-        
+
         assert_eq!(result.dtype(), BitNetDType::F16);
         assert_eq!(result.shape(), tensor.shape());
         assert!(result.size_bytes() < tensor.size_bytes());
@@ -405,13 +483,13 @@ mod tests {
     fn test_zero_copy_conversion() {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
-        
+
         let config = ConversionConfig::default();
         let engine = ConversionEngine::new(config, pool.clone()).unwrap();
-        
+
         let tensor = BitNetTensor::ones(&[8, 8], BitNetDType::F32, &device, &pool).unwrap();
         let result = engine.zero_copy_convert(&tensor, BitNetDType::F32).unwrap();
-        
+
         assert_eq!(result.dtype(), BitNetDType::F32);
         assert_eq!(result.size_bytes(), tensor.size_bytes());
     }
@@ -420,16 +498,16 @@ mod tests {
     fn test_batch_conversion() {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
-        
+
         let config = ConversionConfig::default();
         let engine = ConversionEngine::new(config, pool.clone()).unwrap();
-        
+
         let tensors: Vec<_> = (0..3)
             .map(|i| BitNetTensor::ones(&[8 + i, 8 + i], BitNetDType::F32, &device, &pool).unwrap())
             .collect();
-        
+
         let results = engine.batch_convert(&tensors, BitNetDType::F16).unwrap();
-        
+
         assert_eq!(results.len(), tensors.len());
         for (original, converted) in tensors.iter().zip(results.iter()) {
             assert_eq!(converted.dtype(), BitNetDType::F16);

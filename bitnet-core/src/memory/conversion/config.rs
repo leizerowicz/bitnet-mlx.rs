@@ -4,7 +4,7 @@
 //! of the data conversion system, including streaming parameters, batch settings,
 //! and performance tuning options.
 
-use crate::memory::conversion::{ConversionStrategy, ConversionQuality};
+use crate::memory::conversion::{ConversionQuality, ConversionStrategy};
 use serde::{Deserialize, Serialize};
 
 /// Main configuration for the conversion engine
@@ -138,7 +138,7 @@ impl StreamingConfig {
         Self {
             chunk_size: 256 * 1024, // 256KB
             parallel_chunks: 1,
-            buffer_size: 1024 * 1024, // 1MB
+            buffer_size: 1024 * 1024,              // 1MB
             streaming_threshold: 10 * 1024 * 1024, // 10MB
             enable_prefetch: false,
             ..Default::default()
@@ -150,7 +150,7 @@ impl StreamingConfig {
         Self {
             chunk_size: 4 * 1024 * 1024, // 4MB
             parallel_chunks: num_cpus::get(),
-            buffer_size: 16 * 1024 * 1024, // 16MB
+            buffer_size: 16 * 1024 * 1024,          // 16MB
             streaming_threshold: 500 * 1024 * 1024, // 500MB
             enable_prefetch: true,
             ..Default::default()
@@ -161,7 +161,7 @@ impl StreamingConfig {
     pub fn high_precision() -> Self {
         Self {
             chunk_size: 512 * 1024, // 512KB (smaller chunks for better precision)
-            parallel_chunks: 1, // Sequential processing for consistency
+            parallel_chunks: 1,     // Sequential processing for consistency
             enable_prefetch: false,
             ..Default::default()
         }
@@ -249,7 +249,7 @@ impl BatchConfig {
     pub fn high_precision() -> Self {
         Self {
             max_batch_size: 16,
-            sort_by_size: false, // Preserve original order
+            sort_by_size: false,               // Preserve original order
             enable_parallel_processing: false, // Sequential for consistency
             batch_worker_threads: 1,
             ..Default::default()
@@ -342,7 +342,7 @@ impl PerformanceConfig {
             use_vectorization: false,
             enable_loop_unrolling: false,
             optimization_threshold: usize::MAX, // Disable optimizations
-            use_lookup_tables: false, // Use exact calculations
+            use_lookup_tables: false,           // Use exact calculations
             ..Default::default()
         }
     }
@@ -448,9 +448,12 @@ mod tests {
         let config = ConversionConfig::default();
         let serialized = serde_json::to_string(&config).unwrap();
         let deserialized: ConversionConfig = serde_json::from_str(&serialized).unwrap();
-        
+
         assert_eq!(config.default_strategy, deserialized.default_strategy);
         assert_eq!(config.max_memory_usage, deserialized.max_memory_usage);
-        assert_eq!(config.streaming.chunk_size, deserialized.streaming.chunk_size);
+        assert_eq!(
+            config.streaming.chunk_size,
+            deserialized.streaming.chunk_size
+        );
     }
 }

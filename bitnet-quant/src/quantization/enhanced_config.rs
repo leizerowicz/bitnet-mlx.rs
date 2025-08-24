@@ -4,20 +4,17 @@
 //! capabilities with the existing quantization configuration system.
 
 use super::{
-    QuantizationPrecision, QuantizationStrategy,
-    weights::TernaryMethod,
     config::{
+        ActivationQuantizationConfig as EnhancedActivationQuantizationConfig, PackingConfig,
         QuantizationConfig as EnhancedQuantizationConfig,
         WeightQuantizationConfig as EnhancedWeightQuantizationConfig,
-        ActivationQuantizationConfig as EnhancedActivationQuantizationConfig,
-        PackingConfig,
     },
     precision_control::{
-        PrecisionControlConfig, PrecisionBounds, DynamicAdjustmentConfig,
-        PrecisionMonitoringConfig, PrecisionValidationConfig, PerformanceThresholds,
-        AdjustmentStrategy,
+        AdjustmentStrategy, DynamicAdjustmentConfig, PerformanceThresholds, PrecisionBounds,
+        PrecisionControlConfig, PrecisionMonitoringConfig, PrecisionValidationConfig,
     },
-    QuantizationResult, QuantizationError,
+    weights::TernaryMethod,
+    QuantizationError, QuantizationPrecision, QuantizationResult, QuantizationStrategy,
 };
 use serde::{Deserialize, Serialize};
 
@@ -33,7 +30,7 @@ pub struct EnhancedQuantizationConfigBuilder {
     calibration_size: Option<usize>,
     seed: Option<u64>,
     verbose: Option<bool>,
-    
+
     // Precision control
     precision_control: Option<PrecisionControlConfig>,
     precision_bounds: Option<PrecisionBounds>,
@@ -41,7 +38,7 @@ pub struct EnhancedQuantizationConfigBuilder {
     monitoring: Option<PrecisionMonitoringConfig>,
     validation: Option<PrecisionValidationConfig>,
     performance_thresholds: Option<PerformanceThresholds>,
-    
+
     // Advanced features
     auto_optimization: Option<bool>,
     adaptive_thresholds: Option<bool>,
@@ -167,7 +164,9 @@ impl EnhancedQuantizationConfigBuilder {
     pub fn build(self) -> QuantizationResult<EnhancedQuantizationConfiguration> {
         // Build base configuration
         let base_config = EnhancedQuantizationConfig {
-            precision: self.precision.unwrap_or(QuantizationPrecision::OneFiveFiveBit),
+            precision: self
+                .precision
+                .unwrap_or(QuantizationPrecision::OneFiveFiveBit),
             strategy: self.strategy.unwrap_or(QuantizationStrategy::Symmetric),
             per_channel: self.per_channel.unwrap_or(false),
             clip_threshold: self.clip_threshold,
@@ -183,7 +182,7 @@ impl EnhancedQuantizationConfigBuilder {
         } else {
             let mut config = PrecisionControlConfig::default();
             config.target_precision = base_config.precision;
-            
+
             if let Some(bounds) = self.precision_bounds {
                 config.precision_bounds = bounds;
             }
@@ -199,7 +198,7 @@ impl EnhancedQuantizationConfigBuilder {
             if let Some(thresholds) = self.performance_thresholds {
                 config.performance_thresholds = thresholds;
             }
-            
+
             config
         };
 
@@ -334,19 +333,20 @@ impl EnhancedQuantizationConfiguration {
     /// Validate the enhanced configuration
     pub fn validate(&self) -> QuantizationResult<()> {
         // Validate base configuration
-        self.base.validate()
+        self.base
+            .validate()
             .map_err(|e| QuantizationError::ConfigurationError(e.to_string()))?;
-        
+
         // Validate precision control configuration
         self.precision_control.validate()?;
-        
+
         // Check consistency between base and precision control
         if self.base.precision != self.precision_control.target_precision {
             return Err(QuantizationError::ConfigurationError(
-                "Base precision and precision control target precision must match".to_string()
+                "Base precision and precision control target precision must match".to_string(),
             ));
         }
-        
+
         Ok(())
     }
 
@@ -451,13 +451,13 @@ impl ConfigurationPreset {
         match self {
             ConfigurationPreset::BitNetOptimized => {
                 EnhancedQuantizationConfigBuilder::bitnet_optimized()
-            },
+            }
             ConfigurationPreset::PerformanceOptimized => {
                 EnhancedQuantizationConfigBuilder::performance_optimized()
-            },
+            }
             ConfigurationPreset::AccuracyOptimized => {
                 EnhancedQuantizationConfigBuilder::accuracy_optimized()
-            },
+            }
             ConfigurationPreset::MemoryOptimized => {
                 EnhancedQuantizationConfigBuilder::new()
                     .precision(QuantizationPrecision::OneBit)
@@ -471,17 +471,13 @@ impl ConfigurationPreset {
                     })
                     .auto_optimization(true)
                     .real_time_monitoring(false) // Reduce overhead
-            },
-            ConfigurationPreset::Balanced => {
-                EnhancedQuantizationConfigBuilder::new()
-                    .precision(QuantizationPrecision::OneFiveFiveBit)
-                    .strategy(QuantizationStrategy::Symmetric)
-                    .auto_optimization(true)
-                    .adaptive_thresholds(true)
-            },
-            ConfigurationPreset::Custom => {
-                EnhancedQuantizationConfigBuilder::new()
-            },
+            }
+            ConfigurationPreset::Balanced => EnhancedQuantizationConfigBuilder::new()
+                .precision(QuantizationPrecision::OneFiveFiveBit)
+                .strategy(QuantizationStrategy::Symmetric)
+                .auto_optimization(true)
+                .adaptive_thresholds(true),
+            ConfigurationPreset::Custom => EnhancedQuantizationConfigBuilder::new(),
         }
     }
 
@@ -521,7 +517,7 @@ mod tests {
             .auto_optimization(true)
             .build()
             .unwrap();
-        
+
         assert_eq!(config.base.precision, QuantizationPrecision::OneFiveFiveBit);
         assert_eq!(config.base.strategy, QuantizationStrategy::Symmetric);
         assert!(config.auto_optimization);
@@ -539,14 +535,20 @@ mod tests {
     fn test_performance_optimized_preset() {
         let config = ConfigurationPreset::PerformanceOptimized.build().unwrap();
         assert_eq!(config.base.precision, QuantizationPrecision::OneBit);
-        assert_eq!(config.precision_control.dynamic_adjustment.strategy, AdjustmentStrategy::Aggressive);
+        assert_eq!(
+            config.precision_control.dynamic_adjustment.strategy,
+            AdjustmentStrategy::Aggressive
+        );
     }
 
     #[test]
     fn test_accuracy_optimized_preset() {
         let config = ConfigurationPreset::AccuracyOptimized.build().unwrap();
         assert_eq!(config.base.precision, QuantizationPrecision::FourBit);
-        assert_eq!(config.precision_control.dynamic_adjustment.strategy, AdjustmentStrategy::Conservative);
+        assert_eq!(
+            config.precision_control.dynamic_adjustment.strategy,
+            AdjustmentStrategy::Conservative
+        );
     }
 
     #[test]
@@ -555,7 +557,7 @@ mod tests {
             .precision(QuantizationPrecision::OneFiveFiveBit)
             .build()
             .unwrap();
-        
+
         assert!(config.validate().is_ok());
     }
 
@@ -563,8 +565,11 @@ mod tests {
     fn test_weight_config_conversion() {
         let config = ConfigurationPreset::BitNetOptimized.build().unwrap();
         let weight_config = config.to_weight_config();
-        
-        assert_eq!(weight_config.base.precision, QuantizationPrecision::OneFiveFiveBit);
+
+        assert_eq!(
+            weight_config.base.precision,
+            QuantizationPrecision::OneFiveFiveBit
+        );
         assert!(weight_config.normalize_weights);
     }
 
@@ -572,8 +577,11 @@ mod tests {
     fn test_activation_config_conversion() {
         let config = ConfigurationPreset::AccuracyOptimized.build().unwrap();
         let activation_config = config.to_activation_config();
-        
-        assert_eq!(activation_config.base.precision, QuantizationPrecision::FourBit);
+
+        assert_eq!(
+            activation_config.base.precision,
+            QuantizationPrecision::FourBit
+        );
         assert!(activation_config.quantize_attention);
     }
 
@@ -583,7 +591,7 @@ mod tests {
             .precision(QuantizationPrecision::OneBit)
             .build()
             .unwrap();
-        
+
         let bounds = config.get_recommended_bounds();
         assert_eq!(bounds.min_precision, QuantizationPrecision::OneBit);
         assert_eq!(bounds.max_precision, QuantizationPrecision::OneFiveFiveBit);
@@ -596,8 +604,9 @@ mod tests {
                 .precision(QuantizationPrecision::TwoBit)
                 .auto_optimization(true)
                 .adaptive_thresholds(false)
-        }).unwrap();
-        
+        })
+        .unwrap();
+
         assert_eq!(config.base.precision, QuantizationPrecision::TwoBit);
         assert!(config.auto_optimization);
         assert!(!config.adaptive_thresholds);

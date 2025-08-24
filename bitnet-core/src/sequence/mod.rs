@@ -39,7 +39,11 @@ impl Default for PaddingStrategy {
 
 impl PaddingStrategy {
     /// Calculate the target length for padding based on the strategy
-    pub fn calculate_target_length(&self, lengths: &[usize], max_length: Option<usize>) -> Option<usize> {
+    pub fn calculate_target_length(
+        &self,
+        lengths: &[usize],
+        max_length: Option<usize>,
+    ) -> Option<usize> {
         match self {
             PaddingStrategy::None => None,
             PaddingStrategy::LongestInBatch => lengths.iter().max().copied(),
@@ -152,7 +156,10 @@ impl SequenceConfig {
         if let (Some(min), Some(max)) = (self.min_length, self.max_length) {
             if min > max {
                 return Err(SequenceError::InvalidConfiguration {
-                    message: format!("min_length ({}) cannot be greater than max_length ({})", min, max),
+                    message: format!(
+                        "min_length ({}) cannot be greater than max_length ({})",
+                        min, max
+                    ),
                 });
             }
         }
@@ -221,8 +228,7 @@ impl ProcessedSequence {
 
     /// Check if the sequence is valid
     pub fn is_valid(&self) -> bool {
-        self.tokens.len() == self.attention_mask.len()
-            && self.current_length == self.tokens.len()
+        self.tokens.len() == self.attention_mask.len() && self.current_length == self.tokens.len()
     }
 }
 
@@ -262,16 +268,32 @@ impl fmt::Display for SequenceError {
         match self {
             SequenceError::EmptySequence => write!(f, "Empty sequence provided"),
             SequenceError::SequenceTooLong { length, max_length } => {
-                write!(f, "Sequence length {} exceeds maximum {}", length, max_length)
+                write!(
+                    f,
+                    "Sequence length {} exceeds maximum {}",
+                    length, max_length
+                )
             }
             SequenceError::SequenceTooShort { length, min_length } => {
-                write!(f, "Sequence length {} is below minimum {}", length, min_length)
+                write!(
+                    f,
+                    "Sequence length {} is below minimum {}",
+                    length, min_length
+                )
             }
             SequenceError::BelowMinLength { length, min_length } => {
-                write!(f, "Sequence length {} is below minimum {}", length, min_length)
+                write!(
+                    f,
+                    "Sequence length {} is below minimum {}",
+                    length, min_length
+                )
             }
             SequenceError::ExceedsMaxLength { length, max_length } => {
-                write!(f, "Sequence length {} exceeds maximum {}", length, max_length)
+                write!(
+                    f,
+                    "Sequence length {} exceeds maximum {}",
+                    length, max_length
+                )
             }
             SequenceError::BatchTooLarge { size, max_size } => {
                 write!(f, "Batch size {} exceeds maximum {}", size, max_size)
@@ -307,13 +329,13 @@ impl std::error::Error for SequenceError {}
 pub type SequenceResult<T> = Result<T, SequenceError>;
 
 // Re-export commonly used types and functions
-pub use manager::{SequenceManager, ProcessingSummary};
-pub use batching::{SequenceBatch, BatchProcessor};
-pub use padding::{PaddingOptions, pad_sequence};
-pub use truncation::{TruncationOptions, truncate_sequence};
+pub use batching::{BatchProcessor, SequenceBatch};
+pub use manager::{ProcessingSummary, SequenceManager};
 pub use masking::{create_attention_mask, AttentionMaskType};
-pub use validation::{SequenceValidator, validate_sequence_length};
-pub use statistics::{SequenceStats, analyze_sequence_lengths};
+pub use padding::{pad_sequence, PaddingOptions};
+pub use statistics::{analyze_sequence_lengths, SequenceStats};
+pub use truncation::{truncate_sequence, TruncationOptions};
+pub use validation::{validate_sequence_length, SequenceValidator};
 
 #[cfg(test)]
 mod tests {
@@ -324,7 +346,10 @@ mod tests {
         let config = SequenceConfig::default();
         assert_eq!(config.max_length, Some(512));
         assert_eq!(config.padding_strategy, PaddingStrategy::LongestInBatch);
-        assert_eq!(config.truncation_strategy, TruncationStrategy::TruncateRight);
+        assert_eq!(
+            config.truncation_strategy,
+            TruncationStrategy::TruncateRight
+        );
         assert!(config.return_attention_mask);
     }
 
@@ -333,9 +358,9 @@ mod tests {
         let mut config = SequenceConfig::default();
         config.min_length = Some(100);
         config.max_length = Some(50);
-        
+
         assert!(config.validate().is_err());
-        
+
         config.max_length = Some(200);
         assert!(config.validate().is_ok());
     }
@@ -344,17 +369,10 @@ mod tests {
     fn test_processed_sequence_creation() {
         let tokens = vec![1, 2, 3, 0, 0];
         let attention_mask = vec![1, 1, 1, 0, 0];
-        
-        let seq = ProcessedSequence::new(
-            tokens.clone(),
-            3,
-            attention_mask.clone(),
-            false,
-            true,
-            0,
-            2,
-        );
-        
+
+        let seq =
+            ProcessedSequence::new(tokens.clone(), 3, attention_mask.clone(), false, true, 0, 2);
+
         assert_eq!(seq.tokens, tokens);
         assert_eq!(seq.attention_mask, attention_mask);
         assert_eq!(seq.original_length, 3);
@@ -366,17 +384,17 @@ mod tests {
     #[test]
     fn test_padding_strategy_calculate_target_length() {
         let lengths = vec![3, 5, 2];
-        
+
         assert_eq!(
             PaddingStrategy::LongestInBatch.calculate_target_length(&lengths, None),
             Some(5)
         );
-        
+
         assert_eq!(
             PaddingStrategy::FixedLength(10).calculate_target_length(&lengths, None),
             Some(10)
         );
-        
+
         assert_eq!(
             PaddingStrategy::ToMultiple(4).calculate_target_length(&lengths, None),
             Some(8) // 5 rounded up to next multiple of 4

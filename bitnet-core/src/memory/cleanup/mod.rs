@@ -47,34 +47,33 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 
-use std::time::{Duration, SystemTime};
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::time::{Duration, SystemTime};
 use thiserror::Error;
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, warn, error};
+use tracing::{debug, error, info, warn};
 
 // Sub-modules
+pub mod config;
+pub mod device_cleanup;
 pub mod manager;
+pub mod metrics;
 pub mod scheduler;
 pub mod strategies;
-pub mod config;
-pub mod metrics;
-pub mod device_cleanup;
 
 // Re-exports
-pub use manager::{CleanupManager, CleanupOperationResult, CompactionResult};
-pub use scheduler::{CleanupScheduler, CleanupId, ScheduledCleanup};
-pub use strategies::{
-    CleanupStrategy, CleanupPriority,
-    IdleCleanupStrategy, PressureCleanupStrategy, PeriodicCleanupStrategy,
-    DeviceCleanupStrategy, GenerationalCleanupStrategy
-};
 pub use config::CleanupStrategyType;
-pub use config::{CleanupConfig, CleanupPolicy, CleanupThresholds, CleanupFeatureFlags};
+pub use config::{CleanupConfig, CleanupFeatureFlags, CleanupPolicy, CleanupThresholds};
+pub use device_cleanup::{CpuCleanup, DeviceCleanupOps, MetalCleanup};
+pub use manager::{CleanupManager, CleanupOperationResult, CompactionResult};
 pub use metrics::{CleanupMetrics, CleanupOperationMetrics, EfficiencyMetrics};
-pub use device_cleanup::{CpuCleanup, MetalCleanup, DeviceCleanupOps};
+pub use scheduler::{CleanupId, CleanupScheduler, ScheduledCleanup};
+pub use strategies::{
+    CleanupPriority, CleanupStrategy, DeviceCleanupStrategy, GenerationalCleanupStrategy,
+    IdleCleanupStrategy, PeriodicCleanupStrategy, PressureCleanupStrategy,
+};
 
 /// Errors that can occur during cleanup operations
 #[derive(Error, Debug)]
@@ -191,7 +190,12 @@ impl CleanupOperation {
     }
 
     /// Marks the operation as completed successfully
-    pub fn complete_success(&mut self, bytes_freed: u64, allocations_cleaned: u64, duration: Duration) {
+    pub fn complete_success(
+        &mut self,
+        bytes_freed: u64,
+        allocations_cleaned: u64,
+        duration: Duration,
+    ) {
         self.bytes_freed = bytes_freed;
         self.allocations_cleaned = allocations_cleaned;
         self.duration = Some(duration);
@@ -293,7 +297,7 @@ impl GlobalCleanupStats {
     /// Records a cleanup operation
     pub fn record_operation(&mut self, operation: &CleanupOperation) {
         self.total_operations += 1;
-        
+
         if operation.success {
             self.successful_operations += 1;
             self.total_bytes_freed += operation.bytes_freed;
@@ -307,7 +311,8 @@ impl GlobalCleanupStats {
         }
 
         // Update device stats
-        let device_stats = self.device_stats
+        let device_stats = self
+            .device_stats
             .entry(operation.device_type.clone())
             .or_insert_with(|| DeviceCleanupStats {
                 device_type: operation.device_type.clone(),
@@ -316,7 +321,7 @@ impl GlobalCleanupStats {
                 allocations_cleaned: 0,
                 average_efficiency: 0.0,
             });
-        
+
         device_stats.operations += 1;
         if operation.success {
             device_stats.bytes_freed += operation.bytes_freed;
@@ -324,7 +329,8 @@ impl GlobalCleanupStats {
         }
 
         // Update strategy stats
-        let strategy_stats = self.strategy_stats
+        let strategy_stats = self
+            .strategy_stats
             .entry(operation.strategy_type)
             .or_insert_with(|| StrategyCleanupStats {
                 strategy_type: operation.strategy_type,
@@ -333,7 +339,7 @@ impl GlobalCleanupStats {
                 allocations_cleaned: 0,
                 average_efficiency: 0.0,
             });
-        
+
         strategy_stats.operations += 1;
         if operation.success {
             strategy_stats.bytes_freed += operation.bytes_freed;
@@ -395,10 +401,10 @@ mod tests {
     fn test_cleanup_operation_id() {
         let id = CleanupOperationId::new(42);
         assert_eq!(id.raw(), 42);
-        
+
         let id_from_u64: CleanupOperationId = 123.into();
         assert_eq!(id_from_u64.raw(), 123);
-        
+
         let u64_from_id: u64 = id.into();
         assert_eq!(u64_from_id, 42);
     }
@@ -406,25 +412,21 @@ mod tests {
     #[test]
     fn test_cleanup_operation() {
         let id = CleanupOperationId::new(1);
-        let mut operation = CleanupOperation::new(
-            id,
-            CleanupStrategyType::Idle,
-            "CPU".to_string(),
-        );
-        
+        let mut operation = CleanupOperation::new(id, CleanupStrategyType::Idle, "CPU".to_string());
+
         assert_eq!(operation.id, id);
         assert_eq!(operation.strategy_type, CleanupStrategyType::Idle);
         assert_eq!(operation.device_type, "CPU");
         assert!(!operation.success);
         assert_eq!(operation.bytes_freed, 0);
-        
+
         // Test successful completion
         operation.complete_success(1024, 5, Duration::from_millis(100));
         assert!(operation.success);
         assert_eq!(operation.bytes_freed, 1024);
         assert_eq!(operation.allocations_cleaned, 5);
         assert_eq!(operation.duration, Some(Duration::from_millis(100)));
-        
+
         // Test efficiency calculation
         let efficiency = operation.efficiency();
         assert_eq!(efficiency, 10.24); // 1024 bytes / 100 ms
@@ -433,34 +435,32 @@ mod tests {
     #[test]
     fn test_global_cleanup_stats() {
         let mut stats = GlobalCleanupStats::new();
-        
+
         // Create a successful operation
         let id = CleanupOperationId::new(1);
-        let mut operation = CleanupOperation::new(
-            id,
-            CleanupStrategyType::Idle,
-            "CPU".to_string(),
-        );
+        let mut operation = CleanupOperation::new(id, CleanupStrategyType::Idle, "CPU".to_string());
         operation.complete_success(1024, 5, Duration::from_millis(100));
-        
+
         // Record the operation
         stats.record_operation(&operation);
-        
+
         assert_eq!(stats.total_operations, 1);
         assert_eq!(stats.successful_operations, 1);
         assert_eq!(stats.failed_operations, 0);
         assert_eq!(stats.total_bytes_freed, 1024);
         assert_eq!(stats.total_allocations_cleaned, 5);
         assert_eq!(stats.success_rate(), 1.0);
-        
+
         // Check device stats
         assert!(stats.device_stats.contains_key("CPU"));
         let cpu_stats = &stats.device_stats["CPU"];
         assert_eq!(cpu_stats.operations, 1);
         assert_eq!(cpu_stats.bytes_freed, 1024);
-        
+
         // Check strategy stats
-        assert!(stats.strategy_stats.contains_key(&CleanupStrategyType::Idle));
+        assert!(stats
+            .strategy_stats
+            .contains_key(&CleanupStrategyType::Idle));
         let idle_stats = &stats.strategy_stats[&CleanupStrategyType::Idle];
         assert_eq!(idle_stats.operations, 1);
         assert_eq!(idle_stats.bytes_freed, 1024);

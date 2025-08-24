@@ -1,5 +1,5 @@
 //! Comprehensive tests for SIMD unpacking functionality
-//! 
+//!
 //! This module tests the SIMD-optimized weight unpacking system, including:
 //! - SIMD capability detection and configuration
 //! - Platform-specific SIMD implementations (AVX2, SSE2, NEON)
@@ -8,8 +8,8 @@
 //! - Performance characteristics and benchmarking
 //! - Edge cases and error handling
 
-use bitnet_quant::quantization::simd_unpacking::*;
 use bitnet_quant::quantization::packing::*;
+use bitnet_quant::quantization::simd_unpacking::*;
 
 /// Test SIMD capability detection
 #[cfg(test)]
@@ -19,17 +19,17 @@ mod capability_tests {
     #[test]
     fn test_simd_capabilities_detection() {
         let caps = SimdCapabilities::detect();
-        
+
         // Verify detection doesn't panic and returns valid state
         assert!(caps.has_simd() || !caps.has_simd());
-        
+
         // On x86/x86_64, at least one of SSE2/AVX2 should be available on modern systems
         #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
         {
             // Most modern x86 systems have SSE2
             println!("SSE2: {}, AVX2: {}", caps.sse2, caps.avx2);
         }
-        
+
         // On ARM64, NEON should be available
         #[cfg(target_arch = "aarch64")]
         {
@@ -77,10 +77,10 @@ mod capability_tests {
         // Test automatic detection
         let auto_unpacker = SimdUnpacker::new();
         let default_unpacker = SimdUnpacker::default();
-        
+
         // Just verify they were created successfully
         // (simd_available field is private, so we can't directly compare)
-        
+
         // Test manual configuration
         let custom_caps = SimdCapabilities {
             sse2: true,
@@ -99,11 +99,13 @@ mod strategy_tests {
     use super::*;
 
     fn create_test_weights(size: usize) -> Vec<i8> {
-        (0..size).map(|i| match i % 3 {
-            0 => -1i8,
-            1 => 0i8,
-            _ => 1i8,
-        }).collect()
+        (0..size)
+            .map(|i| match i % 3 {
+                0 => -1i8,
+                1 => 0i8,
+                _ => 1i8,
+            })
+            .collect()
     }
 
     #[test]
@@ -111,14 +113,14 @@ mod strategy_tests {
         let weights = create_test_weights(32);
         let config = TernaryPackingConfig::default();
         let packer = BitPacked2BitPacker;
-        
+
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         // Test with SIMD enabled
         let simd_unpacker = SimdUnpacker::new();
         let simd_result = simd_unpacker.unpack(&packed).unwrap();
         assert_eq!(weights, simd_result);
-        
+
         // Test with SIMD disabled
         let scalar_unpacker = SimdUnpacker::with_capabilities(SimdCapabilities {
             sse2: false,
@@ -136,9 +138,9 @@ mod strategy_tests {
         let weights = create_test_weights(25);
         let config = TernaryPackingConfig::default();
         let packer = Base3PackedPacker;
-        
+
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         let unpacker = SimdUnpacker::new();
         let unpacked = unpacker.unpack(&packed).unwrap();
         assert_eq!(weights, unpacked);
@@ -153,9 +155,9 @@ mod strategy_tests {
             ..Default::default()
         };
         let packer = ByteAlignedPacker;
-        
+
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         // Test SIMD vs scalar consistency
         let simd_unpacker = SimdUnpacker::new();
         let scalar_unpacker = SimdUnpacker::with_capabilities(SimdCapabilities {
@@ -163,10 +165,10 @@ mod strategy_tests {
             avx2: false,
             neon: false,
         });
-        
+
         let simd_result = simd_unpacker.unpack(&packed).unwrap();
         let scalar_result = scalar_unpacker.unpack(&packed).unwrap();
-        
+
         assert_eq!(weights, simd_result);
         assert_eq!(simd_result, scalar_result);
     }
@@ -175,17 +177,17 @@ mod strategy_tests {
     fn test_run_length_encoded_unpacking() {
         // Create data with runs for effective RLE
         let weights = vec![
-            0i8, 0, 0, 0,  // Run of 4 zeros
-            1, 1, 1,       // Run of 3 ones
-            -1, -1, -1, -1, -1,  // Run of 5 negative ones
-            0, 0,          // Run of 2 zeros
-            1,             // Single one
+            0i8, 0, 0, 0, // Run of 4 zeros
+            1, 1, 1, // Run of 3 ones
+            -1, -1, -1, -1, -1, // Run of 5 negative ones
+            0, 0, // Run of 2 zeros
+            1, // Single one
         ];
         let config = TernaryPackingConfig::default();
         let packer = RunLengthEncodedPacker;
-        
+
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         let unpacker = SimdUnpacker::new();
         let unpacked = unpacker.unpack(&packed).unwrap();
         assert_eq!(weights, unpacked);
@@ -200,12 +202,12 @@ mod strategy_tests {
         weights[50] = 1;
         weights[75] = -1;
         weights[90] = 1;
-        
+
         let config = TernaryPackingConfig::default();
         let packer = CompressedSparsePacker;
-        
+
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         let unpacker = SimdUnpacker::new();
         let unpacked = unpacker.unpack(&packed).unwrap();
         assert_eq!(weights, unpacked);
@@ -222,110 +224,128 @@ mod consistency_tests {
         let weights = vec![-1i8, 0, 1, -1];
         let config = TernaryPackingConfig::default();
         let packer = BitPacked2BitPacker;
-        
+
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         let simd_unpacker = SimdUnpacker::new();
         let scalar_unpacker = SimdUnpacker::with_capabilities(SimdCapabilities {
             sse2: false,
             avx2: false,
             neon: false,
         });
-        
+
         let simd_result = simd_unpacker.unpack(&packed).unwrap();
         let scalar_result = scalar_unpacker.unpack(&packed).unwrap();
-        
+
         assert_eq!(simd_result, scalar_result);
         assert_eq!(weights, simd_result);
     }
 
     #[test]
     fn test_simd_scalar_consistency_medium_data() {
-        let weights = (0..256).map(|i| match i % 3 {
-            0 => -1i8,
-            1 => 0i8,
-            _ => 1i8,
-        }).collect::<Vec<_>>();
-        
+        let weights = (0..256)
+            .map(|i| match i % 3 {
+                0 => -1i8,
+                1 => 0i8,
+                _ => 1i8,
+            })
+            .collect::<Vec<_>>();
+
         let config = TernaryPackingConfig::default();
         let packer = BitPacked2BitPacker;
-        
+
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         let simd_unpacker = SimdUnpacker::new();
         let scalar_unpacker = SimdUnpacker::with_capabilities(SimdCapabilities {
             sse2: false,
             avx2: false,
             neon: false,
         });
-        
+
         let simd_result = simd_unpacker.unpack(&packed).unwrap();
         let scalar_result = scalar_unpacker.unpack(&packed).unwrap();
-        
+
         assert_eq!(simd_result, scalar_result);
         assert_eq!(weights, simd_result);
     }
 
     #[test]
     fn test_simd_scalar_consistency_large_data() {
-        let weights = (0..4096).map(|i| match i % 3 {
-            0 => -1i8,
-            1 => 0i8,
-            _ => 1i8,
-        }).collect::<Vec<_>>();
-        
+        let weights = (0..4096)
+            .map(|i| match i % 3 {
+                0 => -1i8,
+                1 => 0i8,
+                _ => 1i8,
+            })
+            .collect::<Vec<_>>();
+
         let config = TernaryPackingConfig::default();
         let packer = BitPacked2BitPacker;
-        
+
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         let simd_unpacker = SimdUnpacker::new();
         let scalar_unpacker = SimdUnpacker::with_capabilities(SimdCapabilities {
             sse2: false,
             avx2: false,
             neon: false,
         });
-        
+
         let simd_result = simd_unpacker.unpack(&packed).unwrap();
         let scalar_result = scalar_unpacker.unpack(&packed).unwrap();
-        
+
         assert_eq!(simd_result, scalar_result);
         assert_eq!(weights, simd_result);
     }
 
     #[test]
     fn test_consistency_across_all_strategies() {
-        let weights = (0..100).map(|i| match i % 3 {
-            0 => -1i8,
-            1 => 0i8,
-            _ => 1i8,
-        }).collect::<Vec<_>>();
-        
+        let weights = (0..100)
+            .map(|i| match i % 3 {
+                0 => -1i8,
+                1 => 0i8,
+                _ => 1i8,
+            })
+            .collect::<Vec<_>>();
+
         let strategies = vec![
-            (TernaryPackingStrategy::BitPacked2Bit, Box::new(BitPacked2BitPacker) as Box<dyn TernaryPacker>),
-            (TernaryPackingStrategy::ByteAligned, Box::new(ByteAlignedPacker) as Box<dyn TernaryPacker>),
+            (
+                TernaryPackingStrategy::BitPacked2Bit,
+                Box::new(BitPacked2BitPacker) as Box<dyn TernaryPacker>,
+            ),
+            (
+                TernaryPackingStrategy::ByteAligned,
+                Box::new(ByteAlignedPacker) as Box<dyn TernaryPacker>,
+            ),
         ];
-        
+
         for (strategy, packer) in strategies {
             let config = TernaryPackingConfig {
                 strategy,
                 ..Default::default()
             };
-            
+
             let packed = packer.pack(&weights, &config).unwrap();
-            
+
             let simd_unpacker = SimdUnpacker::new();
             let scalar_unpacker = SimdUnpacker::with_capabilities(SimdCapabilities {
                 sse2: false,
                 avx2: false,
                 neon: false,
             });
-            
+
             let simd_result = simd_unpacker.unpack(&packed).unwrap();
             let scalar_result = scalar_unpacker.unpack(&packed).unwrap();
-            
-            assert_eq!(simd_result, scalar_result, "Inconsistency in strategy: {strategy:?}");
-            assert_eq!(weights, simd_result, "Incorrect unpacking for strategy: {strategy:?}");
+
+            assert_eq!(
+                simd_result, scalar_result,
+                "Inconsistency in strategy: {strategy:?}"
+            );
+            assert_eq!(
+                weights, simd_result,
+                "Incorrect unpacking for strategy: {strategy:?}"
+            );
         }
     }
 }
@@ -340,9 +360,9 @@ mod edge_case_tests {
         let weights: Vec<i8> = vec![];
         let config = TernaryPackingConfig::default();
         let packer = BitPacked2BitPacker;
-        
+
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         let unpacker = SimdUnpacker::new();
         let unpacked = unpacker.unpack(&packed).unwrap();
         assert_eq!(weights, unpacked);
@@ -353,9 +373,9 @@ mod edge_case_tests {
         let weights = vec![1i8];
         let config = TernaryPackingConfig::default();
         let packer = BitPacked2BitPacker;
-        
+
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         let unpacker = SimdUnpacker::new();
         let unpacked = unpacker.unpack(&packed).unwrap();
         assert_eq!(weights, unpacked);
@@ -366,9 +386,9 @@ mod edge_case_tests {
         let weights = vec![-1i8, 0, 1, -1, 0, 1, 0]; // 7 elements
         let config = TernaryPackingConfig::default();
         let packer = BitPacked2BitPacker;
-        
+
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         let unpacker = SimdUnpacker::new();
         let unpacked = unpacker.unpack(&packed).unwrap();
         assert_eq!(weights, unpacked);
@@ -379,9 +399,9 @@ mod edge_case_tests {
         let weights = vec![0i8; 64];
         let config = TernaryPackingConfig::default();
         let packer = BitPacked2BitPacker;
-        
+
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         let unpacker = SimdUnpacker::new();
         let unpacked = unpacker.unpack(&packed).unwrap();
         assert_eq!(weights, unpacked);
@@ -392,9 +412,9 @@ mod edge_case_tests {
         let weights = vec![1i8; 64];
         let config = TernaryPackingConfig::default();
         let packer = BitPacked2BitPacker;
-        
+
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         let unpacker = SimdUnpacker::new();
         let unpacked = unpacker.unpack(&packed).unwrap();
         assert_eq!(weights, unpacked);
@@ -405,9 +425,9 @@ mod edge_case_tests {
         let weights = vec![-1i8; 64];
         let config = TernaryPackingConfig::default();
         let packer = BitPacked2BitPacker;
-        
+
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         let unpacker = SimdUnpacker::new();
         let unpacked = unpacker.unpack(&packed).unwrap();
         assert_eq!(weights, unpacked);
@@ -432,11 +452,11 @@ mod edge_case_tests {
             memory_footprint: 4,
             compression_ratio: 0.1,
         };
-        
+
         let unpacker = SimdUnpacker::new();
         let result = unpacker.unpack(&corrupted_data);
         assert!(result.is_err());
-        
+
         // Test with insufficient data for indices
         corrupted_data.data = vec![0, 0, 0, 2, 0, 0, 0, 1]; // Claims 2 elements but only 1 index
         let result = unpacker.unpack(&corrupted_data);
@@ -449,12 +469,12 @@ mod edge_case_tests {
         let weights = vec![-1i8, 0, 1, -1];
         let config = TernaryPackingConfig::default();
         let packer = BitPacked2BitPacker;
-        
+
         let mut packed = packer.pack(&weights, &config).unwrap();
         // Change to an unsupported strategy that will trigger fallback
         // Since HuffmanCoded doesn't exist, we'll use Hybrid which should trigger fallback in some cases
         packed.strategy = TernaryPackingStrategy::Hybrid;
-        
+
         let unpacker = SimdUnpacker::new();
         let result = unpacker.unpack(&packed);
         // Should use fallback unpacker
@@ -472,31 +492,37 @@ mod utility_tests {
         let weights = vec![-1i8, 0, 1, -1, 0, 1];
         let config = TernaryPackingConfig::default();
         let packer = BitPacked2BitPacker;
-        
+
         let packed = packer.pack(&weights, &config).unwrap();
         let unpacked = simd_unpack_weights(&packed).unwrap();
-        
+
         assert_eq!(weights, unpacked);
     }
 
     #[test]
     fn test_convenience_function_with_different_strategies() {
         let weights = vec![-1i8, 0, 1, -1, 0, 1, 0, 1];
-        
+
         let strategies_and_packers = vec![
-            (TernaryPackingStrategy::BitPacked2Bit, Box::new(BitPacked2BitPacker) as Box<dyn TernaryPacker>),
-            (TernaryPackingStrategy::ByteAligned, Box::new(ByteAlignedPacker) as Box<dyn TernaryPacker>),
+            (
+                TernaryPackingStrategy::BitPacked2Bit,
+                Box::new(BitPacked2BitPacker) as Box<dyn TernaryPacker>,
+            ),
+            (
+                TernaryPackingStrategy::ByteAligned,
+                Box::new(ByteAlignedPacker) as Box<dyn TernaryPacker>,
+            ),
         ];
-        
+
         for (strategy, packer) in strategies_and_packers {
             let config = TernaryPackingConfig {
                 strategy,
                 ..Default::default()
             };
-            
+
             let packed = packer.pack(&weights, &config).unwrap();
             let unpacked = simd_unpack_weights(&packed).unwrap();
-            
+
             assert_eq!(weights, unpacked, "Failed for strategy: {strategy:?}");
         }
     }
@@ -510,62 +536,69 @@ mod performance_tests {
 
     #[test]
     fn test_benchmark_functionality() {
-        let weights = (0..1000).map(|i| match i % 3 {
-            0 => -1i8,
-            1 => 0i8,
-            _ => 1i8,
-        }).collect::<Vec<_>>();
-        
+        let weights = (0..1000)
+            .map(|i| match i % 3 {
+                0 => -1i8,
+                1 => 0i8,
+                _ => 1i8,
+            })
+            .collect::<Vec<_>>();
+
         let config = TernaryPackingConfig::default();
         let packer = BitPacked2BitPacker;
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         // Run a small benchmark
         let benchmark_result = benchmark_unpacking(&packed, 10).unwrap();
-        
-        assert_eq!(benchmark_result.strategy, TernaryPackingStrategy::BitPacked2Bit);
+
+        assert_eq!(
+            benchmark_result.strategy,
+            TernaryPackingStrategy::BitPacked2Bit
+        );
         assert_eq!(benchmark_result.element_count, 1000);
         assert!(benchmark_result.simd_time_ns > 0);
         assert!(benchmark_result.scalar_time_ns > 0);
         assert!(benchmark_result.speedup > 0.0);
-        
+
         println!("Benchmark result: {benchmark_result:?}");
     }
 
     #[test]
     fn test_performance_with_different_sizes() {
         let sizes = vec![100, 1000, 10000];
-        
+
         for size in sizes {
-            let weights = (0..size).map(|i| match i % 3 {
-                0 => -1i8,
-                1 => 0i8,
-                _ => 1i8,
-            }).collect::<Vec<_>>();
-            
+            let weights = (0..size)
+                .map(|i| match i % 3 {
+                    0 => -1i8,
+                    1 => 0i8,
+                    _ => 1i8,
+                })
+                .collect::<Vec<_>>();
+
             let config = TernaryPackingConfig::default();
             let packer = BitPacked2BitPacker;
             let packed = packer.pack(&weights, &config).unwrap();
-            
+
             let simd_unpacker = SimdUnpacker::new();
             let scalar_unpacker = SimdUnpacker::with_capabilities(SimdCapabilities {
                 sse2: false,
                 avx2: false,
                 neon: false,
             });
-            
+
             // Measure basic timing (not precise, but ensures no panics)
             let start = std::time::Instant::now();
             let simd_result = simd_unpacker.unpack(&packed).unwrap();
             let simd_time = start.elapsed();
-            
+
             let start = std::time::Instant::now();
             let scalar_result = scalar_unpacker.unpack(&packed).unwrap();
             let scalar_time = start.elapsed();
-            
+
             assert_eq!(simd_result, scalar_result);
             assert_eq!(weights, simd_result);
-            
+
             println!("Size: {size}, SIMD: {simd_time:?}, Scalar: {scalar_time:?}");
         }
     }
@@ -579,13 +612,13 @@ mod platform_tests {
     #[test]
     fn test_platform_specific_capabilities() {
         let caps = SimdCapabilities::detect();
-        
+
         #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
         {
             // Test x86/x86_64 specific capabilities
             println!("x86/x86_64 platform detected");
             println!("SSE2: {}, AVX2: {}", caps.sse2, caps.avx2);
-            
+
             // Most modern x86 systems should have SSE2
             if caps.sse2 {
                 let sse2_unpacker = SimdUnpacker::with_capabilities(SimdCapabilities {
@@ -593,51 +626,51 @@ mod platform_tests {
                     avx2: false,
                     neon: false,
                 });
-                
+
                 let weights = vec![-1i8, 0, 1, -1, 0, 1, 0, 1];
                 let config = TernaryPackingConfig::default();
                 let packer = BitPacked2BitPacker;
                 let packed = packer.pack(&weights, &config).unwrap();
-                
+
                 let result = sse2_unpacker.unpack(&packed).unwrap();
                 assert_eq!(weights, result);
             }
-            
+
             if caps.avx2 {
                 let avx2_unpacker = SimdUnpacker::with_capabilities(SimdCapabilities {
                     sse2: false,
                     avx2: true,
                     neon: false,
                 });
-                
+
                 let weights = vec![-1i8, 0, 1, -1, 0, 1, 0, 1];
                 let config = TernaryPackingConfig::default();
                 let packer = BitPacked2BitPacker;
                 let packed = packer.pack(&weights, &config).unwrap();
-                
+
                 let result = avx2_unpacker.unpack(&packed).unwrap();
                 assert_eq!(weights, result);
             }
         }
-        
+
         #[cfg(target_arch = "aarch64")]
         {
             // Test ARM64 specific capabilities
             println!("ARM64 platform detected");
             println!("NEON: {}", caps.neon);
-            
+
             if caps.neon {
                 let neon_unpacker = SimdUnpacker::with_capabilities(SimdCapabilities {
                     sse2: false,
                     avx2: false,
                     neon: true,
                 });
-                
+
                 let weights = vec![-1i8, 0, 1, -1, 0, 1, 0, 1];
                 let config = TernaryPackingConfig::default();
                 let packer = BitPacked2BitPacker;
                 let packed = packer.pack(&weights, &config).unwrap();
-                
+
                 let result = neon_unpacker.unpack(&packed).unwrap();
                 assert_eq!(weights, result);
             }
@@ -647,31 +680,53 @@ mod platform_tests {
     #[test]
     fn test_cross_platform_consistency() {
         // Test that results are consistent across different capability configurations
-        let weights = (0..128).map(|i| match i % 3 {
-            0 => -1i8,
-            1 => 0i8,
-            _ => 1i8,
-        }).collect::<Vec<_>>();
-        
+        let weights = (0..128)
+            .map(|i| match i % 3 {
+                0 => -1i8,
+                1 => 0i8,
+                _ => 1i8,
+            })
+            .collect::<Vec<_>>();
+
         let config = TernaryPackingConfig::default();
         let packer = BitPacked2BitPacker;
         let packed = packer.pack(&weights, &config).unwrap();
-        
+
         let configurations = vec![
-            SimdCapabilities { sse2: false, avx2: false, neon: false }, // Scalar only
-            SimdCapabilities { sse2: true, avx2: false, neon: false },  // SSE2 only
-            SimdCapabilities { sse2: false, avx2: true, neon: false },  // AVX2 only
-            SimdCapabilities { sse2: false, avx2: false, neon: true },  // NEON only
-            SimdCapabilities { sse2: true, avx2: true, neon: false },   // x86 with both
+            SimdCapabilities {
+                sse2: false,
+                avx2: false,
+                neon: false,
+            }, // Scalar only
+            SimdCapabilities {
+                sse2: true,
+                avx2: false,
+                neon: false,
+            }, // SSE2 only
+            SimdCapabilities {
+                sse2: false,
+                avx2: true,
+                neon: false,
+            }, // AVX2 only
+            SimdCapabilities {
+                sse2: false,
+                avx2: false,
+                neon: true,
+            }, // NEON only
+            SimdCapabilities {
+                sse2: true,
+                avx2: true,
+                neon: false,
+            }, // x86 with both
         ];
-        
+
         let mut results = Vec::new();
         for caps in configurations {
             let unpacker = SimdUnpacker::with_capabilities(caps);
             let result = unpacker.unpack(&packed).unwrap();
             results.push(result);
         }
-        
+
         // All results should be identical
         for result in &results {
             assert_eq!(weights, *result);
@@ -693,31 +748,35 @@ mod integration_tests {
             (512, 256),  // Medium layer
             (1024, 512), // Large layer
         ];
-        
+
         for (input_size, output_size) in layer_sizes {
             let weight_count = input_size * output_size;
-            let weights = (0..weight_count).map(|i| match i % 3 {
-                0 => -1i8,
-                1 => 0i8,
-                _ => 1i8,
-            }).collect::<Vec<_>>();
-            
+            let weights = (0..weight_count)
+                .map(|i| match i % 3 {
+                    0 => -1i8,
+                    1 => 0i8,
+                    _ => 1i8,
+                })
+                .collect::<Vec<_>>();
+
             let config = TernaryPackingConfig::default();
             let packer = BitPacked2BitPacker;
             let packed = packer.pack(&weights, &config).unwrap();
-            
+
             let unpacker = SimdUnpacker::new();
             let unpacked = unpacker.unpack(&packed).unwrap();
-            
+
             assert_eq!(weights, unpacked);
             assert_eq!(unpacked.len(), weight_count);
-            
+
             // Verify all values are valid ternary
             for &val in &unpacked {
                 assert!(val == -1 || val == 0 || val == 1);
             }
-            
-            println!("Successfully unpacked {input_size}x{output_size} layer ({weight_count} weights)");
+
+            println!(
+                "Successfully unpacked {input_size}x{output_size} layer ({weight_count} weights)"
+            );
         }
     }
 
@@ -726,26 +785,28 @@ mod integration_tests {
         // Test unpacking multiple weight matrices in sequence
         let batch_size = 10;
         let weights_per_matrix = 256;
-        
+
         let mut all_weights = Vec::new();
         let mut all_packed = Vec::new();
-        
+
         // Create batch of packed weights
         for i in 0..batch_size {
-            let weights = (0..weights_per_matrix).map(|j| match (i + j) % 3 {
-                0 => -1i8,
-                1 => 0i8,
-                _ => 1i8,
-            }).collect::<Vec<_>>();
-            
+            let weights = (0..weights_per_matrix)
+                .map(|j| match (i + j) % 3 {
+                    0 => -1i8,
+                    1 => 0i8,
+                    _ => 1i8,
+                })
+                .collect::<Vec<_>>();
+
             let config = TernaryPackingConfig::default();
             let packer = BitPacked2BitPacker;
             let packed = packer.pack(&weights, &config).unwrap();
-            
+
             all_weights.push(weights);
             all_packed.push(packed);
         }
-        
+
         // Unpack all matrices
         let unpacker = SimdUnpacker::new();
         for (i, packed) in all_packed.iter().enumerate() {
@@ -757,29 +818,40 @@ mod integration_tests {
     #[test]
     fn test_mixed_strategy_unpacking() {
         // Test unpacking different strategies in the same session
-        let weights = (0..200).map(|i| match i % 3 {
-            0 => -1i8,
-            1 => 0i8,
-            _ => 1i8,
-        }).collect::<Vec<_>>();
-        
+        let weights = (0..200)
+            .map(|i| match i % 3 {
+                0 => -1i8,
+                1 => 0i8,
+                _ => 1i8,
+            })
+            .collect::<Vec<_>>();
+
         let strategies_and_packers = vec![
-            (TernaryPackingStrategy::BitPacked2Bit, Box::new(BitPacked2BitPacker) as Box<dyn TernaryPacker>),
-            (TernaryPackingStrategy::ByteAligned, Box::new(ByteAlignedPacker) as Box<dyn TernaryPacker>),
-            (TernaryPackingStrategy::Base3Packed, Box::new(Base3PackedPacker) as Box<dyn TernaryPacker>),
+            (
+                TernaryPackingStrategy::BitPacked2Bit,
+                Box::new(BitPacked2BitPacker) as Box<dyn TernaryPacker>,
+            ),
+            (
+                TernaryPackingStrategy::ByteAligned,
+                Box::new(ByteAlignedPacker) as Box<dyn TernaryPacker>,
+            ),
+            (
+                TernaryPackingStrategy::Base3Packed,
+                Box::new(Base3PackedPacker) as Box<dyn TernaryPacker>,
+            ),
         ];
-        
+
         let unpacker = SimdUnpacker::new();
-        
+
         for (strategy, packer) in strategies_and_packers {
             let config = TernaryPackingConfig {
                 strategy,
                 ..Default::default()
             };
-            
+
             let packed = packer.pack(&weights, &config).unwrap();
             let unpacked = unpacker.unpack(&packed).unwrap();
-            
+
             assert_eq!(weights, unpacked, "Failed for strategy: {strategy:?}");
         }
     }

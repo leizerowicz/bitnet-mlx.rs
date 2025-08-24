@@ -100,12 +100,12 @@ impl QuantizationRegularizer {
         }
 
         let mut total_l2 = Tensor::zeros((), DType::F32, &self.device)?;
-        
+
         for (_name, param) in parameters {
             let l2_norm = param.sqr()?.sum_all()?;
             total_l2 = total_l2.broadcast_add(&l2_norm)?;
         }
-        
+
         let weight_tensor = Tensor::new(self.config.weight_decay, &self.device)?;
         total_l2.broadcast_mul(&weight_tensor)
     }
@@ -117,13 +117,13 @@ impl QuantizationRegularizer {
         }
 
         let mut total_penalty = Tensor::zeros((), DType::F32, &self.device)?;
-        
+
         for (_name, param) in parameters {
             // For BitNet, quantization levels are typically [-1, 0, 1]
             let penalty = self.compute_distance_to_quantization_levels(param)?;
             total_penalty = total_penalty.broadcast_add(&penalty)?;
         }
-        
+
         let weight_tensor = Tensor::new(self.config.quantization_penalty, &self.device)?;
         total_penalty.broadcast_mul(&weight_tensor)
     }
@@ -133,16 +133,16 @@ impl QuantizationRegularizer {
         // BitNet quantization levels: -1, 0, 1
         let abs_weights = weights.abs()?;
         let ones = Tensor::ones_like(weights)?;
-        
+
         // Distance to 0
         let dist_to_zero = abs_weights.clone();
-        
+
         // Distance to 1 or -1 (minimum distance)
         let dist_to_one = (abs_weights - &ones)?.abs()?;
-        
+
         // Use minimum distance
         let min_distance = dist_to_zero.minimum(&dist_to_one)?;
-        
+
         // Square the distances and sum
         min_distance.sqr()?.mean_all()
     }

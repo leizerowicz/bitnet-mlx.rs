@@ -32,12 +32,12 @@ impl MemoryTestHarness {
     /// Create a new memory test harness with default configuration
     pub fn new() -> QuantizationResult<Self> {
         let memory_pool = Arc::new(HybridMemoryPool::new()
-            .map_err(|e| QuantizationError::InternalError { 
-                reason: format!("Failed to create memory pool: {:?}", e) 
+            .map_err(|e| QuantizationError::InternalError {
+                reason: format!("Failed to create memory pool: {:?}", e)
             })?);
-        
+
         let device = auto_select_device();
-        
+
         Ok(Self {
             memory_pool,
             device,
@@ -49,12 +49,12 @@ impl MemoryTestHarness {
     /// Create a memory test harness with custom memory pool configuration
     pub fn with_config(config: MemoryPoolConfig) -> QuantizationResult<Self> {
         let memory_pool = Arc::new(HybridMemoryPool::with_config(config)
-            .map_err(|e| QuantizationError::InternalError { 
-                reason: format!("Failed to create memory pool with config: {:?}", e) 
+            .map_err(|e| QuantizationError::InternalError {
+                reason: format!("Failed to create memory pool with config: {:?}", e)
             })?);
-        
+
         let device = auto_select_device();
-        
+
         Ok(Self {
             memory_pool,
             device,
@@ -76,8 +76,8 @@ impl MemoryTestHarness {
     /// Allocate memory and track the allocation
     pub fn allocate(&mut self, size: usize, alignment: usize, operation: &str) -> QuantizationResult<MemoryHandle> {
         let handle = self.memory_pool.allocate(size, alignment, &self.device)
-            .map_err(|e| QuantizationError::InternalError { 
-                reason: format!("Memory allocation failed: {:?}", e) 
+            .map_err(|e| QuantizationError::InternalError {
+                reason: format!("Memory allocation failed: {:?}", e)
             })?;
 
         let record = AllocationRecord {
@@ -98,8 +98,8 @@ impl MemoryTestHarness {
     pub fn deallocate_all(&mut self) -> QuantizationResult<()> {
         for handle in self.allocated_handles.drain(..) {
             self.memory_pool.deallocate(handle)
-                .map_err(|e| QuantizationError::InternalError { 
-                    reason: format!("Memory deallocation failed: {:?}", e) 
+                .map_err(|e| QuantizationError::InternalError {
+                    reason: format!("Memory deallocation failed: {:?}", e)
                 })?;
         }
         Ok(())
@@ -108,7 +108,7 @@ impl MemoryTestHarness {
     /// Check for memory leaks by comparing allocated vs deallocated
     pub fn check_for_leaks(&self) -> MemoryLeakReport {
         let metrics = self.memory_pool.get_metrics();
-        
+
         MemoryLeakReport {
             total_allocated: metrics.total_allocated,
             peak_allocated: metrics.peak_allocated,
@@ -123,7 +123,7 @@ impl MemoryTestHarness {
     /// Get memory usage statistics
     pub fn get_memory_stats(&self) -> MemoryTestStatistics {
         let metrics = self.memory_pool.get_metrics();
-        
+
         let total_requested: usize = self.allocation_history.iter()
             .map(|r| r.size)
             .sum();
@@ -148,12 +148,12 @@ impl MemoryTestHarness {
     pub fn reset(&mut self) -> QuantizationResult<()> {
         self.allocated_handles.clear();
         self.allocation_history.clear();
-        
+
         self.memory_pool.reset()
-            .map_err(|e| QuantizationError::InternalError { 
-                reason: format!("Memory pool reset failed: {:?}", e) 
+            .map_err(|e| QuantizationError::InternalError {
+                reason: format!("Memory pool reset failed: {:?}", e)
             })?;
-        
+
         Ok(())
     }
 
@@ -164,26 +164,26 @@ impl MemoryTestHarness {
     {
         let initial_metrics = self.memory_pool.get_metrics();
         let start_time = Instant::now();
-        
+
         let result = f(&self.device, &self.memory_pool)?;
-        
+
         let final_metrics = self.memory_pool.get_metrics();
         let duration = start_time.elapsed();
-        
+
         let memory_delta = final_metrics.current_allocated as i64 - initial_metrics.current_allocated as i64;
-        
+
         // Record the operation
         let record = AllocationRecord {
             timestamp: start_time,
             size: memory_delta.abs() as usize,
             alignment: 0, // Not applicable for tracked operations
             handle_id: 0, // Not applicable for tracked operations
-            operation: format!("{} (duration: {:?}, memory_delta: {})", 
+            operation: format!("{} (duration: {:?}, memory_delta: {})",
                              operation_name, duration, memory_delta),
         };
-        
+
         self.allocation_history.push(record);
-        
+
         Ok(result)
     }
 }
@@ -201,7 +201,7 @@ pub struct MemoryLeakReport {
 
 impl MemoryLeakReport {
     pub fn is_clean(&self) -> bool {
-        !self.has_potential_leaks && 
+        !self.has_potential_leaks &&
         self.tracked_handles_count == 0 &&
         self.allocation_count == self.deallocation_count
     }
@@ -237,8 +237,8 @@ impl TestMemoryPool {
         };
 
         let pool = HybridMemoryPool::with_config(config.clone())
-            .map_err(|e| QuantizationError::InternalError { 
-                reason: format!("Failed to create test memory pool: {:?}", e) 
+            .map_err(|e| QuantizationError::InternalError {
+                reason: format!("Failed to create test memory pool: {:?}", e)
             })?;
 
         Ok(Self { pool, config })
@@ -258,8 +258,8 @@ impl TestMemoryPool {
         };
 
         let pool = HybridMemoryPool::with_config(config.clone())
-            .map_err(|e| QuantizationError::InternalError { 
-                reason: format!("Failed to create stress test memory pool: {:?}", e) 
+            .map_err(|e| QuantizationError::InternalError {
+                reason: format!("Failed to create stress test memory pool: {:?}", e)
             })?;
 
         Ok(Self { pool, config })
@@ -285,12 +285,12 @@ pub struct ConcurrentMemoryTestHarness {
 impl ConcurrentMemoryTestHarness {
     pub fn new() -> QuantizationResult<Self> {
         let memory_pool = Arc::new(HybridMemoryPool::new()
-            .map_err(|e| QuantizationError::InternalError { 
-                reason: format!("Failed to create concurrent memory pool: {:?}", e) 
+            .map_err(|e| QuantizationError::InternalError {
+                reason: format!("Failed to create concurrent memory pool: {:?}", e)
             })?);
-        
+
         let device = auto_select_device();
-        
+
         Ok(Self { memory_pool, device })
     }
 
@@ -314,7 +314,7 @@ impl ConcurrentMemoryTestHarness {
         let test_fn = Arc::new(test_fn);
 
         let mut handles = Vec::new();
-        
+
         for thread_id in 0..num_threads {
             let pool = self.memory_pool.clone();
             let device = self.device.clone();
@@ -335,8 +335,8 @@ impl ConcurrentMemoryTestHarness {
         let mut thread_results = HashMap::new();
         for _ in 0..num_threads {
             let (thread_id, result) = rx.recv()
-                .map_err(|e| QuantizationError::InternalError { 
-                    reason: format!("Failed to receive thread result: {}", e) 
+                .map_err(|e| QuantizationError::InternalError {
+                    reason: format!("Failed to receive thread result: {}", e)
                 })?;
             thread_results.insert(thread_id, result);
         }
@@ -344,8 +344,8 @@ impl ConcurrentMemoryTestHarness {
         // Wait for all threads to complete
         for handle in handles {
             handle.join()
-                .map_err(|e| QuantizationError::InternalError { 
-                    reason: format!("Thread join failed: {:?}", e) 
+                .map_err(|e| QuantizationError::InternalError {
+                    reason: format!("Thread join failed: {:?}", e)
                 })?;
         }
 
@@ -397,7 +397,7 @@ pub struct ConcurrentTestResults {
 
 impl ConcurrentTestResults {
     pub fn success_rate(&self) -> f64 {
-        if self.num_threads == 0 { 0.0 } 
+        if self.num_threads == 0 { 0.0 }
         else { self.successful_threads as f64 / self.num_threads as f64 }
     }
 
@@ -431,30 +431,30 @@ mod tests {
     #[test]
     fn test_allocation_and_tracking() {
         let mut harness = MemoryTestHarness::new().unwrap();
-        
+
         let handle = harness.allocate(1024, 16, "test_allocation").unwrap();
         assert_eq!(harness.allocated_handles.len(), 1);
         assert_eq!(harness.allocation_history.len(), 1);
-        
+
         let stats = harness.get_memory_stats();
         assert_eq!(stats.total_allocations, 1);
         assert_eq!(stats.total_bytes_requested, 1024);
     }
 
-    #[test] 
+    #[test]
     fn test_memory_leak_detection() {
         let mut harness = MemoryTestHarness::new().unwrap();
-        
+
         // Allocate some memory
         let _handle = harness.allocate(2048, 32, "leak_test").unwrap();
-        
+
         let leak_report = harness.check_for_leaks();
         assert!(leak_report.has_potential_leaks);
         assert_eq!(leak_report.tracked_handles_count, 1);
-        
+
         // Clean up
         harness.deallocate_all().unwrap();
-        
+
         let clean_report = harness.check_for_leaks();
         assert_eq!(clean_report.tracked_handles_count, 0);
     }
@@ -462,29 +462,29 @@ mod tests {
     #[test]
     fn test_concurrent_memory_harness() {
         let harness = ConcurrentMemoryTestHarness::new().unwrap();
-        
+
         // Simple test function that allocates and deallocates memory
         let test_fn = |pool: Arc<HybridMemoryPool>, device: Device, _thread_id: usize| -> QuantizationResult<Vec<Duration>> {
             let mut durations = Vec::new();
-            
+
             for _ in 0..10 {
                 let start = Instant::now();
                 let handle = pool.allocate(1024, 16, &device)
-                    .map_err(|e| QuantizationError::InternalError { 
-                        reason: format!("Allocation failed: {:?}", e) 
+                    .map_err(|e| QuantizationError::InternalError {
+                        reason: format!("Allocation failed: {:?}", e)
                     })?;
                 pool.deallocate(handle)
-                    .map_err(|e| QuantizationError::InternalError { 
-                        reason: format!("Deallocation failed: {:?}", e) 
+                    .map_err(|e| QuantizationError::InternalError {
+                        reason: format!("Deallocation failed: {:?}", e)
                     })?;
                 durations.push(start.elapsed());
             }
-            
+
             Ok(durations)
         };
 
         let results = harness.run_concurrent_test(4, 10, test_fn).unwrap();
-        
+
         assert_eq!(results.num_threads, 4);
         assert_eq!(results.operations_per_thread, 10);
         assert!(results.is_successful());

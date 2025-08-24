@@ -3,7 +3,9 @@
 //! This module provides comprehensive configuration for mixed precision operations,
 //! allowing fine-grained control over precision settings for different layers and components.
 
-use super::{LayerType, ComponentType, MixedPrecisionStrategy, MixedPrecisionError, MixedPrecisionResult};
+use super::{
+    ComponentType, LayerType, MixedPrecisionError, MixedPrecisionResult, MixedPrecisionStrategy,
+};
 use crate::memory::tensor::BitNetDType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -99,7 +101,11 @@ impl MixedPrecisionConfig {
     }
 
     /// Add a component-specific precision configuration
-    pub fn with_component_config(mut self, component_type: ComponentType, config: ComponentPrecisionConfig) -> Self {
+    pub fn with_component_config(
+        mut self,
+        component_type: ComponentType,
+        config: ComponentPrecisionConfig,
+    ) -> Self {
         self.component_configs.insert(component_type, config);
         self
     }
@@ -157,18 +163,17 @@ impl MixedPrecisionConfig {
         // Validate layer configurations
         for (layer_name, config) in &self.layer_configs {
             config.validate().map_err(|e| {
-                MixedPrecisionError::InvalidConfiguration(
-                    format!("Layer '{}': {}", layer_name, e)
-                )
+                MixedPrecisionError::InvalidConfiguration(format!("Layer '{}': {}", layer_name, e))
             })?;
         }
 
         // Validate component configurations
         for (component_type, config) in &self.component_configs {
             config.validate().map_err(|e| {
-                MixedPrecisionError::InvalidConfiguration(
-                    format!("Component '{:?}': {}", component_type, e)
-                )
+                MixedPrecisionError::InvalidConfiguration(format!(
+                    "Component '{:?}': {}",
+                    component_type, e
+                ))
             })?;
         }
 
@@ -241,7 +246,11 @@ impl LayerPrecisionConfig {
     }
 
     /// Add a component-specific precision override
-    pub fn with_component_override(mut self, component: ComponentType, precision: BitNetDType) -> Self {
+    pub fn with_component_override(
+        mut self,
+        component: ComponentType,
+        precision: BitNetDType,
+    ) -> Self {
         self.component_overrides.insert(component, precision);
         self
     }
@@ -267,24 +276,29 @@ impl LayerPrecisionConfig {
 
     /// Get the precision for a specific component in this layer
     pub fn get_component_precision(&self, component: ComponentType) -> BitNetDType {
-        self.component_overrides.get(&component).copied().unwrap_or(self.precision)
+        self.component_overrides
+            .get(&component)
+            .copied()
+            .unwrap_or(self.precision)
     }
 
     /// Validate the configuration
     pub fn validate(&self) -> MixedPrecisionResult<()> {
         // Check if the layer type supports the specified precision
         if !self.layer_type.supports_precision(self.precision) {
-            return Err(MixedPrecisionError::InvalidConfiguration(
-                format!("Layer type {:?} does not support precision {:?}", self.layer_type, self.precision)
-            ));
+            return Err(MixedPrecisionError::InvalidConfiguration(format!(
+                "Layer type {:?} does not support precision {:?}",
+                self.layer_type, self.precision
+            )));
         }
 
         // Validate component overrides
         for (component, precision) in &self.component_overrides {
             if !component.supports_precision(*precision) {
-                return Err(MixedPrecisionError::InvalidConfiguration(
-                    format!("Component {:?} does not support precision {:?}", component, precision)
-                ));
+                return Err(MixedPrecisionError::InvalidConfiguration(format!(
+                    "Component {:?} does not support precision {:?}",
+                    component, precision
+                )));
             }
         }
 
@@ -292,14 +306,15 @@ impl LayerPrecisionConfig {
         if let (Some(min), Some(max)) = (self.min_precision, self.max_precision) {
             if min.bits_per_element() > max.bits_per_element() {
                 return Err(MixedPrecisionError::InvalidConfiguration(
-                    "Minimum precision cannot be higher than maximum precision".to_string()
+                    "Minimum precision cannot be higher than maximum precision".to_string(),
                 ));
             }
 
-            if self.precision.bits_per_element() < min.bits_per_element() ||
-               self.precision.bits_per_element() > max.bits_per_element() {
+            if self.precision.bits_per_element() < min.bits_per_element()
+                || self.precision.bits_per_element() > max.bits_per_element()
+            {
                 return Err(MixedPrecisionError::InvalidConfiguration(
-                    "Layer precision is outside specified bounds".to_string()
+                    "Layer precision is outside specified bounds".to_string(),
                 ));
             }
         }
@@ -352,9 +367,10 @@ impl ComponentPrecisionConfig {
     pub fn validate(&self) -> MixedPrecisionResult<()> {
         // Check if the component type supports the specified precision
         if !self.component_type.supports_precision(self.precision) {
-            return Err(MixedPrecisionError::InvalidConfiguration(
-                format!("Component type {:?} does not support precision {:?}", self.component_type, self.precision)
-            ));
+            return Err(MixedPrecisionError::InvalidConfiguration(format!(
+                "Component type {:?} does not support precision {:?}",
+                self.component_type, self.precision
+            )));
         }
 
         // Validate adjustment parameters if dynamic adjustment is enabled
@@ -395,25 +411,25 @@ impl AdjustmentParams {
     pub fn validate(&self) -> MixedPrecisionResult<()> {
         if self.increase_threshold <= 0.0 || self.increase_threshold > 1.0 {
             return Err(MixedPrecisionError::InvalidConfiguration(
-                "Increase threshold must be between 0 and 1".to_string()
+                "Increase threshold must be between 0 and 1".to_string(),
             ));
         }
 
         if self.decrease_threshold <= 0.0 || self.decrease_threshold > 1.0 {
             return Err(MixedPrecisionError::InvalidConfiguration(
-                "Decrease threshold must be between 0 and 1".to_string()
+                "Decrease threshold must be between 0 and 1".to_string(),
             ));
         }
 
         if self.max_adjustment_steps == 0 {
             return Err(MixedPrecisionError::InvalidConfiguration(
-                "Max adjustment steps must be greater than 0".to_string()
+                "Max adjustment steps must be greater than 0".to_string(),
             ));
         }
 
         if self.evaluation_frequency == 0 {
             return Err(MixedPrecisionError::InvalidConfiguration(
-                "Evaluation frequency must be greater than 0".to_string()
+                "Evaluation frequency must be greater than 0".to_string(),
             ));
         }
 
@@ -480,13 +496,13 @@ impl MemoryOptimizationConfig {
     pub fn validate(&self) -> MixedPrecisionResult<()> {
         if self.memory_pressure_threshold <= 0.0 || self.memory_pressure_threshold > 1.0 {
             return Err(MixedPrecisionError::InvalidConfiguration(
-                "Memory pressure threshold must be between 0 and 1".to_string()
+                "Memory pressure threshold must be between 0 and 1".to_string(),
             ));
         }
 
         if self.target_memory_reduction < 0.0 || self.target_memory_reduction > 1.0 {
             return Err(MixedPrecisionError::InvalidConfiguration(
-                "Target memory reduction must be between 0 and 1".to_string()
+                "Target memory reduction must be between 0 and 1".to_string(),
             ));
         }
 
@@ -553,14 +569,14 @@ impl PerformanceOptimizationConfig {
     pub fn validate(&self) -> MixedPrecisionResult<()> {
         if self.vectorization_threshold == 0 {
             return Err(MixedPrecisionError::InvalidConfiguration(
-                "Vectorization threshold must be greater than 0".to_string()
+                "Vectorization threshold must be greater than 0".to_string(),
             ));
         }
 
         if let Some(threads) = self.num_threads {
             if threads == 0 {
                 return Err(MixedPrecisionError::InvalidConfiguration(
-                    "Number of threads must be greater than 0".to_string()
+                    "Number of threads must be greater than 0".to_string(),
                 ));
             }
         }
@@ -625,8 +641,14 @@ mod tests {
         assert_eq!(config.layer_type, LayerType::Linear);
         assert_eq!(config.precision, BitNetDType::BitNet158);
         assert!(config.auto_adjust);
-        assert_eq!(config.get_component_precision(ComponentType::Bias), BitNetDType::F16);
-        assert_eq!(config.get_component_precision(ComponentType::Weights), BitNetDType::BitNet158);
+        assert_eq!(
+            config.get_component_precision(ComponentType::Bias),
+            BitNetDType::F16
+        );
+        assert_eq!(
+            config.get_component_precision(ComponentType::Weights),
+            BitNetDType::BitNet158
+        );
     }
 
     #[test]
@@ -645,8 +667,11 @@ mod tests {
         assert!(config.validate().is_ok());
 
         // Add invalid layer config
-        let invalid_layer_config = LayerPrecisionConfig::new(LayerType::Normalization, BitNetDType::I1);
-        config.layer_configs.insert("test_layer".to_string(), invalid_layer_config);
+        let invalid_layer_config =
+            LayerPrecisionConfig::new(LayerType::Normalization, BitNetDType::I1);
+        config
+            .layer_configs
+            .insert("test_layer".to_string(), invalid_layer_config);
         assert!(config.validate().is_err());
     }
 

@@ -1,5 +1,5 @@
 //! MLX tensor operations for BitNet
-//! 
+//!
 //! This module provides MLX-accelerated tensor operations specifically
 //! optimized for BitNet quantization and neural network operations.
 
@@ -7,8 +7,8 @@
 use mlx_rs::{Array, Dtype as MlxDtype};
 
 use crate::memory::MemoryHandle;
-use crate::tensor::dtype::BitNetDType;
 use crate::mlx::device::BitNetMlxDevice;
+use crate::tensor::dtype::BitNetDType;
 use anyhow::Result;
 
 /// MLX tensor wrapper with BitNet integration
@@ -24,11 +24,7 @@ pub struct MlxTensor {
 #[cfg(feature = "mlx")]
 impl MlxTensor {
     /// Create a new MLX tensor
-    pub fn new(
-        array: Array,
-        device: BitNetMlxDevice,
-        dtype: BitNetDType,
-    ) -> Self {
+    pub fn new(array: Array, device: BitNetMlxDevice, dtype: BitNetDType) -> Self {
         Self {
             array,
             device,
@@ -50,51 +46,35 @@ impl MlxTensor {
     }
 
     /// Create a tensor from raw data
-    pub fn from_data(
-        data: &[f32],
-        shape: &[usize],
-        device: BitNetMlxDevice,
-    ) -> Result<Self> {
+    pub fn from_data(data: &[f32], shape: &[usize], device: BitNetMlxDevice) -> Result<Self> {
         let mlx_shape: Vec<i32> = shape.iter().map(|&x| x as i32).collect();
         let array = Array::from_slice(data, &mlx_shape);
-        
+
         Ok(Self::new(array, device, BitNetDType::F32))
     }
 
     /// Create a zeros tensor
-    pub fn zeros(
-        shape: &[usize],
-        dtype: BitNetDType,
-        device: BitNetMlxDevice,
-    ) -> Result<Self> {
+    pub fn zeros(shape: &[usize], dtype: BitNetDType, device: BitNetMlxDevice) -> Result<Self> {
         let mlx_shape: Vec<i32> = shape.iter().map(|&x| x as i32).collect();
         let array = mlx_rs::ops::zeros::<f32>(&mlx_shape)?;
-        
+
         Ok(Self::new(array, device, dtype))
     }
 
     /// Create a ones tensor
-    pub fn ones(
-        shape: &[usize],
-        dtype: BitNetDType,
-        device: BitNetMlxDevice,
-    ) -> Result<Self> {
+    pub fn ones(shape: &[usize], dtype: BitNetDType, device: BitNetMlxDevice) -> Result<Self> {
         let mlx_shape: Vec<i32> = shape.iter().map(|&x| x as i32).collect();
         let array = mlx_rs::ops::ones::<f32>(&mlx_shape)?;
-        
+
         Ok(Self::new(array, device, dtype))
     }
 
     /// Create a random normal tensor
-    pub fn randn(
-        shape: &[usize],
-        dtype: BitNetDType,
-        device: BitNetMlxDevice,
-    ) -> Result<Self> {
+    pub fn randn(shape: &[usize], dtype: BitNetDType, device: BitNetMlxDevice) -> Result<Self> {
         let mlx_shape: Vec<i32> = shape.iter().map(|&x| x as i32).collect();
         // For now, use ones and then we can improve this later with actual random generation
         let array = mlx_rs::ops::ones::<f32>(&mlx_shape)?;
-        
+
         Ok(Self::new(array, device, dtype))
     }
 
@@ -150,7 +130,7 @@ impl MlxTensor {
     pub fn reshape(&self, new_shape: &[usize]) -> Result<Self> {
         let mlx_shape: Vec<i32> = new_shape.iter().map(|&x| x as i32).collect();
         let reshaped = self.array.reshape(&mlx_shape)?;
-        
+
         Ok(Self::new(reshaped, self.device.clone(), self.dtype()))
     }
 
@@ -187,7 +167,7 @@ impl BitNetDType {
             BitNetDType::Bool => MlxDtype::Bool,
             BitNetDType::QInt8 => MlxDtype::Int8, // Map to closest available
             BitNetDType::QInt4 => MlxDtype::Int8, // Map to closest available
-            BitNetDType::Int4 => MlxDtype::Int8, // Map to closest available
+            BitNetDType::Int4 => MlxDtype::Int8,  // Map to closest available
             BitNetDType::BitNet158 => MlxDtype::Int8, // Map to closest available
             BitNetDType::BitNet11 => MlxDtype::Int8, // Map to closest available
             BitNetDType::BitNet1 => MlxDtype::Int8, // Map to closest available

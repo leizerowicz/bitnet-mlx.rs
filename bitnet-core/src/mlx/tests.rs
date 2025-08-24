@@ -3,17 +3,17 @@
 #[cfg(test)]
 #[cfg(feature = "mlx")]
 mod tests {
-    use crate::mlx::{create_mlx_array, mlx_to_candle_tensor, candle_to_mlx_array};
+    use crate::mlx::{candle_to_mlx_array, create_mlx_array, mlx_to_candle_tensor};
     use crate::tensor::create_tensor_f32;
 
     #[test]
     fn test_create_mlx_array() {
         let shape = &[2, 3];
         let data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
-        
+
         let result = create_mlx_array(shape, data);
         assert!(result.is_ok());
-        
+
         let array = result.unwrap();
         assert_eq!(array.shape(), &[2, 3]);
     }
@@ -22,7 +22,7 @@ mod tests {
     fn test_create_mlx_array_invalid_data_length() {
         let shape = &[2, 3]; // Expects 6 elements
         let data = vec![1.0, 2.0, 3.0]; // Only 3 elements
-        
+
         let result = create_mlx_array(shape, data);
         assert!(result.is_err());
     }
@@ -31,10 +31,10 @@ mod tests {
     fn test_mlx_to_candle_tensor() {
         let shape = &[2, 2];
         let data = vec![1.0, 2.0, 3.0, 4.0];
-        
+
         let array = create_mlx_array(shape, data.clone()).unwrap();
         let result = mlx_to_candle_tensor(&array);
-        
+
         assert!(result.is_ok());
         let tensor = result.unwrap();
         assert_eq!(tensor.shape().dims(), &[2, 2]);
@@ -44,10 +44,10 @@ mod tests {
     fn test_candle_to_mlx_array() {
         let data = vec![1.0, 2.0, 3.0, 4.0];
         let tensor = create_tensor_f32(&[2, 2], data).unwrap();
-        
+
         let result = candle_to_mlx_array(&tensor);
         assert!(result.is_ok());
-        
+
         let array = result.unwrap();
         assert_eq!(array.shape(), &[2, 2]);
     }
@@ -57,11 +57,11 @@ mod tests {
         // Test: Candle -> MLX -> Candle
         let original_data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
         let original_tensor = create_tensor_f32(&[2, 3], original_data.clone()).unwrap();
-        
+
         // Convert to MLX array
         let mlx_array = candle_to_mlx_array(&original_tensor).unwrap();
         assert_eq!(mlx_array.shape(), &[2, 3]);
-        
+
         // Convert back to Candle tensor
         let final_tensor = mlx_to_candle_tensor(&mlx_array).unwrap();
         assert_eq!(final_tensor.shape().dims(), &[2, 3]);
@@ -86,10 +86,10 @@ mod tests {
     fn test_empty_array() {
         let shape = &[0];
         let data = vec![];
-        
+
         let result = create_mlx_array(shape, data);
         assert!(result.is_ok());
-        
+
         let array = result.unwrap();
         assert_eq!(array.shape(), &[0]);
     }
@@ -162,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_quantize_dequantize_round_trip() {
-        use crate::mlx::{mlx_quantize, mlx_dequantize};
+        use crate::mlx::{mlx_dequantize, mlx_quantize};
         use mlx_rs::Array;
 
         // Test round-trip: original -> quantize -> dequantize
@@ -171,12 +171,12 @@ mod tests {
 
         // Quantize
         let quantized = mlx_quantize(&original, Some(scale)).unwrap();
-        
+
         // Dequantize
         let dequantized = mlx_dequantize(&quantized, Some(scale)).unwrap();
 
         assert_eq!(dequantized.shape(), &[2, 2]);
-        
+
         // With scale=1.0, we should get back the original values (rounded)
         let result_data = dequantized.as_slice::<f32>();
         let expected = vec![1.0, 2.0, 3.0, 4.0];
@@ -229,7 +229,7 @@ mod stub_tests {
     fn test_mlx_functions_without_feature() {
         let shape = &[2, 2];
         let data = vec![1.0, 2.0, 3.0, 4.0];
-        
+
         // All functions should return errors when MLX feature is not enabled
         assert!(create_mlx_array(shape, data).is_err());
         assert!(mlx_to_candle_tensor(&()).is_err());

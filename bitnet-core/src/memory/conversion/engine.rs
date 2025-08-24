@@ -5,11 +5,11 @@
 //! and managing resources efficiently.
 
 use crate::memory::conversion::{
-    ConversionResult, ConversionError, ConversionContext, Converter, ConversionStrategy,
-    config::ConversionConfig, ZeroCopyConverter, StreamingConverter, InPlaceConverter, 
-    BatchConverter, ConversionPipeline, ConversionStats, ConversionEvent, ConversionQuality
+    config::ConversionConfig, BatchConverter, ConversionContext, ConversionError, ConversionEvent,
+    ConversionPipeline, ConversionQuality, ConversionResult, ConversionStats, ConversionStrategy,
+    Converter, InPlaceConverter, StreamingConverter, ZeroCopyConverter,
 };
-use crate::memory::tensor::{BitNetTensor, BitNetDType};
+use crate::memory::tensor::{BitNetDType, BitNetTensor};
 use crate::memory::HybridMemoryPool;
 use candle_core::Device;
 use std::sync::Arc;
@@ -39,7 +39,9 @@ pub struct ConversionEngine {
 impl ConversionEngine {
     /// Creates a new conversion engine
     pub fn new(config: ConversionConfig, pool: Arc<HybridMemoryPool>) -> ConversionResult<Self> {
-        config.validate().map_err(|e| ConversionError::ConfigError { reason: e })?;
+        config
+            .validate()
+            .map_err(|e| ConversionError::ConfigError { reason: e })?;
 
         let streaming_converter = StreamingConverter::new(config.streaming.clone())?;
         let batch_converter = BatchConverter::new(config.batch.clone())?;
@@ -80,7 +82,10 @@ impl ConversionEngine {
         let input_size = source.size_bytes();
 
         #[cfg(feature = "tracing")]
-        info!("Converting tensor from {} to {} with quality {:?}", source_dtype, target_dtype, quality);
+        info!(
+            "Converting tensor from {} to {} with quality {:?}",
+            source_dtype, target_dtype, quality
+        );
 
         // Create conversion event for tracking
         let mut event = ConversionEvent::new(
@@ -110,8 +115,9 @@ impl ConversionEngine {
             device.clone(),
             device.clone(),
             shape,
-        ).with_strategy(self.config.default_strategy)
-         .with_quality(quality);
+        )
+        .with_strategy(self.config.default_strategy)
+        .with_quality(quality);
 
         // Select optimal converter and strategy
         let (converter, strategy) = self.select_optimal_converter(&context)?;
@@ -122,11 +128,15 @@ impl ConversionEngine {
             Ok(tensor) => {
                 let duration = start_time.elapsed();
                 event.output_size_bytes = tensor.size_bytes();
-                let completed_event = event.complete_success(duration, tensor.size_bytes(), tensor.size_bytes());
+                let completed_event =
+                    event.complete_success(duration, tensor.size_bytes(), tensor.size_bytes());
                 self.stats.record_event(completed_event);
 
                 #[cfg(feature = "tracing")]
-                info!("Conversion completed successfully in {:?} using strategy {:?}", duration, strategy);
+                info!(
+                    "Conversion completed successfully in {:?} using strategy {:?}",
+                    duration, strategy
+                );
 
                 Ok(tensor)
             }
@@ -156,10 +166,16 @@ impl ConversionEngine {
         }
 
         #[cfg(feature = "tracing")]
-        info!("Batch converting {} tensors to {}", sources.len(), target_dtype);
+        info!(
+            "Batch converting {} tensors to {}",
+            sources.len(),
+            target_dtype
+        );
 
         let start_time = Instant::now();
-        let result = self.batch_converter.batch_convert(sources, target_dtype, &self.pool);
+        let result = self
+            .batch_converter
+            .batch_convert(sources, target_dtype, &self.pool);
 
         match result {
             Ok(tensors) => {
@@ -178,8 +194,13 @@ impl ConversionEngine {
                         source.size_bytes(),
                         target.size_bytes(),
                         source.element_count(),
-                    ).complete_success(duration / sources.len() as u32, target.size_bytes(), target.size_bytes());
-                    
+                    )
+                    .complete_success(
+                        duration / sources.len() as u32,
+                        target.size_bytes(),
+                        target.size_bytes(),
+                    );
+
                     self.stats.record_event(event);
                 }
 
@@ -201,8 +222,9 @@ impl ConversionEngine {
                         source.size_bytes(),
                         0,
                         source.element_count(),
-                    ).complete_failure(duration / sources.len() as u32, e.to_string());
-                    
+                    )
+                    .complete_failure(duration / sources.len() as u32, e.to_string());
+
                     self.stats.record_event(event);
                 }
 
@@ -224,13 +246,18 @@ impl ConversionEngine {
         info!("Mixed batch converting {} tensors", conversions.len());
 
         let start_time = Instant::now();
-        let result = self.batch_converter.batch_convert_mixed(conversions, &self.pool);
+        let result = self
+            .batch_converter
+            .batch_convert_mixed(conversions, &self.pool);
 
         match result {
             Ok(tensors) => {
                 let duration = start_time.elapsed();
                 #[cfg(feature = "tracing")]
-                info!("Mixed batch conversion completed successfully in {:?}", duration);
+                info!(
+                    "Mixed batch conversion completed successfully in {:?}",
+                    duration
+                );
 
                 // Record events for each conversion
                 for ((source, target_dtype), target) in conversions.iter().zip(tensors.iter()) {
@@ -243,8 +270,13 @@ impl ConversionEngine {
                         source.size_bytes(),
                         target.size_bytes(),
                         source.element_count(),
-                    ).complete_success(duration / conversions.len() as u32, target.size_bytes(), target.size_bytes());
-                    
+                    )
+                    .complete_success(
+                        duration / conversions.len() as u32,
+                        target.size_bytes(),
+                        target.size_bytes(),
+                    );
+
                     self.stats.record_event(event);
                 }
 
@@ -266,8 +298,9 @@ impl ConversionEngine {
                         source.size_bytes(),
                         0,
                         source.element_count(),
-                    ).complete_failure(duration / conversions.len() as u32, e.to_string());
-                    
+                    )
+                    .complete_failure(duration / conversions.len() as u32, e.to_string());
+
                     self.stats.record_event(event);
                 }
 
@@ -293,7 +326,8 @@ impl ConversionEngine {
             source.device(),
             source.device(),
             source.shape(),
-        ).with_strategy(ConversionStrategy::ZeroCopy);
+        )
+        .with_strategy(ConversionStrategy::ZeroCopy);
 
         if !self.zero_copy_converter.supports(&context) {
             return Err(ConversionError::UnsupportedConversion {
@@ -302,7 +336,8 @@ impl ConversionEngine {
             });
         }
 
-        self.zero_copy_converter.convert(source, &context, &self.pool)
+        self.zero_copy_converter
+            .convert(source, &context, &self.pool)
     }
 
     /// Performs streaming conversion for large tensors
@@ -314,7 +349,7 @@ impl ConversionEngine {
     ) -> ConversionResult<BitNetTensor> {
         let mut config = self.config.streaming.clone();
         config.chunk_size = chunk_size;
-        
+
         let streaming_converter = StreamingConverter::new(config)?;
         let context = ConversionContext::new(
             source.dtype(),
@@ -322,7 +357,8 @@ impl ConversionEngine {
             source.device(),
             source.device(),
             source.shape(),
-        ).with_strategy(ConversionStrategy::Streaming);
+        )
+        .with_strategy(ConversionStrategy::Streaming);
 
         streaming_converter.convert(source, &context, &self.pool)
     }
@@ -333,14 +369,18 @@ impl ConversionEngine {
         tensor: &mut BitNetTensor,
         target_dtype: BitNetDType,
     ) -> ConversionResult<()> {
-        if !self.in_place_converter.is_in_place_compatible(tensor.dtype(), target_dtype) {
+        if !self
+            .in_place_converter
+            .is_in_place_compatible(tensor.dtype(), target_dtype)
+        {
             return Err(ConversionError::UnsupportedConversion {
                 from: tensor.dtype(),
                 to: target_dtype,
             });
         }
 
-        self.in_place_converter.convert_in_place(tensor, target_dtype)
+        self.in_place_converter
+            .convert_in_place(tensor, target_dtype)
     }
 
     /// Selects the optimal converter and strategy for the given context
@@ -361,9 +401,15 @@ impl ConversionEngine {
                 } else {
                     // Fallback to in-place if zero-copy not supported
                     if self.in_place_converter.supports(context) {
-                        return Ok((Box::new(InPlaceConverter::new_lossy()), ConversionStrategy::InPlace));
+                        return Ok((
+                            Box::new(InPlaceConverter::new_lossy()),
+                            ConversionStrategy::InPlace,
+                        ));
                     } else {
-                        return Ok((Box::new(self.streaming_converter.clone()), ConversionStrategy::Streaming));
+                        return Ok((
+                            Box::new(self.streaming_converter.clone()),
+                            ConversionStrategy::Streaming,
+                        ));
                     }
                 }
             }
@@ -372,15 +418,14 @@ impl ConversionEngine {
                     Box::new(InPlaceConverter::new_lossy())
                 } else {
                     // Fallback to streaming
-                    return Ok((Box::new(self.streaming_converter.clone()), ConversionStrategy::Streaming));
+                    return Ok((
+                        Box::new(self.streaming_converter.clone()),
+                        ConversionStrategy::Streaming,
+                    ));
                 }
             }
-            ConversionStrategy::Streaming => {
-                Box::new(self.streaming_converter.clone())
-            }
-            ConversionStrategy::Standard => {
-                Box::new(self.streaming_converter.clone())
-            }
+            ConversionStrategy::Streaming => Box::new(self.streaming_converter.clone()),
+            ConversionStrategy::Standard => Box::new(self.streaming_converter.clone()),
             ConversionStrategy::Auto => {
                 unreachable!("Auto strategy should have been resolved")
             }
@@ -446,9 +491,9 @@ impl ConversionEngine {
             vec![1], // Dummy shape for checking support
         );
 
-        self.zero_copy_converter.supports(&context) ||
-        self.in_place_converter.supports(&context) ||
-        self.streaming_converter.supports(&context)
+        self.zero_copy_converter.supports(&context)
+            || self.in_place_converter.supports(&context)
+            || self.streaming_converter.supports(&context)
     }
 
     /// Returns information about the optimal strategy for a conversion
@@ -469,7 +514,8 @@ impl ConversionEngine {
 
         let optimal_strategy = context.optimal_strategy();
         let memory_overhead = context.memory_overhead_bytes();
-        let estimated_time = self.estimate_conversion_time(source_dtype, target_dtype, shape, device);
+        let estimated_time =
+            self.estimate_conversion_time(source_dtype, target_dtype, shape, device);
         let is_supported = self.is_conversion_supported(source_dtype, target_dtype, device);
 
         ConversionStrategyInfo {
@@ -487,7 +533,7 @@ impl ConversionEngine {
     fn calculate_compression_ratio(source_dtype: BitNetDType, target_dtype: BitNetDType) -> f64 {
         let source_bits = source_dtype.bits_per_element() as f64;
         let target_bits = target_dtype.bits_per_element() as f64;
-        
+
         if target_bits == 0.0 {
             1.0
         } else {
@@ -552,8 +598,12 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let config = ConversionConfig::default();
         let engine = ConversionEngine::new(config, pool).unwrap();
-        
-        assert!(engine.is_conversion_supported(BitNetDType::F32, BitNetDType::F16, &get_cpu_device()));
+
+        assert!(engine.is_conversion_supported(
+            BitNetDType::F32,
+            BitNetDType::F16,
+            &get_cpu_device()
+        ));
     }
 
     #[test]
@@ -584,7 +634,7 @@ mod tests {
 
         let results = engine.batch_convert(&sources, BitNetDType::F16).unwrap();
         assert_eq!(results.len(), 2);
-        
+
         for result in &results {
             assert_eq!(result.dtype(), BitNetDType::F16);
         }

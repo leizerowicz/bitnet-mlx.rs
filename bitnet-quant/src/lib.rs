@@ -35,105 +35,96 @@
 //! - [`quantization::activations`]: Activation-specific quantization
 //! - [`quantization::utils`]: Utilities and helper functions
 
-pub mod quantization;
 pub mod bitlinear;
-pub mod simd;
 pub mod calibration;
 pub mod metrics;
+pub mod quantization;
+pub mod simd;
 pub mod tensor_integration;
 
 // Re-export commonly used items for convenience
 pub use quantization::{
-    QuantizationPrecision, QuantizationStrategy, QuantizationConfig,
-    QuantizationStats, QuantizationResult, Quantizer, QuantizerFactory,
+    QuantizationConfig, QuantizationPrecision, QuantizationResult, QuantizationStats,
+    QuantizationStrategy, Quantizer, QuantizerFactory,
 };
 
 pub use bitlinear::{
-    BitLinear, BitLinearConfig, BitLinearForward, BitLinearError, BitLinearResult,
-    QuantizedWeightCache, CacheEntry, CacheConfig,
+    BitLinear, BitLinearConfig, BitLinearError, BitLinearForward, BitLinearResult, CacheConfig,
+    CacheEntry, QuantizedWeightCache,
 };
 
 pub use quantization::weights::{
-    WeightQuantizer, WeightQuantizationConfig, QuantizedWeight,
-    TernaryMethod, TernaryStats, create_ternary_quantizer, quantize_weights_ternary,
-    absmean_quantize_weights,
+    absmean_quantize_weights, create_ternary_quantizer, quantize_weights_ternary, QuantizedWeight,
+    TernaryMethod, TernaryStats, WeightQuantizationConfig, WeightQuantizer,
 };
 
 pub use quantization::packing::{
-    TernaryPackingStrategy, TernaryPackingConfig, PackedTernaryWeights,
-    TernaryPacker, TernaryPackerFactory, PackingSavingsEstimate,
+    PackedTernaryWeights, PackingSavingsEstimate, TernaryPacker, TernaryPackerFactory,
+    TernaryPackingConfig, TernaryPackingStrategy,
 };
 
-pub use quantization::simd_unpacking::{
-    SimdUnpacker, SimdCapabilities, simd_unpack_weights,
-};
+pub use quantization::simd_unpacking::{simd_unpack_weights, SimdCapabilities, SimdUnpacker};
 
 pub use quantization::activations::{
-    ActivationQuantizer, ActivationQuantizationConfig, QuantizedActivation,
-    absmax_quantize_activations,
+    absmax_quantize_activations, ActivationQuantizationConfig, ActivationQuantizer,
+    QuantizedActivation,
 };
 
 pub use quantization::utils::{
-    QuantizationError, ScalingFactor, QuantizationUtils,
-    MemorySavingsEstimate, BitUtils, CalibrationUtils,
+    BitUtils, CalibrationUtils, MemorySavingsEstimate, QuantizationError, QuantizationUtils,
+    ScalingFactor,
 };
 
 pub use quantization::corruption_detection::{
-    CorruptionDetector, CorruptionReport, CorruptionType, CorruptionSeverity,
-    RecoveryAction, RecoveryPlan, StrategyValidator,
+    CorruptionDetector, CorruptionReport, CorruptionSeverity, CorruptionType, RecoveryAction,
+    RecoveryPlan, StrategyValidator,
 };
 
 pub use quantization::config::{
-    QuantizationConfig as EnhancedQuantizationConfig,
-    WeightQuantizationConfig as EnhancedWeightQuantizationConfig,
     ActivationQuantizationConfig as EnhancedActivationQuantizationConfig,
-    AttentionQuantizationConfig, PackingConfig as EnhancedPackingConfig, SimdConfig,
-    ConfigValidationError, QuantizationConfigBuilder, WeightQuantizationConfigBuilder,
+    AttentionQuantizationConfig, ConfigValidationError, PackingConfig as EnhancedPackingConfig,
+    QuantizationConfig as EnhancedQuantizationConfig, QuantizationConfigBuilder, SimdConfig,
+    WeightQuantizationConfig as EnhancedWeightQuantizationConfig, WeightQuantizationConfigBuilder,
 };
 
 pub use quantization::schemes::{
-    ConfigurableQuantizationScheme, QuantizationSchemeConfig, QuantizationSchemeFactory,
-    QuantizedTensor, SchemeParameters, OneBitParams, OneFiveEightBitParams, MultiBitParams,
-    BinaryThresholdMethod, ThresholdConfig, OptimizationConfig,
+    BinaryThresholdMethod, ConfigurableQuantizationScheme, MultiBitParams, OneBitParams,
+    OneFiveEightBitParams, OptimizationConfig, QuantizationSchemeConfig, QuantizationSchemeFactory,
+    QuantizedTensor, SchemeParameters, ThresholdConfig,
 };
 
 pub use quantization::precision_control::{
-    PrecisionController, PrecisionControlConfig, PrecisionBounds, DynamicAdjustmentConfig,
-    PrecisionMonitoringConfig, PrecisionValidationConfig, PerformanceThresholds,
-    AdjustmentStrategy, PrecisionMetric, AlertThresholds, PrecisionState, MetricsHistory,
-    PrecisionAdjustment, AdjustmentReason, PerformanceImpact, PerformanceSummary,
-    create_precision_controller, create_conservative_precision_controller,
-    create_aggressive_precision_controller,
+    create_aggressive_precision_controller, create_conservative_precision_controller,
+    create_precision_controller, AdjustmentReason, AdjustmentStrategy, AlertThresholds,
+    DynamicAdjustmentConfig, MetricsHistory, PerformanceImpact, PerformanceSummary,
+    PerformanceThresholds, PrecisionAdjustment, PrecisionBounds, PrecisionControlConfig,
+    PrecisionController, PrecisionMetric, PrecisionMonitoringConfig, PrecisionState,
+    PrecisionValidationConfig,
 };
 
 pub use quantization::enhanced_config::{
+    create_custom_enhanced_config, create_enhanced_config, ConfigurationPreset,
     EnhancedQuantizationConfigBuilder, EnhancedQuantizationConfiguration,
-    ConfigurationPreset, create_enhanced_config, create_custom_enhanced_config,
 };
 
-pub use metrics::{
-    QuantizationMetrics,
-};
+pub use metrics::QuantizationMetrics;
 
 /// Tensor integration re-exports
 pub use tensor_integration::{
-    TensorIntegrationError, TensorIntegrationResult, QuantizationAwareTensorOps,
-    TensorIntegrationFactory, GlobalTensorIntegrationConfig,
+    GlobalTensorIntegrationConfig, QuantizationAwareTensorOps, TensorIntegrationError,
+    TensorIntegrationFactory, TensorIntegrationResult,
 };
 
-pub use tensor_integration::bitnet_ops::{
-    BitNetTensorOps, 
-    BitNetQuantizationConfig,
-};
+pub use tensor_integration::bitnet_ops::{BitNetQuantizationConfig, BitNetTensorOps};
 
 pub use tensor_integration::bitlinear_tensor::{
-    WeightQuantizationTensor, ActivationQuantizationTensor, 
-    BitLinearTensorError, LayerNormIntegration,
+    ActivationQuantizationTensor, BitLinearTensorError, LayerNormIntegration,
+    WeightQuantizationTensor,
 };
 
 pub use tensor_integration::calibration_tensor::{
-    CalibrationTensor, CalibrationConfig, CalibrationDataset,
-    StatisticsCollector, CalibrationError, CalibrationResults,
+    CalibrationConfig, CalibrationDataset, CalibrationError, CalibrationResults, CalibrationTensor,
+    StatisticsCollector,
 };
 
 // pub use tensor_integration::qat_tensor::{
@@ -142,78 +133,73 @@ pub use tensor_integration::calibration_tensor::{
 // };
 
 pub use tensor_integration::precision_tensor::{
-    MixedPrecisionTensor, PrecisionPolicy, PrecisionTensorOps,
-    PrecisionConfig, MixedPrecisionError, LayerType,
-    PerformanceOptimizedPrecision, AccuracyOptimizedPrecision,
+    AccuracyOptimizedPrecision, LayerType, MixedPrecisionError, MixedPrecisionTensor,
+    PerformanceOptimizedPrecision, PrecisionConfig, PrecisionPolicy, PrecisionTensorOps,
 };
 
 /// Prelude module for convenient imports
 pub mod prelude {
     pub use crate::quantization::{
-        QuantizationPrecision, QuantizationStrategy, QuantizationConfig,
-        Quantizer, QuantizerFactory, QuantizationResult,
+        QuantizationConfig, QuantizationPrecision, QuantizationResult, QuantizationStrategy,
+        Quantizer, QuantizerFactory,
     };
-    
+
     pub use crate::quantization::weights::{
-        WeightQuantizer, WeightQuantizationConfig, QuantizedWeight,
-        TernaryMethod, TernaryStats, create_ternary_quantizer,
-        absmean_quantize_weights,
+        absmean_quantize_weights, create_ternary_quantizer, QuantizedWeight, TernaryMethod,
+        TernaryStats, WeightQuantizationConfig, WeightQuantizer,
     };
-    
+
     pub use crate::quantization::packing::{
-        TernaryPackingStrategy, TernaryPackingConfig, PackedTernaryWeights,
-        TernaryPacker, TernaryPackerFactory, PackingSavingsEstimate,
+        PackedTernaryWeights, PackingSavingsEstimate, TernaryPacker, TernaryPackerFactory,
+        TernaryPackingConfig, TernaryPackingStrategy,
     };
-    
+
     pub use crate::quantization::simd_unpacking::{
-        SimdUnpacker, SimdCapabilities, simd_unpack_weights,
+        simd_unpack_weights, SimdCapabilities, SimdUnpacker,
     };
-    
+
     pub use crate::quantization::activations::{
-        ActivationQuantizer, ActivationQuantizationConfig, QuantizedActivation,
-        absmax_quantize_activations,
+        absmax_quantize_activations, ActivationQuantizationConfig, ActivationQuantizer,
+        QuantizedActivation,
     };
-    
-    pub use crate::quantization::utils::{
-        QuantizationError, ScalingFactor, QuantizationUtils,
-    };
-    
+
+    pub use crate::quantization::utils::{QuantizationError, QuantizationUtils, ScalingFactor};
+
     pub use crate::quantization::corruption_detection::{
-        CorruptionDetector, CorruptionReport, CorruptionType, CorruptionSeverity,
-        RecoveryAction, RecoveryPlan,
+        CorruptionDetector, CorruptionReport, CorruptionSeverity, CorruptionType, RecoveryAction,
+        RecoveryPlan,
     };
-    
+
     pub use crate::quantization::config::{
-        QuantizationConfig as EnhancedQuantizationConfig,
-        WeightQuantizationConfig as EnhancedWeightQuantizationConfig,
         ActivationQuantizationConfig as EnhancedActivationQuantizationConfig,
-        AttentionQuantizationConfig, PackingConfig as EnhancedPackingConfig, SimdConfig,
-        ConfigValidationError, QuantizationConfigBuilder, WeightQuantizationConfigBuilder,
+        AttentionQuantizationConfig, ConfigValidationError, PackingConfig as EnhancedPackingConfig,
+        QuantizationConfig as EnhancedQuantizationConfig, QuantizationConfigBuilder, SimdConfig,
+        WeightQuantizationConfig as EnhancedWeightQuantizationConfig,
+        WeightQuantizationConfigBuilder,
     };
-    
+
     pub use crate::quantization::schemes::{
-        ConfigurableQuantizationScheme, QuantizationSchemeConfig, QuantizationSchemeFactory,
-        QuantizedTensor, SchemeParameters, OneBitParams, OneFiveEightBitParams, MultiBitParams,
-        BinaryThresholdMethod, ThresholdConfig, OptimizationConfig,
+        BinaryThresholdMethod, ConfigurableQuantizationScheme, MultiBitParams, OneBitParams,
+        OneFiveEightBitParams, OptimizationConfig, QuantizationSchemeConfig,
+        QuantizationSchemeFactory, QuantizedTensor, SchemeParameters, ThresholdConfig,
     };
-    
+
     pub use crate::quantization::precision_control::{
-        PrecisionController, PrecisionControlConfig, PrecisionBounds, DynamicAdjustmentConfig,
-        AdjustmentStrategy, PrecisionMetric, PrecisionState, PerformanceSummary,
-        create_precision_controller, create_conservative_precision_controller,
-        create_aggressive_precision_controller,
+        create_aggressive_precision_controller, create_conservative_precision_controller,
+        create_precision_controller, AdjustmentStrategy, DynamicAdjustmentConfig,
+        PerformanceSummary, PrecisionBounds, PrecisionControlConfig, PrecisionController,
+        PrecisionMetric, PrecisionState,
     };
 
     pub use crate::metrics::{
-        QuantizationMetrics, LayerErrorAnalysis, ErrorThresholds, MitigationStrategy,
-        MetricsConfig, ExportFormat, MetricsCalculator, MetricsExporter,
+        ErrorThresholds, ExportFormat, LayerErrorAnalysis, MetricsCalculator, MetricsConfig,
+        MetricsExporter, MitigationStrategy, QuantizationMetrics,
     };
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     #[test]
     fn test_quantization_precision_enum() {

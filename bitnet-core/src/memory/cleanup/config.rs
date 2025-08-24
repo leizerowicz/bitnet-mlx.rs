@@ -4,8 +4,8 @@
 //! allowing fine-tuning of cleanup behavior, thresholds, and policies to match
 //! specific application requirements and hardware characteristics.
 
-use std::time::Duration;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 /// Comprehensive configuration for the cleanup system
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -331,8 +331,8 @@ impl Default for AgeThresholds {
 impl Default for SizeThresholds {
     fn default() -> Self {
         Self {
-            min_cleanup_size: 1024, // 1KB
-            large_allocation_threshold: 1024 * 1024, // 1MB
+            min_cleanup_size: 1024,                    // 1KB
+            large_allocation_threshold: 1024 * 1024,   // 1MB
             total_memory_threshold: 512 * 1024 * 1024, // 512MB
             pool_utilization_threshold: 0.8,
         }
@@ -545,10 +545,14 @@ impl CleanupConfig {
         // Validate pressure thresholds
         let p = &self.thresholds.pressure;
         if p.light_cleanup_threshold >= p.aggressive_cleanup_threshold {
-            return Err("Light cleanup threshold must be less than aggressive threshold".to_string());
+            return Err(
+                "Light cleanup threshold must be less than aggressive threshold".to_string(),
+            );
         }
         if p.aggressive_cleanup_threshold >= p.emergency_cleanup_threshold {
-            return Err("Aggressive cleanup threshold must be less than emergency threshold".to_string());
+            return Err(
+                "Aggressive cleanup threshold must be less than emergency threshold".to_string(),
+            );
         }
         if p.emergency_cleanup_threshold > 1.0 {
             return Err("Emergency cleanup threshold cannot exceed 1.0".to_string());
@@ -560,7 +564,10 @@ impl CleanupConfig {
             return Err("Minimum idle time must be less than light cleanup idle time".to_string());
         }
         if i.light_cleanup_idle_time >= i.aggressive_cleanup_idle_time {
-            return Err("Light cleanup idle time must be less than aggressive cleanup idle time".to_string());
+            return Err(
+                "Light cleanup idle time must be less than aggressive cleanup idle time"
+                    .to_string(),
+            );
         }
 
         // Validate age thresholds

@@ -66,7 +66,7 @@ impl NumericalStabilityResults {
 /// Run comprehensive numerical stability tests
 pub fn run_numerical_stability_tests(device: &Device) -> QuantizationResult<NumericalStabilityResults> {
     let mut results = NumericalStabilityResults::default();
-    
+
     let test_conditions = vec![
         ("Extreme Values", test_extreme_values_stability),
         ("Near-Zero Values", test_near_zero_stability),
@@ -80,11 +80,11 @@ pub fn run_numerical_stability_tests(device: &Device) -> QuantizationResult<Nume
 
     for (condition_name, test_fn) in test_conditions {
         results.stability_tests_run += 1;
-        
+
         match test_fn(device, 20) { // 20 iterations per condition
             Ok(condition_result) => {
                 let is_stable = condition_result.severity_level != SeverityLevel::Critical;
-                
+
                 if is_stable {
                     results.stability_tests_passed += 1;
                 } else {
@@ -129,11 +129,11 @@ fn test_extreme_values_stability(device: &Device, iterations: usize) -> Quantiza
 
     for i in 0..iterations {
         let extreme_value = extreme_values[i % extreme_values.len()];
-        
+
         // Create tensor filled with extreme values
         let tensor = Tensor::new(vec![extreme_value; 64], device)
-            .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-                reason: format!("Failed to create extreme tensor: {}", e) 
+            .map_err(|e| crate::quantization::QuantizationError::TensorError {
+                reason: format!("Failed to create extreme tensor: {}", e)
             })?;
 
         let quantizer = create_ternary_quantizer(TernaryMethod::AdaptiveThreshold, Some(0.7))?;
@@ -143,7 +143,7 @@ fn test_extreme_values_stability(device: &Device, iterations: usize) -> Quantiza
                 if let Ok(dequantized) = quantizer.dequantize(&quantized) {
                     // Calculate relative error
                     let relative_error = calculate_relative_error(&tensor, &dequantized)?;
-                    
+
                     if relative_error.is_finite() && !relative_error.is_nan() {
                         relative_errors.push(relative_error);
                         condition_result.successful_iterations += 1;
@@ -180,15 +180,15 @@ fn test_near_zero_stability(device: &Device, iterations: usize) -> QuantizationR
 
     for i in 0..iterations {
         let epsilon = f32::EPSILON * (10.0_f32).powi(i as i32 % 10);
-        
+
         // Create tensor with values near zero
         let values: Vec<f32> = (0..64)
             .map(|j| epsilon * (j as f32 % 2.0 * 2.0 - 1.0)) // Alternating signs
             .collect();
-        
+
         let tensor = Tensor::new(values, device)
-            .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-                reason: format!("Failed to create near-zero tensor: {}", e) 
+            .map_err(|e| crate::quantization::QuantizationError::TensorError {
+                reason: format!("Failed to create near-zero tensor: {}", e)
             })?;
 
         let quantizer = create_ternary_quantizer(TernaryMethod::MeanThreshold, Some(0.7))?;
@@ -198,7 +198,7 @@ fn test_near_zero_stability(device: &Device, iterations: usize) -> QuantizationR
                 if let Ok(dequantized) = quantizer.dequantize(&quantized) {
                     // For near-zero values, use absolute error instead of relative
                     let absolute_error = calculate_absolute_error(&tensor, &dequantized)?;
-                    
+
                     if absolute_error.is_finite() && !absolute_error.is_nan() {
                         relative_errors.push(absolute_error);
                         condition_result.successful_iterations += 1;
@@ -241,10 +241,10 @@ fn test_high_dynamic_range_stability(device: &Device, iterations: usize) -> Quan
             let sign = if (j / 2) % 2 == 0 { 1.0 } else { -1.0 };
             values.push(magnitude * sign * (i as f32 + 1.0));
         }
-        
+
         let tensor = Tensor::new(values, device)
-            .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-                reason: format!("Failed to create high dynamic range tensor: {}", e) 
+            .map_err(|e| crate::quantization::QuantizationError::TensorError {
+                reason: format!("Failed to create high dynamic range tensor: {}", e)
             })?;
 
         let quantizer = create_ternary_quantizer(TernaryMethod::OptimalThreshold, Some(0.7))?;
@@ -253,7 +253,7 @@ fn test_high_dynamic_range_stability(device: &Device, iterations: usize) -> Quan
             Ok(quantized) => {
                 if let Ok(dequantized) = quantizer.dequantize(&quantized) {
                     let relative_error = calculate_relative_error(&tensor, &dequantized)?;
-                    
+
                     if relative_error.is_finite() && !relative_error.is_nan() {
                         relative_errors.push(relative_error);
                         condition_result.successful_iterations += 1;
@@ -300,15 +300,15 @@ fn test_precision_boundary_stability(device: &Device, iterations: usize) -> Quan
 
     for i in 0..iterations {
         let base_value = boundary_values[i % boundary_values.len()];
-        
+
         // Create tensor with precision boundary values
         let values: Vec<f32> = (0..64)
             .map(|j| base_value * (1.0 + f32::EPSILON * j as f32))
             .collect();
-        
+
         let tensor = Tensor::new(values, device)
-            .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-                reason: format!("Failed to create precision boundary tensor: {}", e) 
+            .map_err(|e| crate::quantization::QuantizationError::TensorError {
+                reason: format!("Failed to create precision boundary tensor: {}", e)
             })?;
 
         let quantizer = create_ternary_quantizer(TernaryMethod::MedianThreshold, Some(0.7))?;
@@ -317,7 +317,7 @@ fn test_precision_boundary_stability(device: &Device, iterations: usize) -> Quan
             Ok(quantized) => {
                 if let Ok(dequantized) = quantizer.dequantize(&quantized) {
                     let relative_error = calculate_relative_error(&tensor, &dequantized)?;
-                    
+
                     if relative_error.is_finite() && !relative_error.is_nan() {
                         relative_errors.push(relative_error);
                         condition_result.successful_iterations += 1;
@@ -358,10 +358,10 @@ fn test_gradient_explosion_stability(device: &Device, iterations: usize) -> Quan
         let values: Vec<f32> = (0..64)
             .map(|j| growth_factor * (j as f32 - 32.0))
             .collect();
-        
+
         let tensor = Tensor::new(values, device)
-            .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-                reason: format!("Failed to create gradient explosion tensor: {}", e) 
+            .map_err(|e| crate::quantization::QuantizationError::TensorError {
+                reason: format!("Failed to create gradient explosion tensor: {}", e)
             })?;
 
         let quantizer = create_ternary_quantizer(TernaryMethod::AdaptiveThreshold, Some(0.7))?;
@@ -370,7 +370,7 @@ fn test_gradient_explosion_stability(device: &Device, iterations: usize) -> Quan
             Ok(quantized) => {
                 if let Ok(dequantized) = quantizer.dequantize(&quantized) {
                     let relative_error = calculate_relative_error(&tensor, &dequantized)?;
-                    
+
                     if relative_error.is_finite() && !relative_error.is_nan() {
                         relative_errors.push(relative_error);
                         condition_result.successful_iterations += 1;
@@ -409,17 +409,17 @@ fn test_catastrophic_cancellation_stability(device: &Device, iterations: usize) 
         // Create scenarios prone to catastrophic cancellation
         let base_value = 1e7 * (i as f32 + 1.0);
         let small_diff = 1e-5 * (i as f32 + 1.0);
-        
+
         let values: Vec<f32> = (0..32).flat_map(|j| {
             vec![
                 base_value + small_diff * j as f32,
                 -base_value + small_diff * j as f32,
             ]
         }).collect();
-        
+
         let tensor = Tensor::new(values, device)
-            .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-                reason: format!("Failed to create catastrophic cancellation tensor: {}", e) 
+            .map_err(|e| crate::quantization::QuantizationError::TensorError {
+                reason: format!("Failed to create catastrophic cancellation tensor: {}", e)
             })?;
 
         let quantizer = create_ternary_quantizer(TernaryMethod::MeanThreshold, Some(0.7))?;
@@ -428,7 +428,7 @@ fn test_catastrophic_cancellation_stability(device: &Device, iterations: usize) 
             Ok(quantized) => {
                 if let Ok(dequantized) = quantizer.dequantize(&quantized) {
                     let relative_error = calculate_relative_error(&tensor, &dequantized)?;
-                    
+
                     if relative_error.is_finite() && !relative_error.is_nan() {
                         relative_errors.push(relative_error);
                         condition_result.successful_iterations += 1;
@@ -466,8 +466,8 @@ fn test_accumulated_rounding_stability(device: &Device, iterations: usize) -> Qu
     for i in 0..iterations {
         // Start with a base tensor
         let mut current_tensor = generate_test_tensor(
-            TestPattern::NormalDistribution, 
-            &[64], 
+            TestPattern::NormalDistribution,
+            &[64],
             device
         )?;
 
@@ -497,7 +497,7 @@ fn test_accumulated_rounding_stability(device: &Device, iterations: usize) -> Qu
 
         // Calculate accumulated error
         let relative_error = calculate_relative_error(&original_tensor, &current_tensor)?;
-        
+
         if relative_error.is_finite() && !relative_error.is_nan() {
             relative_errors.push(relative_error);
             condition_result.successful_iterations += 1;
@@ -526,8 +526,8 @@ fn test_threshold_sensitivity_stability(device: &Device, iterations: usize) -> Q
 
     for i in 0..iterations {
         let tensor = generate_test_tensor(
-            TestPattern::UniformDistribution, 
-            &[64], 
+            TestPattern::UniformDistribution,
+            &[64],
             device
         )?;
 
@@ -545,7 +545,7 @@ fn test_threshold_sensitivity_stability(device: &Device, iterations: usize) -> Q
                     (Ok(dequantized_1), Ok(dequantized_2)) => {
                         // Calculate sensitivity to threshold changes
                         let sensitivity = calculate_relative_error(&dequantized_1, &dequantized_2)?;
-                        
+
                         if sensitivity.is_finite() && !sensitivity.is_nan() {
                             relative_errors.push(sensitivity);
                             condition_result.successful_iterations += 1;
@@ -583,26 +583,26 @@ impl Default for StabilityMetrics {
 
 fn calculate_relative_error(original: &Tensor, reconstructed: &Tensor) -> QuantizationResult<f64> {
     let orig_values = original.flatten_all()
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to flatten original: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to flatten original: {}", e)
         })?
         .to_vec1::<f32>()
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to convert original: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to convert original: {}", e)
         })?;
 
     let recon_values = reconstructed.flatten_all()
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to flatten reconstructed: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to flatten reconstructed: {}", e)
         })?
         .to_vec1::<f32>()
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to convert reconstructed: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to convert reconstructed: {}", e)
         })?;
 
     if orig_values.len() != recon_values.len() {
-        return Err(crate::quantization::QuantizationError::InvalidInput { 
-            reason: "Tensor dimension mismatch".to_string() 
+        return Err(crate::quantization::QuantizationError::InvalidInput {
+            reason: "Tensor dimension mismatch".to_string()
         });
     }
 
@@ -621,21 +621,21 @@ fn calculate_relative_error(original: &Tensor, reconstructed: &Tensor) -> Quanti
 
 fn calculate_absolute_error(original: &Tensor, reconstructed: &Tensor) -> QuantizationResult<f64> {
     let orig_values = original.flatten_all()
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to flatten original: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to flatten original: {}", e)
         })?
         .to_vec1::<f32>()
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to convert original: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to convert original: {}", e)
         })?;
 
     let recon_values = reconstructed.flatten_all()
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to flatten reconstructed: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to flatten reconstructed: {}", e)
         })?
         .to_vec1::<f32>()
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to convert reconstructed: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to convert reconstructed: {}", e)
         })?;
 
     let absolute_error = orig_values.iter().zip(recon_values.iter())
@@ -652,7 +652,7 @@ fn calculate_stability_metrics(errors: &[f64]) -> StabilityMetrics {
 
     let max_error = errors.iter().fold(0.0, |a, &b| a.max(b));
     let mean_error = errors.iter().sum::<f64>() / errors.len() as f64;
-    
+
     let variance = errors.iter()
         .map(|&e| (e - mean_error).powi(2))
         .sum::<f64>() / errors.len() as f64;
@@ -710,7 +710,7 @@ mod tests {
     fn test_numerical_stability_testing() {
         let device = create_test_device();
         let results = run_numerical_stability_tests(&device).unwrap();
-        
+
         assert!(results.stability_tests_run > 0);
         assert!(results.overall_stability_score >= 0.0 && results.overall_stability_score <= 1.0);
     }
@@ -719,7 +719,7 @@ mod tests {
     fn test_extreme_values_handling() {
         let device = create_test_device();
         let result = test_extreme_values_stability(&device, 5).unwrap();
-        
+
         assert_eq!(result.test_iterations, 5);
         assert!(result.successful_iterations <= 5);
     }

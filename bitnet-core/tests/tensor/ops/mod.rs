@@ -75,8 +75,8 @@ impl Default for TestConfig {
 
 /// Create test tensors with specific patterns for validation
 pub fn create_test_tensor(
-    shape: &[usize], 
-    dtype: BitNetDType, 
+    shape: &[usize],
+    dtype: BitNetDType,
     pattern: TestPattern,
     config: &TestConfig
 ) -> Result<BitNetTensor, Box<dyn std::error::Error>> {
@@ -165,7 +165,7 @@ pub fn assert_tensor_close(
     // Value comparison would be implemented based on actual tensor API
     // This is a placeholder implementation
     println!("Validating tensor values for test: {}", test_name);
-    
+
     Ok(())
 }
 
@@ -175,7 +175,7 @@ pub fn validate_memory_efficiency(
     test_name: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let stats = config.memory_pool.get_stats();
-    
+
     // Check for memory leaks
     if stats.active_allocations > 0 {
         eprintln!(
@@ -216,26 +216,26 @@ where
 {
     let start = std::time::Instant::now();
     let iterations = 1000;
-    
+
     for _ in 0..iterations {
         operation()?;
     }
-    
+
     let duration = start.elapsed();
     let ops_per_sec = iterations as f64 / duration.as_secs_f64();
-    
+
     println!(
         "Performance test {} - {:.2} ops/sec (expected: {:.2})",
         test_name, ops_per_sec, expected_min_ops_per_sec
     );
-    
+
     if ops_per_sec < expected_min_ops_per_sec {
         return Err(format!(
             "Performance regression in {}: {:.2} ops/sec < {:.2} expected",
             test_name, ops_per_sec, expected_min_ops_per_sec
         ).into());
     }
-    
+
     Ok(())
 }
 
@@ -254,7 +254,7 @@ mod tests {
     #[test]
     fn test_tensor_creation_patterns() {
         let config = TestConfig::default();
-        
+
         // Test different patterns
         let patterns = [
             TestPattern::Zeros,
@@ -262,7 +262,7 @@ mod tests {
             TestPattern::Sequential,
             TestPattern::Random,
         ];
-        
+
         for pattern in patterns {
             let tensor = create_test_tensor(
                 &[2, 3],
@@ -277,7 +277,7 @@ mod tests {
     #[test]
     fn test_identity_tensor_creation() {
         let config = TestConfig::default();
-        
+
         let identity = create_test_tensor(
             &[3, 3],
             BitNetDType::F32,
@@ -285,7 +285,7 @@ mod tests {
             &config,
         );
         assert!(identity.is_ok());
-        
+
         // Non-square should fail
         let non_square = create_test_tensor(
             &[2, 3],

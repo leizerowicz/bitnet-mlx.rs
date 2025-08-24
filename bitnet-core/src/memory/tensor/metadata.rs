@@ -55,9 +55,7 @@ impl From<&Device> for DeviceInfo {
             Device::Metal(metal_device) => {
                 DeviceInfo::Metal(Some(format!("{:?}", metal_device.id())))
             }
-            Device::Cuda(cuda_device) => {
-                DeviceInfo::Cuda(format!("{:?}", cuda_device))
-            }
+            Device::Cuda(cuda_device) => DeviceInfo::Cuda(format!("{:?}", cuda_device)),
         }
     }
 }
@@ -195,7 +193,14 @@ impl TensorMetadata {
         let shape_str = if self.shape.is_empty() {
             "scalar".to_string()
         } else {
-            format!("[{}]", self.shape.iter().map(|d| d.to_string()).collect::<Vec<_>>().join(", "))
+            format!(
+                "[{}]",
+                self.shape
+                    .iter()
+                    .map(|d| d.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
         };
 
         let device_str = match &self.device {
@@ -205,7 +210,9 @@ impl TensorMetadata {
             DeviceInfo::Cuda(id) => format!("CUDA({})", id),
         };
 
-        let name_str = self.name.as_ref()
+        let name_str = self
+            .name
+            .as_ref()
             .map(|n| format!("'{}' ", n))
             .unwrap_or_default();
 
@@ -352,13 +359,19 @@ mod tests {
     #[test]
     fn test_clone_with_new_id() {
         let device = get_cpu_device();
-        let original = TensorMetadata::new(1, vec![2, 3], BitNetDType::F32, &device, Some("original".to_string()));
-        
+        let original = TensorMetadata::new(
+            1,
+            vec![2, 3],
+            BitNetDType::F32,
+            &device,
+            Some("original".to_string()),
+        );
+
         // Add a small delay to ensure different timestamps
         std::thread::sleep(std::time::Duration::from_millis(1));
-        
+
         let cloned = original.clone_with_new_id(2);
-        
+
         assert_eq!(cloned.id, 2);
         assert_eq!(cloned.ref_count, 1);
         assert_eq!(cloned.shape, original.shape);
@@ -369,10 +382,10 @@ mod tests {
     #[test]
     fn test_memory_efficiency() {
         let device = get_cpu_device();
-        
+
         let f32_meta = TensorMetadata::new(1, vec![100], BitNetDType::F32, &device, None);
         assert_eq!(f32_meta.memory_efficiency(), 1.0);
-        
+
         let i4_meta = TensorMetadata::new(2, vec![100], BitNetDType::I4, &device, None);
         assert_eq!(i4_meta.memory_efficiency(), 8.0);
     }
@@ -380,11 +393,17 @@ mod tests {
     #[test]
     fn test_serialization() {
         let device = get_cpu_device();
-        let metadata = TensorMetadata::new(1, vec![2, 3], BitNetDType::BitNet158, &device, Some("test".to_string()));
-        
+        let metadata = TensorMetadata::new(
+            1,
+            vec![2, 3],
+            BitNetDType::BitNet158,
+            &device,
+            Some("test".to_string()),
+        );
+
         let serialized = serde_json::to_string(&metadata).unwrap();
         let deserialized: TensorMetadata = serde_json::from_str(&serialized).unwrap();
-        
+
         assert_eq!(metadata.id, deserialized.id);
         assert_eq!(metadata.shape, deserialized.shape);
         assert_eq!(metadata.dtype, deserialized.dtype);

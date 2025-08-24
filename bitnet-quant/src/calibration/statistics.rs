@@ -274,15 +274,19 @@ impl StatisticsCollector {
 
         // Pre-create entries to avoid borrow conflicts
         let layer_key = layer_name.to_string();
-        
+
         // Ensure layer statistics exist
         if !self.layer_stats.contains_key(&layer_key) {
-            self.layer_stats.insert(layer_key.clone(), LayerStatistics::new(layer_name, &shape, &self.config));
+            self.layer_stats.insert(
+                layer_key.clone(),
+                LayerStatistics::new(layer_name, &shape, &self.config),
+            );
         }
-        
+
         // Ensure tracker exists
         if !self.update_trackers.contains_key(&layer_key) {
-            self.update_trackers.insert(layer_key.clone(), MinMaxTracker::new(self.config.ema_decay));
+            self.update_trackers
+                .insert(layer_key.clone(), MinMaxTracker::new(self.config.ema_decay));
         }
 
         // Now safely get mutable references
@@ -291,18 +295,18 @@ impl StatisticsCollector {
 
         // Get configuration values to avoid borrowing self later
         let per_channel_stats = self.config.per_channel_stats;
-        
+
         // Update min/max if enabled
         if self.config.track_min_max {
             // Direct implementation to avoid self borrow
             tracker.update(&values)?;
             let (min, max, ema_min, ema_max) = tracker.get_stats();
-            
+
             stats.min_max.global_min = stats.min_max.global_min.min(min);
             stats.min_max.global_max = stats.min_max.global_max.max(max);
             stats.min_max.ema_min = ema_min;
             stats.min_max.ema_max = ema_max;
-            
+
             // Update per-channel statistics if enabled
             if per_channel_stats {
                 // Simple per-channel min/max calculation
@@ -319,55 +323,70 @@ impl StatisticsCollector {
             let n = values.len() as f32;
             let mean = values.iter().sum::<f32>() / n;
             let variance = values.iter().map(|&x| (x - mean).powi(2)).sum::<f32>() / n;
-            
+
             stats.moments.mean = mean;
             stats.moments.variance = variance;
             stats.moments.std_dev = variance.sqrt();
-            
+
             // Calculate higher moments
             let skewness = if variance > 0.0 {
-                values.iter().map(|&x| ((x - mean) / variance.sqrt()).powi(3)).sum::<f32>() / n
-            } else { 0.0 };
+                values
+                    .iter()
+                    .map(|&x| ((x - mean) / variance.sqrt()).powi(3))
+                    .sum::<f32>()
+                    / n
+            } else {
+                0.0
+            };
             let kurtosis = if variance > 0.0 {
-                values.iter().map(|&x| ((x - mean) / variance.sqrt()).powi(4)).sum::<f32>() / n - 3.0
-            } else { 0.0 };
-            
+                values
+                    .iter()
+                    .map(|&x| ((x - mean) / variance.sqrt()).powi(4))
+                    .sum::<f32>()
+                    / n
+                    - 3.0
+            } else {
+                0.0
+            };
+
             stats.moments.skewness = skewness;
             stats.moments.kurtosis = kurtosis;
         }
 
         // Update percentiles if enabled - simplified calculation
-        if self.config.track_percentiles && 
-           stats.update_count % self.config.update_frequency == 0 {
+        if self.config.track_percentiles && stats.update_count % self.config.update_frequency == 0 {
             let mut sorted_values = values.clone();
             sorted_values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
             let n = sorted_values.len();
-            
+
             if n > 0 {
                 // Standard percentiles: 25th, 50th, 75th, 90th, 95th, 99th
                 let percentile_positions = vec![25.0, 50.0, 75.0, 90.0, 95.0, 99.0];
-                let percentile_values: Vec<f32> = percentile_positions.iter()
+                let percentile_values: Vec<f32> = percentile_positions
+                    .iter()
                     .map(|&p| {
                         let index = ((p / 100.0) * (n - 1) as f32) as usize;
                         sorted_values[index.min(n - 1)]
                     })
                     .collect();
-                
+
                 stats.percentiles.percentiles = percentile_positions;
                 stats.percentiles.values = percentile_values.clone();
-                
+
                 // Calculate IQR (Q3 - Q1)
                 if percentile_values.len() >= 3 {
-                    stats.percentiles.iqr = percentile_values[2] - percentile_values[0]; // 75th - 25th
+                    stats.percentiles.iqr = percentile_values[2] - percentile_values[0];
+                    // 75th - 25th
                 }
-                
+
                 // Calculate MAD (Median Absolute Deviation)
-                if let Some(median) = percentile_values.get(1) { // 50th percentile
-                    let deviations: Vec<f32> = sorted_values.iter()
-                        .map(|&x| (x - median).abs())
-                        .collect();
+                if let Some(median) = percentile_values.get(1) {
+                    // 50th percentile
+                    let deviations: Vec<f32> =
+                        sorted_values.iter().map(|&x| (x - median).abs()).collect();
                     let mut sorted_deviations = deviations.clone();
-                    sorted_deviations.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+                    sorted_deviations
+                        .sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
                     stats.percentiles.mad = sorted_deviations[sorted_deviations.len() / 2];
                 }
             }
@@ -379,12 +398,13 @@ impl StatisticsCollector {
             let mean = values.iter().sum::<f32>() / n;
             let variance = values.iter().map(|&x| (x - mean).powi(2)).sum::<f32>() / n;
             let std_dev = variance.sqrt();
-            
+
             let threshold = 3.0 * std_dev; // 3-sigma rule
-            let outlier_count = values.iter()
+            let outlier_count = values
+                .iter()
                 .filter(|&&x| (x - mean).abs() > threshold)
                 .count();
-                
+
             stats.outliers.outlier_ratio = outlier_count as f32 / n;
             stats.outliers.outlier_count = outlier_count;
         }
@@ -397,7 +417,8 @@ impl StatisticsCollector {
             dimensions: shape,
             num_elements: values.len(),
             num_channels: None,
-            sparsity_ratio: values.iter().filter(|&&x| x == 0.0).count() as f32 / values.len() as f32,
+            sparsity_ratio: values.iter().filter(|&&x| x == 0.0).count() as f32
+                / values.len() as f32,
             dtype: "f32".to_string(),
         };
 
@@ -422,12 +443,14 @@ impl StatisticsCollector {
 
     /// Convert tensor to Vec<f32> for processing
     fn tensor_to_vec(&self, tensor: &Tensor) -> CalibrationResult<Vec<f32>> {
-        let flattened = tensor.flatten_all()
+        let flattened = tensor
+            .flatten_all()
             .map_err(|e| CalibrationError::statistics(format!("Failed to flatten tensor: {e}")))?;
-        
-        let values: Vec<f32> = flattened.to_vec1()
-            .map_err(|e| CalibrationError::statistics(format!("Failed to convert tensor to vec: {e}")))?;
-        
+
+        let values: Vec<f32> = flattened.to_vec1().map_err(|e| {
+            CalibrationError::statistics(format!("Failed to convert tensor to vec: {e}"))
+        })?;
+
         Ok(values)
     }
 
@@ -442,7 +465,7 @@ impl StatisticsCollector {
         tracker.update(values)?;
 
         let (min, max, ema_min, ema_max) = tracker.get_stats();
-        
+
         stats.min_max.global_min = stats.min_max.global_min.min(min);
         stats.min_max.global_max = stats.min_max.global_max.max(max);
         stats.min_max.ema_min = ema_min;
@@ -478,14 +501,18 @@ impl StatisticsCollector {
         for channel in 0..num_channels {
             let channel_start = channel * elements_per_channel;
             let channel_end = channel_start + elements_per_channel;
-            
+
             if channel_end <= values.len() {
                 let channel_values = &values[channel_start..channel_end];
                 let channel_min = channel_values.iter().fold(f32::INFINITY, |a, &b| a.min(b));
-                let channel_max = channel_values.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
-                
-                stats.min_max.channel_min[channel] = stats.min_max.channel_min[channel].min(channel_min);
-                stats.min_max.channel_max[channel] = stats.min_max.channel_max[channel].max(channel_max);
+                let channel_max = channel_values
+                    .iter()
+                    .fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+
+                stats.min_max.channel_min[channel] =
+                    stats.min_max.channel_min[channel].min(channel_min);
+                stats.min_max.channel_max[channel] =
+                    stats.min_max.channel_max[channel].max(channel_max);
             }
         }
 
@@ -493,7 +520,11 @@ impl StatisticsCollector {
     }
 
     /// Update moment statistics
-    fn update_moment_stats(&self, stats: &mut LayerStatistics, values: &[f32]) -> CalibrationResult<()> {
+    fn update_moment_stats(
+        &self,
+        stats: &mut LayerStatistics,
+        values: &[f32],
+    ) -> CalibrationResult<()> {
         if values.is_empty() {
             return Ok(());
         }
@@ -514,18 +545,23 @@ impl StatisticsCollector {
             stats.moments.mean = (1.0 - alpha) * stats.moments.mean + alpha * mean;
             stats.moments.variance = (1.0 - alpha) * stats.moments.variance + alpha * variance;
         }
-        
+
         stats.moments.std_dev = stats.moments.variance.sqrt();
 
         // Compute higher-order moments
         if std_dev > 0.0 {
-            let skewness: f32 = values.iter()
+            let skewness: f32 = values
+                .iter()
                 .map(|&x| ((x - mean) / std_dev).powi(3))
-                .sum::<f32>() / n;
-            
-            let kurtosis: f32 = values.iter()
+                .sum::<f32>()
+                / n;
+
+            let kurtosis: f32 = values
+                .iter()
                 .map(|&x| ((x - mean) / std_dev).powi(4))
-                .sum::<f32>() / n - 3.0; // Excess kurtosis
+                .sum::<f32>()
+                / n
+                - 3.0; // Excess kurtosis
 
             stats.moments.skewness = skewness;
             stats.moments.kurtosis = kurtosis;
@@ -535,7 +571,11 @@ impl StatisticsCollector {
     }
 
     /// Update percentile statistics
-    fn update_percentile_stats(&self, stats: &mut LayerStatistics, values: &[f32]) -> CalibrationResult<()> {
+    fn update_percentile_stats(
+        &self,
+        stats: &mut LayerStatistics,
+        values: &[f32],
+    ) -> CalibrationResult<()> {
         if values.is_empty() {
             return Ok(());
         }
@@ -572,21 +612,23 @@ impl StatisticsCollector {
     }
 
     /// Update outlier statistics
-    fn update_outlier_stats(&self, stats: &mut LayerStatistics, values: &[f32]) -> CalibrationResult<()> {
+    fn update_outlier_stats(
+        &self,
+        stats: &mut LayerStatistics,
+        values: &[f32],
+    ) -> CalibrationResult<()> {
         let outlier_count = match self.config.outlier_method {
             OutlierMethod::StandardDeviation => {
                 self.detect_outliers_std_dev(values, self.config.outlier_threshold)
-            },
-            OutlierMethod::IQR => {
-                self.detect_outliers_iqr(values)
-            },
+            }
+            OutlierMethod::IQR => self.detect_outliers_iqr(values),
             OutlierMethod::ModifiedZScore => {
                 self.detect_outliers_modified_z_score(values, self.config.outlier_threshold)
-            },
+            }
             OutlierMethod::IsolationForest => {
                 // Placeholder - would need external library
                 0
-            },
+            }
         };
 
         stats.outliers = OutlierStats {
@@ -606,10 +648,12 @@ impl StatisticsCollector {
         }
 
         let mean: f32 = values.iter().sum::<f32>() / values.len() as f32;
-        let variance: f32 = values.iter().map(|&x| (x - mean).powi(2)).sum::<f32>() / values.len() as f32;
+        let variance: f32 =
+            values.iter().map(|&x| (x - mean).powi(2)).sum::<f32>() / values.len() as f32;
         let std_dev = variance.sqrt();
 
-        values.iter()
+        values
+            .iter()
             .filter(|&&x| (x - mean).abs() > threshold * std_dev)
             .count()
     }
@@ -628,11 +672,12 @@ impl StatisticsCollector {
         let q1 = sorted_values[q1_idx];
         let q3 = sorted_values[q3_idx];
         let iqr = q3 - q1;
-        
+
         let lower_bound = q1 - 1.5 * iqr;
         let upper_bound = q3 + 1.5 * iqr;
 
-        values.iter()
+        values
+            .iter()
             .filter(|&&x| x < lower_bound || x > upper_bound)
             .count()
     }
@@ -658,7 +703,8 @@ impl StatisticsCollector {
             return 0;
         }
 
-        values.iter()
+        values
+            .iter()
             .filter(|&&x| (0.6745 * (x - median) / mad).abs() > threshold)
             .count()
     }
@@ -666,7 +712,11 @@ impl StatisticsCollector {
     /// Compute shape information
     fn compute_shape_info(&self, shape: &[usize], values: &[f32]) -> ShapeInfo {
         let num_elements = values.len();
-        let num_channels = if shape.len() > 1 { Some(shape[1]) } else { None };
+        let num_channels = if shape.len() > 1 {
+            Some(shape[1])
+        } else {
+            None
+        };
         let zeros = values.iter().filter(|&&x| x == 0.0).count();
         let sparsity_ratio = zeros as f32 / num_elements as f32;
 
@@ -718,7 +768,11 @@ impl LayerStatistics {
             shape_info: ShapeInfo {
                 dimensions: shape.to_vec(),
                 num_elements: 0,
-                num_channels: if shape.len() > 1 { Some(shape[1]) } else { None },
+                num_channels: if shape.len() > 1 {
+                    Some(shape[1])
+                } else {
+                    None
+                },
                 sparsity_ratio: 0.0,
                 dtype: "f32".to_string(),
             },
@@ -782,16 +836,16 @@ mod tests {
     fn test_layer_statistics_update() -> CalibrationResult<()> {
         let mut collector = StatisticsCollector::new();
         let tensor = create_test_tensor(&[2, 3, 4, 4])?;
-        
+
         collector.update_layer_statistics("test_layer", &tensor)?;
-        
+
         let stats = collector.get_layer_statistics("test_layer");
         assert!(stats.is_some());
-        
+
         let stats = stats.unwrap();
         assert_eq!(stats.layer_name, "test_layer");
         assert_eq!(stats.update_count, 1);
-        
+
         Ok(())
     }
 
@@ -799,13 +853,13 @@ mod tests {
     fn test_min_max_tracker() -> CalibrationResult<()> {
         let mut tracker = MinMaxTracker::new(0.1);
         let values = vec![1.0, 2.0, 3.0, -1.0, 5.0];
-        
+
         tracker.update(&values)?;
-        
+
         let (min, max, _, _) = tracker.get_stats();
         assert_eq!(min, -1.0);
         assert_eq!(max, 5.0);
-        
+
         Ok(())
     }
 
@@ -813,7 +867,7 @@ mod tests {
     fn test_outlier_detection() {
         let collector = StatisticsCollector::new();
         let values = vec![1.0, 2.0, 3.0, 100.0, 4.0, 5.0]; // 100.0 is an outlier
-        
+
         let outliers = collector.detect_outliers_std_dev(&values, 2.0);
         assert!(outliers > 0);
     }
@@ -822,12 +876,12 @@ mod tests {
     fn test_percentile_computation() -> CalibrationResult<()> {
         let mut collector = StatisticsCollector::new();
         let tensor = create_test_tensor(&[1, 1, 100])?;
-        
+
         collector.update_layer_statistics("test", &tensor)?;
-        
+
         let stats = collector.get_layer_statistics("test").unwrap();
         assert!(!stats.percentiles.values.is_empty());
-        
+
         Ok(())
     }
 }

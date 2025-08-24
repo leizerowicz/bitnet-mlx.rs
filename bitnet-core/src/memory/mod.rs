@@ -44,45 +44,45 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 
-use std::sync::{Arc, Mutex, RwLock};
-use std::collections::HashMap;
 use candle_core::Device;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, RwLock};
 use thiserror::Error;
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, warn, error};
+use tracing::{debug, error, info, warn};
 
 // Sub-modules
-pub mod small_block;
-pub mod large_block;
-pub mod device_pool;
-pub mod handle;
-pub mod metrics;
-pub mod tensor;
-pub mod tracking;
 pub mod cleanup;
 pub mod conversion;
+pub mod device_pool;
+pub mod handle;
+pub mod large_block;
+pub mod metrics;
+pub mod small_block;
+pub mod tensor;
+pub mod tracking;
 
 // Re-exports
+pub use cleanup::{
+    CleanupConfig, CleanupId, CleanupManager, CleanupMetrics, CleanupOperationMetrics,
+    CleanupPriority, CleanupResult, CleanupScheduler, CleanupStrategy, CleanupStrategyType,
+    CompactionResult, CpuCleanup, DeviceCleanupOps, MetalCleanup,
+};
+pub use conversion::{
+    BatchConverter, ConversionConfig, ConversionEngine, ConversionEvent, ConversionMetrics,
+    ConversionPipeline, ConversionStats, InPlaceConverter, StreamingConverter, ZeroCopyConverter,
+};
+pub use device_pool::CpuMemoryPool;
 pub use handle::MemoryHandle;
+pub use large_block::LargeBlockPool;
 pub use metrics::MemoryMetrics;
 pub use small_block::SmallBlockPool;
-pub use large_block::LargeBlockPool;
-pub use device_pool::CpuMemoryPool;
-pub use tensor::{BitNetTensor, BitNetDType, TensorHandle, TensorMetadata};
-pub use conversion::{
-    ConversionEngine, ConversionConfig, ConversionMetrics, ConversionStats, ConversionEvent,
-    ZeroCopyConverter, StreamingConverter, InPlaceConverter, BatchConverter, ConversionPipeline
-};
+pub use tensor::{BitNetDType, BitNetTensor, TensorHandle, TensorMetadata};
 pub use tracking::{
-    MemoryTracker, DetailedMemoryMetrics, MemoryPressureDetector, MemoryPressureLevel,
-    MemoryProfiler, ProfilingReport, LeakReport, AllocationTimeline, PatternAnalyzer,
-    TrackingConfig, TrackingLevel, PressureThresholds, PressureCallback
-};
-pub use cleanup::{
-    CleanupManager, CleanupConfig, CleanupResult, CompactionResult, CleanupStrategy,
-    CleanupStrategyType, CleanupPriority, CleanupScheduler, CleanupId, CleanupMetrics,
-    CleanupOperationMetrics, CpuCleanup, MetalCleanup, DeviceCleanupOps
+    AllocationTimeline, DetailedMemoryMetrics, LeakReport, MemoryPressureDetector,
+    MemoryPressureLevel, MemoryProfiler, MemoryTracker, PatternAnalyzer, PressureCallback,
+    PressureThresholds, ProfilingReport, TrackingConfig, TrackingLevel,
 };
 
 #[cfg(feature = "metal")]
@@ -153,11 +153,11 @@ pub struct MemoryPoolConfig {
 impl Default for MemoryPoolConfig {
     fn default() -> Self {
         Self {
-            small_block_threshold: 1024 * 1024, // 1MB
+            small_block_threshold: 1024 * 1024,        // 1MB
             small_pool_initial_size: 16 * 1024 * 1024, // 16MB
-            small_pool_max_size: 256 * 1024 * 1024, // 256MB
+            small_pool_max_size: 256 * 1024 * 1024,    // 256MB
             large_pool_initial_size: 64 * 1024 * 1024, // 64MB
-            large_pool_max_size: 1024 * 1024 * 1024, // 1GB
+            large_pool_max_size: 1024 * 1024 * 1024,   // 1GB
             enable_metrics: true,
             enable_debug_logging: false,
             enable_advanced_tracking: false,
@@ -198,12 +198,8 @@ impl From<&Device> for DeviceKey {
     fn from(device: &Device) -> Self {
         match device {
             Device::Cpu => DeviceKey::Cpu,
-            Device::Metal(metal_device) => {
-                DeviceKey::Metal(format!("{:?}", metal_device.id()))
-            },
-            Device::Cuda(cuda_device) => {
-                DeviceKey::Cuda(format!("{:?}", cuda_device))
-            }
+            Device::Metal(metal_device) => DeviceKey::Metal(format!("{:?}", metal_device.id())),
+            Device::Cuda(cuda_device) => DeviceKey::Cuda(format!("{:?}", cuda_device)),
         }
     }
 }
@@ -256,9 +252,11 @@ impl HybridMemoryPool {
 
         // Initialize memory tracker if advanced tracking is enabled
         let memory_tracker = if config.enable_advanced_tracking {
-            let tracking_config = config.tracking_config.clone()
+            let tracking_config = config
+                .tracking_config
+                .clone()
                 .unwrap_or_else(|| tracking::TrackingConfig::standard());
-            
+
             match tracking::MemoryTracker::new(tracking_config) {
                 Ok(tracker) => Some(Arc::new(tracker)),
                 Err(e) => {
@@ -310,17 +308,25 @@ impl HybridMemoryPool {
     /// let handle = pool.allocate(1024, 16, &device)?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn allocate(&self, size: usize, alignment: usize, device: &Device) -> MemoryResult<MemoryHandle> {
+    pub fn allocate(
+        &self,
+        size: usize,
+        alignment: usize,
+        device: &Device,
+    ) -> MemoryResult<MemoryHandle> {
         // Validate alignment
         if !alignment.is_power_of_two() || alignment == 0 {
             return Err(MemoryError::InvalidAlignment { alignment });
         }
 
         #[cfg(feature = "tracing")]
-        debug!("Allocating {} bytes with alignment {} on device {:?}", size, alignment, device);
+        debug!(
+            "Allocating {} bytes with alignment {} on device {:?}",
+            size, alignment, device
+        );
 
         let device_key = DeviceKey::from(device);
-        
+
         // Choose allocation strategy based on size
         let handle = if size < self.config.small_block_threshold {
             self.allocate_small(size, alignment, &device_key, device)?
@@ -330,15 +336,17 @@ impl HybridMemoryPool {
 
         // Optimize critical section - batch all operations together
         let handle_id = handle.id();
-        
+
         // Single critical section for all registry and metrics updates
         {
-            let mut registry = self.handle_registry.write()
-                .map_err(|_| MemoryError::InternalError {
-                    reason: "Failed to acquire handle registry lock".to_string()
-                })?;
+            let mut registry =
+                self.handle_registry
+                    .write()
+                    .map_err(|_| MemoryError::InternalError {
+                        reason: "Failed to acquire handle registry lock".to_string(),
+                    })?;
             registry.insert(handle_id, handle.clone());
-            
+
             // Update metrics in same critical section if enabled
             if self.config.enable_metrics {
                 if let Ok(mut metrics) = self.metrics.write() {
@@ -385,52 +393,73 @@ impl HybridMemoryPool {
         let size = handle.size();
 
         #[cfg(feature = "tracing")]
-        debug!("Deallocating memory with handle ID {} (size: {} bytes)", handle_id, size);
+        debug!(
+            "Deallocating memory with handle ID {} (size: {} bytes)",
+            handle_id, size
+        );
 
         // Remove from registry
         let registered_handle = {
-            let mut registry = self.handle_registry.write()
-                .map_err(|_| MemoryError::InternalError {
-                    reason: "Failed to acquire handle registry lock".to_string()
-                })?;
-            
+            let mut registry =
+                self.handle_registry
+                    .write()
+                    .map_err(|_| MemoryError::InternalError {
+                        reason: "Failed to acquire handle registry lock".to_string(),
+                    })?;
+
             let handle_found = registry.contains_key(&handle_id);
             #[cfg(feature = "tracing")]
             debug!("Handle {} found in registry: {}", handle_id, handle_found);
-            
+
             registry.remove(&handle_id)
         };
 
         let registered_handle = registered_handle.ok_or_else(|| {
             #[cfg(feature = "tracing")]
-            warn!("Handle {} not found in registry during deallocation", handle_id);
+            warn!(
+                "Handle {} not found in registry during deallocation",
+                handle_id
+            );
             MemoryError::InvalidHandle {
-                reason: format!("Handle {} not found in registry", handle_id)
+                reason: format!("Handle {} not found in registry", handle_id),
             }
         })?;
 
         // Verify handle matches
         if registered_handle.id() != handle.id() {
             #[cfg(feature = "tracing")]
-            error!("Handle ID mismatch during deallocation: expected {}, got {}", registered_handle.id(), handle.id());
+            error!(
+                "Handle ID mismatch during deallocation: expected {}, got {}",
+                registered_handle.id(),
+                handle.id()
+            );
             return Err(MemoryError::InvalidHandle {
-                reason: "Handle ID mismatch".to_string()
+                reason: "Handle ID mismatch".to_string(),
             });
         }
 
         let device_key = DeviceKey::from(&handle.device());
 
         #[cfg(feature = "tracing")]
-        debug!("Deallocating handle {} from device {:?} (size: {})", handle_id, device_key, size);
+        debug!(
+            "Deallocating handle {} from device {:?} (size: {})",
+            handle_id, device_key, size
+        );
 
         // Deallocate based on size
         if size < self.config.small_block_threshold {
             #[cfg(feature = "tracing")]
-            debug!("Using small block pool for handle {} deallocation", handle_id);
+            debug!(
+                "Using small block pool for handle {} deallocation",
+                handle_id
+            );
             self.deallocate_small(handle, &device_key)?;
         } else {
             #[cfg(feature = "tracing")]
-            debug!("Using large block pool for handle {} deallocation", handle_id);
+            debug!(
+                "Using large block pool for handle {} deallocation",
+                handle_id
+            );
             self.deallocate_large(handle, &device_key)?;
         }
 
@@ -444,12 +473,18 @@ impl HybridMemoryPool {
             if let Ok(mut metrics) = self.metrics.write() {
                 metrics.record_deallocation(size);
                 #[cfg(feature = "tracing")]
-                debug!("Updated metrics for handle {} deallocation (size: {})", handle_id, size);
+                debug!(
+                    "Updated metrics for handle {} deallocation (size: {})",
+                    handle_id, size
+                );
             }
         }
 
         #[cfg(feature = "tracing")]
-        debug!("Successfully deallocated memory with handle ID {} (size: {} bytes)", handle_id, size);
+        debug!(
+            "Successfully deallocated memory with handle ID {} (size: {} bytes)",
+            handle_id, size
+        );
 
         Ok(())
     }
@@ -471,7 +506,8 @@ impl HybridMemoryPool {
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn get_metrics(&self) -> MemoryMetrics {
-        self.metrics.read()
+        self.metrics
+            .read()
             .map(|metrics| metrics.clone())
             .unwrap_or_else(|_| MemoryMetrics::new())
     }
@@ -498,7 +534,9 @@ impl HybridMemoryPool {
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn get_detailed_metrics(&self) -> Option<tracking::DetailedMemoryMetrics> {
-        self.memory_tracker.as_ref().map(|tracker| tracker.get_detailed_metrics())
+        self.memory_tracker
+            .as_ref()
+            .map(|tracker| tracker.get_detailed_metrics())
     }
 
     /// Returns the memory tracker if advanced tracking is enabled
@@ -550,54 +588,72 @@ impl HybridMemoryPool {
     /// The number of handles that were cleaned up
     pub fn cleanup_orphaned_handles(&self) -> usize {
         use crate::memory::tensor::handle::MEMORY_CLEANUP_REGISTRY;
-        
+
         let mut cleanup_count = 0;
-        
+
         #[cfg(feature = "tracing")]
         debug!("Starting cleanup of orphaned handles");
-        
+
         // Get the current cleanup registry state
         let active_tensor_handles = if let Ok(cleanup_registry) = MEMORY_CLEANUP_REGISTRY.lock() {
-            let active_handles = cleanup_registry.values().map(|handle| handle.id()).collect::<std::collections::HashSet<_>>();
+            let active_handles = cleanup_registry
+                .values()
+                .map(|handle| handle.id())
+                .collect::<std::collections::HashSet<_>>();
             #[cfg(feature = "tracing")]
-            debug!("Found {} active tensor handles in cleanup registry", active_handles.len());
+            debug!(
+                "Found {} active tensor handles in cleanup registry",
+                active_handles.len()
+            );
             active_handles
         } else {
             #[cfg(feature = "tracing")]
             error!("Failed to acquire cleanup registry lock");
             return 0;
         };
-        
+
         // Find handles in pool registry that are not in cleanup registry (orphaned)
         let orphaned_handles = if let Ok(handle_registry) = self.handle_registry.read() {
             let total_pool_handles = handle_registry.len();
-            let orphaned = handle_registry.iter()
+            let orphaned = handle_registry
+                .iter()
                 .filter(|(_, handle)| !active_tensor_handles.contains(&handle.id()))
                 .map(|(_, handle)| handle.clone())
                 .collect::<Vec<_>>();
-            
+
             #[cfg(feature = "tracing")]
-            debug!("Pool registry has {} total handles, {} are orphaned", total_pool_handles, orphaned.len());
-            
+            debug!(
+                "Pool registry has {} total handles, {} are orphaned",
+                total_pool_handles,
+                orphaned.len()
+            );
+
             orphaned
         } else {
             #[cfg(feature = "tracing")]
             error!("Failed to acquire handle registry lock");
             return 0;
         };
-        
+
         #[cfg(feature = "tracing")]
         if orphaned_handles.is_empty() {
             debug!("No orphaned handles found to clean up");
         } else {
-            debug!("Found {} orphaned handles to clean up", orphaned_handles.len());
+            debug!(
+                "Found {} orphaned handles to clean up",
+                orphaned_handles.len()
+            );
         }
-        
+
         // Deallocate orphaned handles
         for handle in orphaned_handles {
             #[cfg(feature = "tracing")]
-            debug!("Cleaning up orphaned memory handle {} (size: {} bytes)", handle.id(), handle.size());
-            
+            debug!(
+                "Cleaning up orphaned memory handle {} (size: {} bytes)",
+                handle.id(),
+                handle.size()
+            );
+
             // Attempt to deallocate the handle
             match self.deallocate(handle.clone()) {
                 Ok(()) => {
@@ -607,14 +663,22 @@ impl HybridMemoryPool {
                 }
                 Err(e) => {
                     #[cfg(feature = "tracing")]
-                    warn!("Failed to deallocate orphaned handle {} (size: {}): {}", handle.id(), handle.size(), e);
+                    warn!(
+                        "Failed to deallocate orphaned handle {} (size: {}): {}",
+                        handle.id(),
+                        handle.size(),
+                        e
+                    );
                 }
             }
         }
-        
+
         #[cfg(feature = "tracing")]
-        debug!("Cleanup completed: {} orphaned handles cleaned up", cleanup_count);
-        
+        debug!(
+            "Cleanup completed: {} orphaned handles cleaned up",
+            cleanup_count
+        );
+
         cleanup_count
     }
 
@@ -669,79 +733,101 @@ impl HybridMemoryPool {
 
     // Private helper methods
 
-    fn allocate_small(&self, size: usize, alignment: usize, device_key: &DeviceKey, device: &Device) -> MemoryResult<MemoryHandle> {
+    fn allocate_small(
+        &self,
+        size: usize,
+        alignment: usize,
+        device_key: &DeviceKey,
+        device: &Device,
+    ) -> MemoryResult<MemoryHandle> {
         let pool = self.get_or_create_small_pool(device_key, device)?;
-        let mut pool = pool.lock()
-            .map_err(|_| MemoryError::InternalError { 
-                reason: "Failed to acquire small pool lock".to_string() 
-            })?;
+        let mut pool = pool.lock().map_err(|_| MemoryError::InternalError {
+            reason: "Failed to acquire small pool lock".to_string(),
+        })?;
         pool.allocate(size, alignment, device, self.next_handle_id.clone())
     }
 
-    fn allocate_large(&self, size: usize, alignment: usize, device_key: &DeviceKey, device: &Device) -> MemoryResult<MemoryHandle> {
+    fn allocate_large(
+        &self,
+        size: usize,
+        alignment: usize,
+        device_key: &DeviceKey,
+        device: &Device,
+    ) -> MemoryResult<MemoryHandle> {
         let pool = self.get_or_create_large_pool(device_key, device)?;
-        let mut pool = pool.lock()
-            .map_err(|_| MemoryError::InternalError { 
-                reason: "Failed to acquire large pool lock".to_string() 
-            })?;
+        let mut pool = pool.lock().map_err(|_| MemoryError::InternalError {
+            reason: "Failed to acquire large pool lock".to_string(),
+        })?;
         pool.allocate(size, alignment, device, self.next_handle_id.clone())
     }
 
     fn deallocate_small(&self, handle: MemoryHandle, device_key: &DeviceKey) -> MemoryResult<()> {
-        let pools = self.small_pools.read()
-            .map_err(|_| MemoryError::InternalError { 
-                reason: "Failed to acquire small pools lock".to_string() 
-            })?;
-        
-        let pool = pools.get(device_key)
-            .ok_or_else(|| MemoryError::InvalidHandle {
-                reason: "Small pool not found for device".to_string()
+        let pools = self
+            .small_pools
+            .read()
+            .map_err(|_| MemoryError::InternalError {
+                reason: "Failed to acquire small pools lock".to_string(),
             })?;
 
-        let mut pool = pool.lock()
-            .map_err(|_| MemoryError::InternalError { 
-                reason: "Failed to acquire small pool lock".to_string() 
+        let pool = pools
+            .get(device_key)
+            .ok_or_else(|| MemoryError::InvalidHandle {
+                reason: "Small pool not found for device".to_string(),
             })?;
-        
+
+        let mut pool = pool.lock().map_err(|_| MemoryError::InternalError {
+            reason: "Failed to acquire small pool lock".to_string(),
+        })?;
+
         pool.deallocate(handle)
     }
 
     fn deallocate_large(&self, handle: MemoryHandle, device_key: &DeviceKey) -> MemoryResult<()> {
-        let pools = self.large_pools.read()
-            .map_err(|_| MemoryError::InternalError { 
-                reason: "Failed to acquire large pools lock".to_string() 
-            })?;
-        
-        let pool = pools.get(device_key)
-            .ok_or_else(|| MemoryError::InvalidHandle {
-                reason: "Large pool not found for device".to_string()
+        let pools = self
+            .large_pools
+            .read()
+            .map_err(|_| MemoryError::InternalError {
+                reason: "Failed to acquire large pools lock".to_string(),
             })?;
 
-        let mut pool = pool.lock()
-            .map_err(|_| MemoryError::InternalError { 
-                reason: "Failed to acquire large pool lock".to_string() 
+        let pool = pools
+            .get(device_key)
+            .ok_or_else(|| MemoryError::InvalidHandle {
+                reason: "Large pool not found for device".to_string(),
             })?;
-        
+
+        let mut pool = pool.lock().map_err(|_| MemoryError::InternalError {
+            reason: "Failed to acquire large pool lock".to_string(),
+        })?;
+
         pool.deallocate(handle)
     }
 
-    fn get_or_create_small_pool(&self, device_key: &DeviceKey, device: &Device) -> MemoryResult<Arc<Mutex<SmallBlockPool>>> {
+    fn get_or_create_small_pool(
+        &self,
+        device_key: &DeviceKey,
+        device: &Device,
+    ) -> MemoryResult<Arc<Mutex<SmallBlockPool>>> {
         // Try to get existing pool first
         {
-            let pools = self.small_pools.read()
-                .map_err(|_| MemoryError::InternalError { 
-                    reason: "Failed to acquire small pools read lock".to_string() 
+            let pools = self
+                .small_pools
+                .read()
+                .map_err(|_| MemoryError::InternalError {
+                    reason: "Failed to acquire small pools read lock".to_string(),
                 })?;
-            
+
             if let Some(pool) = pools.get(device_key) {
                 return Ok(pool.clone());
             }
         }
 
         // Create new pool
-        let mut pools = self.small_pools.write()
-            .map_err(|_| MemoryError::InternalError { 
-                reason: "Failed to acquire small pools write lock".to_string() 
+        let mut pools = self
+            .small_pools
+            .write()
+            .map_err(|_| MemoryError::InternalError {
+                reason: "Failed to acquire small pools write lock".to_string(),
             })?;
 
         // Double-check in case another thread created it
@@ -752,7 +838,7 @@ impl HybridMemoryPool {
         let pool = SmallBlockPool::new(
             self.config.small_pool_initial_size,
             self.config.small_pool_max_size,
-            device
+            device,
         )?;
 
         let pool = Arc::new(Mutex::new(pool));
@@ -761,23 +847,31 @@ impl HybridMemoryPool {
         Ok(pool)
     }
 
-    fn get_or_create_large_pool(&self, device_key: &DeviceKey, device: &Device) -> MemoryResult<Arc<Mutex<LargeBlockPool>>> {
+    fn get_or_create_large_pool(
+        &self,
+        device_key: &DeviceKey,
+        device: &Device,
+    ) -> MemoryResult<Arc<Mutex<LargeBlockPool>>> {
         // Try to get existing pool first
         {
-            let pools = self.large_pools.read()
-                .map_err(|_| MemoryError::InternalError { 
-                    reason: "Failed to acquire large pools read lock".to_string() 
+            let pools = self
+                .large_pools
+                .read()
+                .map_err(|_| MemoryError::InternalError {
+                    reason: "Failed to acquire large pools read lock".to_string(),
                 })?;
-            
+
             if let Some(pool) = pools.get(device_key) {
                 return Ok(pool.clone());
             }
         }
 
         // Create new pool
-        let mut pools = self.large_pools.write()
-            .map_err(|_| MemoryError::InternalError { 
-                reason: "Failed to acquire large pools write lock".to_string() 
+        let mut pools = self
+            .large_pools
+            .write()
+            .map_err(|_| MemoryError::InternalError {
+                reason: "Failed to acquire large pools write lock".to_string(),
             })?;
 
         // Double-check in case another thread created it
@@ -788,7 +882,7 @@ impl HybridMemoryPool {
         let pool = LargeBlockPool::new(
             self.config.large_pool_initial_size,
             self.config.large_pool_max_size,
-            device
+            device,
         )?;
 
         let pool = Arc::new(Mutex::new(pool));
@@ -837,11 +931,11 @@ mod tests {
     fn test_invalid_alignment() {
         let pool = HybridMemoryPool::new().unwrap();
         let device = get_cpu_device();
-        
+
         // Test non-power-of-2 alignment
         let result = pool.allocate(1024, 3, &device);
         assert!(matches!(result, Err(MemoryError::InvalidAlignment { .. })));
-        
+
         // Test zero alignment
         let result = pool.allocate(1024, 0, &device);
         assert!(matches!(result, Err(MemoryError::InvalidAlignment { .. })));
@@ -851,13 +945,13 @@ mod tests {
     fn test_memory_pool_reset() {
         let pool = HybridMemoryPool::new().unwrap();
         let device = get_cpu_device();
-        
+
         // Allocate some memory
         let _handle = pool.allocate(1024, 16, &device).unwrap();
-        
+
         // Reset pool
         pool.reset().unwrap();
-        
+
         // Metrics should be reset
         let metrics = pool.get_metrics();
         assert_eq!(metrics.total_allocated, 0);

@@ -7,11 +7,11 @@
 //! - Cache-friendly memory access patterns
 //! - Integration with existing memory pressure detection
 
-pub mod lazy_quantization;
-pub mod weight_cache;
-pub mod scaling_factors;
 pub mod cache_friendly;
+pub mod lazy_quantization;
 pub mod pressure_detection;
+pub mod scaling_factors;
+pub mod weight_cache;
 
 #[cfg(test)]
 pub mod tests;
@@ -21,11 +21,13 @@ use bitnet_core::memory::{HybridMemoryPool, MemoryMetrics};
 use candle_core::{Device, Tensor};
 use std::sync::Arc;
 
-pub use lazy_quantization::{LazyQuantizer, LazyQuantizationConfig, QuantizationState};
-pub use weight_cache::{WeightCacheManager, CacheEntry as WeightCacheEntry, CacheConfig as WeightCacheConfig};
-pub use scaling_factors::{ScalingFactorManager, ScaleCache, ScalingPolicy};
-pub use cache_friendly::{CacheFriendlyTensor, MemoryLayout, AccessPattern};
-pub use pressure_detection::{MemoryPressureIntegrator, PressureConfig, MemoryPressureLevel};
+pub use cache_friendly::{AccessPattern, CacheFriendlyTensor, MemoryLayout};
+pub use lazy_quantization::{LazyQuantizationConfig, LazyQuantizer, QuantizationState};
+pub use pressure_detection::{MemoryPressureIntegrator, MemoryPressureLevel, PressureConfig};
+pub use scaling_factors::{ScaleCache, ScalingFactorManager, ScalingPolicy};
+pub use weight_cache::{
+    CacheConfig as WeightCacheConfig, CacheEntry as WeightCacheEntry, WeightCacheManager,
+};
 
 /// Comprehensive memory optimization configuration
 #[derive(Debug, Clone)]
@@ -70,25 +72,25 @@ pub struct MemoryOptimizationMetrics {
     pub lazy_quantization_hits: u64,
     pub lazy_quantization_misses: u64,
     pub lazy_quantization_evictions: u64,
-    
+
     /// Weight cache statistics
     pub weight_cache_hits: u64,
     pub weight_cache_misses: u64,
     pub weight_cache_size_bytes: usize,
-    
+
     /// Scaling factor cache statistics
     pub scale_cache_hits: u64,
     pub scale_cache_misses: u64,
-    
+
     /// Memory pressure statistics
     pub pressure_events_low: u64,
     pub pressure_events_high: u64,
     pub pressure_events_critical: u64,
-    
+
     /// Layout optimization statistics
     pub layout_optimizations_applied: u64,
     pub memory_copies_avoided: u64,
-    
+
     /// Total memory saved through optimizations
     pub total_memory_saved_bytes: usize,
 }
@@ -103,7 +105,7 @@ impl MemoryOptimizationMetrics {
             self.lazy_quantization_hits as f32 / total as f32
         }
     }
-    
+
     /// Calculate cache hit rate for weight cache
     pub fn weight_cache_hit_rate(&self) -> f32 {
         let total = self.weight_cache_hits + self.weight_cache_misses;
@@ -113,7 +115,7 @@ impl MemoryOptimizationMetrics {
             self.weight_cache_hits as f32 / total as f32
         }
     }
-    
+
     /// Calculate cache hit rate for scaling factors
     pub fn scale_cache_hit_rate(&self) -> f32 {
         let total = self.scale_cache_hits + self.scale_cache_misses;
@@ -123,7 +125,7 @@ impl MemoryOptimizationMetrics {
             self.scale_cache_hits as f32 / total as f32
         }
     }
-    
+
     /// Get total memory pressure events
     pub fn total_pressure_events(&self) -> u64 {
         self.pressure_events_low + self.pressure_events_high + self.pressure_events_critical
@@ -160,23 +162,16 @@ impl BitLinearMemoryOptimizer {
             memory_pool.clone(),
             device,
         )?;
-        
-        let weight_cache = WeightCacheManager::new(
-            config.weight_cache_config.clone(),
-            memory_pool.clone(),
-        )?;
-        
-        let scale_manager = ScalingFactorManager::new(
-            config.scaling_policy.clone(),
-            memory_pool.clone(),
-            device,
-        )?;
-        
-        let pressure_integrator = MemoryPressureIntegrator::new(
-            config.pressure_config.clone(),
-            memory_pool.clone(),
-        )?;
-        
+
+        let weight_cache =
+            WeightCacheManager::new(config.weight_cache_config.clone(), memory_pool.clone())?;
+
+        let scale_manager =
+            ScalingFactorManager::new(config.scaling_policy.clone(), memory_pool.clone(), device)?;
+
+        let pressure_integrator =
+            MemoryPressureIntegrator::new(config.pressure_config.clone(), memory_pool.clone())?;
+
         Ok(Self {
             config,
             lazy_quantizer,
@@ -187,7 +182,7 @@ impl BitLinearMemoryOptimizer {
             metrics: MemoryOptimizationMetrics::default(),
         })
     }
-    
+
     /// Optimize tensor layout for cache-friendly access
     pub fn optimize_tensor_layout(
         &mut self,
@@ -197,33 +192,34 @@ impl BitLinearMemoryOptimizer {
         if !self.config.enable_layout_optimization {
             return CacheFriendlyTensor::from_tensor(tensor.clone(), MemoryLayout::default());
         }
-        
+
         let optimized = cache_friendly::optimize_for_access_pattern(
             tensor,
             access_pattern,
             self.config.memory_alignment,
             &self.memory_pool,
         )?;
-        
+
         if optimized.is_optimized() {
             self.metrics.layout_optimizations_applied += 1;
             self.metrics.memory_copies_avoided += 1;
         }
-        
+
         Ok(optimized)
     }
-    
+
     /// Get or create quantized weights with lazy quantization
     pub fn get_quantized_weights(
         &mut self,
         layer_name: &str,
         weights: &Tensor,
         force_quantize: bool,
-    ) -> BitLinearResult<(Tensor, Tensor)> { // (quantized_weights, scales)
+    ) -> BitLinearResult<(Tensor, Tensor)> {
+        // (quantized_weights, scales)
         // Check weight cache first
         if let Some(cached_entry) = self.weight_cache.get(layer_name) {
             self.metrics.weight_cache_hits += 1;
-            
+
             // Verify cache validity
             if cached_entry.is_valid_for_tensor(weights)? {
                 return Ok((
@@ -235,11 +231,12 @@ impl BitLinearMemoryOptimizer {
                 self.weight_cache.invalidate(layer_name);
             }
         }
-        
+
         self.metrics.weight_cache_misses += 1;
-        
+
         // Use lazy quantization if enabled
-        let (quantized_weights, scales) = if self.config.enable_lazy_quantization && !force_quantize {
+        let (quantized_weights, scales) = if self.config.enable_lazy_quantization && !force_quantize
+        {
             self.lazy_quantizer.get_or_quantize(layer_name, weights)?
         } else {
             // Force immediate quantization
@@ -247,7 +244,7 @@ impl BitLinearMemoryOptimizer {
             let quantized = self.quantize_with_scales(weights, &scales)?;
             (quantized, scales)
         };
-        
+
         // Update weight cache
         let cache_entry = WeightCacheEntry::new(
             quantized_weights.clone(),
@@ -255,19 +252,21 @@ impl BitLinearMemoryOptimizer {
             weights.clone(),
             layer_name.to_string(),
         )?;
-        
-        let _ = self.weight_cache.insert(layer_name.to_string(), cache_entry);
-        
+
+        let _ = self
+            .weight_cache
+            .insert(layer_name.to_string(), cache_entry);
+
         // Update scaling factor cache
         self.scale_manager.cache_scales(layer_name, &scales)?;
-        
+
         Ok((quantized_weights, scales))
     }
-    
+
     /// Check memory pressure and trigger optimizations if needed
     pub fn check_memory_pressure(&mut self) -> BitLinearResult<()> {
         let current_level = self.pressure_integrator.check_pressure()?;
-        
+
         match current_level {
             MemoryPressureLevel::Low => {
                 self.metrics.pressure_events_low += 1;
@@ -281,38 +280,38 @@ impl BitLinearMemoryOptimizer {
                 self.handle_critical_pressure()?;
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Get current optimization metrics
     pub fn metrics(&self) -> &MemoryOptimizationMetrics {
         &self.metrics
     }
-    
+
     /// Get mutable access to metrics for updating
     pub fn metrics_mut(&mut self) -> &mut MemoryOptimizationMetrics {
         &mut self.metrics
     }
-    
+
     /// Get memory pool metrics
     pub fn memory_pool_metrics(&self) -> MemoryMetrics {
         self.memory_pool.get_metrics()
     }
-    
+
     /// Cleanup and optimize memory usage
     pub fn cleanup(&mut self) -> BitLinearResult<()> {
         // Cleanup caches
         self.weight_cache.cleanup()?;
         self.lazy_quantizer.cleanup()?;
         self.scale_manager.cleanup()?;
-        
+
         // Update metrics
         self.metrics.total_memory_saved_bytes += self.weight_cache.bytes_freed();
-        
+
         Ok(())
     }
-    
+
     /// Reset all optimization metrics
     pub fn reset_metrics(&mut self) {
         self.metrics = MemoryOptimizationMetrics::default();
@@ -320,40 +319,43 @@ impl BitLinearMemoryOptimizer {
         self.lazy_quantizer.reset_metrics();
         self.scale_manager.reset_metrics();
     }
-    
+
     // Private helper methods
-    
+
     fn quantize_with_scales(&self, weights: &Tensor, scales: &Tensor) -> BitLinearResult<Tensor> {
         // Simple ternary quantization: {-1, 0, 1}
-        let normalized = weights.broadcast_div(scales)
+        let normalized = weights
+            .broadcast_div(scales)
             .map_err(|e| BitLinearError::TensorError(format!("Scale normalization failed: {e}")))?;
-        
+
         // Clamp to [-1, 1] and round to nearest integer
-        let clamped = normalized.clamp(-1.0, 1.0)
+        let clamped = normalized
+            .clamp(-1.0, 1.0)
             .map_err(|e| BitLinearError::TensorError(format!("Clamping failed: {e}")))?;
-        
-        let quantized = clamped.round()
-            .map_err(|e| BitLinearError::TensorError(format!("Quantization rounding failed: {e}")))?;
-        
+
+        let quantized = clamped.round().map_err(|e| {
+            BitLinearError::TensorError(format!("Quantization rounding failed: {e}"))
+        })?;
+
         Ok(quantized)
     }
-    
+
     fn handle_high_pressure(&mut self) -> BitLinearResult<()> {
         // Trigger moderate cleanup
         self.weight_cache.evict_lru(0.3)?; // Evict 30% of cache
         self.lazy_quantizer.reduce_cache_size(0.2)?; // Reduce by 20%
         Ok(())
     }
-    
+
     fn handle_critical_pressure(&mut self) -> BitLinearResult<()> {
         // Aggressive cleanup
         self.weight_cache.clear();
         self.lazy_quantizer.clear_cache()?;
         self.scale_manager.clear_cache()?;
-        
+
         // Force garbage collection in memory pool
         self.memory_pool.cleanup_orphaned_handles();
-        
+
         Ok(())
     }
 }

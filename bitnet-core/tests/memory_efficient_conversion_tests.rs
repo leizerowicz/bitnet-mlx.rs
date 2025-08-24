@@ -3,15 +3,15 @@
 //! This test suite validates the functionality, performance, and memory efficiency
 //! of the BitNet data conversion system.
 
-use bitnet_core::memory::{
-    HybridMemoryPool, 
-    conversion::{
-        ConversionEngine, ConversionConfig, ConversionStrategy, ConversionQuality, ConversionStats, ConversionEvent,
-        StreamingConfig, BatchConfig
-    },
-    tensor::{BitNetTensor, BitNetDType}
-};
 use bitnet_core::device::get_cpu_device;
+use bitnet_core::memory::{
+    conversion::{
+        BatchConfig, ConversionConfig, ConversionEngine, ConversionEvent, ConversionQuality,
+        ConversionStats, ConversionStrategy, StreamingConfig,
+    },
+    tensor::{BitNetDType, BitNetTensor},
+    HybridMemoryPool,
+};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -50,7 +50,9 @@ fn test_zero_copy_conversions() {
 
     // Test F16 <-> BF16 conversion (should be zero-copy compatible)
     let f16_tensor = BitNetTensor::ones(&[4, 4], BitNetDType::F16, &device, &pool).unwrap();
-    let bf16_result = engine.zero_copy_convert(&f16_tensor, BitNetDType::BF16).unwrap();
+    let bf16_result = engine
+        .zero_copy_convert(&f16_tensor, BitNetDType::BF16)
+        .unwrap();
 
     assert_eq!(bf16_result.dtype(), BitNetDType::BF16);
     assert_eq!(bf16_result.size_bytes(), f16_tensor.size_bytes());
@@ -61,17 +63,19 @@ fn test_zero_copy_conversions() {
 fn test_streaming_conversions() {
     let pool = Arc::new(HybridMemoryPool::new().unwrap());
     let device = get_cpu_device();
-    
+
     // Configure for streaming with small chunks to test the mechanism
     let mut config = ConversionConfig::default();
     config.streaming.chunk_size = 1024; // Small chunks for testing
     config.streaming.streaming_threshold = 512; // Low threshold to trigger streaming
-    
+
     let engine = ConversionEngine::new(config, pool.clone()).unwrap();
 
     // Create a tensor that will trigger streaming
     let large_tensor = BitNetTensor::ones(&[64, 64], BitNetDType::F32, &device, &pool).unwrap();
-    let result = engine.streaming_convert(&large_tensor, BitNetDType::F16, 512).unwrap();
+    let result = engine
+        .streaming_convert(&large_tensor, BitNetDType::F16, 512)
+        .unwrap();
 
     assert_eq!(result.dtype(), BitNetDType::F16);
     assert_eq!(result.shape(), vec![64, 64]);
@@ -89,8 +93,10 @@ fn test_in_place_conversions() {
     // Test F32 to F16 in-place conversion
     let mut tensor = BitNetTensor::ones(&[4, 4], BitNetDType::F32, &device, &pool).unwrap();
     let original_size = tensor.size_bytes();
-    
-    engine.in_place_convert(&mut tensor, BitNetDType::F16).unwrap();
+
+    engine
+        .in_place_convert(&mut tensor, BitNetDType::F16)
+        .unwrap();
 
     assert_eq!(tensor.dtype(), BitNetDType::F16);
     assert_eq!(tensor.shape(), vec![4, 4]);
@@ -132,9 +138,18 @@ fn test_mixed_batch_conversions() {
 
     // Create conversions with different target types
     let conversions = vec![
-        (BitNetTensor::ones(&[2, 2], BitNetDType::F32, &device, &pool).unwrap(), BitNetDType::F16),
-        (BitNetTensor::zeros(&[3, 3], BitNetDType::F32, &device, &pool).unwrap(), BitNetDType::I8),
-        (BitNetTensor::ones(&[4, 4], BitNetDType::F16, &device, &pool).unwrap(), BitNetDType::I8),
+        (
+            BitNetTensor::ones(&[2, 2], BitNetDType::F32, &device, &pool).unwrap(),
+            BitNetDType::F16,
+        ),
+        (
+            BitNetTensor::zeros(&[3, 3], BitNetDType::F32, &device, &pool).unwrap(),
+            BitNetDType::I8,
+        ),
+        (
+            BitNetTensor::ones(&[4, 4], BitNetDType::F16, &device, &pool).unwrap(),
+            BitNetDType::I8,
+        ),
     ];
 
     let results = engine.batch_convert_mixed(&conversions).unwrap();
@@ -154,7 +169,9 @@ fn test_conversion_pipeline() {
     let engine = ConversionEngine::new(config, pool.clone()).unwrap();
 
     // Create a multi-stage pipeline: F32 -> F16 -> I8
-    let pipeline = engine.create_pipeline().unwrap()
+    let pipeline = engine
+        .create_pipeline()
+        .unwrap()
         .add_stage(BitNetDType::F16)
         .add_stage(BitNetDType::I8);
 
@@ -203,31 +220,19 @@ fn test_strategy_selection() {
     let engine = ConversionEngine::new(config, pool.clone()).unwrap();
 
     // Test strategy info for different conversions
-    let info_same_type = engine.get_optimal_strategy_info(
-        BitNetDType::F32,
-        BitNetDType::F32,
-        &[4, 4],
-        &device,
-    );
+    let info_same_type =
+        engine.get_optimal_strategy_info(BitNetDType::F32, BitNetDType::F32, &[4, 4], &device);
     assert!(info_same_type.is_zero_copy);
     assert!(info_same_type.is_supported);
 
-    let info_downsize = engine.get_optimal_strategy_info(
-        BitNetDType::F32,
-        BitNetDType::F16,
-        &[4, 4],
-        &device,
-    );
+    let info_downsize =
+        engine.get_optimal_strategy_info(BitNetDType::F32, BitNetDType::F16, &[4, 4], &device);
     assert!(info_downsize.is_in_place);
     assert!(info_downsize.is_supported);
     assert_eq!(info_downsize.compression_ratio, 2.0);
 
-    let info_large_tensor = engine.get_optimal_strategy_info(
-        BitNetDType::F32,
-        BitNetDType::I8,
-        &[1000, 1000],
-        &device,
-    );
+    let info_large_tensor =
+        engine.get_optimal_strategy_info(BitNetDType::F32, BitNetDType::I8, &[1000, 1000], &device);
     assert!(info_large_tensor.is_supported);
     assert_eq!(info_large_tensor.compression_ratio, 4.0);
 }
@@ -247,7 +252,9 @@ fn test_error_handling() {
 
     // Test empty batch conversion
     let empty_batch: Vec<BitNetTensor> = vec![];
-    let result = engine.batch_convert(&empty_batch, BitNetDType::F16).unwrap();
+    let result = engine
+        .batch_convert(&empty_batch, BitNetDType::F16)
+        .unwrap();
     assert!(result.is_empty());
 }
 
@@ -261,7 +268,7 @@ fn test_memory_efficiency() {
 
     // Test compression ratios for different conversions
     let f32_tensor = BitNetTensor::ones(&[16, 16], BitNetDType::F32, &device, &pool).unwrap();
-    
+
     // F32 to F16 should be 2x compression
     let f16_result = engine.convert(&f32_tensor, BitNetDType::F16).unwrap();
     assert_eq!(f16_result.size_bytes() * 2, f32_tensor.size_bytes());
@@ -282,7 +289,10 @@ fn test_configuration_options() {
 
     // Test low memory configuration
     let low_mem_config = ConversionConfig::low_memory();
-    assert_eq!(low_mem_config.default_strategy, ConversionStrategy::Streaming);
+    assert_eq!(
+        low_mem_config.default_strategy,
+        ConversionStrategy::Streaming
+    );
     assert_eq!(low_mem_config.max_memory_usage, 256 * 1024 * 1024);
 
     // Test high performance configuration
@@ -310,12 +320,12 @@ fn test_streaming_configuration() {
     // Test custom streaming configuration
     let mut config = ConversionConfig::default();
     config.streaming = StreamingConfig::low_memory();
-    
+
     let engine = ConversionEngine::new(config, pool.clone()).unwrap();
-    
+
     let tensor = BitNetTensor::ones(&[32, 32], BitNetDType::F32, &device, &pool).unwrap();
     let result = engine.convert(&tensor, BitNetDType::F16).unwrap();
-    
+
     assert_eq!(result.dtype(), BitNetDType::F16);
     assert_eq!(result.shape(), vec![32, 32]);
 }
@@ -329,14 +339,14 @@ fn test_batch_configuration() {
     // Test custom batch configuration
     let mut config = ConversionConfig::default();
     config.batch = BatchConfig::high_performance();
-    
+
     let engine = ConversionEngine::new(config, pool.clone()).unwrap();
-    
+
     let tensors = vec![
         BitNetTensor::ones(&[4, 4], BitNetDType::F32, &device, &pool).unwrap(),
         BitNetTensor::zeros(&[4, 4], BitNetDType::F32, &device, &pool).unwrap(),
     ];
-    
+
     let results = engine.batch_convert(&tensors, BitNetDType::F16).unwrap();
     assert_eq!(results.len(), 2);
 }
@@ -345,7 +355,7 @@ fn test_batch_configuration() {
 #[test]
 fn test_conversion_event_tracking() {
     let device = get_cpu_device();
-    
+
     // Create a conversion event
     let event = ConversionEvent::new(
         BitNetDType::F32,
@@ -387,7 +397,8 @@ fn test_conversion_statistics() {
             1024,
             512,
             256,
-        ).complete_success(Duration::from_millis(50 + i * 10), 512, 1024);
+        )
+        .complete_success(Duration::from_millis(50 + i * 10), 512, 1024);
 
         stats.record_event(event);
     }
@@ -444,7 +455,9 @@ fn test_integration_comprehensive() {
     let engine = ConversionEngine::new(config, pool.clone()).unwrap();
 
     // Create a complex conversion pipeline
-    let pipeline = engine.create_pipeline().unwrap()
+    let pipeline = engine
+        .create_pipeline()
+        .unwrap()
         .add_stage(BitNetDType::F16)
         .add_stage(BitNetDType::I8)
         .add_stage(BitNetDType::I4)

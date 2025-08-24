@@ -1,5 +1,5 @@
 //! BitNet CLI Application
-//! 
+//!
 //! Command-line interface for BitNet operations.
 
 fn main() {

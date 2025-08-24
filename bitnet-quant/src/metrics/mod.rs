@@ -1,22 +1,22 @@
 // bitnet-quant/src/metrics/mod.rs
 //! Quantization Metrics and Error Analysis Module
-//! 
+//!
 //! Provides comprehensive metrics and analysis tools for quantization quality assessment,
 //! error measurement, and visualization capabilities for BitNet quantization workflows.
 
-pub mod error_analysis;
-pub mod mse;
-pub mod sqnr;
 pub mod cosine_similarity;
+pub mod error_analysis;
 pub mod layer_wise;
-pub mod visualization;
 pub mod mitigation;
+pub mod mse;
 pub mod reporting;
+pub mod sqnr;
+pub mod visualization;
 // pub mod examples;  // Temporarily disabled due to compilation issues
 
-use candle_core::{Tensor, Result};
+use candle_core::{Result, Tensor};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 
 /// Core quantization metrics structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -129,16 +129,32 @@ impl Default for MetricsConfig {
 /// Main metrics calculator trait
 pub trait MetricsCalculator {
     /// Calculate comprehensive quantization metrics
-    fn calculate_metrics(&self, original: &Tensor, quantized: &Tensor, layer_name: &str) -> Result<QuantizationMetrics>;
-    
+    fn calculate_metrics(
+        &self,
+        original: &Tensor,
+        quantized: &Tensor,
+        layer_name: &str,
+    ) -> Result<QuantizationMetrics>;
+
     /// Calculate layer-wise error analysis
-    fn analyze_layer_errors(&self, layer_outputs: HashMap<String, (Tensor, Tensor)>) -> Result<LayerErrorAnalysis>;
-    
+    fn analyze_layer_errors(
+        &self,
+        layer_outputs: HashMap<String, (Tensor, Tensor)>,
+    ) -> Result<LayerErrorAnalysis>;
+
     /// Check if metrics meet quality thresholds
-    fn check_quality_thresholds(&self, metrics: &QuantizationMetrics, thresholds: &ErrorThresholds) -> bool;
-    
+    fn check_quality_thresholds(
+        &self,
+        metrics: &QuantizationMetrics,
+        thresholds: &ErrorThresholds,
+    ) -> bool;
+
     /// Suggest mitigation strategies for poor metrics
-    fn suggest_mitigation(&self, metrics: &QuantizationMetrics, thresholds: &ErrorThresholds) -> Vec<MitigationStrategy>;
+    fn suggest_mitigation(
+        &self,
+        metrics: &QuantizationMetrics,
+        thresholds: &ErrorThresholds,
+    ) -> Vec<MitigationStrategy>;
 }
 
 /// Utility functions for metrics calculation
@@ -159,10 +175,10 @@ pub fn calculate_percentile(values: &[f32], percentile: f32) -> f32 {
     if values.is_empty() {
         return 0.0;
     }
-    
+
     let mut sorted = values.to_vec();
     sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-    
+
     let index = ((percentile / 100.0) * (sorted.len() - 1) as f32) as usize;
     sorted[index.min(sorted.len() - 1)]
 }
@@ -171,13 +187,17 @@ pub fn calculate_percentile(values: &[f32], percentile: f32) -> f32 {
 pub trait MetricsExporter {
     fn export_json(&self, metrics: &LayerErrorAnalysis, path: &str) -> Result<()>;
     fn export_csv(&self, metrics: &LayerErrorAnalysis, path: &str) -> Result<()>;
-    fn export_tensorboard(&self, metrics: &LayerErrorAnalysis, log_dir: &str, step: usize) -> Result<()>;
+    fn export_tensorboard(
+        &self,
+        metrics: &LayerErrorAnalysis,
+        log_dir: &str,
+        step: usize,
+    ) -> Result<()>;
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
 
     #[test]
     fn test_safe_divide() {

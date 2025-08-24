@@ -3,10 +3,7 @@
 //! This module provides comprehensive precision control mechanisms for BitNet quantization,
 //! including dynamic precision adjustment, precision bounds validation, and precision monitoring.
 
-use super::{
-    QuantizationPrecision, QuantizationStats,
-    QuantizationResult, QuantizationError,
-};
+use super::{QuantizationError, QuantizationPrecision, QuantizationResult, QuantizationStats};
 use candle_core::Device;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -432,26 +429,26 @@ impl PrecisionController {
 
         // Check precision bounds
         if !self.is_precision_in_bounds(precision) {
-            return Err(QuantizationError::ValidationFailed(
-                format!("Precision {:?} is outside allowed bounds [{:?}, {:?}]",
-                    precision, bounds.min_precision, bounds.max_precision)
-            ));
+            return Err(QuantizationError::ValidationFailed(format!(
+                "Precision {:?} is outside allowed bounds [{:?}, {:?}]",
+                precision, bounds.min_precision, bounds.max_precision
+            )));
         }
 
         // Check threshold bounds
         if threshold < bounds.min_threshold || threshold > bounds.max_threshold {
-            return Err(QuantizationError::ValidationFailed(
-                format!("Threshold {} is outside bounds [{}, {}]",
-                    threshold, bounds.min_threshold, bounds.max_threshold)
-            ));
+            return Err(QuantizationError::ValidationFailed(format!(
+                "Threshold {} is outside bounds [{}, {}]",
+                threshold, bounds.min_threshold, bounds.max_threshold
+            )));
         }
 
         // Check scale bounds
         if scale < bounds.min_scale || scale > bounds.max_scale {
-            return Err(QuantizationError::ValidationFailed(
-                format!("Scale {} is outside bounds [{}, {}]",
-                    scale, bounds.min_scale, bounds.max_scale)
-            ));
+            return Err(QuantizationError::ValidationFailed(format!(
+                "Scale {} is outside bounds [{}, {}]",
+                scale, bounds.min_scale, bounds.max_scale
+            )));
         }
 
         Ok(())
@@ -463,7 +460,7 @@ impl PrecisionController {
         let precision_order = self.get_precision_order(precision);
         let min_order = self.get_precision_order(bounds.min_precision);
         let max_order = self.get_precision_order(bounds.max_precision);
-        
+
         precision_order >= min_order && precision_order <= max_order
     }
 
@@ -489,10 +486,10 @@ impl PrecisionController {
 
         // Analyze current performance
         let performance_analysis = self.analyze_performance(current_metrics)?;
-        
+
         // Determine if adjustment is needed
         let adjustment_decision = self.make_adjustment_decision(&performance_analysis)?;
-        
+
         if let Some((new_precision, reason)) = adjustment_decision {
             let adjustment = self.apply_precision_adjustment(new_precision, reason)?;
             return Ok(Some(adjustment));
@@ -502,14 +499,17 @@ impl PrecisionController {
     }
 
     /// Analyze current performance metrics
-    fn analyze_performance(&self, metrics: &QuantizationStats) -> QuantizationResult<PerformanceAnalysis> {
+    fn analyze_performance(
+        &self,
+        metrics: &QuantizationStats,
+    ) -> QuantizationResult<PerformanceAnalysis> {
         let error_score = self.evaluate_error_performance(metrics.quantization_error);
         let compression_score = self.evaluate_compression_performance(metrics.compression_ratio);
         let stability_score = self.current_state.stability_score;
-        
+
         // Calculate overall performance score
         let overall_score = (error_score + compression_score + stability_score) / 3.0;
-        
+
         Ok(PerformanceAnalysis {
             error_score,
             compression_score,
@@ -557,7 +557,7 @@ impl PrecisionController {
         }
 
         let current_precision = self.current_state.precision;
-        
+
         // Determine adjustment direction and reason
         if analysis.error_score < 0.5 {
             // High error - increase precision if possible
@@ -575,7 +575,10 @@ impl PrecisionController {
     }
 
     /// Get next higher precision level
-    fn get_higher_precision(&self, current: QuantizationPrecision) -> Option<QuantizationPrecision> {
+    fn get_higher_precision(
+        &self,
+        current: QuantizationPrecision,
+    ) -> Option<QuantizationPrecision> {
         let next = match current {
             QuantizationPrecision::OneBit => QuantizationPrecision::OneFiveFiveBit,
             QuantizationPrecision::OneFiveFiveBit => QuantizationPrecision::TwoBit,
@@ -583,7 +586,7 @@ impl PrecisionController {
             QuantizationPrecision::FourBit => QuantizationPrecision::EightBit,
             QuantizationPrecision::EightBit => return None,
         };
-        
+
         if self.is_precision_in_bounds(next) {
             Some(next)
         } else {
@@ -600,7 +603,7 @@ impl PrecisionController {
             QuantizationPrecision::FourBit => QuantizationPrecision::TwoBit,
             QuantizationPrecision::EightBit => QuantizationPrecision::FourBit,
         };
-        
+
         if self.is_precision_in_bounds(next) {
             Some(next)
         } else {
@@ -616,11 +619,11 @@ impl PrecisionController {
     ) -> QuantizationResult<PrecisionAdjustment> {
         let old_precision = self.current_state.precision;
         let timestamp = Instant::now();
-        
+
         // Update current state
         self.current_state.precision = new_precision;
         self.current_state.last_update = timestamp;
-        
+
         // Create adjustment record
         let adjustment = PrecisionAdjustment {
             timestamp,
@@ -636,38 +639,43 @@ impl PrecisionController {
             },
             success: true,
         };
-        
+
         // Record adjustment
         self.adjustment_history.push(adjustment.clone());
-        
+
         Ok(adjustment)
     }
 
     /// Record metrics for monitoring
     pub fn record_metrics(&mut self, metrics: &QuantizationStats, processing_time: Duration) {
         let now = Instant::now();
-        
+
         // Record in history
-        self.metrics_history.quantization_errors.push((now, metrics.quantization_error));
-        self.metrics_history.compression_ratios.push((now, metrics.compression_ratio));
-        self.metrics_history.processing_times.push((now, processing_time));
-        
+        self.metrics_history
+            .quantization_errors
+            .push((now, metrics.quantization_error));
+        self.metrics_history
+            .compression_ratios
+            .push((now, metrics.compression_ratio));
+        self.metrics_history
+            .processing_times
+            .push((now, processing_time));
+
         // Update performance monitor
         self.performance_monitor.operations_count += 1;
         self.performance_monitor.total_processing_time += processing_time;
-        
+
         // Trim history if needed
         self.trim_history();
-        
+
         // Update current metrics
         self.performance_monitor.current_metrics.insert(
             PrecisionMetric::QuantizationError,
             metrics.quantization_error,
         );
-        self.performance_monitor.current_metrics.insert(
-            PrecisionMetric::CompressionRatio,
-            metrics.compression_ratio,
-        );
+        self.performance_monitor
+            .current_metrics
+            .insert(PrecisionMetric::CompressionRatio, metrics.compression_ratio);
         self.performance_monitor.current_metrics.insert(
             PrecisionMetric::ProcessingTime,
             processing_time.as_secs_f32() * 1000.0, // Convert to ms
@@ -677,15 +685,21 @@ impl PrecisionController {
     /// Trim history to maintain size limits
     fn trim_history(&mut self) {
         let max_size = self.config.monitoring.history_size;
-        
+
         if self.metrics_history.quantization_errors.len() > max_size {
-            self.metrics_history.quantization_errors.drain(0..self.metrics_history.quantization_errors.len() - max_size);
+            self.metrics_history
+                .quantization_errors
+                .drain(0..self.metrics_history.quantization_errors.len() - max_size);
         }
         if self.metrics_history.compression_ratios.len() > max_size {
-            self.metrics_history.compression_ratios.drain(0..self.metrics_history.compression_ratios.len() - max_size);
+            self.metrics_history
+                .compression_ratios
+                .drain(0..self.metrics_history.compression_ratios.len() - max_size);
         }
         if self.metrics_history.processing_times.len() > max_size {
-            self.metrics_history.processing_times.drain(0..self.metrics_history.processing_times.len() - max_size);
+            self.metrics_history
+                .processing_times
+                .drain(0..self.metrics_history.processing_times.len() - max_size);
         }
     }
 
@@ -707,23 +721,32 @@ impl PrecisionController {
     /// Get performance summary
     pub fn get_performance_summary(&self) -> PerformanceSummary {
         let avg_error = if !self.metrics_history.quantization_errors.is_empty() {
-            self.metrics_history.quantization_errors.iter()
+            self.metrics_history
+                .quantization_errors
+                .iter()
                 .map(|(_, error)| *error)
-                .sum::<f32>() / self.metrics_history.quantization_errors.len() as f32
+                .sum::<f32>()
+                / self.metrics_history.quantization_errors.len() as f32
         } else {
             0.0
         };
 
         let avg_compression = if !self.metrics_history.compression_ratios.is_empty() {
-            self.metrics_history.compression_ratios.iter()
+            self.metrics_history
+                .compression_ratios
+                .iter()
                 .map(|(_, ratio)| *ratio)
-                .sum::<f32>() / self.metrics_history.compression_ratios.len() as f32
+                .sum::<f32>()
+                / self.metrics_history.compression_ratios.len() as f32
         } else {
             0.0
         };
 
         let avg_processing_time = if !self.metrics_history.processing_times.is_empty() {
-            let total_time: Duration = self.metrics_history.processing_times.iter()
+            let total_time: Duration = self
+                .metrics_history
+                .processing_times
+                .iter()
                 .map(|(_, time)| *time)
                 .sum();
             total_time / self.metrics_history.processing_times.len() as u32
@@ -772,16 +795,16 @@ impl PrecisionControlConfig {
     pub fn validate(&self) -> QuantizationResult<()> {
         // Validate precision bounds
         self.precision_bounds.validate()?;
-        
+
         // Validate dynamic adjustment config
         self.dynamic_adjustment.validate()?;
-        
+
         // Validate monitoring config
         self.monitoring.validate()?;
-        
+
         // Validate performance thresholds
         self.performance_thresholds.validate()?;
-        
+
         Ok(())
     }
 
@@ -833,28 +856,28 @@ impl PrecisionBounds {
     pub fn validate(&self) -> QuantizationResult<()> {
         if self.min_threshold >= self.max_threshold {
             return Err(QuantizationError::ConfigurationError(
-                "Min threshold must be less than max threshold".to_string()
+                "Min threshold must be less than max threshold".to_string(),
             ));
         }
-        
+
         if self.min_scale >= self.max_scale {
             return Err(QuantizationError::ConfigurationError(
-                "Min scale must be less than max scale".to_string()
+                "Min scale must be less than max scale".to_string(),
             ));
         }
-        
+
         if self.max_error_tolerance <= 0.0 {
             return Err(QuantizationError::ConfigurationError(
-                "Max error tolerance must be positive".to_string()
+                "Max error tolerance must be positive".to_string(),
             ));
         }
-        
+
         if self.min_compression_ratio <= 1.0 {
             return Err(QuantizationError::ConfigurationError(
-                "Min compression ratio must be greater than 1.0".to_string()
+                "Min compression ratio must be greater than 1.0".to_string(),
             ));
         }
-        
+
         Ok(())
     }
 }
@@ -864,28 +887,28 @@ impl DynamicAdjustmentConfig {
     pub fn validate(&self) -> QuantizationResult<()> {
         if self.evaluation_window == 0 {
             return Err(QuantizationError::ConfigurationError(
-                "Evaluation window must be greater than 0".to_string()
+                "Evaluation window must be greater than 0".to_string(),
             ));
         }
-        
+
         if self.adjustment_frequency == 0 {
             return Err(QuantizationError::ConfigurationError(
-                "Adjustment frequency must be greater than 0".to_string()
+                "Adjustment frequency must be greater than 0".to_string(),
             ));
         }
-        
+
         if self.learning_rate <= 0.0 || self.learning_rate > 1.0 {
             return Err(QuantizationError::ConfigurationError(
-                "Learning rate must be between 0 and 1".to_string()
+                "Learning rate must be between 0 and 1".to_string(),
             ));
         }
-        
+
         if self.stability_threshold < 0.0 {
             return Err(QuantizationError::ConfigurationError(
-                "Stability threshold must be non-negative".to_string()
+                "Stability threshold must be non-negative".to_string(),
             ));
         }
-        
+
         Ok(())
     }
 }
@@ -895,16 +918,16 @@ impl PrecisionMonitoringConfig {
     pub fn validate(&self) -> QuantizationResult<()> {
         if self.history_size == 0 {
             return Err(QuantizationError::ConfigurationError(
-                "History size must be greater than 0".to_string()
+                "History size must be greater than 0".to_string(),
             ));
         }
-        
+
         if self.tracked_metrics.is_empty() {
             return Err(QuantizationError::ConfigurationError(
-                "At least one metric must be tracked".to_string()
+                "At least one metric must be tracked".to_string(),
             ));
         }
-        
+
         Ok(())
     }
 }
@@ -914,34 +937,34 @@ impl PerformanceThresholds {
     pub fn validate(&self) -> QuantizationResult<()> {
         if self.min_accuracy <= 0.0 || self.min_accuracy > 1.0 {
             return Err(QuantizationError::ConfigurationError(
-                "Min accuracy must be between 0 and 1".to_string()
+                "Min accuracy must be between 0 and 1".to_string(),
             ));
         }
-        
+
         if self.max_latency_ms <= 0.0 {
             return Err(QuantizationError::ConfigurationError(
-                "Max latency must be positive".to_string()
+                "Max latency must be positive".to_string(),
             ));
         }
-        
+
         if self.max_memory_overhead_pct < 0.0 {
             return Err(QuantizationError::ConfigurationError(
-                "Max memory overhead must be non-negative".to_string()
+                "Max memory overhead must be non-negative".to_string(),
             ));
         }
-        
+
         if self.min_throughput <= 0.0 {
             return Err(QuantizationError::ConfigurationError(
-                "Min throughput must be positive".to_string()
+                "Min throughput must be positive".to_string(),
             ));
         }
-        
+
         if self.min_energy_efficiency <= 0.0 || self.min_energy_efficiency > 1.0 {
             return Err(QuantizationError::ConfigurationError(
-                "Min energy efficiency must be between 0 and 1".to_string()
+                "Min energy efficiency must be between 0 and 1".to_string(),
             ));
         }
-        
+
         Ok(())
     }
 }
@@ -979,7 +1002,7 @@ mod tests {
     fn test_precision_bounds_validation() {
         let mut bounds = PrecisionBounds::default();
         assert!(bounds.validate().is_ok());
-        
+
         // Test invalid threshold bounds
         bounds.min_threshold = 5.0;
         bounds.max_threshold = 2.0;
@@ -999,7 +1022,7 @@ mod tests {
         let config = PrecisionControlConfig::default();
         let device = Device::Cpu;
         let controller = PrecisionController::new(config, device).unwrap();
-        
+
         assert!(controller.is_precision_in_bounds(QuantizationPrecision::OneFiveFiveBit));
         assert!(controller.is_precision_in_bounds(QuantizationPrecision::EightBit));
     }
@@ -1009,14 +1032,11 @@ mod tests {
         let config = PrecisionControlConfig::default();
         let device = Device::Cpu;
         let controller = PrecisionController::new(config, device).unwrap();
-        
-        let result = controller.validate_precision_bounds(
-            QuantizationPrecision::OneFiveFiveBit,
-            0.5,
-            1.0,
-        );
+
+        let result =
+            controller.validate_precision_bounds(QuantizationPrecision::OneFiveFiveBit, 0.5, 1.0);
         assert!(result.is_ok());
-        
+
         // Test invalid threshold
         let result = controller.validate_precision_bounds(
             QuantizationPrecision::OneFiveFiveBit,
@@ -1030,14 +1050,20 @@ mod tests {
     fn test_conservative_config() {
         let config = PrecisionControlConfig::conservative();
         assert!(config.validate().is_ok());
-        assert_eq!(config.dynamic_adjustment.strategy, AdjustmentStrategy::Conservative);
+        assert_eq!(
+            config.dynamic_adjustment.strategy,
+            AdjustmentStrategy::Conservative
+        );
     }
 
     #[test]
     fn test_aggressive_config() {
         let config = PrecisionControlConfig::aggressive();
         assert!(config.validate().is_ok());
-        assert_eq!(config.dynamic_adjustment.strategy, AdjustmentStrategy::Aggressive);
+        assert_eq!(
+            config.dynamic_adjustment.strategy,
+            AdjustmentStrategy::Aggressive
+        );
     }
 
     #[test]
@@ -1045,7 +1071,7 @@ mod tests {
         let config = PrecisionControlConfig::default();
         let device = Device::Cpu;
         let mut controller = PrecisionController::new(config, device).unwrap();
-        
+
         let stats = QuantizationStats {
             elements_count: 1000,
             quantization_error: 0.05,
@@ -1055,9 +1081,9 @@ mod tests {
             scale_factor: 1.0,
             zero_point: None,
         };
-        
+
         controller.record_metrics(&stats, Duration::from_millis(10));
-        
+
         let summary = controller.get_performance_summary();
         assert_eq!(summary.operations_count, 1);
         assert_eq!(summary.average_error, 0.05);
@@ -1068,7 +1094,7 @@ mod tests {
         let config = PrecisionControlConfig::default();
         let device = Device::Cpu;
         let mut controller = PrecisionController::new(config, device).unwrap();
-        
+
         let stats = QuantizationStats {
             elements_count: 1000,
             quantization_error: 0.15, // High error to trigger adjustment
@@ -1078,7 +1104,7 @@ mod tests {
             scale_factor: 1.0,
             zero_point: None,
         };
-        
+
         let adjustment = controller.adjust_precision_dynamically(&stats).unwrap();
         // Should suggest precision increase due to high error
         if let Some(adj) = adjustment {

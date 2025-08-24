@@ -4,20 +4,20 @@
 //! existing HybridMemoryPool infrastructure, enabling efficient memory management
 //! with automatic cleanup and reference counting.
 
-use std::sync::{Arc, Weak, Mutex, LazyLock};
-use std::collections::HashMap;
-use crate::memory::{HybridMemoryPool, MemoryHandle, MemoryError, MemoryResult};
-use candle_core::Device;
 use super::dtype::BitNetDType;
+use crate::memory::{HybridMemoryPool, MemoryError, MemoryHandle, MemoryResult};
+use candle_core::Device;
+use std::collections::HashMap;
+use std::sync::{Arc, LazyLock, Mutex, Weak};
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, warn, error};
+use tracing::{debug, error, info, warn};
 
 /// Global memory pool for tensor operations
 static GLOBAL_MEMORY_POOL: Mutex<Option<Weak<HybridMemoryPool>>> = Mutex::new(None);
 
 /// Registry for automatic cleanup of tensor memory handles
-static MEMORY_CLEANUP_REGISTRY: LazyLock<Mutex<HashMap<u64, MemoryHandle>>> = 
+static MEMORY_CLEANUP_REGISTRY: LazyLock<Mutex<HashMap<u64, MemoryHandle>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// Counter for generating unique tensor IDs
@@ -98,7 +98,7 @@ impl TensorMemoryManager {
     /// let pool = Arc::new(HybridMemoryPool::new()?);
     /// let device = get_cpu_device();
     /// let manager = TensorMemoryManager::new(pool, device);
-    /// 
+    ///
     /// let (tensor_id, handle) = manager.allocate_tensor_memory(1024, 16, BitNetDType::F32)?;
     /// println!("Allocated tensor {} with {} bytes", tensor_id, handle.size());
     /// # Ok(())
@@ -112,10 +112,12 @@ impl TensorMemoryManager {
     ) -> MemoryResult<(u64, MemoryHandle)> {
         // Generate unique tensor ID
         let tensor_id = {
-            let mut counter = self.next_tensor_id.lock()
-                .map_err(|_| MemoryError::InternalError {
-                    reason: "Failed to acquire tensor ID counter lock".to_string(),
-                })?;
+            let mut counter =
+                self.next_tensor_id
+                    .lock()
+                    .map_err(|_| MemoryError::InternalError {
+                        reason: "Failed to acquire tensor ID counter lock".to_string(),
+                    })?;
             let id = *counter;
             *counter += 1;
             id
@@ -132,17 +134,21 @@ impl TensorMemoryManager {
 
         // Register the handle for cleanup tracking
         {
-            let mut registry = self.handle_registry.lock()
-                .map_err(|_| MemoryError::InternalError {
-                    reason: "Failed to acquire handle registry lock".to_string(),
-                })?;
+            let mut registry =
+                self.handle_registry
+                    .lock()
+                    .map_err(|_| MemoryError::InternalError {
+                        reason: "Failed to acquire handle registry lock".to_string(),
+                    })?;
             registry.insert(tensor_id, handle.clone());
         }
 
         #[cfg(feature = "tracing")]
         debug!(
             "Successfully allocated tensor memory: id={}, handle_id={}, size={} bytes",
-            tensor_id, handle.id(), handle.size()
+            tensor_id,
+            handle.id(),
+            handle.size()
         );
 
         Ok((tensor_id, handle))
@@ -170,7 +176,7 @@ impl TensorMemoryManager {
     /// # let device = get_cpu_device();
     /// # let manager = TensorMemoryManager::new(pool, device);
     /// # let (tensor_id, handle) = manager.allocate_tensor_memory(1024, 16, BitNetDType::F32)?;
-    /// 
+    ///
     /// manager.deallocate_tensor_memory(tensor_id)?;
     /// # Ok(())
     /// # }
@@ -181,12 +187,15 @@ impl TensorMemoryManager {
 
         // Remove from registry and get handle
         let handle = {
-            let mut registry = self.handle_registry.lock()
-                .map_err(|_| MemoryError::InternalError {
-                    reason: "Failed to acquire handle registry lock".to_string(),
-                })?;
-            
-            registry.remove(&tensor_id)
+            let mut registry =
+                self.handle_registry
+                    .lock()
+                    .map_err(|_| MemoryError::InternalError {
+                        reason: "Failed to acquire handle registry lock".to_string(),
+                    })?;
+
+            registry
+                .remove(&tensor_id)
                 .ok_or_else(|| MemoryError::InvalidHandle {
                     reason: format!("Tensor ID {} not found in registry", tensor_id),
                 })?
@@ -195,7 +204,9 @@ impl TensorMemoryManager {
         #[cfg(feature = "tracing")]
         debug!(
             "Deallocating memory for tensor {}: handle_id={}, size={} bytes",
-            tensor_id, handle.id(), handle.size()
+            tensor_id,
+            handle.id(),
+            handle.size()
         );
 
         // Deallocate using HybridMemoryPool
@@ -272,10 +283,12 @@ impl TensorMemoryManager {
         info!("Cleaning up all tensor memory allocations");
 
         let handles = {
-            let mut registry = self.handle_registry.lock()
-                .map_err(|_| MemoryError::InternalError {
-                    reason: "Failed to acquire handle registry lock".to_string(),
-                })?;
+            let mut registry =
+                self.handle_registry
+                    .lock()
+                    .map_err(|_| MemoryError::InternalError {
+                        reason: "Failed to acquire handle registry lock".to_string(),
+                    })?;
             let handles: Vec<_> = registry.drain().collect();
             handles
         };
@@ -335,7 +348,7 @@ impl TensorMemoryManager {
     pub fn set_global_pool(pool: Weak<HybridMemoryPool>) {
         if let Ok(mut global_pool) = GLOBAL_MEMORY_POOL.lock() {
             *global_pool = Some(pool);
-            
+
             #[cfg(feature = "tracing")]
             info!("Global tensor memory pool set");
         }
@@ -362,7 +375,7 @@ impl TensorMemoryManager {
     pub fn clear_global_pool() {
         if let Ok(mut global_pool) = GLOBAL_MEMORY_POOL.lock() {
             *global_pool = None;
-            
+
             #[cfg(feature = "tracing")]
             info!("Global tensor memory pool cleared");
         }
@@ -392,10 +405,9 @@ pub fn allocate_tensor_memory_global(
     device: &Device,
     dtype: BitNetDType,
 ) -> MemoryResult<(u64, MemoryHandle)> {
-    let pool = get_global_memory_pool()
-        .ok_or_else(|| MemoryError::InternalError {
-            reason: "Global memory pool not initialized".to_string(),
-        })?;
+    let pool = get_global_memory_pool().ok_or_else(|| MemoryError::InternalError {
+        reason: "Global memory pool not initialized".to_string(),
+    })?;
 
     let manager = TensorMemoryManager::new(pool, device.clone());
     manager.allocate_tensor_memory(size_bytes, alignment, dtype)
@@ -421,7 +433,7 @@ pub fn generate_tensor_id() -> u64 {
 pub fn register_tensor_memory(tensor_id: u64, handle: MemoryHandle) {
     if let Ok(mut registry) = MEMORY_CLEANUP_REGISTRY.lock() {
         registry.insert(tensor_id, handle);
-        
+
         #[cfg(feature = "tracing")]
         debug!("Registered tensor memory for cleanup: id={}", tensor_id);
     }
@@ -442,7 +454,7 @@ pub fn cleanup_tensor_memory(tensor_id: u64) -> MemoryResult<()> {
     if let Some(handle) = handle {
         if let Some(pool) = get_global_memory_pool() {
             pool.deallocate(handle)?;
-            
+
             #[cfg(feature = "tracing")]
             debug!("Cleaned up tensor memory: id={}", tensor_id);
         }
@@ -455,9 +467,7 @@ pub fn cleanup_tensor_memory(tensor_id: u64) -> MemoryResult<()> {
 pub fn get_tensor_memory_stats() -> (usize, usize) {
     if let Ok(registry) = MEMORY_CLEANUP_REGISTRY.lock() {
         let count = registry.len();
-        let total_bytes = registry.values()
-            .map(|handle| handle.size())
-            .sum();
+        let total_bytes = registry.values().map(|handle| handle.size()).sum();
         (count, total_bytes)
     } else {
         (0, 0)
@@ -474,7 +484,7 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         let manager = TensorMemoryManager::new(pool, device);
-        
+
         assert_eq!(manager.active_tensor_count(), 0);
         assert!(matches!(manager.device(), Device::Cpu));
     }
@@ -484,15 +494,17 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         let manager = TensorMemoryManager::new(pool, device);
-        
-        let (tensor_id, handle) = manager.allocate_tensor_memory(1024, 16, BitNetDType::F32).unwrap();
+
+        let (tensor_id, handle) = manager
+            .allocate_tensor_memory(1024, 16, BitNetDType::F32)
+            .unwrap();
         assert_eq!(handle.size(), 1024);
         assert_eq!(handle.alignment(), 16);
         assert_eq!(manager.active_tensor_count(), 1);
-        
+
         // Validate memory
         manager.validate_tensor_memory(tensor_id).unwrap();
-        
+
         // Cleanup
         manager.deallocate_tensor_memory(tensor_id).unwrap();
         assert_eq!(manager.active_tensor_count(), 0);
@@ -502,10 +514,10 @@ mod tests {
     fn test_global_memory_pool() {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         set_global_memory_pool(Arc::downgrade(&pool));
-        
+
         let retrieved_pool = get_global_memory_pool().unwrap();
         assert!(Arc::ptr_eq(&pool, &retrieved_pool));
-        
+
         clear_global_memory_pool();
         assert!(get_global_memory_pool().is_none());
     }
@@ -514,16 +526,17 @@ mod tests {
     fn test_global_tensor_allocation() {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         set_global_memory_pool(Arc::downgrade(&pool));
-        
+
         let device = get_cpu_device();
-        let (tensor_id, handle) = allocate_tensor_memory_global(512, 8, &device, BitNetDType::I32).unwrap();
-        
+        let (tensor_id, handle) =
+            allocate_tensor_memory_global(512, 8, &device, BitNetDType::I32).unwrap();
+
         assert_eq!(handle.size(), 512);
         assert_eq!(handle.alignment(), 8);
-        
+
         // Cleanup
         cleanup_tensor_memory(tensor_id).unwrap();
-        
+
         clear_global_memory_pool();
     }
 
@@ -546,14 +559,16 @@ mod tests {
     fn test_memory_manager_cleanup() {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
-        
+
         {
             let manager = TensorMemoryManager::new(pool, device);
-            let _allocation = manager.allocate_tensor_memory(256, 4, BitNetDType::U8).unwrap();
+            let _allocation = manager
+                .allocate_tensor_memory(256, 4, BitNetDType::U8)
+                .unwrap();
             assert_eq!(manager.active_tensor_count(), 1);
             // manager drops here and should cleanup automatically
         }
-        
+
         // After drop, allocations should be cleaned up
         // (This is hard to test directly, but the Drop impl should handle it)
     }

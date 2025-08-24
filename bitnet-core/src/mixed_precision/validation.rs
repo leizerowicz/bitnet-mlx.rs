@@ -3,8 +3,8 @@
 //! This module provides validation utilities for mixed precision configurations,
 //! ensuring compatibility and correctness of precision settings.
 
-use super::{LayerType, MixedPrecisionError, MixedPrecisionResult};
 use super::layer_precision::LayerPrecisionSpec;
+use super::{LayerType, MixedPrecisionError, MixedPrecisionResult};
 use crate::memory::tensor::BitNetDType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -144,7 +144,7 @@ impl PrecisionValidator {
             rules: HashMap::new(),
             stats: ValidationStats::default(),
         };
-        
+
         // Add default validation rules
         validator.add_default_rules();
         validator
@@ -164,7 +164,8 @@ impl PrecisionValidator {
         // Component-precision compatibility rule
         self.add_rule(ValidationRule {
             id: "component_precision_compatibility".to_string(),
-            description: "Validate that component types support their assigned precisions".to_string(),
+            description: "Validate that component types support their assigned precisions"
+                .to_string(),
             rule_type: ValidationRuleType::ComponentPrecisionCompatibility,
             severity: ValidationSeverity::Error,
             enabled: true,
@@ -173,7 +174,8 @@ impl PrecisionValidator {
         // Memory usage rule
         self.add_rule(ValidationRule {
             id: "memory_usage_check".to_string(),
-            description: "Check for excessive memory usage with current precision settings".to_string(),
+            description: "Check for excessive memory usage with current precision settings"
+                .to_string(),
             rule_type: ValidationRuleType::MemoryUsage,
             severity: ValidationSeverity::Warning,
             enabled: true,
@@ -214,14 +216,18 @@ impl PrecisionValidator {
             rule.enabled = enabled;
             Ok(())
         } else {
-            Err(MixedPrecisionError::ValidationError(
-                format!("Validation rule '{}' not found", rule_id)
-            ))
+            Err(MixedPrecisionError::ValidationError(format!(
+                "Validation rule '{}' not found",
+                rule_id
+            )))
         }
     }
 
     /// Validate a layer precision specification
-    pub fn validate_layer_spec(&self, spec: &LayerPrecisionSpec) -> MixedPrecisionResult<ValidationResult> {
+    pub fn validate_layer_spec(
+        &self,
+        spec: &LayerPrecisionSpec,
+    ) -> MixedPrecisionResult<ValidationResult> {
         let mut result = ValidationResult {
             passed: true,
             issues: Vec::new(),
@@ -267,7 +273,11 @@ impl PrecisionValidator {
     }
 
     /// Validate layer-precision compatibility
-    fn validate_layer_precision_compatibility(&self, spec: &LayerPrecisionSpec, result: &mut ValidationResult) {
+    fn validate_layer_precision_compatibility(
+        &self,
+        spec: &LayerPrecisionSpec,
+        result: &mut ValidationResult,
+    ) {
         // Check if layer type supports the specified precisions
         if !spec.layer_type.supports_precision(spec.input_precision) {
             result.passed = false;
@@ -322,7 +332,11 @@ impl PrecisionValidator {
     }
 
     /// Validate component-precision compatibility
-    fn validate_component_precision_compatibility(&self, spec: &LayerPrecisionSpec, result: &mut ValidationResult) {
+    fn validate_component_precision_compatibility(
+        &self,
+        spec: &LayerPrecisionSpec,
+        result: &mut ValidationResult,
+    ) {
         for (component_type, precision) in &spec.component_precisions {
             if !component_type.supports_precision(*precision) {
                 result.passed = false;
@@ -353,7 +367,8 @@ impl PrecisionValidator {
         // Check for potential memory issues
         if weight_efficiency < 2.0 && input_efficiency < 2.0 && output_efficiency < 2.0 {
             result.warnings.push(ValidationWarning {
-                message: "Low memory efficiency - consider using more aggressive quantization".to_string(),
+                message: "Low memory efficiency - consider using more aggressive quantization"
+                    .to_string(),
                 component: spec.layer_id.clone(),
                 impact: "Higher memory usage than necessary".to_string(),
             });
@@ -376,7 +391,11 @@ impl PrecisionValidator {
     }
 
     /// Validate performance impact
-    fn validate_performance_impact(&self, spec: &LayerPrecisionSpec, result: &mut ValidationResult) {
+    fn validate_performance_impact(
+        &self,
+        spec: &LayerPrecisionSpec,
+        result: &mut ValidationResult,
+    ) {
         // Check for mixed precision that might hurt performance
         let precisions = vec![
             spec.input_precision,
@@ -385,10 +404,11 @@ impl PrecisionValidator {
         ];
 
         let unique_precisions: std::collections::HashSet<_> = precisions.into_iter().collect();
-        
+
         if unique_precisions.len() > 2 {
             result.warnings.push(ValidationWarning {
-                message: "Multiple different precisions may increase conversion overhead".to_string(),
+                message: "Multiple different precisions may increase conversion overhead"
+                    .to_string(),
                 component: spec.layer_id.clone(),
                 impact: "Potential performance degradation due to conversions".to_string(),
             });
@@ -408,7 +428,9 @@ impl PrecisionValidator {
             LayerType::Attention => {
                 if spec.weight_precision.bits_per_element() < 8 {
                     result.warnings.push(ValidationWarning {
-                        message: "Low precision in attention layers may significantly impact accuracy".to_string(),
+                        message:
+                            "Low precision in attention layers may significantly impact accuracy"
+                                .to_string(),
                         component: spec.layer_id.clone(),
                         impact: "Potential significant accuracy degradation".to_string(),
                     });
@@ -417,7 +439,8 @@ impl PrecisionValidator {
             LayerType::Output => {
                 if spec.output_precision.bits_per_element() < 8 {
                     result.warnings.push(ValidationWarning {
-                        message: "Low precision in output layer may impact final accuracy".to_string(),
+                        message: "Low precision in output layer may impact final accuracy"
+                            .to_string(),
                         component: spec.layer_id.clone(),
                         impact: "Potential accuracy degradation in final predictions".to_string(),
                     });
@@ -426,7 +449,9 @@ impl PrecisionValidator {
             LayerType::Normalization => {
                 if !spec.weight_precision.is_float() {
                     result.warnings.push(ValidationWarning {
-                        message: "Non-float precision in normalization layers may cause instability".to_string(),
+                        message:
+                            "Non-float precision in normalization layers may cause instability"
+                                .to_string(),
                         component: spec.layer_id.clone(),
                         impact: "Potential training instability".to_string(),
                     });
@@ -437,16 +462,21 @@ impl PrecisionValidator {
     }
 
     /// Validate hardware compatibility
-    fn validate_hardware_compatibility(&self, spec: &LayerPrecisionSpec, result: &mut ValidationResult) {
+    fn validate_hardware_compatibility(
+        &self,
+        spec: &LayerPrecisionSpec,
+        result: &mut ValidationResult,
+    ) {
         // This would check against actual hardware capabilities
         // For now, we'll do basic checks
-        
+
         // Check for very low precision that might not be well supported
         if spec.weight_precision == BitNetDType::I1 {
             result.warnings.push(ValidationWarning {
                 message: "1-bit precision may not be well supported on all hardware".to_string(),
                 component: spec.layer_id.clone(),
-                impact: "Potential performance issues or fallback to software implementation".to_string(),
+                impact: "Potential performance issues or fallback to software implementation"
+                    .to_string(),
             });
         }
     }
@@ -468,7 +498,10 @@ impl PrecisionValidator {
     }
 
     /// Validate multiple layer specifications
-    pub fn validate_multiple_layers(&self, specs: &[LayerPrecisionSpec]) -> MixedPrecisionResult<ValidationResult> {
+    pub fn validate_multiple_layers(
+        &self,
+        specs: &[LayerPrecisionSpec],
+    ) -> MixedPrecisionResult<ValidationResult> {
         let mut combined_result = ValidationResult {
             passed: true,
             issues: Vec::new(),
@@ -478,11 +511,11 @@ impl PrecisionValidator {
 
         for spec in specs {
             let layer_result = self.validate_layer_spec(spec)?;
-            
+
             if !layer_result.passed {
                 combined_result.passed = false;
             }
-            
+
             combined_result.issues.extend(layer_result.issues);
             combined_result.warnings.extend(layer_result.warnings);
             combined_result.suggestions.extend(layer_result.suggestions);
@@ -495,7 +528,11 @@ impl PrecisionValidator {
     }
 
     /// Validate compatibility across multiple layers
-    fn validate_cross_layer_compatibility(&self, specs: &[LayerPrecisionSpec], result: &mut ValidationResult) {
+    fn validate_cross_layer_compatibility(
+        &self,
+        specs: &[LayerPrecisionSpec],
+        result: &mut ValidationResult,
+    ) {
         // Check for precision mismatches between connected layers
         for i in 0..specs.len().saturating_sub(1) {
             let current_layer = &specs[i];
@@ -522,8 +559,10 @@ impl PrecisionValidator {
 
         if precision_counts.len() > 4 {
             result.suggestions.push(ValidationSuggestion {
-                description: "Consider reducing the number of different precisions used".to_string(),
-                expected_benefit: "Simplified precision management and reduced conversion overhead".to_string(),
+                description: "Consider reducing the number of different precisions used"
+                    .to_string(),
+                expected_benefit: "Simplified precision management and reduced conversion overhead"
+                    .to_string(),
                 difficulty: SuggestionDifficulty::Moderate,
             });
         }

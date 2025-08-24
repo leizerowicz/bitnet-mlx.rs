@@ -54,13 +54,13 @@ fn main() -> Result<()> {
 fn demonstrate_simd_detection() -> Result<()> {
     println!("🔍 SIMD Capability Detection");
     println!("============================");
-    
+
     let optimization = SimdOptimization::detect();
-    
+
     println!("Detected SIMD optimization: {:?}", optimization);
     println!("Vector width (f32): {} elements", optimization.vector_width_f32());
     println!("Performance multiplier: {:.1}x", optimization.performance_multiplier());
-    
+
     match optimization {
         SimdOptimization::None => {
             println!("❌ No SIMD support detected");
@@ -84,7 +84,7 @@ fn demonstrate_simd_detection() -> Result<()> {
             println!("🚀 NEON support (ARM64/Apple Silicon)");
         },
     }
-    
+
     println!();
     Ok(())
 }
@@ -92,11 +92,11 @@ fn demonstrate_simd_detection() -> Result<()> {
 fn demonstrate_simd_accelerator() -> Result<()> {
     println!("⚡ SIMD Accelerator Capabilities");
     println!("===============================");
-    
+
     match create_simd_accelerator() {
         Ok(Some(accelerator_box)) => {
             println!("✅ SIMD accelerator created successfully");
-            
+
             let capabilities = accelerator_box.get_capabilities();
             println!("Backend: {:?}", capabilities.backend);
             println!("Max tensor size: {} elements", capabilities.max_tensor_size);
@@ -113,7 +113,7 @@ fn demonstrate_simd_accelerator() -> Result<()> {
             println!("❌ Error creating SIMD accelerator: {}", e);
         }
     }
-    
+
     println!();
     Ok(())
 }
@@ -121,22 +121,22 @@ fn demonstrate_simd_accelerator() -> Result<()> {
 fn demonstrate_backend_characteristics() {
     println!("🏗️  Backend Performance Characteristics");
     println!("======================================");
-    
+
     let backends = [
         AccelerationBackend::MLX,
         AccelerationBackend::Metal,
         AccelerationBackend::SIMD,
         AccelerationBackend::CPU,
     ];
-    
+
     println!("Backend    │ Priority │ Platform │ Throughput │ Latency  │ Bandwidth │ Efficiency");
     println!("───────────┼──────────┼──────────┼────────────┼──────────┼───────────┼───────────");
-    
+
     for backend in &backends {
         let priority = backend.priority();
         let supported = backend.is_platform_supported();
         let perf = backend.performance_characteristics();
-        
+
         println!(
             "{:<10} │ {:>8} │ {:>8} │ {:>7.0} GF │ {:>6.0} μs │ {:>6.0} GB/s │ {:>8.1}%",
             backend.to_string(),
@@ -148,14 +148,14 @@ fn demonstrate_backend_characteristics() {
             perf.power_efficiency * 100.0
         );
     }
-    
+
     println!();
 }
 
 fn demonstrate_dispatch_strategies() -> Result<()> {
     println!("🎯 Dispatch Strategy Comparison");
     println!("==============================");
-    
+
     let strategies = vec![
         DispatchStrategy::HighestPriority,
         DispatchStrategy::BestPerformance,
@@ -164,21 +164,21 @@ fn demonstrate_dispatch_strategies() -> Result<()> {
         DispatchStrategy::LowMemory,
         DispatchStrategy::ForceBackend(AccelerationBackend::SIMD),
     ];
-    
+
     let context = OperationContext::new(
         OperationType::MatMul,
         vec![vec![128, 256], vec![256, 512]],
         BitNetDType::F32
     );
-    
+
     println!("Operation: Matrix multiplication (128×256) × (256×512)");
     println!("Complexity score: {:.1}", context.complexity_score());
     println!("Estimated memory: {:.1} MB", context.estimated_memory_bytes() as f64 / (1024.0 * 1024.0));
     println!();
-    
+
     for strategy in strategies {
         println!("Strategy: {:?}", strategy);
-        
+
         // Demonstrate strategy characteristics
         match strategy {
             DispatchStrategy::HighestPriority => {
@@ -209,14 +209,14 @@ fn demonstrate_dispatch_strategies() -> Result<()> {
         }
         println!();
     }
-    
+
     Ok(())
 }
 
 fn demonstrate_performance_comparison() -> Result<()> {
     println!("📊 Performance Comparison Demo");
     println!("=============================");
-    
+
     // Test different operation types and their characteristics
     let operations = vec![
         (OperationType::MatMul, "Matrix Multiplication", vec![vec![64, 128], vec![128, 256]]),
@@ -225,23 +225,23 @@ fn demonstrate_performance_comparison() -> Result<()> {
         (OperationType::Reduction, "Reduction (Sum)", vec![vec![1000, 1000]]),
         (OperationType::Transpose, "Transpose", vec![vec![1000, 2000]]),
     ];
-    
+
     println!("Operation              │ Intensity │ Preferred │ Complexity │ Memory");
     println!("───────────────────────┼───────────┼───────────┼────────────┼────────");
-    
+
     for (op_type, name, shapes) in operations {
         let context = OperationContext::new(op_type, shapes, BitNetDType::F32);
         let intensity = op_type.computational_intensity();
         let preferred = op_type.preferred_backend();
         let complexity = context.complexity_score();
         let memory_mb = context.estimated_memory_bytes() as f64 / (1024.0 * 1024.0);
-        
+
         println!(
             "{:<22} │ {:>9.2} │ {:>9} │ {:>10.1} │ {:>5.1} MB",
             name, intensity, preferred, complexity, memory_mb
         );
     }
-    
+
     println!();
     Ok(())
 }
@@ -249,7 +249,7 @@ fn demonstrate_performance_comparison() -> Result<()> {
 fn demonstrate_operation_contexts() -> Result<()> {
     println!("🎛️  Operation Context Usage");
     println!("==========================");
-    
+
     // Create different operation contexts
     let contexts = vec![
         (
@@ -277,7 +277,7 @@ fn demonstrate_operation_contexts() -> Result<()> {
             )
         ),
     ];
-    
+
     for (name, context) in contexts {
         println!("Context: {}", name);
         println!("  Operation: {:?}", context.operation_type);
@@ -288,7 +288,7 @@ fn demonstrate_operation_contexts() -> Result<()> {
         println!("  Preferred backend: {}", context.operation_type.preferred_backend());
         println!();
     }
-    
+
     Ok(())
 }
 
@@ -296,21 +296,21 @@ fn demonstrate_operation_contexts() -> Result<()> {
 fn benchmark_tensor_operations() -> Result<()> {
     println!("🏁 Tensor Operation Benchmarks");
     println!("=============================");
-    
+
     // Create test tensors
     let sizes = [64, 128, 256, 512];
-    
+
     println!("Matrix size │ Creation time │ Memory usage");
     println!("────────────┼───────────────┼──────────────");
-    
+
     for &size in &sizes {
         let start = Instant::now();
         let _tensor_a = BitNetTensor::ones(&[size, size], BitNetDType::F32)?;
         let _tensor_b = BitNetTensor::ones(&[size, size], BitNetDType::F32)?;
         let creation_time = start.elapsed();
-        
+
         let memory_usage = size * size * 4 * 2; // 2 tensors, f32 = 4 bytes
-        
+
         println!(
             "{:>10}  │ {:>10.2} ms │ {:>9.1} MB",
             format!("{}×{}", size, size),
@@ -318,7 +318,7 @@ fn benchmark_tensor_operations() -> Result<()> {
             memory_usage as f64 / (1024.0 * 1024.0)
         );
     }
-    
+
     println!();
     Ok(())
 }
@@ -328,7 +328,7 @@ fn benchmark_tensor_operations() -> Result<()> {
 fn demonstrate_real_world_usage() -> Result<()> {
     println!("🌍 Real-World Usage Patterns");
     println!("============================");
-    
+
     // Pattern 1: High-performance computing
     println!("Pattern 1: High-Performance Computing");
     let hpc_context = OperationContext::new(
@@ -340,7 +340,7 @@ fn demonstrate_real_world_usage() -> Result<()> {
     println!("  → Complexity: {:.1}", hpc_context.complexity_score());
     println!("  → Preferred: {}", hpc_context.operation_type.preferred_backend());
     println!();
-    
+
     // Pattern 2: Real-time inference
     println!("Pattern 2: Real-Time Inference");
     let rt_context = OperationContext::new(
@@ -352,7 +352,7 @@ fn demonstrate_real_world_usage() -> Result<()> {
     println!("  → Complexity: {:.1}", rt_context.complexity_score());
     println!("  → Preferred: {}", rt_context.operation_type.preferred_backend());
     println!();
-    
+
     // Pattern 3: Batch processing
     println!("Pattern 3: Batch Processing");
     let batch_context = OperationContext::new(
@@ -364,6 +364,6 @@ fn demonstrate_real_world_usage() -> Result<()> {
     println!("  → Complexity: {:.1}", batch_context.complexity_score());
     println!("  → Preferred: {}", batch_context.operation_type.preferred_backend());
     println!();
-    
+
     Ok(())
 }

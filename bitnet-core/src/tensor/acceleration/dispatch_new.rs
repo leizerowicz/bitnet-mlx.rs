@@ -6,7 +6,7 @@
 //! - Operation characteristics
 //! - Performance profiling results
 //! - User preferences
-//! 
+//!
 //! The dispatch system extends the existing auto_select_device() logic
 //! to provide operation-specific backend selection.
 
@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use crate::tensor::core::BitNetTensor;
 use crate::tensor::dtype::BitNetDType;
 use super::{
-    AccelerationResult, AccelerationError, AccelerationBackendImpl, 
+    AccelerationResult, AccelerationError, AccelerationBackendImpl,
     AccelerationMetrics, AutoAccelerationSelector, AccelerationCapabilities
 };
 
@@ -57,7 +57,7 @@ impl AccelerationBackend {
             AccelerationBackend::CPU => 40,     // Fallback
         }
     }
-    
+
     /// Check if this backend is available on the current platform
     pub fn is_platform_supported(&self) -> bool {
         match self {
@@ -73,7 +73,7 @@ impl AccelerationBackend {
             AccelerationBackend::CPU => true, // Always available
         }
     }
-    
+
     /// Get estimated performance characteristics
     pub fn performance_characteristics(&self) -> PerformanceCharacteristics {
         match self {
@@ -127,7 +127,7 @@ pub enum DispatchStrategy {
     BestPerformance,
     /// Prefer low latency operations
     LowLatency,
-    /// Prefer high throughput operations  
+    /// Prefer high throughput operations
     HighThroughput,
     /// Minimize memory usage
     LowMemory,
@@ -184,7 +184,7 @@ impl OperationType {
             OperationType::Quantization => 0.5,    // Low-medium compute intensity
         }
     }
-    
+
     /// Get the preferred backend for this operation type
     pub fn preferred_backend(&self) -> AccelerationBackend {
         match self {
@@ -257,23 +257,23 @@ impl OperationContext {
             requirements: PerformanceRequirements::default(),
         }
     }
-    
+
     /// Calculate the operation complexity score
     pub fn complexity_score(&self) -> f64 {
         let total_elements: usize = self.input_shapes.iter()
             .map(|shape| shape.iter().product::<usize>())
             .sum();
-        
+
         let intensity = self.operation_type.computational_intensity();
         (total_elements as f64) * intensity
     }
-    
+
     /// Estimate memory usage for this operation
     pub fn estimated_memory_bytes(&self) -> usize {
         let total_elements: usize = self.input_shapes.iter()
             .map(|shape| shape.iter().product::<usize>())
             .sum();
-        
+
         let dtype_size = match self.dtype {
             BitNetDType::F32 => 4,
             BitNetDType::F16 => 2,
@@ -282,7 +282,7 @@ impl OperationContext {
             BitNetDType::I32 | BitNetDType::U32 => 4,
             BitNetDType::Bool => 1,
         };
-        
+
         // Account for input, output, and temporary storage
         total_elements * dtype_size * 3
     }
@@ -325,39 +325,39 @@ impl OperationDispatcher {
             performance_history: RwLock::new(HashMap::new()),
             backend_availability: RwLock::new(HashMap::new()),
         };
-        
+
         Ok(dispatcher)
     }
-    
+
     /// Add a backend to the dispatcher
     pub fn add_backend(&self, backend: AccelerationBackend, implementation: Box<dyn AccelerationBackendImpl + Send + Sync>) -> AccelerationResult<()> {
         let mut backends = self.backends.write().unwrap();
         backends.insert(backend, implementation);
-        
+
         // Update availability cache
         let mut availability = self.backend_availability.write().unwrap();
         availability.insert(backend, backend.is_platform_supported());
-        
+
         #[cfg(feature = "tracing")]
         info!("Added acceleration backend: {}", backend);
-        
+
         Ok(())
     }
-    
+
     /// Set dispatch strategy
     pub fn set_strategy(&self, strategy: DispatchStrategy) {
         let mut current_strategy = self.strategy.write().unwrap();
         *current_strategy = strategy;
-        
+
         #[cfg(feature = "tracing")]
         debug!("Updated dispatch strategy: {:?}", current_strategy);
     }
-    
+
     /// Select best backend for an operation
     pub fn select_backend(&self, context: &OperationContext) -> AccelerationResult<BackendSelection> {
         let strategy = self.strategy.read().unwrap();
         let availability = self.backend_availability.read().unwrap();
-        
+
         match &*strategy {
             DispatchStrategy::HighestPriority => {
                 self.select_highest_priority_backend(context, &availability)
@@ -386,14 +386,14 @@ impl OperationDispatcher {
                         selection_reason: format!("Forced backend: {}", backend),
                     })
                 } else {
-                    Err(AccelerationError::BackendNotAvailable { 
-                        backend: backend.to_string() 
+                    Err(AccelerationError::BackendNotAvailable {
+                        backend: backend.to_string()
                     })
                 }
             },
         }
     }
-    
+
     /// Dispatch a matrix multiplication operation
     pub fn dispatch_matmul(&self, a: &BitNetTensor, b: &BitNetTensor, context: Option<&OperationContext>) -> AccelerationResult<(BitNetTensor, AccelerationMetrics)> {
         let context = context.cloned().unwrap_or_else(|| {
@@ -403,27 +403,27 @@ impl OperationDispatcher {
                 a.dtype()
             )
         });
-        
+
         let selection = self.select_backend(&context)?;
         let backends = self.backends.read().unwrap();
-        
+
         if let Some(backend_impl) = backends.get(&selection.backend) {
             let result = backend_impl.matmul(a, b)?;
-            
+
             // Record performance for learning
             self.record_performance(&context, &selection.backend, &result.1);
-            
+
             #[cfg(feature = "tracing")]
             debug!("Dispatched matmul to {} backend", selection.backend);
-            
+
             Ok(result)
         } else {
-            Err(AccelerationError::BackendNotAvailable { 
-                backend: selection.backend.to_string() 
+            Err(AccelerationError::BackendNotAvailable {
+                backend: selection.backend.to_string()
             })
         }
     }
-    
+
     /// Dispatch an element-wise addition operation
     pub fn dispatch_add(&self, a: &BitNetTensor, b: &BitNetTensor, context: Option<&OperationContext>) -> AccelerationResult<(BitNetTensor, AccelerationMetrics)> {
         let context = context.cloned().unwrap_or_else(|| {
@@ -433,27 +433,27 @@ impl OperationDispatcher {
                 a.dtype()
             )
         });
-        
+
         let selection = self.select_backend(&context)?;
         let backends = self.backends.read().unwrap();
-        
+
         if let Some(backend_impl) = backends.get(&selection.backend) {
             let result = backend_impl.add(a, b)?;
-            
+
             // Record performance for learning
             self.record_performance(&context, &selection.backend, &result.1);
-            
+
             #[cfg(feature = "tracing")]
             debug!("Dispatched add to {} backend", selection.backend);
-            
+
             Ok(result)
         } else {
-            Err(AccelerationError::BackendNotAvailable { 
-                backend: selection.backend.to_string() 
+            Err(AccelerationError::BackendNotAvailable {
+                backend: selection.backend.to_string()
             })
         }
     }
-    
+
     /// Get available backends
     pub fn get_available_backends(&self) -> Vec<AccelerationBackend> {
         let availability = self.backend_availability.read().unwrap();
@@ -461,29 +461,29 @@ impl OperationDispatcher {
             .filter_map(|(backend, available)| if *available { Some(*backend) } else { None })
             .collect()
     }
-    
+
     /// Get performance history for analysis
     pub fn get_performance_history(&self) -> HashMap<String, AccelerationMetrics> {
         self.performance_history.read().unwrap().clone()
     }
-    
+
     // Private helper methods
-    
+
     fn select_highest_priority_backend(&self, _context: &OperationContext, availability: &HashMap<AccelerationBackend, bool>) -> AccelerationResult<BackendSelection> {
         let available_backends: Vec<AccelerationBackend> = availability.iter()
             .filter_map(|(backend, available)| if *available { Some(*backend) } else { None })
             .collect();
-            
+
         if available_backends.is_empty() {
-            return Err(AccelerationError::BackendNotAvailable { 
-                backend: "any".to_string() 
+            return Err(AccelerationError::BackendNotAvailable {
+                backend: "any".to_string()
             });
         }
-        
+
         let selected = available_backends.into_iter()
             .max_by_key(|backend| backend.priority())
             .unwrap();
-            
+
         Ok(BackendSelection {
             backend: selected,
             confidence: 0.9,
@@ -491,11 +491,11 @@ impl OperationDispatcher {
             selection_reason: "Highest priority available backend".to_string(),
         })
     }
-    
+
     fn select_best_performance_backend(&self, context: &OperationContext, availability: &HashMap<AccelerationBackend, bool>) -> AccelerationResult<BackendSelection> {
         let history = self.performance_history.read().unwrap();
         let operation_key = format!("{:?}_{}", context.operation_type, context.complexity_score() as u64);
-        
+
         // If we have historical data, use it
         if let Some(best_metrics) = history.get(&operation_key) {
             if availability.get(&best_metrics.backend).unwrap_or(&false) {
@@ -507,7 +507,7 @@ impl OperationDispatcher {
                 });
             }
         }
-        
+
         // Fall back to preferred backend for operation type
         let preferred = context.operation_type.preferred_backend();
         if availability.get(&preferred).unwrap_or(&false) {
@@ -522,24 +522,24 @@ impl OperationDispatcher {
             self.select_highest_priority_backend(context, availability)
         }
     }
-    
+
     fn select_low_latency_backend(&self, context: &OperationContext, availability: &HashMap<AccelerationBackend, bool>) -> AccelerationResult<BackendSelection> {
         let available_backends: Vec<AccelerationBackend> = availability.iter()
             .filter_map(|(backend, available)| if *available { Some(*backend) } else { None })
             .collect();
-            
+
         if available_backends.is_empty() {
-            return Err(AccelerationError::BackendNotAvailable { 
-                backend: "any".to_string() 
+            return Err(AccelerationError::BackendNotAvailable {
+                backend: "any".to_string()
             });
         }
-        
+
         let selected = available_backends.into_iter()
             .min_by(|a, b| a.performance_characteristics().latency_us
                 .partial_cmp(&b.performance_characteristics().latency_us)
                 .unwrap_or(std::cmp::Ordering::Equal))
             .unwrap();
-            
+
         Ok(BackendSelection {
             backend: selected,
             confidence: 0.85,
@@ -547,24 +547,24 @@ impl OperationDispatcher {
             selection_reason: "Lowest latency backend".to_string(),
         })
     }
-    
+
     fn select_high_throughput_backend(&self, context: &OperationContext, availability: &HashMap<AccelerationBackend, bool>) -> AccelerationResult<BackendSelection> {
         let available_backends: Vec<AccelerationBackend> = availability.iter()
             .filter_map(|(backend, available)| if *available { Some(*backend) } else { None })
             .collect();
-            
+
         if available_backends.is_empty() {
-            return Err(AccelerationError::BackendNotAvailable { 
-                backend: "any".to_string() 
+            return Err(AccelerationError::BackendNotAvailable {
+                backend: "any".to_string()
             });
         }
-        
+
         let selected = available_backends.into_iter()
             .max_by(|a, b| a.performance_characteristics().throughput_gflops
                 .partial_cmp(&b.performance_characteristics().throughput_gflops)
                 .unwrap_or(std::cmp::Ordering::Equal))
             .unwrap();
-            
+
         Ok(BackendSelection {
             backend: selected,
             confidence: 0.85,
@@ -572,11 +572,11 @@ impl OperationDispatcher {
             selection_reason: "Highest throughput backend".to_string(),
         })
     }
-    
+
     fn select_low_memory_backend(&self, context: &OperationContext, availability: &HashMap<AccelerationBackend, bool>) -> AccelerationResult<BackendSelection> {
         // For memory-bound operations, prefer CPU
         let preferred_backends = [AccelerationBackend::CPU, AccelerationBackend::SIMD, AccelerationBackend::Metal, AccelerationBackend::MLX];
-        
+
         for &backend in &preferred_backends {
             if availability.get(&backend).unwrap_or(&false) {
                 return Ok(BackendSelection {
@@ -587,27 +587,27 @@ impl OperationDispatcher {
                 });
             }
         }
-        
-        Err(AccelerationError::BackendNotAvailable { 
-            backend: "any".to_string() 
+
+        Err(AccelerationError::BackendNotAvailable {
+            backend: "any".to_string()
         })
     }
-    
+
     fn select_custom_backend(&self, context: &OperationContext, availability: &HashMap<AccelerationBackend, bool>, priorities: &HashMap<AccelerationBackend, u8>) -> AccelerationResult<BackendSelection> {
         let available_backends: Vec<AccelerationBackend> = availability.iter()
             .filter_map(|(backend, available)| if *available { Some(*backend) } else { None })
             .collect();
-            
+
         if available_backends.is_empty() {
-            return Err(AccelerationError::BackendNotAvailable { 
-                backend: "any".to_string() 
+            return Err(AccelerationError::BackendNotAvailable {
+                backend: "any".to_string()
             });
         }
-        
+
         let selected = available_backends.into_iter()
             .max_by_key(|backend| priorities.get(backend).unwrap_or(&0))
             .unwrap();
-            
+
         Ok(BackendSelection {
             backend: selected,
             confidence: 0.9,
@@ -615,14 +615,14 @@ impl OperationDispatcher {
             selection_reason: "Custom priority-based selection".to_string(),
         })
     }
-    
+
     fn record_performance(&self, context: &OperationContext, backend: &AccelerationBackend, metrics: &AccelerationMetrics) {
         let operation_key = format!("{:?}_{}", context.operation_type, context.complexity_score() as u64);
         let mut history = self.performance_history.write().unwrap();
         history.insert(operation_key, metrics.clone());
-        
+
         #[cfg(feature = "tracing")]
-        debug!("Recorded performance for {} on {}: {:.2} GFLOPS", 
+        debug!("Recorded performance for {} on {}: {:.2} GFLOPS",
                context.operation_type, backend, metrics.throughput_gflops);
     }
 }
@@ -631,26 +631,26 @@ impl OperationDispatcher {
 pub fn create_operation_dispatcher() -> AccelerationResult<OperationDispatcher> {
     // Create selector using existing auto-selection logic
     let selector = Arc::new(AutoAccelerationSelector::new()?);
-    
+
     let dispatcher = OperationDispatcher::new(selector)?;
-    
+
     // Add available backends
     #[cfg(feature = "mlx")]
     if let Some(mlx_backend) = crate::tensor::acceleration::mlx::create_mlx_accelerator()? {
         dispatcher.add_backend(AccelerationBackend::MLX, mlx_backend)?;
     }
-    
+
     #[cfg(feature = "metal")]
     if let Some(metal_backend) = crate::tensor::acceleration::metal::create_metal_accelerator()? {
         dispatcher.add_backend(AccelerationBackend::Metal, metal_backend)?;
     }
-    
+
     if let Some(simd_backend) = crate::tensor::acceleration::simd::create_simd_accelerator()? {
         dispatcher.add_backend(AccelerationBackend::SIMD, simd_backend)?;
     }
-    
+
     #[cfg(feature = "tracing")]
     info!("Operation dispatcher created with {} backends", dispatcher.get_available_backends().len());
-    
+
     Ok(dispatcher)
 }

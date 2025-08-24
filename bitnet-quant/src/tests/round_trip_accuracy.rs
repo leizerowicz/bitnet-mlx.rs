@@ -4,7 +4,7 @@
 //! measuring MSE, SQNR, cosine similarity, and other quality metrics.
 
 use crate::quantization::{
-    QuantizationResult, TernaryMethod, WeightQuantizer, 
+    QuantizationResult, TernaryMethod, WeightQuantizer,
     create_ternary_quantizer, QuantizationError
 };
 use crate::tests::helpers::{
@@ -89,7 +89,7 @@ pub struct OverallRoundTripMetrics {
 /// Run comprehensive round-trip accuracy tests
 pub fn run_round_trip_tests(device: &Device, target_mse: f64) -> QuantizationResult<RoundTripResults> {
     let mut results = RoundTripResults::default();
-    
+
     // Test patterns
     let patterns = vec![
         TestPattern::NormalDistribution,
@@ -172,7 +172,7 @@ pub fn run_round_trip_tests(device: &Device, target_mse: f64) -> QuantizationRes
                 match test_round_trip_accuracy(device, pattern, method, shape, target_mse) {
                     Ok(validation_result) => {
                         all_validations.push(validation_result.clone());
-                        
+
                         if validation_result.meets_accuracy_target {
                             successful_tests += 1;
                         } else {
@@ -216,7 +216,7 @@ pub fn run_round_trip_tests(device: &Device, target_mse: f64) -> QuantizationRes
     // Finalize pattern results
     for pattern_result in results.pattern_results.values_mut() {
         let validations: Vec<&RoundTripValidationResult> = pattern_result.method_performance.values().collect();
-        
+
         if !validations.is_empty() {
             pattern_result.average_mse = validations.iter().map(|v| v.mse).sum::<f64>() / validations.len() as f64;
             pattern_result.average_sqnr_db = validations.iter().map(|v| v.sqnr_db).sum::<f64>() / validations.len() as f64;
@@ -226,7 +226,7 @@ pub fn run_round_trip_tests(device: &Device, target_mse: f64) -> QuantizationRes
             // Find best and worst methods for this pattern
             let mut best_mse = f64::INFINITY;
             let mut worst_mse = 0.0;
-            
+
             for (&method, validation) in &pattern_result.method_performance {
                 if validation.mse < best_mse {
                     best_mse = validation.mse;
@@ -243,11 +243,11 @@ pub fn run_round_trip_tests(device: &Device, target_mse: f64) -> QuantizationRes
     // Finalize method results
     for method_result in results.method_results.values_mut() {
         let validations: Vec<&RoundTripValidationResult> = method_result.pattern_performance.values().collect();
-        
+
         if !validations.is_empty() {
             let success_count = validations.iter().filter(|v| v.meets_accuracy_target).count();
             let success_rate = success_count as f64 / validations.len() as f64;
-            
+
             method_result.reliability_rating = match success_rate {
                 r if r > 0.95 => ReliabilityRating::Excellent,
                 r if r > 0.85 => ReliabilityRating::Good,
@@ -261,7 +261,7 @@ pub fn run_round_trip_tests(device: &Device, target_mse: f64) -> QuantizationRes
             method_result.average_metrics.cosine_similarity = validations.iter().map(|v| v.cosine_similarity).sum::<f64>() / validations.len() as f64;
             method_result.average_metrics.mae = validations.iter().map(|v| v.mae).sum::<f64>() / validations.len() as f64;
             method_result.average_metrics.psnr_db = validations.iter().map(|v| v.psnr_db).sum::<f64>() / validations.len() as f64;
-            
+
             // Calculate consistency score (inverse of MSE variance)
             let mean_mse = method_result.average_metrics.mse;
             let mse_variance = validations.iter()
@@ -337,16 +337,16 @@ fn test_round_trip_accuracy(
 ) -> QuantizationResult<RoundTripValidationResult> {
     // Generate test tensor
     let original_tensor = generate_test_tensor(pattern, shape, device)?;
-    
+
     // Create quantizer
     let quantizer = create_ternary_quantizer(method, Some(0.7))?;
-    
+
     // Perform quantization
     let quantized = quantizer.quantize(&original_tensor)?;
-    
+
     // Perform dequantization
     let dequantized = quantizer.dequantize(&quantized)?;
-    
+
     // Validate round-trip accuracy
     validate_round_trip_accuracy(&original_tensor, &dequantized, target_mse)
 }
@@ -376,24 +376,24 @@ pub fn test_threshold_impact_on_accuracy(
         let quantizer = create_ternary_quantizer(method, Some(threshold))?;
         let quantized = quantizer.quantize(&original_tensor)?;
         let dequantized = quantizer.dequantize(&quantized)?;
-        
+
         let validation = validate_round_trip_accuracy(&original_tensor, &dequantized, target_mse)?;
         mse_values.push(validation.mse);
-        
+
         results.threshold_accuracy.insert(threshold, validation);
     }
 
     // Find optimal threshold (minimum MSE)
     let mut best_threshold = 0.7;
     let mut best_mse = f64::INFINITY;
-    
+
     for (threshold, validation) in &results.threshold_accuracy {
         if validation.mse < best_mse {
             best_mse = validation.mse;
             best_threshold = *threshold;
         }
     }
-    
+
     results.optimal_threshold_for_accuracy = best_threshold;
 
     // Calculate accuracy sensitivity (MSE variance)
@@ -446,7 +446,7 @@ pub fn test_size_impact_on_accuracy(
     for shape in sizes {
         let total_elements: usize = shape.iter().product();
         let validation = test_round_trip_accuracy(device, pattern, method, &shape, target_mse)?;
-        
+
         size_mse_pairs.push((total_elements, validation.mse));
         results.size_accuracy.insert(shape.clone(), validation);
     }
@@ -499,7 +499,7 @@ fn analyze_size_scaling(size_mse_pairs: &[(usize, f64)]) -> SizeScalingBehavior 
 
     if size_variance > 0.0 && mse_variance > 0.0 {
         let correlation = numerator / (size_variance.sqrt() * mse_variance.sqrt());
-        
+
         if correlation > 0.5 {
             SizeScalingBehavior::Degrading // Positive correlation: larger size → higher MSE
         } else if correlation < -0.5 {
@@ -520,9 +520,9 @@ mod tests {
     fn test_round_trip_accuracy_comprehensive() {
         let device = create_test_device();
         let target_mse = 0.05; // Relaxed for testing
-        
+
         let results = run_round_trip_tests(&device, target_mse).unwrap();
-        
+
         assert!(results.overall_success_rate > 0.5); // At least 50% should pass with relaxed threshold
         assert!(!results.pattern_results.is_empty());
         assert!(!results.method_results.is_empty());
@@ -539,7 +539,7 @@ mod tests {
             &[32, 32],
             0.05,
         ).unwrap();
-        
+
         assert!(result.mse >= 0.0);
         assert!(result.cosine_similarity >= -1.0 && result.cosine_similarity <= 1.0);
         assert!(result.sqnr_db.is_finite() || result.sqnr_db == f64::INFINITY);
@@ -553,7 +553,7 @@ mod tests {
             TernaryMethod::MeanThreshold,
             TestPattern::NormalDistribution,
         ).unwrap();
-        
+
         assert!(!results.threshold_accuracy.is_empty());
         assert!(results.optimal_threshold_for_accuracy > 0.0);
         assert!(results.accuracy_sensitivity >= 0.0);
@@ -567,7 +567,7 @@ mod tests {
             TernaryMethod::AdaptiveThreshold,
             TestPattern::SparseWeights,
         ).unwrap();
-        
+
         assert!(!results.size_accuracy.is_empty());
         assert!(results.size_scaling_behavior != SizeScalingBehavior::Unknown);
     }
@@ -576,7 +576,7 @@ mod tests {
     fn test_quality_assessment() {
         let device = create_test_device();
         let results = run_round_trip_tests(&device, 0.01).unwrap();
-        
+
         // Quality assessment should be computed
         assert!(results.quality_assessment.score >= 0.0 && results.quality_assessment.score <= 1.0);
         let total_criteria = results.quality_assessment.passed_criteria.len() + results.quality_assessment.failed_criteria.len();

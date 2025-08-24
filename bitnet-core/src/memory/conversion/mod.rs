@@ -58,30 +58,33 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 
-pub mod engine;
-pub mod zero_copy;
-pub mod streaming;
-pub mod in_place;
 pub mod batch;
-pub mod pipeline;
-pub mod metrics;
 pub mod config;
+pub mod engine;
+pub mod in_place;
+pub mod metrics;
+pub mod pipeline;
+pub mod streaming;
+pub mod zero_copy;
 
 // Re-exports
-pub use engine::{ConversionEngine, ConversionStrategyInfo};
-pub use zero_copy::{ZeroCopyConverter, TensorView};
-pub use streaming::StreamingConverter;
-pub use in_place::InPlaceConverter;
 pub use batch::BatchConverter;
+pub use config::{BatchConfig, ConversionConfig, PerformanceConfig, StreamingConfig};
+pub use engine::{ConversionEngine, ConversionStrategyInfo};
+pub use in_place::InPlaceConverter;
+pub use metrics::{
+    ConversionEvent, ConversionMetrics, ConversionStats, DTypeConversion, DTypeMetrics,
+    DeviceMetrics, ErrorStats, MemoryStats, PerformanceStats, StrategyMetrics,
+};
 pub use pipeline::{ConversionPipeline, PipelineStats};
-pub use metrics::{ConversionMetrics, ConversionStats, ConversionEvent, StrategyMetrics, DTypeConversion, DTypeMetrics, DeviceMetrics, MemoryStats, PerformanceStats, ErrorStats};
-pub use config::{ConversionConfig, StreamingConfig, BatchConfig, PerformanceConfig};
+pub use streaming::StreamingConverter;
+pub use zero_copy::{TensorView, ZeroCopyConverter};
 
-use crate::memory::tensor::{BitNetTensor, BitNetDType};
-use crate::memory::{MemoryError, HybridMemoryPool};
+use crate::memory::tensor::{BitNetDType, BitNetTensor};
+use crate::memory::{HybridMemoryPool, MemoryError};
 use candle_core::Device;
-use thiserror::Error;
 use std::sync::Arc;
+use thiserror::Error;
 
 /// Errors that can occur during data conversion operations
 #[derive(Error, Debug)]
@@ -100,7 +103,10 @@ pub enum ConversionError {
 
     /// Shape mismatch during conversion
     #[error("Shape mismatch: expected {expected:?}, got {actual:?}")]
-    ShapeMismatch { expected: Vec<usize>, actual: Vec<usize> },
+    ShapeMismatch {
+        expected: Vec<usize>,
+        actual: Vec<usize>,
+    },
 
     /// Conversion would result in data loss
     #[error("Conversion from {from} to {to} would result in significant data loss")]
@@ -221,8 +227,10 @@ impl ConversionContext {
         // Zero-copy is possible when:
         // 1. Same data type and device
         // 2. Compatible data types with same memory layout
-        if self.source_dtype == self.target_dtype && 
-           std::mem::discriminant(&self.source_device) == std::mem::discriminant(&self.target_device) {
+        if self.source_dtype == self.target_dtype
+            && std::mem::discriminant(&self.source_device)
+                == std::mem::discriminant(&self.target_device)
+        {
             return true;
         }
 
@@ -238,7 +246,9 @@ impl ConversionContext {
         // In-place conversion is possible when:
         // 1. Same device
         // 2. Target type has same or smaller memory footprint
-        if std::mem::discriminant(&self.source_device) != std::mem::discriminant(&self.target_device) {
+        if std::mem::discriminant(&self.source_device)
+            != std::mem::discriminant(&self.target_device)
+        {
             return false;
         }
 
@@ -260,7 +270,7 @@ impl ConversionContext {
         } else {
             let element_count: usize = self.shape.iter().product();
             let size_bytes = self.source_dtype.bytes_for_elements(element_count);
-            
+
             // Use streaming for large tensors (> 100MB)
             if size_bytes > 100 * 1024 * 1024 {
                 ConversionStrategy::Streaming
@@ -334,7 +344,7 @@ mod tests {
     #[test]
     fn test_zero_copy_compatibility() {
         let device = get_cpu_device();
-        
+
         // Same type should be zero-copy compatible
         let context = ConversionContext::new(
             BitNetDType::F32,
@@ -369,7 +379,7 @@ mod tests {
     #[test]
     fn test_in_place_compatibility() {
         let device = get_cpu_device();
-        
+
         // Same size should be in-place compatible
         let context = ConversionContext::new(
             BitNetDType::F32,
@@ -404,7 +414,7 @@ mod tests {
     #[test]
     fn test_optimal_strategy_selection() {
         let device = get_cpu_device();
-        
+
         // Zero-copy case
         let context = ConversionContext::new(
             BitNetDType::F32,
@@ -439,7 +449,7 @@ mod tests {
     #[test]
     fn test_memory_overhead_estimation() {
         let device = get_cpu_device();
-        
+
         // Zero-copy should have no overhead
         let context = ConversionContext::new(
             BitNetDType::F32,

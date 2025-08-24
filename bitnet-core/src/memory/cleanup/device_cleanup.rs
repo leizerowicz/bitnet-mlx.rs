@@ -3,17 +3,17 @@
 //! This module provides specialized cleanup operations for different device types,
 //! including CPU cache optimization and Metal GPU command buffer cleanup.
 
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant, SystemTime};
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "tracing")]
 use tracing::debug;
 
-use crate::memory::HybridMemoryPool;
-use super::{CleanupError, CleanupResult};
 use super::config::{CpuCleanupConfig, MetalCleanupConfig};
+use super::{CleanupError, CleanupResult};
+use crate::memory::HybridMemoryPool;
 
 /// Trait for device-specific cleanup operations
 pub trait DeviceCleanupOps: Send + Sync {
@@ -170,7 +170,7 @@ impl DeviceCleanupStats {
         self.total_allocations_cleaned += result.allocations_cleaned;
         self.total_cleanup_time += result.duration;
         self.last_cleanup = Some(SystemTime::now());
-        
+
         // Update average efficiency
         let total_time_ms = self.total_cleanup_time.as_millis() as f64;
         if total_time_ms > 0.0 {
@@ -320,9 +320,18 @@ impl DeviceCleanupOps for CpuCleanup {
             allocations_cleaned,
             duration,
         )
-        .with_metric("cache_line_size".to_string(), self.config.cache_line_size.to_string())
-        .with_metric("numa_awareness".to_string(), self.config.enable_numa_awareness.to_string())
-        .with_metric("prefetching".to_string(), self.config.enable_prefetching.to_string());
+        .with_metric(
+            "cache_line_size".to_string(),
+            self.config.cache_line_size.to_string(),
+        )
+        .with_metric(
+            "numa_awareness".to_string(),
+            self.config.enable_numa_awareness.to_string(),
+        )
+        .with_metric(
+            "prefetching".to_string(),
+            self.config.enable_prefetching.to_string(),
+        );
 
         // Update statistics
         if let Ok(mut stats) = self.stats.write() {
@@ -371,7 +380,8 @@ impl DeviceCleanupOps for CpuCleanup {
     }
 
     fn get_cleanup_stats(&self) -> DeviceCleanupStats {
-        self.stats.read()
+        self.stats
+            .read()
             .map(|stats| stats.clone())
             .unwrap_or_else(|_| DeviceCleanupStats::new("CPU".to_string()))
     }
@@ -439,7 +449,11 @@ impl MetalCleanup {
         }
 
         #[cfg(feature = "tracing")]
-        debug!("Cleaned {} Metal command buffers in {:?}", buffers_cleaned, start_time.elapsed());
+        debug!(
+            "Cleaned {} Metal command buffers in {:?}",
+            buffers_cleaned,
+            start_time.elapsed()
+        );
 
         Ok(buffers_cleaned)
     }
@@ -502,9 +516,18 @@ impl DeviceCleanupOps for MetalCleanup {
             allocations_cleaned,
             duration,
         )
-        .with_metric("command_buffers_cleaned".to_string(), command_buffers_cleaned.to_string())
-        .with_metric("unified_memory_optimization".to_string(), self.config.enable_unified_memory_optimization.to_string())
-        .with_metric("mps_cleanup".to_string(), self.config.enable_mps_cleanup.to_string());
+        .with_metric(
+            "command_buffers_cleaned".to_string(),
+            command_buffers_cleaned.to_string(),
+        )
+        .with_metric(
+            "unified_memory_optimization".to_string(),
+            self.config.enable_unified_memory_optimization.to_string(),
+        )
+        .with_metric(
+            "mps_cleanup".to_string(),
+            self.config.enable_mps_cleanup.to_string(),
+        );
 
         // Update statistics
         if let Ok(mut stats) = self.stats.write() {
@@ -580,7 +603,8 @@ impl DeviceCleanupOps for MetalCleanup {
     }
 
     fn get_cleanup_stats(&self) -> DeviceCleanupStats {
-        self.stats.read()
+        self.stats
+            .read()
             .map(|stats| stats.clone())
             .unwrap_or_else(|_| DeviceCleanupStats::new("Metal".to_string()))
     }
@@ -649,13 +673,9 @@ mod tests {
 
     #[test]
     fn test_device_cleanup_result() {
-        let result = DeviceCleanupResult::success(
-            "CPU".to_string(),
-            1024,
-            5,
-            Duration::from_millis(100),
-        );
-        
+        let result =
+            DeviceCleanupResult::success("CPU".to_string(), 1024, 5, Duration::from_millis(100));
+
         assert!(result.success);
         assert_eq!(result.device_type, "CPU");
         assert_eq!(result.bytes_freed, 1024);
@@ -666,7 +686,7 @@ mod tests {
             "test error".to_string(),
             Duration::from_millis(50),
         );
-        
+
         assert!(!result.success);
         assert_eq!(result.device_type, "Metal");
         assert_eq!(result.error_message, Some("test error".to_string()));
@@ -679,13 +699,9 @@ mod tests {
         assert_eq!(stats.total_cleanups, 0);
         assert_eq!(stats.total_bytes_freed, 0);
 
-        let result = DeviceCleanupResult::success(
-            "CPU".to_string(),
-            1024,
-            5,
-            Duration::from_millis(100),
-        );
-        
+        let result =
+            DeviceCleanupResult::success("CPU".to_string(), 1024, 5, Duration::from_millis(100));
+
         stats.record_cleanup(&result);
         assert_eq!(stats.total_cleanups, 1);
         assert_eq!(stats.total_bytes_freed, 1024);
@@ -697,7 +713,7 @@ mod tests {
     fn test_cpu_cleanup() {
         let cpu_cleanup = CpuCleanup::default();
         assert_eq!(cpu_cleanup.device_type(), "CPU");
-        
+
         let stats = cpu_cleanup.get_cleanup_stats();
         assert_eq!(stats.device_type, "CPU");
         assert_eq!(stats.total_cleanups, 0);
@@ -712,7 +728,7 @@ mod tests {
             duration: Duration::from_millis(100),
             success: true,
         };
-        
+
         assert!(result.success);
         assert_eq!(result.cache_lines_optimized, 1024);
         assert!(result.cache_hit_ratio_after > result.cache_hit_ratio_before);
@@ -727,7 +743,7 @@ mod tests {
             duration: Duration::from_millis(150),
             success: true,
         };
-        
+
         assert!(result.success);
         assert_eq!(result.blocks_consolidated, 25);
         assert!(result.fragmentation_after < result.fragmentation_before);

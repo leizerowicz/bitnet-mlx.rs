@@ -1,17 +1,15 @@
 // bitnet-quant/src/metrics/reporting.rs
 //! Quantization Metrics Reporting System
-//! 
+//!
 //! Comprehensive reporting system for quantization analysis results,
 //! providing structured reports, summaries, and export capabilities.
 
-use candle_core::{Result, Error as CandleError};
-use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 use crate::metrics::{
-    QuantizationMetrics, 
-    layer_wise::LayerWiseAnalysisResult,
-    mitigation::MitigationResult,
+    layer_wise::LayerWiseAnalysisResult, mitigation::MitigationResult, QuantizationMetrics,
 };
+use candle_core::{Error as CandleError, Result};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Comprehensive reporting engine for quantization analysis
 #[derive(Debug)]
@@ -47,7 +45,10 @@ impl ReportingEngine {
     }
 
     /// Generate comprehensive quantization analysis report
-    pub fn generate_comprehensive_report(&self, analysis: &LayerWiseAnalysisResult) -> Result<ComprehensiveReport> {
+    pub fn generate_comprehensive_report(
+        &self,
+        analysis: &LayerWiseAnalysisResult,
+    ) -> Result<ComprehensiveReport> {
         let executive_summary = self.generate_executive_summary(analysis)?;
         let detailed_analysis = self.generate_detailed_analysis(analysis)?;
         let recommendations = self.generate_recommendations(analysis)?;
@@ -77,15 +78,18 @@ impl ReportingEngine {
         Ok(report)
     }
 
-    fn generate_executive_summary(&self, analysis: &LayerWiseAnalysisResult) -> Result<ExecutiveSummary> {
+    fn generate_executive_summary(
+        &self,
+        analysis: &LayerWiseAnalysisResult,
+    ) -> Result<ExecutiveSummary> {
         let stats = &analysis.global_statistics;
-        
+
         // Calculate overall quality grade
         let quality_grade = self.assess_overall_quality(stats);
-        
+
         // Identify key findings
         let mut key_findings = Vec::new();
-        
+
         if analysis.problematic_layers.len() > analysis.layer_metrics.len() / 4 {
             key_findings.push(format!(
                 "Significant quality issues detected: {}/{} layers require attention",
@@ -93,14 +97,14 @@ impl ReportingEngine {
                 analysis.layer_metrics.len()
             ));
         }
-        
+
         if stats.mean_sqnr < 20.0 {
             key_findings.push(format!(
                 "Low signal-to-noise ratio detected: {:.1} dB (target: >20 dB)",
                 stats.mean_sqnr
             ));
         }
-        
+
         if stats.mean_cosine_similarity < 0.95 {
             key_findings.push(format!(
                 "Reduced similarity between original and quantized outputs: {:.3}",
@@ -110,7 +114,7 @@ impl ReportingEngine {
 
         // High-priority recommendations count
         let high_priority_count = analysis.optimization_plan.high_priority_layers.len();
-        
+
         // Business impact assessment
         let business_impact = self.assess_business_impact(analysis);
 
@@ -118,19 +122,30 @@ impl ReportingEngine {
             overall_quality_grade: quality_grade,
             key_findings,
             high_priority_actions_count: high_priority_count,
-            estimated_improvement_potential: match analysis.optimization_plan.estimated_improvement {
-                crate::metrics::layer_wise::EstimatedImprovement::High => "High (>20% quality improvement)",
-                crate::metrics::layer_wise::EstimatedImprovement::Medium => "Medium (5-20% quality improvement)",
-                crate::metrics::layer_wise::EstimatedImprovement::Low => "Low (<5% quality improvement)",
-            }.to_string(),
+            estimated_improvement_potential: match analysis.optimization_plan.estimated_improvement
+            {
+                crate::metrics::layer_wise::EstimatedImprovement::High => {
+                    "High (>20% quality improvement)"
+                }
+                crate::metrics::layer_wise::EstimatedImprovement::Medium => {
+                    "Medium (5-20% quality improvement)"
+                }
+                crate::metrics::layer_wise::EstimatedImprovement::Low => {
+                    "Low (<5% quality improvement)"
+                }
+            }
+            .to_string(),
             business_impact,
             next_steps: self.generate_next_steps(analysis),
         })
     }
 
-    fn assess_overall_quality(&self, stats: &crate::metrics::layer_wise::GlobalStatistics) -> QualityGrade {
+    fn assess_overall_quality(
+        &self,
+        stats: &crate::metrics::layer_wise::GlobalStatistics,
+    ) -> QualityGrade {
         let mut score = 0;
-        
+
         // MSE evaluation (0-25 points)
         if stats.mean_mse < 1e-4 {
             score += 25;
@@ -143,7 +158,7 @@ impl ReportingEngine {
         } else {
             score += 5;
         }
-        
+
         // SQNR evaluation (0-25 points)
         if stats.mean_sqnr > 40.0 {
             score += 25;
@@ -156,7 +171,7 @@ impl ReportingEngine {
         } else {
             score += 5;
         }
-        
+
         // Cosine similarity evaluation (0-25 points)
         if stats.mean_cosine_similarity > 0.99 {
             score += 25;
@@ -169,7 +184,7 @@ impl ReportingEngine {
         } else {
             score += 5;
         }
-        
+
         // Consistency evaluation (0-25 points) - based on standard deviation
         let consistency_score = if stats.mse_std_dev < stats.mean_mse * 0.1 {
             25 // Very consistent
@@ -180,9 +195,9 @@ impl ReportingEngine {
         } else {
             10 // Poor consistency
         };
-        
+
         score += consistency_score;
-        
+
         match score {
             90..=100 => QualityGrade::Excellent,
             80..=89 => QualityGrade::Good,
@@ -193,9 +208,11 @@ impl ReportingEngine {
     }
 
     fn assess_business_impact(&self, analysis: &LayerWiseAnalysisResult) -> BusinessImpact {
-        let problematic_ratio = analysis.problematic_layers.len() as f32 / analysis.layer_metrics.len() as f32;
-        let high_priority_ratio = analysis.optimization_plan.high_priority_layers.len() as f32 / analysis.layer_metrics.len() as f32;
-        
+        let problematic_ratio =
+            analysis.problematic_layers.len() as f32 / analysis.layer_metrics.len() as f32;
+        let high_priority_ratio = analysis.optimization_plan.high_priority_layers.len() as f32
+            / analysis.layer_metrics.len() as f32;
+
         let performance_impact = if problematic_ratio > 0.5 {
             PerformanceImpact::Severe
         } else if problematic_ratio > 0.25 {
@@ -205,7 +222,7 @@ impl ReportingEngine {
         } else {
             PerformanceImpact::Minimal
         };
-        
+
         let deployment_risk = if high_priority_ratio > 0.3 {
             DeploymentRisk::High
         } else if high_priority_ratio > 0.1 {
@@ -213,7 +230,7 @@ impl ReportingEngine {
         } else {
             DeploymentRisk::Low
         };
-        
+
         BusinessImpact {
             performance_impact,
             deployment_risk,
@@ -227,94 +244,151 @@ impl ReportingEngine {
             crate::metrics::layer_wise::ImplementationComplexity::Low => "1-2 days",
             crate::metrics::layer_wise::ImplementationComplexity::Medium => "1-2 weeks",
             crate::metrics::layer_wise::ImplementationComplexity::High => "2-4 weeks",
-        }.to_string()
+        }
+        .to_string()
     }
 
     fn estimate_cost_of_inaction(&self, analysis: &LayerWiseAnalysisResult) -> String {
-        let critical_issues = analysis.problematic_layers.iter()
-            .filter(|layer| matches!(layer.severity, crate::metrics::layer_wise::IssueSeverity::Critical))
+        let critical_issues = analysis
+            .problematic_layers
+            .iter()
+            .filter(|layer| {
+                matches!(
+                    layer.severity,
+                    crate::metrics::layer_wise::IssueSeverity::Critical
+                )
+            })
             .count();
-        
+
         if critical_issues > 0 {
             "High - Model accuracy significantly impacted"
         } else if analysis.problematic_layers.len() > analysis.layer_metrics.len() / 4 {
             "Medium - Noticeable quality degradation"
         } else {
             "Low - Minor quality impact"
-        }.to_string()
+        }
+        .to_string()
     }
 
     fn generate_next_steps(&self, analysis: &LayerWiseAnalysisResult) -> Vec<String> {
         let mut steps = Vec::new();
-        
+
         if !analysis.optimization_plan.high_priority_layers.is_empty() {
             steps.push(format!(
                 "Address {} high-priority layers immediately",
                 analysis.optimization_plan.high_priority_layers.len()
             ));
         }
-        
-        if analysis.problematic_layers.iter().any(|l| matches!(l.severity, crate::metrics::layer_wise::IssueSeverity::Critical)) {
+
+        if analysis.problematic_layers.iter().any(|l| {
+            matches!(
+                l.severity,
+                crate::metrics::layer_wise::IssueSeverity::Critical
+            )
+        }) {
             steps.push("Investigate critical quantization failures".to_string());
         }
-        
+
         steps.push("Implement recommended optimization strategies".to_string());
         steps.push("Perform validation testing on improved configurations".to_string());
         steps.push("Monitor quantization quality in production".to_string());
-        
+
         steps
     }
 
-    fn generate_detailed_analysis(&self, analysis: &LayerWiseAnalysisResult) -> Result<DetailedAnalysis> {
+    fn generate_detailed_analysis(
+        &self,
+        analysis: &LayerWiseAnalysisResult,
+    ) -> Result<DetailedAnalysis> {
         // Layer-by-layer breakdown
         let mut layer_breakdown = Vec::new();
-        
+
         for (layer_name, metrics) in &analysis.layer_metrics {
-            let sensitivity_score = analysis.sensitivity_ranking.iter()
+            let sensitivity_score = analysis
+                .sensitivity_ranking
+                .iter()
                 .find(|(name, _)| name == layer_name)
                 .map(|(_, score)| *score)
                 .unwrap_or(0.0);
-            
-            let is_problematic = analysis.problematic_layers.iter()
+
+            let is_problematic = analysis
+                .problematic_layers
+                .iter()
                 .any(|p| &p.layer_name == layer_name);
-            
+
             layer_breakdown.push(LayerBreakdown {
                 layer_name: layer_name.clone(),
                 metrics: metrics.clone(),
                 sensitivity_score,
                 quality_assessment: self.assess_layer_quality(metrics),
                 is_problematic,
-                recommended_actions: analysis.mitigation_recommendations
+                recommended_actions: analysis
+                    .mitigation_recommendations
                     .get(layer_name)
                     .cloned()
                     .unwrap_or_default(),
             });
         }
-        
+
         // Sort by sensitivity score (highest first)
-        layer_breakdown.sort_by(|a, b| b.sensitivity_score.partial_cmp(&a.sensitivity_score).unwrap_or(std::cmp::Ordering::Equal));
-        
+        layer_breakdown.sort_by(|a, b| {
+            b.sensitivity_score
+                .partial_cmp(&a.sensitivity_score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
         // Quantization patterns analysis
         let patterns = self.analyze_quantization_patterns(analysis)?;
-        
+
         // Performance analysis
         let performance_analysis = self.analyze_performance_characteristics(analysis)?;
-        
+
         Ok(DetailedAnalysis {
             layer_breakdown,
             quantization_patterns: patterns,
             performance_analysis,
-            error_correlation_summary: self.summarize_error_correlations(&analysis.error_correlations),
+            error_correlation_summary: self
+                .summarize_error_correlations(&analysis.error_correlations),
         })
     }
 
     fn assess_layer_quality(&self, metrics: &QuantizationMetrics) -> LayerQualityAssessment {
-        let mse_score = if metrics.mse < 1e-4 { 5 } else if metrics.mse < 1e-3 { 4 } else if metrics.mse < 1e-2 { 3 } else if metrics.mse < 1e-1 { 2 } else { 1 };
-        let sqnr_score = if metrics.sqnr > 40.0 { 5 } else if metrics.sqnr > 30.0 { 4 } else if metrics.sqnr > 20.0 { 3 } else if metrics.sqnr > 10.0 { 2 } else { 1 };
-        let cosine_score = if metrics.cosine_similarity > 0.99 { 5 } else if metrics.cosine_similarity > 0.97 { 4 } else if metrics.cosine_similarity > 0.95 { 3 } else if metrics.cosine_similarity > 0.90 { 2 } else { 1 };
-        
+        let mse_score = if metrics.mse < 1e-4 {
+            5
+        } else if metrics.mse < 1e-3 {
+            4
+        } else if metrics.mse < 1e-2 {
+            3
+        } else if metrics.mse < 1e-1 {
+            2
+        } else {
+            1
+        };
+        let sqnr_score = if metrics.sqnr > 40.0 {
+            5
+        } else if metrics.sqnr > 30.0 {
+            4
+        } else if metrics.sqnr > 20.0 {
+            3
+        } else if metrics.sqnr > 10.0 {
+            2
+        } else {
+            1
+        };
+        let cosine_score = if metrics.cosine_similarity > 0.99 {
+            5
+        } else if metrics.cosine_similarity > 0.97 {
+            4
+        } else if metrics.cosine_similarity > 0.95 {
+            3
+        } else if metrics.cosine_similarity > 0.90 {
+            2
+        } else {
+            1
+        };
+
         let total_score = mse_score + sqnr_score + cosine_score;
-        
+
         LayerQualityAssessment {
             overall_score: total_score,
             mse_grade: match mse_score {
@@ -355,30 +429,34 @@ impl ReportingEngine {
             "Outlier errors - Some values poorly quantized"
         } else {
             "Overall quality acceptable"
-        }.to_string()
+        }
+        .to_string()
     }
 
-    fn analyze_quantization_patterns(&self, analysis: &LayerWiseAnalysisResult) -> Result<QuantizationPatterns> {
+    fn analyze_quantization_patterns(
+        &self,
+        analysis: &LayerWiseAnalysisResult,
+    ) -> Result<QuantizationPatterns> {
         let mut layer_types = HashMap::new();
         let mut error_distribution = Vec::new();
         let mut correlation_insights = Vec::new();
-        
+
         // Analyze error distribution across layers
         for metrics in analysis.layer_metrics.values() {
             error_distribution.push(metrics.mse);
-            
+
             // Categorize by error level for pattern analysis
             let error_category = if metrics.mse < 1e-4 {
                 "low_error"
             } else if metrics.mse < 1e-2 {
-                "medium_error" 
+                "medium_error"
             } else {
                 "high_error"
             };
-            
+
             *layer_types.entry(error_category.to_string()).or_insert(0) += 1;
         }
-        
+
         // Analyze correlations
         for (layer1, correlations) in &analysis.error_correlations {
             for (layer2, correlation) in correlations {
@@ -389,11 +467,13 @@ impl ReportingEngine {
                 }
             }
         }
-        
+
         Ok(QuantizationPatterns {
             error_distribution_summary: format!(
                 "Error range: {:.6} - {:.6}, Mean: {:.6}",
-                error_distribution.iter().fold(f32::INFINITY, |a, &b| a.min(b)),
+                error_distribution
+                    .iter()
+                    .fold(f32::INFINITY, |a, &b| a.min(b)),
                 error_distribution.iter().fold(0.0f32, |a, &b| a.max(b)),
                 error_distribution.iter().sum::<f32>() / error_distribution.len() as f32
             ),
@@ -405,37 +485,52 @@ impl ReportingEngine {
 
     fn identify_common_issues(&self, analysis: &LayerWiseAnalysisResult) -> Vec<String> {
         let mut issues = Vec::new();
-        
-        let high_mse_count = analysis.layer_metrics.values()
+
+        let high_mse_count = analysis
+            .layer_metrics
+            .values()
             .filter(|m| m.mse > 1e-2)
             .count();
-        
+
         if high_mse_count > analysis.layer_metrics.len() / 4 {
-            issues.push(format!("High MSE in {high_mse_count} layers - Consider increasing bit width"));
+            issues.push(format!(
+                "High MSE in {high_mse_count} layers - Consider increasing bit width"
+            ));
         }
-        
-        let low_sqnr_count = analysis.layer_metrics.values()
+
+        let low_sqnr_count = analysis
+            .layer_metrics
+            .values()
             .filter(|m| m.sqnr < 20.0 && m.sqnr.is_finite())
             .count();
-        
+
         if low_sqnr_count > 0 {
-            issues.push(format!("Low SQNR in {low_sqnr_count} layers - May need asymmetric quantization"));
+            issues.push(format!(
+                "Low SQNR in {low_sqnr_count} layers - May need asymmetric quantization"
+            ));
         }
-        
-        let low_similarity_count = analysis.layer_metrics.values()
+
+        let low_similarity_count = analysis
+            .layer_metrics
+            .values()
             .filter(|m| m.cosine_similarity < 0.95)
             .count();
-        
+
         if low_similarity_count > 0 {
-            issues.push(format!("Reduced similarity in {low_similarity_count} layers - Consider mixed precision"));
+            issues.push(format!(
+                "Reduced similarity in {low_similarity_count} layers - Consider mixed precision"
+            ));
         }
-        
+
         issues
     }
 
-    fn analyze_performance_characteristics(&self, analysis: &LayerWiseAnalysisResult) -> Result<PerformanceAnalysis> {
+    fn analyze_performance_characteristics(
+        &self,
+        analysis: &LayerWiseAnalysisResult,
+    ) -> Result<PerformanceAnalysis> {
         let stats = &analysis.global_statistics;
-        
+
         // Calculate performance metrics
         let consistency_rating = if stats.mse_std_dev < stats.mean_mse * 0.2 {
             "High"
@@ -443,18 +538,21 @@ impl ReportingEngine {
             "Medium"
         } else {
             "Low"
-        }.to_string();
-        
+        }
+        .to_string();
+
         let predictability_score = 1.0 - (stats.mse_std_dev / stats.mean_mse.max(1e-8)).min(1.0);
-        
+
         // Estimate resource usage
         let estimated_memory_usage = analysis.layer_metrics.len() as f32 * 4.0; // Rough estimate in MB
         let estimated_compute_overhead = analysis.problematic_layers.len() as f32 * 0.1; // Percentage
-        
+
         Ok(PerformanceAnalysis {
             consistency_rating,
             predictability_score,
-            outlier_layers: analysis.sensitivity_ranking.iter()
+            outlier_layers: analysis
+                .sensitivity_ranking
+                .iter()
                 .take(5)
                 .map(|(name, score)| format!("{name}: {score:.2}"))
                 .collect(),
@@ -465,8 +563,9 @@ impl ReportingEngine {
     }
 
     fn assess_scalability(&self, analysis: &LayerWiseAnalysisResult) -> String {
-        let problematic_ratio = analysis.problematic_layers.len() as f32 / analysis.layer_metrics.len() as f32;
-        
+        let problematic_ratio =
+            analysis.problematic_layers.len() as f32 / analysis.layer_metrics.len() as f32;
+
         if problematic_ratio > 0.5 {
             "Poor - Many layers need individual attention"
         } else if problematic_ratio > 0.25 {
@@ -475,10 +574,14 @@ impl ReportingEngine {
             "Good - Minor issues, generally scalable"
         } else {
             "Excellent - Highly scalable quantization approach"
-        }.to_string()
+        }
+        .to_string()
     }
 
-    fn summarize_error_correlations(&self, correlations: &HashMap<String, HashMap<String, f32>>) -> ErrorCorrelationSummary {
+    fn summarize_error_correlations(
+        &self,
+        correlations: &HashMap<String, HashMap<String, f32>>,
+    ) -> ErrorCorrelationSummary {
         if correlations.is_empty() {
             return ErrorCorrelationSummary {
                 strong_correlations: 0,
@@ -487,17 +590,17 @@ impl ReportingEngine {
                 correlation_insights: Vec::new(),
             };
         }
-        
+
         let mut all_correlations = Vec::new();
         let mut max_correlation = 0.0;
         let mut most_correlated_pair = None;
-        
+
         for (layer1, layer_corr) in correlations {
             for (layer2, &correlation) in layer_corr {
                 if layer1 < layer2 {
                     let abs_corr = correlation.abs();
                     all_correlations.push(abs_corr);
-                    
+
                     if abs_corr > max_correlation {
                         max_correlation = abs_corr;
                         most_correlated_pair = Some((layer1.clone(), layer2.clone(), correlation));
@@ -505,18 +608,23 @@ impl ReportingEngine {
                 }
             }
         }
-        
+
         let strong_correlations = all_correlations.iter().filter(|&&c| c > 0.7).count();
-        let average_correlation = all_correlations.iter().sum::<f32>() / all_correlations.len() as f32;
-        
+        let average_correlation =
+            all_correlations.iter().sum::<f32>() / all_correlations.len() as f32;
+
         let mut insights = Vec::new();
         if average_correlation > 0.5 {
-            insights.push("High overall correlation suggests systematic quantization patterns".to_string());
+            insights.push(
+                "High overall correlation suggests systematic quantization patterns".to_string(),
+            );
         }
         if strong_correlations > correlations.len() / 4 {
-            insights.push("Many strong correlations indicate related quantization challenges".to_string());
+            insights.push(
+                "Many strong correlations indicate related quantization challenges".to_string(),
+            );
         }
-        
+
         ErrorCorrelationSummary {
             strong_correlations,
             average_correlation,
@@ -525,12 +633,15 @@ impl ReportingEngine {
         }
     }
 
-    fn generate_recommendations(&self, analysis: &LayerWiseAnalysisResult) -> Result<RecommendationSection> {
+    fn generate_recommendations(
+        &self,
+        analysis: &LayerWiseAnalysisResult,
+    ) -> Result<RecommendationSection> {
         let immediate_actions = self.generate_immediate_actions(analysis);
         let optimization_roadmap = self.generate_optimization_roadmap(analysis);
         let best_practices = self.generate_best_practices();
         let monitoring_recommendations = self.generate_monitoring_recommendations();
-        
+
         Ok(RecommendationSection {
             immediate_actions,
             optimization_roadmap,
@@ -539,12 +650,18 @@ impl ReportingEngine {
         })
     }
 
-    fn generate_immediate_actions(&self, analysis: &LayerWiseAnalysisResult) -> Vec<ImmediateAction> {
+    fn generate_immediate_actions(
+        &self,
+        analysis: &LayerWiseAnalysisResult,
+    ) -> Vec<ImmediateAction> {
         let mut actions = Vec::new();
-        
+
         // Critical issues first
         for layer in &analysis.problematic_layers {
-            if matches!(layer.severity, crate::metrics::layer_wise::IssueSeverity::Critical) {
+            if matches!(
+                layer.severity,
+                crate::metrics::layer_wise::IssueSeverity::Critical
+            ) {
                 actions.push(ImmediateAction {
                     priority: ActionPriority::Critical,
                     description: format!("Address critical issues in layer: {}", layer.layer_name),
@@ -554,7 +671,7 @@ impl ReportingEngine {
                 });
             }
         }
-        
+
         // High priority optimization
         for layer_name in &analysis.optimization_plan.high_priority_layers {
             if !actions.iter().any(|a| a.description.contains(layer_name)) {
@@ -571,13 +688,16 @@ impl ReportingEngine {
                 });
             }
         }
-        
+
         actions
     }
 
-    fn generate_optimization_roadmap(&self, analysis: &LayerWiseAnalysisResult) -> OptimizationRoadmap {
+    fn generate_optimization_roadmap(
+        &self,
+        analysis: &LayerWiseAnalysisResult,
+    ) -> OptimizationRoadmap {
         let mut phases = Vec::new();
-        
+
         // Phase 1: Quick wins
         phases.push(RoadmapPhase {
             phase_name: "Quick Wins".to_string(),
@@ -593,7 +713,7 @@ impl ReportingEngine {
                 "Quality validation report".to_string(),
             ],
         });
-        
+
         // Phase 2: Systematic improvements
         phases.push(RoadmapPhase {
             phase_name: "Systematic Optimization".to_string(),
@@ -609,7 +729,7 @@ impl ReportingEngine {
                 "Performance benchmarking results".to_string(),
             ],
         });
-        
+
         // Phase 3: Advanced optimization
         phases.push(RoadmapPhase {
             phase_name: "Advanced Optimization".to_string(),
@@ -625,13 +745,17 @@ impl ReportingEngine {
                 "Monitoring and alerting system".to_string(),
             ],
         });
-        
+
         OptimizationRoadmap {
             phases,
             total_estimated_duration: "3-6 weeks".to_string(),
             success_criteria: vec![
-                format!("Achieve <{:.1}% of layers with quality issues", 
-                    (analysis.problematic_layers.len() as f32 / analysis.layer_metrics.len() as f32) * 50.0),
+                format!(
+                    "Achieve <{:.1}% of layers with quality issues",
+                    (analysis.problematic_layers.len() as f32
+                        / analysis.layer_metrics.len() as f32)
+                        * 50.0
+                ),
                 "Maintain <2% performance overhead".to_string(),
                 "Establish automated quality monitoring".to_string(),
             ],
@@ -643,7 +767,8 @@ impl ReportingEngine {
             BestPractice {
                 category: "Calibration".to_string(),
                 recommendation: "Use representative dataset for calibration".to_string(),
-                rationale: "Ensures quantization parameters match production data distribution".to_string(),
+                rationale: "Ensures quantization parameters match production data distribution"
+                    .to_string(),
                 implementation_notes: vec![
                     "Include edge cases in calibration data".to_string(),
                     "Use sufficient sample size (>1000 examples)".to_string(),
@@ -652,8 +777,10 @@ impl ReportingEngine {
             },
             BestPractice {
                 category: "Bit Width Selection".to_string(),
-                recommendation: "Start with 8-bit and adjust based on sensitivity analysis".to_string(),
-                rationale: "Balances quality and performance while allowing targeted optimization".to_string(),
+                recommendation: "Start with 8-bit and adjust based on sensitivity analysis"
+                    .to_string(),
+                rationale: "Balances quality and performance while allowing targeted optimization"
+                    .to_string(),
                 implementation_notes: vec![
                     "Use sensitivity ranking to prioritize bit width increases".to_string(),
                     "Consider mixed precision for optimal trade-offs".to_string(),
@@ -663,7 +790,8 @@ impl ReportingEngine {
             BestPractice {
                 category: "Monitoring".to_string(),
                 recommendation: "Implement continuous quantization quality monitoring".to_string(),
-                rationale: "Enables early detection of quality degradation in production".to_string(),
+                rationale: "Enables early detection of quality degradation in production"
+                    .to_string(),
                 implementation_notes: vec![
                     "Set up automated quality metrics collection".to_string(),
                     "Define alert thresholds based on business requirements".to_string(),
@@ -696,11 +824,15 @@ impl ReportingEngine {
         }
     }
 
-    fn generate_technical_appendix(&self, analysis: &LayerWiseAnalysisResult) -> Result<TechnicalAppendix> {
+    fn generate_technical_appendix(
+        &self,
+        analysis: &LayerWiseAnalysisResult,
+    ) -> Result<TechnicalAppendix> {
         Ok(TechnicalAppendix {
             methodology: self.generate_methodology_description(),
             detailed_metrics: analysis.layer_metrics.clone(),
-            statistical_analysis: self.generate_statistical_analysis(&analysis.global_statistics)?,
+            statistical_analysis: self
+                .generate_statistical_analysis(&analysis.global_statistics)?,
             error_correlation_matrix: analysis.error_correlations.clone(),
             sensitivity_analysis_details: analysis.sensitivity_ranking.clone(),
             configuration_parameters: self.extract_configuration_parameters(analysis),
@@ -715,10 +847,14 @@ impl ReportingEngine {
         4. Perform layer-wise sensitivity analysis\n\
         5. Identify error correlations between layers\n\
         6. Generate mitigation recommendations based on threshold analysis\n\
-        7. Assess overall quantization quality and business impact".to_string()
+        7. Assess overall quantization quality and business impact"
+            .to_string()
     }
 
-    fn generate_statistical_analysis(&self, stats: &crate::metrics::layer_wise::GlobalStatistics) -> Result<String> {
+    fn generate_statistical_analysis(
+        &self,
+        stats: &crate::metrics::layer_wise::GlobalStatistics,
+    ) -> Result<String> {
         Ok(format!(
             "Statistical Summary:\n\
             - Total Layers Analyzed: {}\n\
@@ -740,23 +876,48 @@ impl ReportingEngine {
         ))
     }
 
-    fn extract_configuration_parameters(&self, analysis: &LayerWiseAnalysisResult) -> HashMap<String, String> {
+    fn extract_configuration_parameters(
+        &self,
+        analysis: &LayerWiseAnalysisResult,
+    ) -> HashMap<String, String> {
         let mut config = HashMap::new();
-        
-        config.insert("analysis_timestamp".to_string(), analysis.analysis_timestamp.to_string());
-        config.insert("total_layers".to_string(), analysis.layer_metrics.len().to_string());
-        config.insert("problematic_layers".to_string(), analysis.problematic_layers.len().to_string());
-        config.insert("high_priority_layers".to_string(), analysis.optimization_plan.high_priority_layers.len().to_string());
-        config.insert("implementation_complexity".to_string(), format!("{:?}", analysis.optimization_plan.implementation_complexity));
-        config.insert("estimated_improvement".to_string(), format!("{:?}", analysis.optimization_plan.estimated_improvement));
-        
+
+        config.insert(
+            "analysis_timestamp".to_string(),
+            analysis.analysis_timestamp.to_string(),
+        );
+        config.insert(
+            "total_layers".to_string(),
+            analysis.layer_metrics.len().to_string(),
+        );
+        config.insert(
+            "problematic_layers".to_string(),
+            analysis.problematic_layers.len().to_string(),
+        );
+        config.insert(
+            "high_priority_layers".to_string(),
+            analysis
+                .optimization_plan
+                .high_priority_layers
+                .len()
+                .to_string(),
+        );
+        config.insert(
+            "implementation_complexity".to_string(),
+            format!("{:?}", analysis.optimization_plan.implementation_complexity),
+        );
+        config.insert(
+            "estimated_improvement".to_string(),
+            format!("{:?}", analysis.optimization_plan.estimated_improvement),
+        );
+
         config
     }
 
     /// Export report in various formats
     pub fn export_report(&self, report: &ComprehensiveReport) -> Result<Vec<String>> {
         let mut exported_files = Vec::new();
-        
+
         match self.report_format {
             ReportFormat::Markdown => {
                 let markdown_content = self.generate_markdown_report(report)?;
@@ -764,93 +925,134 @@ impl ReportingEngine {
                 // In practice, write to file: std::fs::write(&filename, markdown_content)?;
                 println!("Would export Markdown report to: {filename}");
                 exported_files.push(filename);
-            },
-            
+            }
+
             ReportFormat::HTML => {
                 let html_content = self.generate_html_report(report)?;
-                let filename = format!("{}/quantization_analysis_report.html", self.output_directory);
+                let filename = format!(
+                    "{}/quantization_analysis_report.html",
+                    self.output_directory
+                );
                 // In practice, write to file: std::fs::write(&filename, html_content)?;
                 println!("Would export HTML report to: {filename}");
                 exported_files.push(filename);
-            },
-            
+            }
+
             ReportFormat::PDF => {
                 // In practice, generate PDF using a PDF library
-                let filename = format!("{}/quantization_analysis_report.pdf", self.output_directory);
+                let filename =
+                    format!("{}/quantization_analysis_report.pdf", self.output_directory);
                 println!("Would export PDF report to: {filename}");
                 exported_files.push(filename);
-            },
-            
+            }
+
             ReportFormat::JSON => {
                 let json_content = serde_json::to_string_pretty(report)
                     .map_err(|e| CandleError::Msg(format!("JSON serialization error: {e}")))?;
-                let filename = format!("{}/quantization_analysis_report.json", self.output_directory);
+                let filename = format!(
+                    "{}/quantization_analysis_report.json",
+                    self.output_directory
+                );
                 // In practice, write to file: std::fs::write(&filename, json_content)?;
                 println!("Would export JSON report to: {filename}");
                 exported_files.push(filename);
-            },
+            }
         }
-        
+
         Ok(exported_files)
     }
 
     fn generate_markdown_report(&self, report: &ComprehensiveReport) -> Result<String> {
         let mut content = String::new();
-        
+
         // Title and metadata
         content.push_str(&format!("# {}\n\n", report.metadata.title));
-        let timestamp = std::time::UNIX_EPOCH + std::time::Duration::from_secs(report.metadata.generated_at);
+        let timestamp =
+            std::time::UNIX_EPOCH + std::time::Duration::from_secs(report.metadata.generated_at);
         content.push_str(&format!("**Generated:** {timestamp:?}\n"));
-        content.push_str(&format!("**Layers Analyzed:** {}\n\n", report.metadata.total_layers_analyzed));
-        
+        content.push_str(&format!(
+            "**Layers Analyzed:** {}\n\n",
+            report.metadata.total_layers_analyzed
+        ));
+
         // Executive Summary
         content.push_str("## Executive Summary\n\n");
-        content.push_str(&format!("**Overall Quality:** {:?}\n\n", report.executive_summary.overall_quality_grade));
-        
+        content.push_str(&format!(
+            "**Overall Quality:** {:?}\n\n",
+            report.executive_summary.overall_quality_grade
+        ));
+
         content.push_str("### Key Findings\n");
         for finding in &report.executive_summary.key_findings {
             content.push_str(&format!("- {finding}\n"));
         }
         content.push('\n');
-        
-        content.push_str(&format!("**High Priority Actions:** {}\n", report.executive_summary.high_priority_actions_count));
-        content.push_str(&format!("**Improvement Potential:** {}\n\n", report.executive_summary.estimated_improvement_potential));
-        
+
+        content.push_str(&format!(
+            "**High Priority Actions:** {}\n",
+            report.executive_summary.high_priority_actions_count
+        ));
+        content.push_str(&format!(
+            "**Improvement Potential:** {}\n\n",
+            report.executive_summary.estimated_improvement_potential
+        ));
+
         // Next Steps
         content.push_str("### Immediate Next Steps\n");
         for step in &report.executive_summary.next_steps {
             content.push_str(&format!("1. {step}\n"));
         }
         content.push('\n');
-        
+
         // Detailed Analysis
         content.push_str("## Detailed Analysis\n\n");
-        content.push_str(&format!("### Error Distribution\n{}\n\n", 
-            report.detailed_analysis.quantization_patterns.error_distribution_summary));
-        
+        content.push_str(&format!(
+            "### Error Distribution\n{}\n\n",
+            report
+                .detailed_analysis
+                .quantization_patterns
+                .error_distribution_summary
+        ));
+
         // Top problematic layers
         content.push_str("### Most Sensitive Layers\n");
-        for (i, layer) in report.detailed_analysis.layer_breakdown.iter().take(10).enumerate() {
-            content.push_str(&format!("{}. **{}** - Sensitivity: {:.2}, Quality: {}/15\n", 
-                i+1, layer.layer_name, layer.sensitivity_score, layer.quality_assessment.overall_score));
+        for (i, layer) in report
+            .detailed_analysis
+            .layer_breakdown
+            .iter()
+            .take(10)
+            .enumerate()
+        {
+            content.push_str(&format!(
+                "{}. **{}** - Sensitivity: {:.2}, Quality: {}/15\n",
+                i + 1,
+                layer.layer_name,
+                layer.sensitivity_score,
+                layer.quality_assessment.overall_score
+            ));
         }
         content.push('\n');
-        
+
         // Recommendations
         content.push_str("## Recommendations\n\n");
         content.push_str("### Immediate Actions\n");
         for action in &report.recommendations.immediate_actions {
-            content.push_str(&format!("- **{:?}:** {} (Effort: {}, Impact: {})\n", 
-                action.priority, action.description, action.estimated_effort, action.expected_impact));
+            content.push_str(&format!(
+                "- **{:?}:** {} (Effort: {}, Impact: {})\n",
+                action.priority,
+                action.description,
+                action.estimated_effort,
+                action.expected_impact
+            ));
         }
         content.push('\n');
-        
+
         Ok(content)
     }
 
     fn generate_html_report(&self, report: &ComprehensiveReport) -> Result<String> {
         let mut html = String::new();
-        
+
         html.push_str("<!DOCTYPE html>\n<html>\n<head>\n");
         html.push_str(&format!("<title>{}</title>\n", report.metadata.title));
         html.push_str("<style>\n");
@@ -863,40 +1065,50 @@ impl ReportingEngine {
         html.push_str("th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }\n");
         html.push_str("th { background-color: #f2f2f2; }\n");
         html.push_str("</style>\n</head>\n<body>\n");
-        
+
         // Content
         html.push_str(&format!("<h1>{}</h1>\n", report.metadata.title));
         html.push_str("<h2>Executive Summary</h2>\n");
-        html.push_str(&format!("<p><strong>Overall Quality:</strong> <span class=\"quality-{}\"> {:?}</span></p>\n", 
+        html.push_str(&format!(
+            "<p><strong>Overall Quality:</strong> <span class=\"quality-{}\"> {:?}</span></p>\n",
             match report.executive_summary.overall_quality_grade {
                 QualityGrade::Excellent | QualityGrade::Good => "excellent",
-                _ => "poor"
+                _ => "poor",
             },
-            report.executive_summary.overall_quality_grade));
-        
+            report.executive_summary.overall_quality_grade
+        ));
+
         html.push_str("<h3>Key Findings</h3>\n<ul>\n");
         for finding in &report.executive_summary.key_findings {
             html.push_str(&format!("<li>{finding}</li>\n"));
         }
         html.push_str("</ul>\n");
-        
+
         html.push_str("</body>\n</html>");
-        
+
         Ok(html)
     }
 
     /// Generate mitigation report
-    pub fn generate_mitigation_report(&self, mitigation_result: &MitigationResult) -> Result<MitigationReport> {
+    pub fn generate_mitigation_report(
+        &self,
+        mitigation_result: &MitigationResult,
+    ) -> Result<MitigationReport> {
         Ok(MitigationReport {
             summary: MitigationSummary {
                 total_actions: mitigation_result.mitigation_actions.len(),
                 expected_improvement: mitigation_result.overall_improvement,
-                estimated_implementation_time: mitigation_result.implementation_plan.total_estimated_duration_hours,
+                estimated_implementation_time: mitigation_result
+                    .implementation_plan
+                    .total_estimated_duration_hours,
                 confidence_level: mitigation_result.estimated_quality_gain.confidence_level,
             },
             action_details: mitigation_result.mitigation_actions.clone(),
             implementation_plan: mitigation_result.implementation_plan.clone(),
-            risk_assessment: mitigation_result.implementation_plan.risk_assessment.clone(),
+            risk_assessment: mitigation_result
+                .implementation_plan
+                .risk_assessment
+                .clone(),
             expected_outcomes: mitigation_result.estimated_quality_gain.clone(),
         })
     }
@@ -935,7 +1147,7 @@ pub struct ExecutiveSummary {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum QualityGrade {
     Excellent,
-    Good, 
+    Good,
     Satisfactory,
     NeedsImprovement,
     Poor,
@@ -1116,30 +1328,36 @@ mod tests {
     use std::collections::HashMap;
 
     fn create_test_analysis() -> LayerWiseAnalysisResult {
-        use crate::metrics::layer_wise::{LayerWiseAnalysisResult, GlobalStatistics, OptimizationPlan, EstimatedImprovement, ImplementationComplexity};
-        
+        use crate::metrics::layer_wise::{
+            EstimatedImprovement, GlobalStatistics, ImplementationComplexity,
+            LayerWiseAnalysisResult, OptimizationPlan,
+        };
+
         let mut layer_metrics = HashMap::new();
-        layer_metrics.insert("layer1".to_string(), QuantizationMetrics {
-            mse: 0.001,
-            sqnr: 40.0,
-            cosine_similarity: 0.99,
-            layer_name: "layer1".to_string(),
-            ..Default::default()
-        });
-        layer_metrics.insert("layer2".to_string(), QuantizationMetrics {
-            mse: 0.1,
-            sqnr: 15.0,
-            cosine_similarity: 0.85,
-            layer_name: "layer2".to_string(),
-            ..Default::default()
-        });
+        layer_metrics.insert(
+            "layer1".to_string(),
+            QuantizationMetrics {
+                mse: 0.001,
+                sqnr: 40.0,
+                cosine_similarity: 0.99,
+                layer_name: "layer1".to_string(),
+                ..Default::default()
+            },
+        );
+        layer_metrics.insert(
+            "layer2".to_string(),
+            QuantizationMetrics {
+                mse: 0.1,
+                sqnr: 15.0,
+                cosine_similarity: 0.85,
+                layer_name: "layer2".to_string(),
+                ..Default::default()
+            },
+        );
 
         LayerWiseAnalysisResult {
             layer_metrics,
-            sensitivity_ranking: vec![
-                ("layer2".to_string(), 15.0),
-                ("layer1".to_string(), 2.0),
-            ],
+            sensitivity_ranking: vec![("layer2".to_string(), 15.0), ("layer1".to_string(), 2.0)],
             layer_rankings: Vec::new(),
             mitigation_recommendations: HashMap::new(),
             error_correlations: HashMap::new(),
@@ -1180,7 +1398,7 @@ mod tests {
     #[test]
     fn test_quality_assessment() {
         let engine = ReportingEngine::new("./reports".to_string());
-        
+
         let high_quality_stats = crate::metrics::layer_wise::GlobalStatistics {
             num_layers: 10,
             mean_mse: 1e-5,
@@ -1189,10 +1407,10 @@ mod tests {
             mse_std_dev: 1e-6,
             ..Default::default()
         };
-        
+
         let grade = engine.assess_overall_quality(&high_quality_stats);
         assert!(matches!(grade, QualityGrade::Excellent));
-        
+
         let poor_quality_stats = crate::metrics::layer_wise::GlobalStatistics {
             num_layers: 10,
             mean_mse: 1e-1,
@@ -1201,7 +1419,7 @@ mod tests {
             mse_std_dev: 1e-1,
             ..Default::default()
         };
-        
+
         let grade = engine.assess_overall_quality(&poor_quality_stats);
         assert!(matches!(grade, QualityGrade::Poor));
     }
@@ -1209,25 +1427,25 @@ mod tests {
     #[test]
     fn test_layer_quality_assessment() {
         let engine = ReportingEngine::new("./reports".to_string());
-        
+
         let excellent_metrics = QuantizationMetrics {
             mse: 1e-5,
             sqnr: 50.0,
             cosine_similarity: 0.995,
             ..Default::default()
         };
-        
+
         let assessment = engine.assess_layer_quality(&excellent_metrics);
         assert_eq!(assessment.overall_score, 15); // Maximum score
         assert_eq!(assessment.mse_grade, "Excellent");
-        
+
         let poor_metrics = QuantizationMetrics {
             mse: 1e-1,
             sqnr: 5.0,
             cosine_similarity: 0.7,
             ..Default::default()
         };
-        
+
         let assessment = engine.assess_layer_quality(&poor_metrics);
         assert!(assessment.overall_score < 10);
         assert_eq!(assessment.mse_grade, "Critical");
@@ -1237,14 +1455,14 @@ mod tests {
     fn test_comprehensive_report_generation() -> Result<()> {
         let engine = ReportingEngine::new("./reports".to_string());
         let analysis = create_test_analysis();
-        
+
         let report = engine.generate_comprehensive_report(&analysis)?;
-        
+
         assert_eq!(report.metadata.total_layers_analyzed, 2);
         assert!(!report.executive_summary.key_findings.is_empty());
         assert!(!report.detailed_analysis.layer_breakdown.is_empty());
         assert!(!report.recommendations.immediate_actions.is_empty());
-        
+
         Ok(())
     }
 
@@ -1252,18 +1470,21 @@ mod tests {
     fn test_business_impact_assessment() {
         let engine = ReportingEngine::new("./reports".to_string());
         let analysis = create_test_analysis();
-        
+
         let impact = engine.assess_business_impact(&analysis);
-        
+
         // Should be minimal since no problematic layers in test data
-        assert!(matches!(impact.performance_impact, PerformanceImpact::Minimal));
+        assert!(matches!(
+            impact.performance_impact,
+            PerformanceImpact::Minimal
+        ));
         assert!(matches!(impact.deployment_risk, DeploymentRisk::Low));
     }
 
     #[test]
     fn test_primary_concern_identification() {
         let engine = ReportingEngine::new("./reports".to_string());
-        
+
         let high_mse_metrics = QuantizationMetrics {
             mse: 1e-1,
             sqnr: 30.0,
@@ -1273,17 +1494,17 @@ mod tests {
             max_error: 0.1,
             ..Default::default()
         };
-        
+
         let concern = engine.identify_primary_concern(&high_mse_metrics);
         assert!(concern.contains("High MSE"));
-        
+
         let low_sqnr_metrics = QuantizationMetrics {
             mse: 1e-4,
             sqnr: 5.0,
             cosine_similarity: 0.95,
             ..Default::default()
         };
-        
+
         let concern = engine.identify_primary_concern(&low_sqnr_metrics);
         assert!(concern.contains("Low SQNR"));
     }
@@ -1292,15 +1513,15 @@ mod tests {
     fn test_markdown_report_generation() -> Result<()> {
         let engine = ReportingEngine::new("./reports".to_string());
         let analysis = create_test_analysis();
-        
+
         let report = engine.generate_comprehensive_report(&analysis)?;
         let markdown = engine.generate_markdown_report(&report)?;
-        
+
         assert!(markdown.contains("# BitNet Quantization Analysis Report"));
         assert!(markdown.contains("## Executive Summary"));
         assert!(markdown.contains("## Detailed Analysis"));
         assert!(markdown.contains("## Recommendations"));
-        
+
         Ok(())
     }
 
@@ -1308,15 +1529,15 @@ mod tests {
     fn test_html_report_generation() -> Result<()> {
         let engine = ReportingEngine::new("./reports".to_string());
         let analysis = create_test_analysis();
-        
+
         let report = engine.generate_comprehensive_report(&analysis)?;
         let html = engine.generate_html_report(&report)?;
-        
+
         assert!(html.contains("<!DOCTYPE html>"));
         assert!(html.contains("<title>BitNet Quantization Analysis Report</title>"));
         assert!(html.contains("<h1>BitNet Quantization Analysis Report</h1>"));
         assert!(html.contains("<h2>Executive Summary</h2>"));
-        
+
         Ok(())
     }
 
@@ -1324,30 +1545,32 @@ mod tests {
     fn test_best_practices_generation() {
         let engine = ReportingEngine::new("./reports".to_string());
         let best_practices = engine.generate_best_practices();
-        
+
         assert!(!best_practices.is_empty());
         assert!(best_practices.iter().any(|bp| bp.category == "Calibration"));
-        assert!(best_practices.iter().any(|bp| bp.category == "Bit Width Selection"));
+        assert!(best_practices
+            .iter()
+            .any(|bp| bp.category == "Bit Width Selection"));
         assert!(best_practices.iter().any(|bp| bp.category == "Monitoring"));
     }
 
     #[test]
     fn test_error_correlation_summary() {
         let engine = ReportingEngine::new("./reports".to_string());
-        
+
         let mut correlations = HashMap::new();
         let mut layer1_corr = HashMap::new();
         layer1_corr.insert("layer2".to_string(), 0.8);
         layer1_corr.insert("layer3".to_string(), 0.6);
         correlations.insert("layer1".to_string(), layer1_corr);
-        
+
         let mut layer2_corr = HashMap::new();
         layer2_corr.insert("layer1".to_string(), 0.8);
         layer2_corr.insert("layer3".to_string(), 0.3);
         correlations.insert("layer2".to_string(), layer2_corr);
-        
+
         let summary = engine.summarize_error_correlations(&correlations);
-        
+
         assert_eq!(summary.strong_correlations, 1); // Only layer1-layer2 > 0.7
         assert!(summary.average_correlation > 0.0);
         assert!(summary.most_correlated_pair.is_some());
@@ -1357,7 +1580,7 @@ mod tests {
     fn test_scalability_assessment() {
         let engine = ReportingEngine::new("./reports".to_string());
         let analysis = create_test_analysis();
-        
+
         let assessment = engine.assess_scalability(&analysis);
         // Should be excellent since no problematic layers
         assert!(assessment.contains("Excellent"));
@@ -1367,18 +1590,22 @@ mod tests {
     fn test_immediate_actions_generation() {
         let engine = ReportingEngine::new("./reports".to_string());
         let mut analysis = create_test_analysis();
-        
+
         // Add a problematic layer
-        analysis.problematic_layers.push(crate::metrics::layer_wise::ProblematicLayer {
-            layer_name: "critical_layer".to_string(),
-            issues: vec![crate::metrics::layer_wise::QualityIssue::HighMSE],
-            severity: crate::metrics::layer_wise::IssueSeverity::Critical,
-            recommended_actions: vec!["Fix quantization".to_string()],
-        });
-        
+        analysis
+            .problematic_layers
+            .push(crate::metrics::layer_wise::ProblematicLayer {
+                layer_name: "critical_layer".to_string(),
+                issues: vec![crate::metrics::layer_wise::QualityIssue::HighMSE],
+                severity: crate::metrics::layer_wise::IssueSeverity::Critical,
+                recommended_actions: vec!["Fix quantization".to_string()],
+            });
+
         let actions = engine.generate_immediate_actions(&analysis);
-        
+
         assert!(!actions.is_empty());
-        assert!(actions.iter().any(|a| matches!(a.priority, ActionPriority::Critical)));
+        assert!(actions
+            .iter()
+            .any(|a| matches!(a.priority, ActionPriority::Critical)));
     }
 }

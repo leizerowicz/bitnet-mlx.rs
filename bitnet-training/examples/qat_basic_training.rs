@@ -3,14 +3,14 @@
 
 use std::collections::HashMap;
 
-use candle_core::{Result, Tensor, Device, DType};
-use bitnet_training::qat::{
-    QATLoss, QuantizationAwareLoss, QATOptimizer, QuantizationAwareAdam,
-    QATRegularization, QuantizationRegularizer, RegularizationConfig,
-    QATStateTracker, DistillationConfig, KnowledgeDistillation,
-    ProgressiveQuantization, ProgressiveStrategy, QuantizationPhase, CompletionCriteria,
-};
 use bitnet_core::memory::HybridMemoryPool;
+use bitnet_training::qat::{
+    CompletionCriteria, DistillationConfig, KnowledgeDistillation, ProgressiveQuantization,
+    ProgressiveStrategy, QATLoss, QATOptimizer, QATRegularization, QATStateTracker,
+    QuantizationAwareAdam, QuantizationAwareLoss, QuantizationPhase, QuantizationRegularizer,
+    RegularizationConfig,
+};
+use candle_core::{DType, Device, Result, Tensor};
 
 /// Basic QAT training configuration
 pub struct QATTrainingConfig {
@@ -45,13 +45,13 @@ pub struct QATTrainer {
     device: Device,
     #[allow(dead_code)] // Used for memory management, kept for future use
     memory_pool: HybridMemoryPool,
-    
+
     // QAT components
     loss_function: QuantizationAwareLoss,
     optimizer: QuantizationAwareAdam,
     regularizer: QuantizationRegularizer,
     state_tracker: QATStateTracker,
-    
+
     // Optional components
     knowledge_distillation: Option<KnowledgeDistillation>,
     progressive_quantization: Option<ProgressiveQuantization>,
@@ -126,17 +126,17 @@ impl QATTrainer {
         F: FnMut() -> Result<Option<(Tensor, Tensor)>>, // (inputs, targets)
         G: FnMut() -> Result<Option<(Tensor, Tensor)>>, // (inputs, targets)
     {
-        println!("Starting QAT training with {} epochs", self.config.num_epochs);
-        
+        println!(
+            "Starting QAT training with {} epochs",
+            self.config.num_epochs
+        );
+
         for epoch in 0..self.config.num_epochs {
             println!("Epoch {}/{}", epoch + 1, self.config.num_epochs);
-            
+
             // Training phase
-            let epoch_loss = self.train_epoch(
-                &mut model_parameters,
-                &mut training_data_loader,
-                epoch,
-            )?;
+            let epoch_loss =
+                self.train_epoch(&mut model_parameters, &mut training_data_loader, epoch)?;
 
             println!("Epoch {} - Training Loss: {:.6}", epoch + 1, epoch_loss);
 
@@ -145,7 +145,7 @@ impl QATTrainer {
                 if (epoch + 1) % (self.config.validation_frequency / 1000).max(1) == 0 {
                     let val_loss = self.validate(&model_parameters, val_loader)?;
                     println!("Epoch {} - Validation Loss: {:.6}", epoch + 1, val_loss);
-                    
+
                     self.state_tracker.update_validation(val_loss, None);
                 }
             }
@@ -238,7 +238,7 @@ impl QATTrainer {
             // Forward pass without gradient computation
             let predictions = self.forward_pass(&inputs, model_parameters)?;
             let loss = self.loss_function.compute_loss(&predictions, &targets)?;
-            
+
             total_loss += loss.to_scalar::<f32>().unwrap_or(0.0);
             batch_count += 1;
         }
@@ -254,11 +254,11 @@ impl QATTrainer {
     ) -> Result<Tensor> {
         // This is a simplified forward pass
         // In practice, this would involve the actual model computation with quantization
-        
+
         // For demonstration, create a simple linear transformation
         let batch_size = inputs.dim(0)?;
         let output_size = 10; // Assume classification with 10 classes
-        
+
         // Create random predictions for demo
         Tensor::randn(0f32, 1f32, (batch_size, output_size), &self.device)
     }
@@ -297,31 +297,27 @@ impl QATTrainer {
     ) -> Result<HashMap<String, Tensor>> {
         // This is a simplified backward pass
         // In practice, this would use candle's autograd system
-        
+
         let mut gradients = HashMap::new();
-        
+
         for (name, param) in parameters {
             // Create dummy gradients for demonstration
             let grad = Tensor::randn(0f32, 0.01, param.shape(), &self.device)?;
             gradients.insert(name.clone(), grad);
         }
-        
+
         Ok(gradients)
     }
 
     /// Save training checkpoint
-    fn save_checkpoint(
-        &self,
-        step: usize,
-        _parameters: &HashMap<String, Tensor>,
-    ) -> Result<()> {
+    fn save_checkpoint(&self, step: usize, _parameters: &HashMap<String, Tensor>) -> Result<()> {
         let checkpoint_name = format!("qat_checkpoint_step_{step}.json");
         println!("Saving checkpoint: {checkpoint_name}");
-        
+
         // In practice, would save model parameters and optimizer state
         // For now, just save the training state
         // self.checkpoint_manager.save_state(self.state_tracker.get_state(), &checkpoint_name)?;
-        
+
         Ok(())
     }
 
@@ -329,7 +325,7 @@ impl QATTrainer {
     fn print_training_summary(&self) {
         let state = self.state_tracker.get_state();
         let summary = state.get_summary();
-        
+
         println!("\n=== QAT Training Summary ===");
         println!("Final Epoch: {}", summary.epoch);
         println!("Total Steps: {}", summary.step);
@@ -337,11 +333,11 @@ impl QATTrainer {
         println!("Training Time: {:.2}s", summary.training_time);
         println!("Throughput: {:.2} samples/s", summary.throughput);
         println!("Samples Processed: {}", summary.samples_processed);
-        
+
         if let Some(val_loss) = summary.best_validation_loss {
             println!("Best Validation Loss: {val_loss:.6}");
         }
-        
+
         if let Some(accuracy) = summary.validation_accuracy {
             println!("Final Validation Accuracy: {accuracy:.4}");
         }
@@ -371,9 +367,9 @@ fn create_progressive_phases() -> Vec<QuantizationPhase> {
             temperature: 2.0,
             range: 1.0,
             layer_mask: None,
-            completion_criteria: CompletionCriteria::LossConvergence { 
-                threshold: 0.01, 
-                patience: 500 
+            completion_criteria: CompletionCriteria::LossConvergence {
+                threshold: 0.01,
+                patience: 500,
             },
         },
         QuantizationPhase {
@@ -392,7 +388,7 @@ fn create_progressive_phases() -> Vec<QuantizationPhase> {
 
 fn main() -> Result<()> {
     println!("BitNet QAT Training Example");
-    
+
     let device = Device::Cpu;
     let config = QATTrainingConfig::default();
     let mut trainer = QATTrainer::new(config, device)?;
@@ -411,13 +407,13 @@ fn main() -> Result<()> {
     // Create dummy data loaders
     let mut batch_count = 0;
     let max_batches = 100;
-    
+
     let training_loader = move || -> Result<Option<(Tensor, Tensor)>> {
         if batch_count >= max_batches {
             return Ok(None);
         }
         batch_count += 1;
-        
+
         let inputs = Tensor::randn(0f32, 1f32, (32, 128), &Device::Cpu)?;
         let targets = Tensor::randn(0f32, 1f32, (32, 10), &Device::Cpu)?;
         Ok(Some((inputs, targets)))
@@ -425,25 +421,21 @@ fn main() -> Result<()> {
 
     let mut val_batch_count = 0;
     let max_val_batches = 20;
-    
+
     let validation_loader = move || -> Result<Option<(Tensor, Tensor)>> {
         if val_batch_count >= max_val_batches {
             val_batch_count = 0; // Reset for next validation
             return Ok(None);
         }
         val_batch_count += 1;
-        
+
         let inputs = Tensor::randn(0f32, 1f32, (32, 128), &Device::Cpu)?;
         let targets = Tensor::randn(0f32, 1f32, (32, 10), &Device::Cpu)?;
         Ok(Some((inputs, targets)))
     };
 
     // Start training
-    let _trained_params = trainer.train(
-        model_params,
-        training_loader,
-        Some(validation_loader),
-    )?;
+    let _trained_params = trainer.train(model_params, training_loader, Some(validation_loader))?;
 
     println!("QAT training example completed successfully!");
     Ok(())

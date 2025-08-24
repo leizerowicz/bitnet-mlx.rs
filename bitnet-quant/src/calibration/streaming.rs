@@ -3,11 +3,11 @@
 //! This module provides streaming capabilities to process datasets larger than
 //! available memory, with support for chunked processing and memory management.
 
-use crate::calibration::error::{CalibrationError, CalibrationResult};
 use crate::calibration::config::StreamingConfig;
+use crate::calibration::error::{CalibrationError, CalibrationResult};
 use candle_core::Tensor;
-use std::path::{Path, PathBuf};
 use std::collections::VecDeque;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::SystemTime;
@@ -97,13 +97,17 @@ pub struct StreamingMetrics {
 pub trait ChunkProcessor: Send + Sync {
     /// Process a single chunk
     fn process_chunk(&mut self, chunk: &DataChunk) -> CalibrationResult<()>;
-    
+
     /// Called when processing starts
-    fn start_processing(&mut self) -> CalibrationResult<()> { Ok(()) }
-    
+    fn start_processing(&mut self) -> CalibrationResult<()> {
+        Ok(())
+    }
+
     /// Called when processing completes
-    fn finish_processing(&mut self) -> CalibrationResult<()> { Ok(()) }
-    
+    fn finish_processing(&mut self) -> CalibrationResult<()> {
+        Ok(())
+    }
+
     /// Get processor metrics
     fn get_metrics(&self) -> ProcessorMetrics;
 }
@@ -146,13 +150,13 @@ impl StreamingProcessor {
 
         // Create chunks from the file
         let chunks = self.create_chunks_from_file(path)?;
-        
+
         // Process chunks
         self.process_chunks_with_processor(chunks, processor)?;
-        
+
         self.metrics.processing_time = start_time.elapsed().as_secs_f64();
         self.state = StreamingState::Complete;
-        
+
         Ok(())
     }
 
@@ -167,13 +171,13 @@ impl StreamingProcessor {
 
         // Create chunks from tensors
         let chunks = self.create_chunks_from_tensors(tensors)?;
-        
+
         // Process chunks
         self.process_chunks_with_processor(chunks, processor)?;
-        
+
         self.metrics.processing_time = start_time.elapsed().as_secs_f64();
         self.state = StreamingState::Complete;
-        
+
         Ok(())
     }
 
@@ -184,7 +188,7 @@ impl StreamingProcessor {
         processor: Box<dyn ChunkProcessor>,
     ) -> CalibrationResult<()> {
         self.state = StreamingState::Processing;
-        
+
         // Create a simplified approach - just process sequentially for now
         self.process_chunks_sequential(chunks, processor)
     }
@@ -197,25 +201,27 @@ impl StreamingProcessor {
     ) -> CalibrationResult<()> {
         for chunk in chunks {
             self.update_memory_usage(&chunk);
-            
+
             // Process the chunk
-            processor.process_chunk(&chunk)
-                .map_err(|e| CalibrationError::streaming(format!("Chunk processing failed: {e}")))?;
-            
+            processor.process_chunk(&chunk).map_err(|e| {
+                CalibrationError::streaming(format!("Chunk processing failed: {e}"))
+            })?;
+
             self.metrics.chunks_processed += 1;
             self.metrics.tensors_processed += chunk.tensors.len();
             self.metrics.bytes_processed += chunk.memory_size;
             self.metrics.last_updated = SystemTime::now();
-            
+
             // Update throughput metrics
             if self.metrics.processing_time > 0.0 {
-                self.metrics.chunk_throughput = 
+                self.metrics.chunk_throughput =
                     self.metrics.chunks_processed as f32 / self.metrics.processing_time as f32;
-                self.metrics.memory_throughput = 
-                    (self.metrics.bytes_processed as f32 / 1_048_576.0) / self.metrics.processing_time as f32;
+                self.metrics.memory_throughput = (self.metrics.bytes_processed as f32
+                    / 1_048_576.0)
+                    / self.metrics.processing_time as f32;
             }
         }
-        
+
         Ok(())
     }
 
@@ -227,10 +233,10 @@ impl StreamingProcessor {
     ) -> CalibrationResult<()> {
         // For simplicity, this implementation uses a basic approach
         // In a real implementation, you'd use a proper thread pool
-        
+
         let max_parallel = self.config.max_parallel_chunks.min(chunks.len());
         let chunk_size = chunks.len().div_ceil(max_parallel);
-        
+
         let handles: Vec<_> = chunks
             .chunks(chunk_size)
             .enumerate()
@@ -250,9 +256,12 @@ impl StreamingProcessor {
 
         // Wait for all threads to complete
         for handle in handles {
-            handle.join()
+            handle
+                .join()
                 .map_err(|_| CalibrationError::streaming("Thread join failed".to_string()))?
-                .map_err(|e| CalibrationError::streaming(format!("Parallel processing failed: {e}")))?;
+                .map_err(|e| {
+                    CalibrationError::streaming(format!("Parallel processing failed: {e}"))
+                })?;
         }
 
         Ok(())
@@ -273,14 +282,17 @@ impl StreamingProcessor {
     }
 
     /// Create chunks from tensors
-    fn create_chunks_from_tensors(&self, tensors: Vec<Tensor>) -> CalibrationResult<Vec<DataChunk>> {
+    fn create_chunks_from_tensors(
+        &self,
+        tensors: Vec<Tensor>,
+    ) -> CalibrationResult<Vec<DataChunk>> {
         let chunk_size = self.config.chunk_size;
         let mut chunks = Vec::new();
         let total_chunks = tensors.len().div_ceil(chunk_size);
 
         for (chunk_idx, tensor_batch) in tensors.chunks(chunk_size).enumerate() {
             let memory_size = self.estimate_tensor_memory_size(tensor_batch);
-            
+
             let chunk = DataChunk {
                 id: chunk_idx,
                 tensors: tensor_batch.to_vec(),
@@ -293,7 +305,7 @@ impl StreamingProcessor {
                 },
                 memory_size,
             };
-            
+
             chunks.push(chunk);
         }
 
@@ -302,7 +314,8 @@ impl StreamingProcessor {
 
     /// Estimate memory size of tensors
     fn estimate_tensor_memory_size(&self, tensors: &[Tensor]) -> usize {
-        tensors.iter()
+        tensors
+            .iter()
             .map(|tensor| {
                 let element_count: usize = tensor.shape().dims().iter().product();
                 element_count * 4 // Assuming f32 (4 bytes per element)
@@ -348,11 +361,15 @@ impl StreamingProcessor {
 
     // Placeholder implementations for different file formats
     fn create_chunks_from_binary(&self, _path: &Path) -> CalibrationResult<Vec<DataChunk>> {
-        Err(CalibrationError::streaming("Binary chunk creation not implemented"))
+        Err(CalibrationError::streaming(
+            "Binary chunk creation not implemented",
+        ))
     }
 
     fn create_chunks_from_json(&self, _path: &Path) -> CalibrationResult<Vec<DataChunk>> {
-        Err(CalibrationError::streaming("JSON chunk creation not implemented"))
+        Err(CalibrationError::streaming(
+            "JSON chunk creation not implemented",
+        ))
     }
 }
 
@@ -417,20 +434,21 @@ impl SimpleChunkProcessor {
 impl ChunkProcessor for SimpleChunkProcessor {
     fn process_chunk(&mut self, chunk: &DataChunk) -> CalibrationResult<()> {
         let start_time = std::time::Instant::now();
-        
+
         // Simple processing - just count tensors
         for _tensor in &chunk.tensors {
             // Process tensor (placeholder)
         }
-        
+
         self.processed_count += 1;
         let processing_time = start_time.elapsed().as_secs_f64();
-        
+
         // Update metrics
-        self.metrics.avg_processing_time = 
-            (self.metrics.avg_processing_time * (self.processed_count - 1) as f64 + processing_time) 
+        self.metrics.avg_processing_time = (self.metrics.avg_processing_time
+            * (self.processed_count - 1) as f64
+            + processing_time)
             / self.processed_count as f64;
-        
+
         Ok(())
     }
 
@@ -475,21 +493,21 @@ mod tests {
             ..StreamingConfig::default()
         };
         let processor = StreamingProcessor::new(config);
-        
+
         let tensors = create_test_tensors(10);
         let chunks = processor.create_chunks_from_tensors(tensors)?;
-        
+
         assert_eq!(chunks.len(), 4); // 10 tensors with chunk_size 3 = 4 chunks
         assert_eq!(chunks[0].tensors.len(), 3);
         assert_eq!(chunks[3].tensors.len(), 1); // Last chunk has 1 tensor
-        
+
         Ok(())
     }
 
     #[test]
     fn test_simple_chunk_processor() -> CalibrationResult<()> {
         let mut processor = SimpleChunkProcessor::new();
-        
+
         let chunk = DataChunk {
             id: 0,
             tensors: create_test_tensors(2),
@@ -502,12 +520,12 @@ mod tests {
             },
             memory_size: 1000,
         };
-        
+
         processor.process_chunk(&chunk)?;
-        
+
         let metrics = processor.get_metrics();
         assert!(metrics.avg_processing_time >= 0.0);
-        
+
         Ok(())
     }
 
@@ -519,18 +537,18 @@ mod tests {
             ..StreamingConfig::default()
         };
         let mut processor = StreamingProcessor::new(config);
-        
+
         let tensors = create_test_tensors(5);
         let chunk_processor = Box::new(SimpleChunkProcessor::new());
-        
+
         processor.stream_tensors(tensors, chunk_processor)?;
-        
+
         assert_eq!(processor.get_state(), &StreamingState::Complete);
-        
+
         let metrics = processor.get_metrics();
         assert_eq!(metrics.chunks_processed, 3); // 5 tensors with chunk_size 2 = 3 chunks
         assert_eq!(metrics.tensors_processed, 5);
-        
+
         Ok(())
     }
 
@@ -538,10 +556,10 @@ mod tests {
     fn test_memory_estimation() {
         let config = StreamingConfig::default();
         let processor = StreamingProcessor::new(config);
-        
+
         let tensors = create_test_tensors(2);
         let memory_size = processor.estimate_tensor_memory_size(&tensors);
-        
+
         // Each tensor is [2, 5] = 10 elements * 4 bytes = 40 bytes
         // 2 tensors = 80 bytes
         assert_eq!(memory_size, 80);
@@ -552,7 +570,7 @@ mod tests {
         let mut metrics = StreamingMetrics::new();
         assert_eq!(metrics.chunks_processed, 0);
         assert_eq!(metrics.current_memory_mb(), 0.0);
-        
+
         // Test memory conversion
         metrics.current_memory_usage = 1_048_576; // 1 MB
         assert_eq!(metrics.current_memory_mb(), 1.0);

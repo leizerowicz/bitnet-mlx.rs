@@ -58,7 +58,7 @@ mod tests {
 
         let reports = detector.detect_corruption(&packed).unwrap();
         assert!(!reports.is_empty());
-        
+
         let size_mismatch_found = reports.iter().any(|r| {
             matches!(r.corruption_type, CorruptionType::SizeMismatch { .. })
         });
@@ -76,7 +76,7 @@ mod tests {
 
         // Add correct checksum
         detector.add_checksum(&mut packed);
-        
+
         // Should pass validation
         let reports = detector.detect_corruption(&packed).unwrap();
         let checksum_errors: Vec<_> = reports.iter()
@@ -86,7 +86,7 @@ mod tests {
 
         // Corrupt the data
         packed.data[0] = 255;
-        
+
         // Should fail validation
         let reports = detector.detect_corruption(&packed).unwrap();
         let checksum_errors: Vec<_> = reports.iter()
@@ -98,7 +98,7 @@ mod tests {
     #[test]
     fn test_bit_packed_2bit_validation() {
         let detector = CorruptionDetector::default();
-        
+
         // Create data with invalid 2-bit values (value 3 is invalid for ternary)
         let packed = create_test_packed_weights(
             vec![0b11100100], // Contains invalid value 3 (11 in binary)
@@ -116,7 +116,7 @@ mod tests {
     #[test]
     fn test_base3_packed_validation() {
         let detector = CorruptionDetector::default();
-        
+
         // Create data with invalid base-3 value (> 242)
         let packed = create_test_packed_weights(
             vec![250], // Invalid: 250 > 242 (3^5 - 1)
@@ -134,7 +134,7 @@ mod tests {
     #[test]
     fn test_run_length_encoded_validation() {
         let detector = CorruptionDetector::default();
-        
+
         // Test odd-length data (should be even for value-count pairs)
         let packed = create_test_packed_weights(
             vec![1, 2, 3], // Odd length
@@ -178,7 +178,7 @@ mod tests {
     #[test]
     fn test_compressed_sparse_validation() {
         let detector = CorruptionDetector::default();
-        
+
         // Test data too short for header
         let packed = create_test_packed_weights(
             vec![1, 2], // Too short for 4-byte header
@@ -211,7 +211,7 @@ mod tests {
     #[test]
     fn test_hybrid_validation() {
         let detector = CorruptionDetector::default();
-        
+
         // Test incomplete block header
         let packed = create_test_packed_weights(
             vec![1, 2], // Incomplete header (needs 3 bytes)
@@ -242,16 +242,16 @@ mod tests {
     #[test]
     fn test_metadata_validation() {
         let detector = CorruptionDetector::default();
-        
+
         // Test sparse indices out of bounds
         let mut packed = create_test_packed_weights(
             vec![1, 2, 3, 4],
             TernaryPackingStrategy::CompressedSparse,
             5,
         );
-        
+
         packed.metadata.sparse_indices = Some(vec![0, 2, 10]); // Index 10 is out of bounds
-        
+
         let reports = detector.detect_corruption(&packed).unwrap();
         let index_errors: Vec<_> = reports.iter()
             .filter(|r| matches!(r.corruption_type, CorruptionType::IndexOutOfBounds { .. }))
@@ -262,15 +262,15 @@ mod tests {
     #[test]
     fn test_padding_validation() {
         let detector = CorruptionDetector::default();
-        
+
         let mut packed = create_test_packed_weights(
             vec![1, 2, 3],
             TernaryPackingStrategy::BitPacked2Bit,
             10, // 10 elements need 3 bytes, so 2 padding elements expected
         );
-        
+
         packed.metadata.padding = 5; // Wrong padding value
-        
+
         let reports = detector.detect_corruption(&packed).unwrap();
         let padding_errors: Vec<_> = reports.iter()
             .filter(|r| matches!(r.corruption_type, CorruptionType::PaddingCorruption { .. }))
@@ -288,7 +288,7 @@ mod tests {
     #[test]
     fn test_recovery_plan_creation() {
         let detector = CorruptionDetector::default();
-        
+
         let reports = vec![
             CorruptionReport {
                 corruption_type: CorruptionType::InvalidValues {
@@ -320,7 +320,7 @@ mod tests {
                 context: HashMap::new(),
             },
         ];
-        
+
         let plan = detector.create_recovery_plan(&reports);
         assert_eq!(plan.auto_repairable.len(), 1);
         assert_eq!(plan.requires_manual_intervention.len(), 1);
@@ -332,20 +332,20 @@ mod tests {
     #[test]
     fn test_auto_repair_functionality() {
         let detector = CorruptionDetector::default();
-        
+
         let mut packed = create_test_packed_weights(
             vec![0b11100100], // Contains invalid value 3
             TernaryPackingStrategy::BitPacked2Bit,
             4,
         );
-        
+
         let reports = detector.detect_corruption(&packed).unwrap();
         assert!(!reports.is_empty());
-        
+
         // Attempt repair
         let repairs_made = detector.attempt_repair(&mut packed, &reports).unwrap();
         assert!(repairs_made > 0);
-        
+
         // Verify repair worked
         let new_reports = detector.detect_corruption(&packed).unwrap();
         let invalid_value_errors: Vec<_> = new_reports.iter()
@@ -357,16 +357,16 @@ mod tests {
     #[test]
     fn test_corruption_ratio_calculation() {
         let detector = CorruptionDetector::new(true, true, 0.05); // 5% max corruption
-        
+
         // Create data where more than 5% is corrupted
         let mut packed = create_test_packed_weights(
             vec![255; 100], // All invalid values
             TernaryPackingStrategy::BitPacked2Bit,
             400,
         );
-        
+
         let reports = detector.detect_corruption(&packed).unwrap();
-        
+
         // Should have a critical corruption report due to high corruption ratio
         let critical_errors: Vec<_> = reports.iter()
             .filter(|r| r.severity == CorruptionSeverity::Critical)
@@ -377,16 +377,16 @@ mod tests {
     #[test]
     fn test_deep_validation() {
         let detector = CorruptionDetector::new(true, true, 0.1);
-        
+
         // Create structurally invalid data that would fail unpacking
         let packed = create_test_packed_weights(
             vec![255, 255, 255, 255], // Invalid data
             TernaryPackingStrategy::Base3Packed,
             20, // Claims 20 elements but data is invalid
         );
-        
+
         let reports = detector.detect_corruption(&packed).unwrap();
-        
+
         // Should detect structural corruption during deep validation
         let structural_errors: Vec<_> = reports.iter()
             .filter(|r| matches!(r.corruption_type, CorruptionType::StructuralCorruption { .. }))
@@ -397,15 +397,15 @@ mod tests {
     #[test]
     fn test_crc32_consistency() {
         let detector = CorruptionDetector::default();
-        
+
         let data1 = b"hello world";
         let data2 = b"hello world";
         let data3 = b"hello world!";
-        
+
         let crc1 = detector.calculate_crc32(data1);
         let crc2 = detector.calculate_crc32(data2);
         let crc3 = detector.calculate_crc32(data3);
-        
+
         assert_eq!(crc1, crc2); // Same data should produce same CRC
         assert_ne!(crc1, crc3); // Different data should produce different CRC
     }
@@ -417,7 +417,7 @@ mod tests {
             actual: 50,
             context: "test data".to_string(),
         };
-        
+
         let display_str = format!("{}", corruption);
         assert!(display_str.contains("Size mismatch"));
         assert!(display_str.contains("100"));
@@ -430,11 +430,11 @@ mod tests {
         let action = RecoveryAction::AutoRepair {
             description: "Fix invalid values".to_string(),
         };
-        
+
         // Test that it can be serialized/deserialized
         let serialized = serde_json::to_string(&action).unwrap();
         let deserialized: RecoveryAction = serde_json::from_str(&serialized).unwrap();
-        
+
         match (action, deserialized) {
             (RecoveryAction::AutoRepair { description: d1 }, RecoveryAction::AutoRepair { description: d2 }) => {
                 assert_eq!(d1, d2);
@@ -446,7 +446,7 @@ mod tests {
     #[test]
     fn test_validator_registration() {
         let mut detector = CorruptionDetector::new(false, false, 1.0);
-        
+
         // Create a custom validator
         struct CustomValidator;
         impl StrategyValidator for CustomValidator {
@@ -465,15 +465,15 @@ mod tests {
                 }])
             }
         }
-        
+
         detector.register_validator(TernaryPackingStrategy::Uncompressed, Box::new(CustomValidator));
-        
+
         let packed = create_test_packed_weights(
             vec![1, 2, 3],
             TernaryPackingStrategy::Uncompressed,
             3,
         );
-        
+
         let reports = detector.detect_corruption(&packed).unwrap();
         let custom_errors: Vec<_> = reports.iter()
             .filter(|r| matches!(r.corruption_type, CorruptionType::StrategySpecific { .. }))

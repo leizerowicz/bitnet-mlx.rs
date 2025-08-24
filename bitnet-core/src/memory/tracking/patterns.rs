@@ -3,10 +3,10 @@
 //! This module provides analysis of memory allocation patterns to identify
 //! optimization opportunities and potential issues.
 
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
-use std::collections::{HashMap, VecDeque};
-use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, info, warn};
@@ -219,7 +219,7 @@ impl Default for PatternAnalysisConfig {
             max_recent_allocations: 10000,
             min_pattern_occurrences: 5,
             pattern_detection_window: Duration::from_secs(300), // 5 minutes
-            size_tolerance_percent: 10.0, // 10% tolerance
+            size_tolerance_percent: 10.0,                       // 10% tolerance
             detect_temporal_patterns: true,
             detect_size_patterns: true,
             detect_device_patterns: true,
@@ -248,7 +248,10 @@ impl PatternAnalyzer {
     /// ```
     pub fn new(config: PatternAnalysisConfig) -> Self {
         #[cfg(feature = "tracing")]
-        info!("Creating pattern analyzer with config: max_recent={}", config.max_recent_allocations);
+        info!(
+            "Creating pattern analyzer with config: max_recent={}",
+            config.max_recent_allocations
+        );
 
         Self {
             patterns: Arc::new(Mutex::new(HashMap::new())),
@@ -296,11 +299,16 @@ impl PatternAnalyzer {
             let mut stats = self.stats.lock().unwrap();
             stats.total_allocations_analyzed += 1;
             stats.last_analysis_time = SystemTime::now();
-            stats.performance_metrics.record_analysis_time(analysis_time);
+            stats
+                .performance_metrics
+                .record_analysis_time(analysis_time);
         }
 
         #[cfg(feature = "tracing")]
-        debug!("Recorded allocation {} for pattern analysis", allocation.id.raw());
+        debug!(
+            "Recorded allocation {} for pattern analysis",
+            allocation.id.raw()
+        );
     }
 
     /// Records a deallocation for pattern analysis
@@ -313,7 +321,10 @@ impl PatternAnalyzer {
         self.update_lifecycle_patterns(&allocation);
 
         #[cfg(feature = "tracing")]
-        debug!("Recorded deallocation {} for pattern analysis", allocation.id.raw());
+        debug!(
+            "Recorded deallocation {} for pattern analysis",
+            allocation.id.raw()
+        );
     }
 
     /// Returns all detected patterns
@@ -344,10 +355,10 @@ impl PatternAnalyzer {
     pub fn get_recent_patterns(&self) -> Vec<AllocationPattern> {
         let patterns = self.patterns.lock().unwrap();
         let mut pattern_list: Vec<_> = patterns.values().cloned().collect();
-        
+
         // Sort by last updated time (most recent first)
         pattern_list.sort_by(|a, b| b.last_updated.cmp(&a.last_updated));
-        
+
         pattern_list.into_iter().take(10).collect()
     }
 
@@ -460,7 +471,7 @@ impl PatternAnalyzer {
             if allocations.len() >= self.config.min_pattern_occurrences {
                 let pattern_id = format!("size_pattern_{}", size_bucket);
                 let pattern = self.create_size_pattern(&pattern_id, &allocations);
-                
+
                 let mut patterns = self.patterns.lock().unwrap();
                 patterns.insert(pattern_id, pattern);
             }
@@ -488,7 +499,8 @@ impl PatternAnalyzer {
             let variance = self.calculate_duration_variance(&intervals, avg_interval);
 
             // If intervals are relatively consistent, it's a temporal pattern
-            if variance < 0.5 { // Low variance indicates consistent timing
+            if variance < 0.5 {
+                // Low variance indicates consistent timing
                 let pattern_id = "temporal_pattern".to_string();
                 let pattern = AllocationPattern {
                     pattern_id: pattern_id.clone(),
@@ -501,9 +513,13 @@ impl PatternAnalyzer {
                     confidence: 1.0 - variance, // Higher confidence for lower variance
                     is_problematic: false,
                     severity: 0.0,
-                    description: format!("Regular allocation pattern with {}ms intervals", 
-                                       avg_interval.as_millis()),
-                    recommendations: vec!["Consider pre-allocating memory if pattern is predictable".to_string()],
+                    description: format!(
+                        "Regular allocation pattern with {}ms intervals",
+                        avg_interval.as_millis()
+                    ),
+                    recommendations: vec![
+                        "Consider pre-allocating memory if pattern is predictable".to_string(),
+                    ],
                     first_detected: SystemTime::now(),
                     last_updated: SystemTime::now(),
                 };
@@ -519,14 +535,16 @@ impl PatternAnalyzer {
         let mut device_counts: HashMap<String, usize> = HashMap::new();
 
         for allocation in recent.iter() {
-            *device_counts.entry(allocation.device_type.clone()).or_insert(0) += 1;
+            *device_counts
+                .entry(allocation.device_type.clone())
+                .or_insert(0) += 1;
         }
 
         for (device_type, count) in device_counts {
             if count >= self.config.min_pattern_occurrences {
                 let percentage = count as f64 / recent.len() as f64;
                 let pattern_id = format!("device_pattern_{}", device_type);
-                
+
                 let pattern = AllocationPattern {
                     pattern_id: pattern_id.clone(),
                     pattern_type: PatternType::DevicePattern {
@@ -538,8 +556,11 @@ impl PatternAnalyzer {
                     confidence: percentage,
                     is_problematic: false,
                     severity: 0.0,
-                    description: format!("{}% of allocations on {}", 
-                                       (percentage * 100.0) as u32, device_type),
+                    description: format!(
+                        "{}% of allocations on {}",
+                        (percentage * 100.0) as u32,
+                        device_type
+                    ),
                     recommendations: if percentage > 0.8 {
                         vec!["Consider load balancing across devices".to_string()]
                     } else {
@@ -558,14 +579,13 @@ impl PatternAnalyzer {
     fn detect_fragmentation_patterns(&self) {
         let recent = self.recent_allocations.lock().unwrap();
         let small_threshold = 1024; // 1KB
-        let small_allocations = recent.iter()
-            .filter(|a| a.size <= small_threshold)
-            .count();
+        let small_allocations = recent.iter().filter(|a| a.size <= small_threshold).count();
 
         if small_allocations >= self.config.min_pattern_occurrences {
             let fragmentation_level = small_allocations as f64 / recent.len() as f64;
-            
-            if fragmentation_level > 0.3 { // More than 30% small allocations
+
+            if fragmentation_level > 0.3 {
+                // More than 30% small allocations
                 let pattern_id = "fragmentation_pattern".to_string();
                 let pattern = AllocationPattern {
                     pattern_id: pattern_id.clone(),
@@ -578,8 +598,10 @@ impl PatternAnalyzer {
                     confidence: fragmentation_level,
                     is_problematic: fragmentation_level > 0.5,
                     severity: fragmentation_level,
-                    description: format!("High fragmentation: {}% small allocations", 
-                                       (fragmentation_level * 100.0) as u32),
+                    description: format!(
+                        "High fragmentation: {}% small allocations",
+                        (fragmentation_level * 100.0) as u32
+                    ),
                     recommendations: vec![
                         "Consider using memory pools for small allocations".to_string(),
                         "Batch small allocations together".to_string(),
@@ -598,15 +620,19 @@ impl PatternAnalyzer {
         let recent = self.recent_allocations.lock().unwrap();
         let old_threshold = Duration::from_secs(300); // 5 minutes
         let now = SystemTime::now();
-        
-        let old_allocations: Vec<_> = recent.iter()
-            .filter(|a| a.is_active && now.duration_since(a.timestamp).unwrap_or(Duration::ZERO) > old_threshold)
+
+        let old_allocations: Vec<_> = recent
+            .iter()
+            .filter(|a| {
+                a.is_active
+                    && now.duration_since(a.timestamp).unwrap_or(Duration::ZERO) > old_threshold
+            })
             .collect();
 
         if !old_allocations.is_empty() {
             let leaked_bytes: u64 = old_allocations.iter().map(|a| a.size as u64).sum();
             let pattern_id = "leak_pattern".to_string();
-            
+
             let pattern = AllocationPattern {
                 pattern_id: pattern_id.clone(),
                 pattern_type: PatternType::LeakPattern {
@@ -618,8 +644,11 @@ impl PatternAnalyzer {
                 confidence: 0.7, // Medium confidence for leak detection
                 is_problematic: true,
                 severity: (old_allocations.len() as f64 / recent.len() as f64).min(1.0),
-                description: format!("Potential memory leak: {} old allocations ({} bytes)", 
-                                   old_allocations.len(), leaked_bytes),
+                description: format!(
+                    "Potential memory leak: {} old allocations ({} bytes)",
+                    old_allocations.len(),
+                    leaked_bytes
+                ),
                 recommendations: vec![
                     "Investigate long-lived allocations".to_string(),
                     "Check for missing deallocations".to_string(),
@@ -645,7 +674,11 @@ impl PatternAnalyzer {
         (size / tolerance.max(1)) * tolerance.max(1)
     }
 
-    fn create_size_pattern(&self, pattern_id: &str, allocations: &[&AllocationInfo]) -> AllocationPattern {
+    fn create_size_pattern(
+        &self,
+        pattern_id: &str,
+        allocations: &[&AllocationInfo],
+    ) -> AllocationPattern {
         let sizes: Vec<usize> = allocations.iter().map(|a| a.size).collect();
         let avg_size = sizes.iter().sum::<usize>() / sizes.len();
         let variance = self.calculate_size_variance(&sizes, avg_size);
@@ -668,18 +701,19 @@ impl PatternAnalyzer {
         }
     }
 
-    fn create_size_characteristics(&self, allocations: &[&AllocationInfo]) -> PatternCharacteristics {
+    fn create_size_characteristics(
+        &self,
+        allocations: &[&AllocationInfo],
+    ) -> PatternCharacteristics {
         let sizes: Vec<usize> = allocations.iter().map(|a| a.size).collect();
         let min_size = *sizes.iter().min().unwrap_or(&0);
         let max_size = *sizes.iter().max().unwrap_or(&0);
-        
-        let device_types: std::collections::HashSet<_> = allocations.iter()
-            .map(|a| a.device_type.clone())
-            .collect();
-        
-        let pool_types: std::collections::HashSet<_> = allocations.iter()
-            .map(|a| a.pool_type.clone())
-            .collect();
+
+        let device_types: std::collections::HashSet<_> =
+            allocations.iter().map(|a| a.device_type.clone()).collect();
+
+        let pool_types: std::collections::HashSet<_> =
+            allocations.iter().map(|a| a.pool_type.clone()).collect();
 
         let timestamps: Vec<SystemTime> = allocations.iter().map(|a| a.timestamp).collect();
         let min_time = *timestamps.iter().min().unwrap_or(&SystemTime::now());
@@ -695,7 +729,10 @@ impl PatternAnalyzer {
         }
     }
 
-    fn create_temporal_characteristics(&self, allocations: &VecDeque<AllocationInfo>) -> PatternCharacteristics {
+    fn create_temporal_characteristics(
+        &self,
+        allocations: &VecDeque<AllocationInfo>,
+    ) -> PatternCharacteristics {
         let sizes: Vec<usize> = allocations.iter().map(|a| a.size).collect();
         let min_size = *sizes.iter().min().unwrap_or(&0);
         let max_size = *sizes.iter().max().unwrap_or(&0);
@@ -710,8 +747,13 @@ impl PatternAnalyzer {
         }
     }
 
-    fn create_device_characteristics(&self, device_type: &str, allocations: &VecDeque<AllocationInfo>) -> PatternCharacteristics {
-        let device_allocations: Vec<_> = allocations.iter()
+    fn create_device_characteristics(
+        &self,
+        device_type: &str,
+        allocations: &VecDeque<AllocationInfo>,
+    ) -> PatternCharacteristics {
+        let device_allocations: Vec<_> = allocations
+            .iter()
             .filter(|a| a.device_type == device_type)
             .collect();
 
@@ -729,7 +771,10 @@ impl PatternAnalyzer {
         }
     }
 
-    fn create_fragmentation_characteristics(&self, allocations: &VecDeque<AllocationInfo>) -> PatternCharacteristics {
+    fn create_fragmentation_characteristics(
+        &self,
+        allocations: &VecDeque<AllocationInfo>,
+    ) -> PatternCharacteristics {
         PatternCharacteristics {
             size_range: (0, 1024), // Small allocations
             device_types: vec!["Mixed".to_string()],
@@ -740,7 +785,10 @@ impl PatternAnalyzer {
         }
     }
 
-    fn create_leak_characteristics(&self, allocations: &[&AllocationInfo]) -> PatternCharacteristics {
+    fn create_leak_characteristics(
+        &self,
+        allocations: &[&AllocationInfo],
+    ) -> PatternCharacteristics {
         let sizes: Vec<usize> = allocations.iter().map(|a| a.size).collect();
         let min_size = *sizes.iter().min().unwrap_or(&0);
         let max_size = *sizes.iter().max().unwrap_or(&0);
@@ -760,12 +808,14 @@ impl PatternAnalyzer {
             return 0.0;
         }
 
-        let variance: f64 = sizes.iter()
+        let variance: f64 = sizes
+            .iter()
             .map(|&size| {
                 let diff = size as f64 - average as f64;
                 diff * diff
             })
-            .sum::<f64>() / sizes.len() as f64;
+            .sum::<f64>()
+            / sizes.len() as f64;
 
         (variance.sqrt() / average as f64).min(1.0)
     }
@@ -776,12 +826,14 @@ impl PatternAnalyzer {
         }
 
         let avg_secs = average.as_secs_f64();
-        let variance: f64 = durations.iter()
+        let variance: f64 = durations
+            .iter()
             .map(|duration| {
                 let diff = duration.as_secs_f64() - avg_secs;
                 diff * diff
             })
-            .sum::<f64>() / durations.len() as f64;
+            .sum::<f64>()
+            / durations.len() as f64;
 
         if avg_secs > 0.0 {
             (variance.sqrt() / avg_secs).min(1.0)
@@ -792,7 +844,7 @@ impl PatternAnalyzer {
 
     fn generate_summary(&self, patterns: &[AllocationPattern]) -> PatternSummary {
         let total_patterns = patterns.len();
-        
+
         let mut type_counts: HashMap<String, usize> = HashMap::new();
         for pattern in patterns {
             let type_name = match &pattern.pattern_type {
@@ -806,12 +858,14 @@ impl PatternAnalyzer {
             *type_counts.entry(type_name.to_string()).or_insert(0) += 1;
         }
 
-        let most_common_pattern_type = type_counts.iter()
+        let most_common_pattern_type = type_counts
+            .iter()
             .max_by_key(|(_, &count)| count)
             .map(|(name, _)| name.clone())
             .unwrap_or_else(|| "None".to_string());
 
-        let most_problematic_pattern = patterns.iter()
+        let most_problematic_pattern = patterns
+            .iter()
             .filter(|p| p.is_problematic)
             .max_by(|a, b| a.severity.partial_cmp(&b.severity).unwrap())
             .map(|p| p.pattern_id.clone());
@@ -839,15 +893,24 @@ impl PatternAnalyzer {
 
         let problematic_count = patterns.iter().filter(|p| p.is_problematic).count();
         if problematic_count > 0 {
-            insights.push(format!("{} patterns indicate potential issues", problematic_count));
+            insights.push(format!(
+                "{} patterns indicate potential issues",
+                problematic_count
+            ));
         }
 
-        let leak_patterns = patterns.iter().filter(|p| matches!(p.pattern_type, PatternType::LeakPattern { .. })).count();
+        let leak_patterns = patterns
+            .iter()
+            .filter(|p| matches!(p.pattern_type, PatternType::LeakPattern { .. }))
+            .count();
         if leak_patterns > 0 {
             insights.push("Memory leak patterns detected".to_string());
         }
 
-        let fragmentation_patterns = patterns.iter().filter(|p| matches!(p.pattern_type, PatternType::FragmentationPattern { .. })).count();
+        let fragmentation_patterns = patterns
+            .iter()
+            .filter(|p| matches!(p.pattern_type, PatternType::FragmentationPattern { .. }))
+            .count();
         if fragmentation_patterns > 0 {
             insights.push("Memory fragmentation detected".to_string());
         }
@@ -859,12 +922,19 @@ impl PatternAnalyzer {
         insights
     }
 
-    fn generate_recommendations(&self, patterns: &[AllocationPattern]) -> Vec<OptimizationRecommendation> {
+    fn generate_recommendations(
+        &self,
+        patterns: &[AllocationPattern],
+    ) -> Vec<OptimizationRecommendation> {
         let mut recommendations = Vec::new();
 
         // Check for fragmentation patterns
         for pattern in patterns {
-            if let PatternType::FragmentationPattern { fragmentation_level, .. } = &pattern.pattern_type {
+            if let PatternType::FragmentationPattern {
+                fragmentation_level,
+                ..
+            } = &pattern.pattern_type
+            {
                 if *fragmentation_level > 0.5 {
                     recommendations.push(OptimizationRecommendation {
                         recommendation_type: "Reduce Fragmentation".to_string(),
@@ -881,11 +951,14 @@ impl PatternAnalyzer {
         // Check for leak patterns
         for pattern in patterns {
             if let PatternType::LeakPattern { leaked_bytes, .. } = &pattern.pattern_type {
-                if *leaked_bytes > 1024 * 1024 { // > 1MB
+                if *leaked_bytes > 1024 * 1024 {
+                    // > 1MB
                     recommendations.push(OptimizationRecommendation {
                         recommendation_type: "Fix Memory Leaks".to_string(),
                         priority: 0.9,
-                        description: "Potential memory leaks detected. Review allocation lifetimes.".to_string(),
+                        description:
+                            "Potential memory leaks detected. Review allocation lifetimes."
+                                .to_string(),
                         expected_impact: "Reduced memory usage and improved stability".to_string(),
                         implementation_difficulty: 0.7,
                         related_patterns: vec![pattern.pattern_id.clone()],
@@ -960,7 +1033,7 @@ mod tests {
     fn test_pattern_analyzer_creation() {
         let config = PatternAnalysisConfig::default();
         let analyzer = PatternAnalyzer::new(config);
-        
+
         let patterns = analyzer.get_patterns();
         assert!(patterns.is_empty());
     }
@@ -972,7 +1045,7 @@ mod tests {
             ..Default::default()
         };
         let analyzer = PatternAnalyzer::new(config);
-        
+
         // Add similar-sized allocations
         for i in 0..5 {
             let allocation = AllocationInfo {
@@ -988,12 +1061,13 @@ mod tests {
             };
             analyzer.record_allocation(allocation);
         }
-        
+
         let patterns = analyzer.get_patterns();
         assert!(!patterns.is_empty());
-        
+
         // Should detect a size pattern
-        let size_patterns: Vec<_> = patterns.iter()
+        let size_patterns: Vec<_> = patterns
+            .iter()
             .filter(|p| matches!(p.pattern_type, PatternType::SizePattern { .. }))
             .collect();
         assert!(!size_patterns.is_empty());
@@ -1006,7 +1080,7 @@ mod tests {
             ..Default::default()
         };
         let analyzer = PatternAnalyzer::new(config);
-        
+
         // Add many small allocations
         for i in 0..10 {
             let allocation = AllocationInfo {
@@ -1022,12 +1096,13 @@ mod tests {
             };
             analyzer.record_allocation(allocation);
         }
-        
+
         let patterns = analyzer.get_patterns();
-        let fragmentation_patterns: Vec<_> = patterns.iter()
+        let fragmentation_patterns: Vec<_> = patterns
+            .iter()
             .filter(|p| matches!(p.pattern_type, PatternType::FragmentationPattern { .. }))
             .collect();
-        
+
         assert!(!fragmentation_patterns.is_empty());
     }
 
@@ -1038,7 +1113,7 @@ mod tests {
             ..Default::default()
         };
         let analyzer = PatternAnalyzer::new(config);
-        
+
         // Add old allocation (potential leak)
         let old_allocation = AllocationInfo {
             id: crate::memory::tracking::AllocationId::new(1),
@@ -1052,12 +1127,13 @@ mod tests {
             is_active: true, // Still active (not deallocated)
         };
         analyzer.record_allocation(old_allocation);
-        
+
         let patterns = analyzer.get_patterns();
-        let leak_patterns: Vec<_> = patterns.iter()
+        let leak_patterns: Vec<_> = patterns
+            .iter()
             .filter(|p| matches!(p.pattern_type, PatternType::LeakPattern { .. }))
             .collect();
-        
+
         assert!(!leak_patterns.is_empty());
     }
 
@@ -1065,7 +1141,7 @@ mod tests {
     fn test_pattern_report_generation() {
         let config = PatternAnalysisConfig::default();
         let analyzer = PatternAnalyzer::new(config);
-        
+
         // Add some allocations
         for i in 0..5 {
             let allocation = AllocationInfo {
@@ -1081,7 +1157,7 @@ mod tests {
             };
             analyzer.record_allocation(allocation);
         }
-        
+
         let report = analyzer.generate_report();
         assert!(report.generated_at <= SystemTime::now());
         assert!(!report.summary.insights.is_empty());
@@ -1091,9 +1167,9 @@ mod tests {
     fn test_memory_usage_estimation() {
         let config = PatternAnalysisConfig::default();
         let analyzer = PatternAnalyzer::new(config);
-        
+
         let initial_usage = analyzer.estimated_memory_usage();
-        
+
         // Add some allocations
         for i in 0..10 {
             let allocation = AllocationInfo {
@@ -1109,7 +1185,7 @@ mod tests {
             };
             analyzer.record_allocation(allocation);
         }
-        
+
         let usage_after = analyzer.estimated_memory_usage();
         assert!(usage_after > initial_usage);
     }

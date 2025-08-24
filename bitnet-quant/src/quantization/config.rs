@@ -1,11 +1,11 @@
 //! Comprehensive quantization configuration system for BitNet models
-//! 
+//!
 //! This module provides a unified configuration system for all quantization operations,
 //! including weights, activations, packing strategies, and SIMD optimizations.
 
-use super::{QuantizationPrecision, QuantizationStrategy};
 use super::packing::TernaryPackingStrategy;
 use super::weights::TernaryMethod;
+use super::{QuantizationPrecision, QuantizationStrategy};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -53,7 +53,7 @@ impl QuantizationConfig {
             ..Default::default()
         }
     }
-    
+
     /// Create configuration for BitNet 1.58-bit quantization
     pub fn bitnet_158() -> Self {
         Self {
@@ -67,7 +67,7 @@ impl QuantizationConfig {
             verbose: false,
         }
     }
-    
+
     /// Create configuration for 8-bit quantization
     pub fn int8() -> Self {
         Self {
@@ -81,7 +81,7 @@ impl QuantizationConfig {
             verbose: false,
         }
     }
-    
+
     /// Create configuration for dynamic quantization
     pub fn dynamic() -> Self {
         Self {
@@ -95,70 +95,72 @@ impl QuantizationConfig {
             verbose: false,
         }
     }
-    
+
     /// Enable quantization-aware training
     pub fn with_qat(mut self) -> Self {
         self.qat_enabled = true;
         self
     }
-    
+
     /// Set clipping threshold
     pub fn with_clipping(mut self, threshold: f32) -> Self {
         self.clip_threshold = Some(threshold);
         self
     }
-    
+
     /// Set calibration size
     pub fn with_calibration(mut self, size: usize) -> Self {
         self.calibration_size = Some(size);
         self
     }
-    
+
     /// Enable per-channel quantization
     pub fn with_per_channel(mut self) -> Self {
         self.per_channel = true;
         self
     }
-    
+
     /// Set random seed for reproducibility
     pub fn with_seed(mut self, seed: u64) -> Self {
         self.seed = Some(seed);
         self
     }
-    
+
     /// Enable verbose logging
     pub fn with_verbose(mut self) -> Self {
         self.verbose = true;
         self
     }
-    
+
     /// Validate the configuration
     pub fn validate(&self) -> Result<(), ConfigValidationError> {
         // Check precision-strategy compatibility
-        if let (QuantizationPrecision::OneFiveFiveBit, QuantizationStrategy::Asymmetric) = (self.precision, self.strategy) {
+        if let (QuantizationPrecision::OneFiveFiveBit, QuantizationStrategy::Asymmetric) =
+            (self.precision, self.strategy)
+        {
             return Err(ConfigValidationError::IncompatibleSettings(
-                "1.58-bit quantization should use symmetric strategy".to_string()
+                "1.58-bit quantization should use symmetric strategy".to_string(),
             ));
         }
-        
+
         // Validate clipping threshold
         if let Some(threshold) = self.clip_threshold {
             if threshold <= 0.0 || threshold > 10.0 {
-                return Err(ConfigValidationError::InvalidValue(
-                    format!("Clipping threshold {threshold} is out of valid range (0, 10]")
-                ));
+                return Err(ConfigValidationError::InvalidValue(format!(
+                    "Clipping threshold {threshold} is out of valid range (0, 10]"
+                )));
             }
         }
-        
+
         // Validate calibration size
         if let Some(size) = self.calibration_size {
             if size == 0 || size > 100000 {
-                return Err(ConfigValidationError::InvalidValue(
-                    format!("Calibration size {size} is out of valid range [1, 100000]")
-                ));
+                return Err(ConfigValidationError::InvalidValue(format!(
+                    "Calibration size {size} is out of valid range [1, 100000]"
+                )));
             }
         }
-        
+
         Ok(())
     }
 }
@@ -229,7 +231,7 @@ impl WeightQuantizationConfig {
             gradient_clip: Some(1.0),
         }
     }
-    
+
     /// Create configuration for grouped quantization
     pub fn grouped(group_size: usize) -> Self {
         Self {
@@ -237,7 +239,7 @@ impl WeightQuantizationConfig {
             ..Default::default()
         }
     }
-    
+
     /// Create configuration for block-wise quantization
     pub fn blockwise(block_size: usize) -> Self {
         Self {
@@ -245,73 +247,74 @@ impl WeightQuantizationConfig {
             ..Default::default()
         }
     }
-    
+
     /// Enable learnable scaling factors
     pub fn with_learnable_scales(mut self) -> Self {
         self.learnable_scales = true;
         self
     }
-    
+
     /// Set ternary quantization method
     pub fn with_ternary_method(mut self, method: TernaryMethod) -> Self {
         self.ternary_method = method;
         self
     }
-    
+
     /// Set custom threshold factor
     pub fn with_threshold_factor(mut self, factor: f32) -> Self {
         self.custom_threshold_factor = Some(factor);
         self
     }
-    
+
     /// Set packing configuration
     pub fn with_packing(mut self, packing: PackingConfig) -> Self {
         self.packing = packing;
         self
     }
-    
+
     /// Validate the configuration
     pub fn validate(&self) -> Result<(), ConfigValidationError> {
         // Validate base configuration
         self.base.validate()?;
-        
+
         // Validate group size
         if let Some(size) = self.group_size {
             if size == 0 || size > 4096 {
-                return Err(ConfigValidationError::InvalidValue(
-                    format!("Group size {size} is out of valid range [1, 4096]")
-                ));
+                return Err(ConfigValidationError::InvalidValue(format!(
+                    "Group size {size} is out of valid range [1, 4096]"
+                )));
             }
         }
-        
+
         // Validate block size
         if let Some(size) = self.block_size {
             if size == 0 || size > 1024 {
-                return Err(ConfigValidationError::InvalidValue(
-                    format!("Block size {size} is out of valid range [1, 1024]")
-                ));
+                return Err(ConfigValidationError::InvalidValue(format!(
+                    "Block size {size} is out of valid range [1, 1024]"
+                )));
             }
         }
-        
+
         // Validate outlier threshold
         if self.outlier_threshold <= 0.0 || self.outlier_threshold > 10.0 {
-            return Err(ConfigValidationError::InvalidValue(
-                format!("Outlier threshold {} is out of valid range (0, 10]", self.outlier_threshold)
-            ));
+            return Err(ConfigValidationError::InvalidValue(format!(
+                "Outlier threshold {} is out of valid range (0, 10]",
+                self.outlier_threshold
+            )));
         }
-        
+
         // Validate custom threshold factor
         if let Some(factor) = self.custom_threshold_factor {
             if factor <= 0.0 || factor > 2.0 {
-                return Err(ConfigValidationError::InvalidValue(
-                    format!("Threshold factor {factor} is out of valid range (0, 2]")
-                ));
+                return Err(ConfigValidationError::InvalidValue(format!(
+                    "Threshold factor {factor} is out of valid range (0, 2]"
+                )));
             }
         }
-        
+
         // Validate packing configuration
         self.packing.validate()?;
-        
+
         Ok(())
     }
 }
@@ -382,7 +385,7 @@ impl ActivationQuantizationConfig {
             cache_size_mb: Some(256),
         }
     }
-    
+
     /// Create configuration for dynamic activation quantization
     pub fn dynamic() -> Self {
         Self {
@@ -400,78 +403,82 @@ impl ActivationQuantizationConfig {
             cache_size_mb: None,
         }
     }
-    
+
     /// Enable per-token quantization
     pub fn with_per_token(mut self) -> Self {
         self.per_token = true;
         self
     }
-    
+
     /// Set moving average window
     pub fn with_window(mut self, window: usize) -> Self {
         self.moving_average_window = window;
         self
     }
-    
+
     /// Enable smooth quantization
     pub fn with_smooth_quantization(mut self, temperature: f32) -> Self {
         self.smooth_quantization = true;
         self.temperature = temperature;
         self
     }
-    
+
     /// Enable activation caching
     pub fn with_caching(mut self, cache_size_mb: usize) -> Self {
         self.enable_caching = true;
         self.cache_size_mb = Some(cache_size_mb);
         self
     }
-    
+
     /// Validate the configuration
     pub fn validate(&self) -> Result<(), ConfigValidationError> {
         // Validate base configuration
         self.base.validate()?;
-        
+
         // Validate moving average window
         if self.moving_average_window == 0 || self.moving_average_window > 10000 {
-            return Err(ConfigValidationError::InvalidValue(
-                format!("Moving average window {} is out of valid range [1, 10000]", self.moving_average_window)
-            ));
+            return Err(ConfigValidationError::InvalidValue(format!(
+                "Moving average window {} is out of valid range [1, 10000]",
+                self.moving_average_window
+            )));
         }
-        
+
         // Validate outlier percentile
         if self.outlier_percentile <= 0.0 || self.outlier_percentile > 100.0 {
-            return Err(ConfigValidationError::InvalidValue(
-                format!("Outlier percentile {} is out of valid range (0, 100]", self.outlier_percentile)
-            ));
+            return Err(ConfigValidationError::InvalidValue(format!(
+                "Outlier percentile {} is out of valid range (0, 100]",
+                self.outlier_percentile
+            )));
         }
-        
+
         // Validate EMA decay
         if self.ema_decay <= 0.0 || self.ema_decay >= 1.0 {
-            return Err(ConfigValidationError::InvalidValue(
-                format!("EMA decay {} is out of valid range (0, 1)", self.ema_decay)
-            ));
+            return Err(ConfigValidationError::InvalidValue(format!(
+                "EMA decay {} is out of valid range (0, 1)",
+                self.ema_decay
+            )));
         }
-        
+
         // Validate temperature
         if self.temperature <= 0.0 || self.temperature > 10.0 {
-            return Err(ConfigValidationError::InvalidValue(
-                format!("Temperature {} is out of valid range (0, 10]", self.temperature)
-            ));
+            return Err(ConfigValidationError::InvalidValue(format!(
+                "Temperature {} is out of valid range (0, 10]",
+                self.temperature
+            )));
         }
-        
+
         // Validate cache size
         if let Some(size) = self.cache_size_mb {
             if size == 0 || size > 8192 {
-                return Err(ConfigValidationError::InvalidValue(
-                    format!("Cache size {size} MB is out of valid range [1, 8192]")
-                ));
+                return Err(ConfigValidationError::InvalidValue(format!(
+                    "Cache size {size} MB is out of valid range [1, 8192]"
+                )));
             }
         }
-        
+
         // Validate attention configuration
         self.attention.validate()?;
-        
+
         Ok(())
     }
 }
@@ -526,45 +533,45 @@ impl AttentionQuantizationConfig {
             sparsity_threshold: Some(0.01),
         }
     }
-    
+
     /// Disable attention score quantization
     pub fn without_score_quantization(mut self) -> Self {
         self.quantize_scores = false;
         self
     }
-    
+
     /// Enable causal attention optimization
     pub fn with_causal_optimization(mut self) -> Self {
         self.causal_optimization = true;
         self
     }
-    
+
     /// Set sparsity threshold for attention pruning
     pub fn with_sparsity_threshold(mut self, threshold: f32) -> Self {
         self.sparsity_threshold = Some(threshold);
         self
     }
-    
+
     /// Validate the configuration
     pub fn validate(&self) -> Result<(), ConfigValidationError> {
         // Validate score clip threshold
         if let Some(threshold) = self.score_clip_threshold {
             if threshold <= 0.0 || threshold > 100.0 {
-                return Err(ConfigValidationError::InvalidValue(
-                    format!("Score clip threshold {threshold} is out of valid range (0, 100]")
-                ));
+                return Err(ConfigValidationError::InvalidValue(format!(
+                    "Score clip threshold {threshold} is out of valid range (0, 100]"
+                )));
             }
         }
-        
+
         // Validate sparsity threshold
         if let Some(threshold) = self.sparsity_threshold {
             if threshold <= 0.0 || threshold >= 1.0 {
-                return Err(ConfigValidationError::InvalidValue(
-                    format!("Sparsity threshold {threshold} is out of valid range (0, 1)")
-                ));
+                return Err(ConfigValidationError::InvalidValue(format!(
+                    "Sparsity threshold {threshold} is out of valid range (0, 1)"
+                )));
             }
         }
-        
+
         Ok(())
     }
 }
@@ -631,7 +638,7 @@ impl PackingConfig {
             num_threads: None, // Auto-detect
         }
     }
-    
+
     /// Create configuration for maximum compression
     pub fn max_compression() -> Self {
         Self {
@@ -648,7 +655,7 @@ impl PackingConfig {
             num_threads: None,
         }
     }
-    
+
     /// Create configuration for maximum speed
     pub fn max_speed() -> Self {
         Self {
@@ -665,64 +672,67 @@ impl PackingConfig {
             num_threads: None,
         }
     }
-    
+
     /// Enable parallel packing
     pub fn with_parallel_packing(mut self, num_threads: Option<usize>) -> Self {
         self.parallel_packing = true;
         self.num_threads = num_threads;
         self
     }
-    
+
     /// Set compression level
     pub fn with_compression_level(mut self, level: u8) -> Self {
         self.compression_level = level.min(9);
         self
     }
-    
+
     /// Validate the configuration
     pub fn validate(&self) -> Result<(), ConfigValidationError> {
         // Validate block size
         if let Some(size) = self.block_size {
             if size == 0 || size > 2048 {
-                return Err(ConfigValidationError::InvalidValue(
-                    format!("Block size {size} is out of valid range [1, 2048]")
-                ));
+                return Err(ConfigValidationError::InvalidValue(format!(
+                    "Block size {size} is out of valid range [1, 2048]"
+                )));
             }
         }
-        
+
         // Validate sparsity threshold
         if self.sparsity_threshold < 0.0 || self.sparsity_threshold > 1.0 {
-            return Err(ConfigValidationError::InvalidValue(
-                format!("Sparsity threshold {} is out of valid range [0, 1]", self.sparsity_threshold)
-            ));
+            return Err(ConfigValidationError::InvalidValue(format!(
+                "Sparsity threshold {} is out of valid range [0, 1]",
+                self.sparsity_threshold
+            )));
         }
-        
+
         // Validate alignment
         if self.alignment == 0 || !self.alignment.is_power_of_two() || self.alignment > 128 {
-            return Err(ConfigValidationError::InvalidValue(
-                format!("Alignment {} must be a power of 2 in range [1, 128]", self.alignment)
-            ));
+            return Err(ConfigValidationError::InvalidValue(format!(
+                "Alignment {} must be a power of 2 in range [1, 128]",
+                self.alignment
+            )));
         }
-        
+
         // Validate compression level
         if self.compression_level > 9 {
-            return Err(ConfigValidationError::InvalidValue(
-                format!("Compression level {} is out of valid range [0, 9]", self.compression_level)
-            ));
+            return Err(ConfigValidationError::InvalidValue(format!(
+                "Compression level {} is out of valid range [0, 9]",
+                self.compression_level
+            )));
         }
-        
+
         // Validate number of threads
         if let Some(threads) = self.num_threads {
             if threads == 0 || threads > 256 {
-                return Err(ConfigValidationError::InvalidValue(
-                    format!("Number of threads {threads} is out of valid range [1, 256]")
-                ));
+                return Err(ConfigValidationError::InvalidValue(format!(
+                    "Number of threads {threads} is out of valid range [1, 256]"
+                )));
             }
         }
-        
+
         // Validate SIMD configuration
         self.simd.validate()?;
-        
+
         Ok(())
     }
 }
@@ -783,7 +793,7 @@ impl SimdConfig {
             custom_params: HashMap::new(),
         }
     }
-    
+
     /// Create conservative SIMD configuration for compatibility
     pub fn conservative() -> Self {
         Self {
@@ -799,7 +809,7 @@ impl SimdConfig {
             custom_params: HashMap::new(),
         }
     }
-    
+
     /// Disable SIMD optimizations
     pub fn disabled() -> Self {
         Self {
@@ -807,7 +817,7 @@ impl SimdConfig {
             ..Default::default()
         }
     }
-    
+
     /// Force specific SIMD instruction set
     pub fn force_instruction_set(mut self, sse2: bool, avx2: bool, neon: bool) -> Self {
         self.force_sse2 = sse2;
@@ -815,36 +825,39 @@ impl SimdConfig {
         self.force_neon = neon;
         self
     }
-    
+
     /// Set custom parameter
     pub fn with_custom_param(mut self, key: String, value: f32) -> Self {
         self.custom_params.insert(key, value);
         self
     }
-    
+
     /// Validate the configuration
     pub fn validate(&self) -> Result<(), ConfigValidationError> {
         // Validate minimum SIMD size
         if self.min_simd_size == 0 || self.min_simd_size > 10000 {
-            return Err(ConfigValidationError::InvalidValue(
-                format!("Minimum SIMD size {} is out of valid range [1, 10000]", self.min_simd_size)
-            ));
+            return Err(ConfigValidationError::InvalidValue(format!(
+                "Minimum SIMD size {} is out of valid range [1, 10000]",
+                self.min_simd_size
+            )));
         }
-        
+
         // Validate chunk size
         if self.chunk_size == 0 || self.chunk_size > 1024 {
-            return Err(ConfigValidationError::InvalidValue(
-                format!("Chunk size {} is out of valid range [1, 1024]", self.chunk_size)
-            ));
+            return Err(ConfigValidationError::InvalidValue(format!(
+                "Chunk size {} is out of valid range [1, 1024]",
+                self.chunk_size
+            )));
         }
-        
+
         // Validate prefetch distance
         if self.prefetch_distance == 0 || self.prefetch_distance > 64 {
-            return Err(ConfigValidationError::InvalidValue(
-                format!("Prefetch distance {} is out of valid range [1, 64]", self.prefetch_distance)
-            ));
+            return Err(ConfigValidationError::InvalidValue(format!(
+                "Prefetch distance {} is out of valid range [1, 64]",
+                self.prefetch_distance
+            )));
         }
-        
+
         Ok(())
     }
 }
@@ -863,9 +876,15 @@ pub enum ConfigValidationError {
 impl std::fmt::Display for ConfigValidationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ConfigValidationError::InvalidValue(msg) => write!(f, "Invalid configuration value: {msg}"),
-            ConfigValidationError::IncompatibleSettings(msg) => write!(f, "Incompatible configuration: {msg}"),
-            ConfigValidationError::MissingRequired(msg) => write!(f, "Missing required configuration: {msg}"),
+            ConfigValidationError::InvalidValue(msg) => {
+                write!(f, "Invalid configuration value: {msg}")
+            }
+            ConfigValidationError::IncompatibleSettings(msg) => {
+                write!(f, "Incompatible configuration: {msg}")
+            }
+            ConfigValidationError::MissingRequired(msg) => {
+                write!(f, "Missing required configuration: {msg}")
+            }
         }
     }
 }
@@ -890,59 +909,61 @@ impl QuantizationConfigBuilder {
     pub fn new() -> Self {
         Self::default()
     }
-    
+
     /// Set quantization precision
     pub fn precision(mut self, precision: QuantizationPrecision) -> Self {
         self.precision = Some(precision);
         self
     }
-    
+
     /// Set quantization strategy
     pub fn strategy(mut self, strategy: QuantizationStrategy) -> Self {
         self.strategy = Some(strategy);
         self
     }
-    
+
     /// Enable per-channel quantization
     pub fn per_channel(mut self, enabled: bool) -> Self {
         self.per_channel = Some(enabled);
         self
     }
-    
+
     /// Set clipping threshold
     pub fn clip_threshold(mut self, threshold: f32) -> Self {
         self.clip_threshold = Some(threshold);
         self
     }
-    
+
     /// Enable quantization-aware training
     pub fn qat_enabled(mut self, enabled: bool) -> Self {
         self.qat_enabled = Some(enabled);
         self
     }
-    
+
     /// Set calibration size
     pub fn calibration_size(mut self, size: usize) -> Self {
         self.calibration_size = Some(size);
         self
     }
-    
+
     /// Set random seed
     pub fn seed(mut self, seed: u64) -> Self {
         self.seed = Some(seed);
         self
     }
-    
+
     /// Enable verbose logging
     pub fn verbose(mut self, enabled: bool) -> Self {
         self.verbose = Some(enabled);
         self
     }
-    
+
     /// Build the configuration
     pub fn build(self) -> QuantizationConfig {
         QuantizationConfig {
-            precision: self.precision.unwrap_or(QuantizationPrecision::OneFiveFiveBit),
+            precision: self
+                .precision
+                .unwrap_or(QuantizationPrecision::OneFiveFiveBit),
             strategy: self.strategy.unwrap_or(QuantizationStrategy::Symmetric),
             per_channel: self.per_channel.unwrap_or(false),
             clip_threshold: self.clip_threshold,
@@ -976,79 +997,79 @@ impl WeightQuantizationConfigBuilder {
     pub fn new() -> Self {
         Self::default()
     }
-    
+
     /// Set base configuration
     pub fn base(mut self, base: QuantizationConfig) -> Self {
         self.base = Some(base);
         self
     }
-    
+
     /// Set group size
     pub fn group_size(mut self, size: usize) -> Self {
         self.group_size = Some(size);
         self
     }
-    
+
     /// Enable weight normalization
     pub fn normalize_weights(mut self, enabled: bool) -> Self {
         self.normalize_weights = Some(enabled);
         self
     }
-    
+
     /// Set outlier threshold
     pub fn outlier_threshold(mut self, threshold: f32) -> Self {
         self.outlier_threshold = Some(threshold);
         self
     }
-    
+
     /// Enable learnable scales
     pub fn learnable_scales(mut self, enabled: bool) -> Self {
         self.learnable_scales = Some(enabled);
         self
     }
-    
+
     /// Set block size
     pub fn block_size(mut self, size: usize) -> Self {
         self.block_size = Some(size);
         self
     }
-    
+
     /// Set ternary method
     pub fn ternary_method(mut self, method: TernaryMethod) -> Self {
         self.ternary_method = Some(method);
         self
     }
-    
+
     /// Set custom threshold factor
     pub fn custom_threshold_factor(mut self, factor: f32) -> Self {
         self.custom_threshold_factor = Some(factor);
         self
     }
-    
+
     /// Set packing configuration
     pub fn packing(mut self, packing: PackingConfig) -> Self {
         self.packing = Some(packing);
         self
     }
-    
+
     /// Enable weight freezing
     pub fn freeze_weights(mut self, enabled: bool) -> Self {
         self.freeze_weights = Some(enabled);
         self
     }
-    
+
     /// Set weight decay
     pub fn weight_decay(mut self, decay: f32) -> Self {
         self.weight_decay = Some(decay);
         self
     }
-    
+
     /// Set gradient clipping
     pub fn gradient_clip(mut self, clip: f32) -> Self {
         self.gradient_clip = Some(clip);
         self
     }
-    
+
     /// Build the configuration
     pub fn build(self) -> WeightQuantizationConfig {
         WeightQuantizationConfig {
@@ -1096,11 +1117,11 @@ mod tests {
     fn test_quantization_config_validation() {
         let mut config = QuantizationConfig::default();
         assert!(config.validate().is_ok());
-        
+
         // Test invalid clipping threshold
         config.clip_threshold = Some(-1.0);
         assert!(config.validate().is_err());
-        
+
         // Test invalid calibration size
         config.clip_threshold = None;
         config.calibration_size = Some(0);
@@ -1165,7 +1186,7 @@ mod tests {
             .qat_enabled(true)
             .verbose(true)
             .build();
-        
+
         assert_eq!(config.precision, QuantizationPrecision::EightBit);
         assert_eq!(config.strategy, QuantizationStrategy::Dynamic);
         assert!(config.per_channel);
@@ -1184,7 +1205,7 @@ mod tests {
             .ternary_method(TernaryMethod::OptimalThreshold)
             .custom_threshold_factor(0.8)
             .build();
-        
+
         assert_eq!(config.base.precision, QuantizationPrecision::OneFiveFiveBit);
         assert_eq!(config.group_size, Some(128));
         assert!(config.learnable_scales);
@@ -1198,12 +1219,12 @@ mod tests {
         let mut config = WeightQuantizationConfig::default();
         config.group_size = Some(0);
         assert!(config.validate().is_err());
-        
+
         // Test invalid outlier threshold
         config.group_size = None;
         config.outlier_threshold = -1.0;
         assert!(config.validate().is_err());
-        
+
         // Test invalid threshold factor
         config.outlier_threshold = 3.0;
         config.custom_threshold_factor = Some(3.0);
@@ -1214,11 +1235,11 @@ mod tests {
     fn test_simd_config_validation() {
         let mut config = SimdConfig::default();
         assert!(config.validate().is_ok());
-        
+
         // Test invalid min SIMD size
         config.min_simd_size = 0;
         assert!(config.validate().is_err());
-        
+
         // Test invalid chunk size
         config.min_simd_size = 64;
         config.chunk_size = 0;
@@ -1229,11 +1250,11 @@ mod tests {
     fn test_attention_config_validation() {
         let mut config = AttentionQuantizationConfig::default();
         assert!(config.validate().is_ok());
-        
+
         // Test invalid score clip threshold
         config.score_clip_threshold = Some(-1.0);
         assert!(config.validate().is_err());
-        
+
         // Test invalid sparsity threshold
         config.score_clip_threshold = None;
         config.sparsity_threshold = Some(1.5);

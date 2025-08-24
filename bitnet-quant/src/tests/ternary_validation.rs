@@ -4,7 +4,7 @@
 //! produce only {-1, 0, +1} values across all ternary quantization methods.
 
 use crate::quantization::{
-    QuantizationResult, TernaryMethod, WeightQuantizer, 
+    QuantizationResult, TernaryMethod, WeightQuantizer,
     create_ternary_quantizer, WeightQuantizationConfig
 };
 use crate::tests::helpers::{
@@ -70,7 +70,7 @@ pub struct ValidationSummaryStatistics {
 /// Run comprehensive ternary validation tests
 pub fn run_comprehensive_ternary_tests(device: &Device) -> QuantizationResult<TernaryValidationResults> {
     let mut results = TernaryValidationResults::default();
-    
+
     // Test all ternary methods
     let methods = vec![
         TernaryMethod::MeanThreshold,
@@ -93,7 +93,7 @@ pub fn run_comprehensive_ternary_tests(device: &Device) -> QuantizationResult<Te
 
     let tensor_shapes = vec![
         vec![16],           // 1D small
-        vec![4, 4],         // 2D small  
+        vec![4, 4],         // 2D small
         vec![8, 8],         // 2D medium
         vec![2, 3, 4],      // 3D
         vec![64, 32],       // 2D large
@@ -160,11 +160,11 @@ pub fn run_comprehensive_ternary_tests(device: &Device) -> QuantizationResult<Te
 
                 // Test ternary quantization
                 let test_result = test_ternary_quantization(&tensor, method, pattern, shape);
-                
+
                 match test_result {
                     Ok(validation_result) => {
                         total_values += validation_result.value_distribution.total;
-                        
+
                         if validation_result.is_strictly_ternary {
                             passed_tests += 1;
                             method_passed += 1;
@@ -172,18 +172,18 @@ pub fn run_comprehensive_ternary_tests(device: &Device) -> QuantizationResult<Te
                             ternary_compliant_values += validation_result.value_distribution.total;
                         } else {
                             results.failed_test_cases.push(
-                                format!("Non-ternary values in {:?} pattern with {:?} method, shape {:?}: {}", 
-                                       pattern, method, shape, 
+                                format!("Non-ternary values in {:?} pattern with {:?} method, shape {:?}: {}",
+                                       pattern, method, shape,
                                        validation_result.error_message.unwrap_or_else(|| "Unknown error".to_string()))
                             );
-                            ternary_compliant_values += validation_result.value_distribution.total - 
+                            ternary_compliant_values += validation_result.value_distribution.total -
                                                        validation_result.quantization_counts.invalid;
                         }
 
                         // Collect statistics
                         let sparsity = validation_result.value_distribution.sparsity();
                         let balance_score = validation_result.value_distribution.is_balanced() as i32 as f64;
-                        
+
                         all_sparsities.push(sparsity);
                         all_balance_scores.push(balance_score);
                         method_sparsities.push(sparsity);
@@ -191,7 +191,7 @@ pub fn run_comprehensive_ternary_tests(device: &Device) -> QuantizationResult<Te
                     }
                     Err(e) => {
                         results.failed_test_cases.push(
-                            format!("Failed to test {:?} pattern with {:?} method, shape {:?}: {}", 
+                            format!("Failed to test {:?} pattern with {:?} method, shape {:?}: {}",
                                    pattern, method, shape, e)
                         );
                     }
@@ -233,11 +233,11 @@ pub fn run_comprehensive_ternary_tests(device: &Device) -> QuantizationResult<Te
         let performances: Vec<f64> = pattern_result.method_performance.values().cloned().collect();
         if !performances.is_empty() {
             pattern_result.average_success_rate = performances.iter().sum::<f64>() / performances.len() as f64;
-            
+
             // Find best and worst performing methods
             let mut best_score = 0.0;
             let mut worst_score = 1.0;
-            
+
             for (&method, &score) in &pattern_result.method_performance {
                 if score > best_score {
                     best_score = score;
@@ -253,7 +253,7 @@ pub fn run_comprehensive_ternary_tests(device: &Device) -> QuantizationResult<Te
 
     // Calculate overall statistics
     results.overall_success_rate = passed_tests as f64 / total_tests.max(1) as f64;
-    
+
     results.summary_statistics = ValidationSummaryStatistics {
         total_tensors_tested: total_tests,
         total_values_tested: total_values,
@@ -283,16 +283,16 @@ fn test_ternary_quantization(
 ) -> QuantizationResult<TernaryValidationResult> {
     // Create quantizer with the specified method
     let quantizer = create_ternary_quantizer(method, Some(0.7))?;
-    
+
     // Perform quantization
     let quantized = quantizer.quantize(tensor)?;
-    
+
     // Validate ternary values
     let mut validation_result = validate_ternary_values(&quantized.values)?;
-    
+
     // Set the threshold that was actually used (if available)
     validation_result.threshold_used = quantized.stats.threshold_used.unwrap_or(0.0);
-    
+
     // Add additional context to error message if validation failed
     if !validation_result.is_strictly_ternary {
         let context = format!(
@@ -300,12 +300,12 @@ fn test_ternary_quantization(
             pattern, method, shape, validation_result.threshold_used
         );
         validation_result.error_message = Some(
-            format!("{} - {}", 
+            format!("{} - {}",
                    validation_result.error_message.unwrap_or_else(|| "Validation failed".to_string()),
                    context)
         );
     }
-    
+
     Ok(validation_result)
 }
 
@@ -317,7 +317,7 @@ pub fn test_ternary_method_with_thresholds(
 ) -> QuantizationResult<ThresholdTestResults> {
     let threshold_factors = vec![0.3, 0.5, 0.7, 0.9, 1.1, 1.3, 1.5];
     let shape = vec![64, 32];
-    
+
     let test_tensor = generate_test_tensor(pattern, &shape, device)?;
     let mut results = ThresholdTestResults {
         method,
@@ -335,10 +335,10 @@ pub fn test_ternary_method_with_thresholds(
         let quantizer = create_ternary_quantizer(method, Some(threshold))?;
         let quantized = quantizer.quantize(&test_tensor)?;
         let validation = validate_ternary_values(&quantized.values)?;
-        
+
         let sparsity = validation.value_distribution.sparsity();
         sparsities.push(sparsity);
-        
+
         let threshold_result = ThresholdResult {
             threshold_factor: threshold,
             is_ternary: validation.is_strictly_ternary,
@@ -346,24 +346,24 @@ pub fn test_ternary_method_with_thresholds(
             balance_score: validation.value_distribution.is_balanced() as i32 as f64,
             distribution: validation.value_distribution.clone(),
         };
-        
+
         results.threshold_results.insert(threshold, threshold_result);
     }
 
     // Find optimal threshold (highest sparsity while maintaining ternary property)
     let mut best_threshold = 0.7;
     let mut best_sparsity = 0.0;
-    
+
     for (threshold, result) in &results.threshold_results {
         if result.is_ternary && result.sparsity > best_sparsity {
             best_sparsity = result.sparsity;
             best_threshold = *threshold;
         }
     }
-    
+
     results.optimal_threshold = best_threshold;
     results.optimal_sparsity = best_sparsity;
-    
+
     // Calculate threshold sensitivity
     if !sparsities.is_empty() {
         let mean_sparsity = sparsities.iter().sum::<f64>() / sparsities.len() as f64;
@@ -371,7 +371,7 @@ pub fn test_ternary_method_with_thresholds(
             .map(|&s| (s - mean_sparsity).powi(2))
             .sum::<f64>() / sparsities.len() as f64;
     }
-    
+
     results.threshold_sensitivity = sparsity_variance.sqrt();
 
     Ok(results)
@@ -424,7 +424,7 @@ pub fn test_ternary_edge_cases(device: &Device) -> QuantizationResult<EdgeCaseTe
         for &method in &methods {
             results.total_tests += 1;
             let test_name = format!("{} with {:?}", description, method);
-            
+
             match test_edge_case(device, pattern, method) {
                 Ok(is_valid) => {
                     results.test_results.insert(test_name.clone(), is_valid);
@@ -472,7 +472,7 @@ fn test_edge_case(device: &Device, pattern: TestPattern, method: TernaryMethod) 
     let quantizer = create_ternary_quantizer(method, Some(0.7))?;
     let quantized = quantizer.quantize(&tensor)?;
     let validation = validate_ternary_values(&quantized.values)?;
-    
+
     Ok(validation.is_strictly_ternary)
 }
 
@@ -481,16 +481,16 @@ fn calculate_method_consistency(method_results: &HashMap<TernaryMethod, MethodVa
     let success_rates: Vec<f64> = method_results.values()
         .map(|r| r.success_rate)
         .collect();
-    
+
     if success_rates.is_empty() {
         return 1.0;
     }
-    
+
     let mean = success_rates.iter().sum::<f64>() / success_rates.len() as f64;
     let variance = success_rates.iter()
         .map(|&rate| (rate - mean).powi(2))
         .sum::<f64>() / success_rates.len() as f64;
-    
+
     // Higher consistency score for lower variance
     1.0 / (1.0 + variance)
 }
@@ -503,7 +503,7 @@ mod tests {
     fn test_comprehensive_ternary_validation() {
         let device = create_test_device();
         let results = run_comprehensive_ternary_tests(&device).unwrap();
-        
+
         assert!(results.overall_success_rate > 0.8);
         assert!(!results.method_results.is_empty());
         assert!(!results.pattern_results.is_empty());
@@ -519,7 +519,7 @@ mod tests {
             TernaryMethod::MeanThreshold,
             TestPattern::NormalDistribution,
         ).unwrap();
-        
+
         assert!(!results.threshold_results.is_empty());
         assert!(results.optimal_threshold > 0.0);
         assert!(results.threshold_sensitivity >= 0.0);
@@ -529,7 +529,7 @@ mod tests {
     fn test_edge_cases() {
         let device = create_test_device();
         let results = test_ternary_edge_cases(&device).unwrap();
-        
+
         assert!(results.total_tests > 0);
         assert!(results.success_rate() > 0.5); // At least half should pass
     }
@@ -538,7 +538,7 @@ mod tests {
     fn test_individual_ternary_methods() {
         let device = create_test_device();
         let tensor = generate_test_tensor(TestPattern::NormalDistribution, &[100], &device).unwrap();
-        
+
         for method in [
             TernaryMethod::MeanThreshold,
             TernaryMethod::MedianThreshold,

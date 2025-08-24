@@ -6,8 +6,8 @@
 use crate::calibration::error::{CalibrationError, CalibrationResult};
 use crate::calibration::sampling::SamplingStrategy;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 /// Main configuration for calibration dataset
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -454,7 +454,9 @@ impl CalibrationConfigBuilder {
                 ));
             }
 
-            if let HistogramRangeStrategy::Percentile { lower, upper } = &config.histogram_config.range_strategy {
+            if let HistogramRangeStrategy::Percentile { lower, upper } =
+                &config.histogram_config.range_strategy
+            {
                 if *lower >= *upper {
                     return Err(CalibrationError::validation(
                         "histogram_config.range_strategy",

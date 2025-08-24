@@ -33,7 +33,7 @@ mod tests {
         println!("Memory validation for {}:", test_name);
         println!("  Memory increase: {} bytes", memory_increase);
         println!("  Active allocations: {}", active_allocations);
-        println!("  Pool utilization: {:.2}%", 
+        println!("  Pool utilization: {:.2}%",
                  (current.bytes_in_use as f64 / current.total_pool_size as f64) * 100.0);
 
         if memory_increase > max_increase_bytes {
@@ -63,7 +63,7 @@ mod tests {
             let _a = BitNetTensor::zeros(&[1000, 1000], BitNetDType::F32, Some(device.clone()))?;
             let _b = BitNetTensor::ones(&[1000, 1000], BitNetDType::F32, Some(device.clone()))?;
             let _c = BitNetTensor::zeros(&[500, 2000], BitNetDType::F32, Some(device.clone()))?;
-            
+
             // Tensors should be using memory here
             let during_stats = get_memory_stats();
             assert!(during_stats.bytes_in_use > baseline.bytes_in_use);
@@ -99,7 +99,7 @@ mod tests {
             let _result2 = mul(&a, &b)?;
             let _result3 = sub(&a, &b)?;
             let _result4 = add_scalar(&a, 2.5)?;
-            
+
             // Operations should create temporary results
             let during_stats = get_memory_stats();
             assert!(during_stats.active_allocations > baseline.active_allocations);
@@ -128,9 +128,9 @@ mod tests {
         {
             let a = BitNetTensor::zeros(&[2000, 2000], BitNetDType::F32, Some(device.clone()))?; // ~16MB
             let b = BitNetTensor::ones(&[2000, 2000], BitNetDType::F32, Some(device.clone()))?;  // ~16MB
-            
+
             let _result = add(&a, &b)?; // Another ~16MB
-            
+
             // Should be using large block allocations
             let during_stats = get_memory_stats();
             println!("Large tensor operations - during execution:");
@@ -162,17 +162,17 @@ mod tests {
         let num_iterations = 100;
 
         let baseline_stats = pool.get_stats();
-        
+
         for i in 0..num_iterations {
             let a = BitNetTensor::ones(&tensor_size, BitNetDType::F32, Some(device.clone()))?;
             let b = BitNetTensor::zeros(&tensor_size, BitNetDType::F32, Some(device.clone()))?;
             let _result = add(&a, &b)?;
-            
+
             // Periodically check that memory isn't growing excessively
             if i % 20 == 19 {
                 let current_stats = pool.get_stats();
                 let memory_growth = current_stats.total_pool_size - baseline_stats.total_pool_size;
-                
+
                 // Pool should stabilize and reuse memory
                 let max_expected_growth = 20 * 1024 * 1024; // 20MB max growth
                 assert!(memory_growth <= max_expected_growth,
@@ -189,9 +189,9 @@ mod tests {
         println!("  Final active allocations: {}", final_stats.active_allocations);
 
         // Verify efficient pool reuse
-        let pool_growth_ratio = (final_stats.total_pool_size - baseline_stats.total_pool_size) as f64 
+        let pool_growth_ratio = (final_stats.total_pool_size - baseline_stats.total_pool_size) as f64
                               / baseline_stats.total_pool_size as f64;
-        
+
         assert!(pool_growth_ratio < 2.0, // Pool shouldn't more than double
                 "Pool grew too much: {:.2}x", pool_growth_ratio + 1.0);
 
@@ -245,7 +245,7 @@ mod tests {
             let step2 = mul(&step1, &c)?;       // (A + B) * C
             let step3 = sub(&step2, &d)?;       // (A + B) * C - D
             let _final = add_scalar(&step3, 0.5)?; // ((A + B) * C - D) + 0.5 (approximating /2)
-            
+
             // Complex expression should create intermediate results
             let during_stats = get_memory_stats();
             println!("Complex expression memory usage:");
@@ -282,11 +282,11 @@ mod tests {
         ];
 
         let baseline_stats = pool.get_stats();
-        
+
         // Create and destroy tensors in a pattern that could cause fragmentation
         for _ in 0..20 {
             let mut tensors = Vec::new();
-            
+
             // Create tensors of different sizes
             for (i, size) in sizes.iter().enumerate() {
                 if i % 2 == 0 { // Create only even-indexed tensors first
@@ -294,7 +294,7 @@ mod tests {
                     tensors.push(tensor);
                 }
             }
-            
+
             // Then create odd-indexed tensors
             for (i, size) in sizes.iter().enumerate() {
                 if i % 2 == 1 {
@@ -302,7 +302,7 @@ mod tests {
                     tensors.push(tensor);
                 }
             }
-            
+
             // Drop every other tensor to create holes
             let mut new_tensors = Vec::new();
             for (i, tensor) in tensors.into_iter().enumerate() {
@@ -310,7 +310,7 @@ mod tests {
                     new_tensors.push(tensor);
                 }
             }
-            
+
             // Create some operations to exercise the fragmented memory
             if new_tensors.len() >= 2 {
                 let _result = add(&new_tensors[0], &new_tensors[1])?;
@@ -320,11 +320,11 @@ mod tests {
         std::thread::sleep(Duration::from_millis(200)); // Allow cleanup and compaction
 
         let final_stats = pool.get_stats();
-        
+
         // Check fragmentation levels
         let fragmentation_bytes = final_stats.fragmented_bytes.unwrap_or(0);
         let fragmentation_ratio = fragmentation_bytes as f64 / final_stats.total_pool_size as f64;
-        
+
         println!("Memory fragmentation test results:");
         println!("  Fragmented bytes: {} KB", fragmentation_bytes / 1024);
         println!("  Fragmentation ratio: {:.2}%", fragmentation_ratio * 100.0);
@@ -352,21 +352,21 @@ mod tests {
         let handles: Vec<_> = (0..num_threads).map(|thread_id| {
             let device_clone = device.clone();
             let pool_clone = Arc::clone(&pool);
-            
+
             thread::spawn(move || -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 for i in 0..iterations_per_thread {
                     let size = 100 + (thread_id * 100) + (i * 10); // Varying sizes per thread
                     let a = BitNetTensor::ones(&[size, size], BitNetDType::F32, Some(device_clone.clone()))?;
                     let b = BitNetTensor::zeros(&[size, size], BitNetDType::F32, Some(device_clone.clone()))?;
                     let _result = add(&a, &b)?;
-                    
+
                     // Periodic memory check
                     if i % 10 == 9 {
                         let stats = pool_clone.get_stats();
                         // Ensure memory usage isn't growing uncontrollably
                         let memory_growth = stats.bytes_in_use;
                         assert!(memory_growth < 100 * 1024 * 1024, // Less than 100MB total usage
-                                "Thread {}: Excessive memory usage: {} MB", 
+                                "Thread {}: Excessive memory usage: {} MB",
                                 thread_id, memory_growth / (1024 * 1024));
                     }
                 }
@@ -381,16 +381,16 @@ mod tests {
         std::thread::sleep(Duration::from_millis(200)); // Allow cleanup
 
         let final_stats = pool.get_stats();
-        
+
         println!("Concurrent memory efficiency test:");
         println!("  Final active allocations: {}", final_stats.active_allocations);
         println!("  Final bytes in use: {} MB", final_stats.bytes_in_use / (1024 * 1024));
-        println!("  Pool size growth: {} MB", 
+        println!("  Pool size growth: {} MB",
                  (final_stats.total_pool_size - baseline_stats.total_pool_size) / (1024 * 1024));
 
         // Concurrent operations should not cause excessive memory usage
         assert!(final_stats.active_allocations < 50,
-                "Too many active allocations after concurrent test: {}", 
+                "Too many active allocations after concurrent test: {}",
                 final_stats.active_allocations);
 
         let memory_efficiency = final_stats.bytes_in_use as f64 / final_stats.total_pool_size as f64;

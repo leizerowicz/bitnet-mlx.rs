@@ -1,17 +1,17 @@
 //! MLX Performance Report Generation
-//! 
+//!
 //! This module provides comprehensive report generation capabilities for MLX performance
 //! analysis, including detailed comparisons, visualizations, and recommendations.
 
 use crate::mlx::{
-    performance::{PerformanceMetrics, ComparisonResult, MemoryUsage},
-    memory_tracker::{MemoryEvent, MemorySnapshot, MemoryOptimization, OptimizationType},
-    metrics::{MlxMetrics, MemoryMetrics, SystemMetrics, OperationContext},
+    memory_tracker::{MemoryEvent, MemoryOptimization, MemorySnapshot, OptimizationType},
+    metrics::{MemoryMetrics, MlxMetrics, OperationContext, SystemMetrics},
+    performance::{ComparisonResult, MemoryUsage, PerformanceMetrics},
 };
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
-use serde::{Serialize, Deserialize};
 
 /// Comprehensive performance report
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -418,7 +418,8 @@ impl PerformanceReportGenerator {
         let performance_analysis = self.generate_performance_analysis(metrics)?;
         let memory_analysis = self.generate_memory_analysis(memory_events, optimizations)?;
         let device_comparisons = self.generate_device_comparisons(comparisons)?;
-        let optimization_recommendations = self.generate_optimization_recommendations(metrics, optimizations)?;
+        let optimization_recommendations =
+            self.generate_optimization_recommendations(metrics, optimizations)?;
         let regression_analysis = self.generate_regression_analysis(metrics)?;
         let appendix = self.generate_appendix(metrics)?;
 
@@ -436,18 +437,22 @@ impl PerformanceReportGenerator {
 
     /// Generate report metadata
     fn generate_metadata(&self, metrics: &[MlxMetrics]) -> Result<ReportMetadata> {
-        let devices_tested: Vec<String> = metrics.iter()
+        let devices_tested: Vec<String> = metrics
+            .iter()
             .map(|m| m.performance.device_type.clone())
             .collect::<std::collections::HashSet<_>>()
             .into_iter()
             .collect();
 
-        let data_collection_period = if let (Some(first), Some(last)) = (metrics.first(), metrics.last()) {
-            last.performance.timestamp.duration_since(first.performance.timestamp)
-                .unwrap_or(Duration::ZERO)
-        } else {
-            Duration::ZERO
-        };
+        let data_collection_period =
+            if let (Some(first), Some(last)) = (metrics.first(), metrics.last()) {
+                last.performance
+                    .timestamp
+                    .duration_since(first.performance.timestamp)
+                    .unwrap_or(Duration::ZERO)
+            } else {
+                Duration::ZERO
+            };
 
         Ok(ReportMetadata {
             generated_at: SystemTime::now(),
@@ -479,14 +484,20 @@ impl PerformanceReportGenerator {
         let mut top_recommendations = Vec::new();
 
         // Analyze performance trends
-        let avg_throughput: f64 = metrics.iter()
+        let avg_throughput: f64 = metrics
+            .iter()
             .map(|m| m.performance.throughput)
-            .sum::<f64>() / metrics.len() as f64;
+            .sum::<f64>()
+            / metrics.len() as f64;
 
-        key_findings.push(format!("Average throughput across all operations: {:.2} ops/sec", avg_throughput));
+        key_findings.push(format!(
+            "Average throughput across all operations: {:.2} ops/sec",
+            avg_throughput
+        ));
 
         // Analyze device comparisons
-        let gpu_speedups: Vec<f64> = comparisons.iter()
+        let gpu_speedups: Vec<f64> = comparisons
+            .iter()
             .filter(|c| c.comparison_metrics.device_type == "gpu")
             .map(|c| c.speedup)
             .collect();
@@ -494,23 +505,29 @@ impl PerformanceReportGenerator {
         if !gpu_speedups.is_empty() {
             let avg_speedup = gpu_speedups.iter().sum::<f64>() / gpu_speedups.len() as f64;
             if avg_speedup > 1.5 {
-                performance_highlights.push(format!("GPU shows {:.1}x average speedup over CPU", avg_speedup));
-                top_recommendations.push("Prioritize GPU execution for compute-intensive operations".to_string());
+                performance_highlights.push(format!(
+                    "GPU shows {:.1}x average speedup over CPU",
+                    avg_speedup
+                ));
+                top_recommendations
+                    .push("Prioritize GPU execution for compute-intensive operations".to_string());
             } else if avg_speedup < 0.8 {
                 critical_issues.push("GPU performance is below CPU performance".to_string());
-                top_recommendations.push("Investigate GPU utilization and optimization opportunities".to_string());
+                top_recommendations
+                    .push("Investigate GPU utilization and optimization opportunities".to_string());
             }
         }
 
         // Analyze memory efficiency
-        let memory_efficiencies: Vec<f64> = metrics.iter()
-            .map(|m| m.memory.efficiency_score)
-            .collect();
+        let memory_efficiencies: Vec<f64> =
+            metrics.iter().map(|m| m.memory.efficiency_score).collect();
 
-        let avg_memory_efficiency = memory_efficiencies.iter().sum::<f64>() / memory_efficiencies.len() as f64;
+        let avg_memory_efficiency =
+            memory_efficiencies.iter().sum::<f64>() / memory_efficiencies.len() as f64;
         if avg_memory_efficiency < 0.7 {
             critical_issues.push("Low memory efficiency detected".to_string());
-            top_recommendations.push("Implement memory pooling and tensor reuse strategies".to_string());
+            top_recommendations
+                .push("Implement memory pooling and tensor reuse strategies".to_string());
         }
 
         // Calculate overall score
@@ -535,18 +552,21 @@ impl PerformanceReportGenerator {
         // Group metrics by operation
         let mut operation_groups: HashMap<String, Vec<&MlxMetrics>> = HashMap::new();
         for metric in metrics {
-            operation_groups.entry(metric.operation_context.operation_name.clone())
+            operation_groups
+                .entry(metric.operation_context.operation_name.clone())
                 .or_insert_with(Vec::new)
                 .push(metric);
         }
 
         // Calculate statistics for each operation
         for (operation_name, operation_metrics) in operation_groups {
-            let execution_times: Vec<Duration> = operation_metrics.iter()
+            let execution_times: Vec<Duration> = operation_metrics
+                .iter()
                 .map(|m| m.performance.execution_time)
                 .collect();
 
-            let throughputs: Vec<f64> = operation_metrics.iter()
+            let throughputs: Vec<f64> = operation_metrics
+                .iter()
                 .map(|m| m.performance.throughput)
                 .collect();
 
@@ -557,12 +577,21 @@ impl PerformanceReportGenerator {
                 operation_name: operation_name.clone(),
                 total_executions: operation_metrics.len(),
                 average_execution_time: Duration::from_nanos(
-                    (execution_times.iter().map(|d| d.as_nanos()).sum::<u128>() / execution_times.len() as u128).try_into().unwrap_or(0)
+                    (execution_times.iter().map(|d| d.as_nanos()).sum::<u128>()
+                        / execution_times.len() as u128)
+                        .try_into()
+                        .unwrap_or(0),
                 ),
                 min_execution_time: *sorted_times.first().unwrap_or(&Duration::ZERO),
                 max_execution_time: *sorted_times.last().unwrap_or(&Duration::ZERO),
-                p95_execution_time: sorted_times.get(sorted_times.len() * 95 / 100).copied().unwrap_or(Duration::ZERO),
-                p99_execution_time: sorted_times.get(sorted_times.len() * 99 / 100).copied().unwrap_or(Duration::ZERO),
+                p95_execution_time: sorted_times
+                    .get(sorted_times.len() * 95 / 100)
+                    .copied()
+                    .unwrap_or(Duration::ZERO),
+                p99_execution_time: sorted_times
+                    .get(sorted_times.len() * 99 / 100)
+                    .copied()
+                    .unwrap_or(Duration::ZERO),
                 average_throughput: throughputs.iter().sum::<f64>() / throughputs.len() as f64,
                 peak_throughput: throughputs.iter().fold(0.0, |a, &b| a.max(b)),
                 success_rate: 100.0, // Placeholder - would track actual success/failure
@@ -587,17 +616,32 @@ impl PerformanceReportGenerator {
         };
 
         // Generate latency analysis
-        let all_latencies: Vec<Duration> = metrics.iter().map(|m| m.performance.execution_time).collect();
+        let all_latencies: Vec<Duration> = metrics
+            .iter()
+            .map(|m| m.performance.execution_time)
+            .collect();
         let mut sorted_latencies = all_latencies.clone();
         sorted_latencies.sort();
 
         let latency_analysis = LatencyAnalysis {
             average_latency: Duration::from_nanos(
-                (all_latencies.iter().map(|d| d.as_nanos()).sum::<u128>() / all_latencies.len() as u128).try_into().unwrap_or(0)
+                (all_latencies.iter().map(|d| d.as_nanos()).sum::<u128>()
+                    / all_latencies.len() as u128)
+                    .try_into()
+                    .unwrap_or(0),
             ),
-            p50_latency: sorted_latencies.get(sorted_latencies.len() / 2).copied().unwrap_or(Duration::ZERO),
-            p95_latency: sorted_latencies.get(sorted_latencies.len() * 95 / 100).copied().unwrap_or(Duration::ZERO),
-            p99_latency: sorted_latencies.get(sorted_latencies.len() * 99 / 100).copied().unwrap_or(Duration::ZERO),
+            p50_latency: sorted_latencies
+                .get(sorted_latencies.len() / 2)
+                .copied()
+                .unwrap_or(Duration::ZERO),
+            p95_latency: sorted_latencies
+                .get(sorted_latencies.len() * 95 / 100)
+                .copied()
+                .unwrap_or(Duration::ZERO),
+            p99_latency: sorted_latencies
+                .get(sorted_latencies.len() * 99 / 100)
+                .copied()
+                .unwrap_or(Duration::ZERO),
             latency_distribution: self.calculate_latency_distribution(&sorted_latencies),
             outlier_analysis: self.analyze_outliers(&sorted_latencies),
         };
@@ -612,13 +656,23 @@ impl PerformanceReportGenerator {
         };
 
         // Generate efficiency metrics
-        let avg_cpu_usage = metrics.iter().map(|m| m.system.cpu_usage).sum::<f64>() / metrics.len() as f64;
-        let avg_gpu_usage = metrics.iter().map(|m| m.system.gpu_usage).sum::<f64>() / metrics.len() as f64;
-        let avg_memory_usage = metrics.iter().map(|m| m.system.system_memory_usage).sum::<f64>() / metrics.len() as f64;
+        let avg_cpu_usage =
+            metrics.iter().map(|m| m.system.cpu_usage).sum::<f64>() / metrics.len() as f64;
+        let avg_gpu_usage =
+            metrics.iter().map(|m| m.system.gpu_usage).sum::<f64>() / metrics.len() as f64;
+        let avg_memory_usage = metrics
+            .iter()
+            .map(|m| m.system.system_memory_usage)
+            .sum::<f64>()
+            / metrics.len() as f64;
 
         let efficiency_metrics = EfficiencyMetrics {
             compute_efficiency: (avg_cpu_usage + avg_gpu_usage) / 2.0,
-            memory_efficiency: metrics.iter().map(|m| m.memory.efficiency_score).sum::<f64>() / metrics.len() as f64,
+            memory_efficiency: metrics
+                .iter()
+                .map(|m| m.memory.efficiency_score)
+                .sum::<f64>()
+                / metrics.len() as f64,
             energy_efficiency: None, // Would require power measurements
             resource_utilization: ResourceUtilization {
                 cpu_utilization: avg_cpu_usage,
@@ -644,12 +698,24 @@ impl PerformanceReportGenerator {
         optimizations: &[MemoryOptimization],
     ) -> Result<MemoryAnalysis> {
         // Analyze allocation patterns
-        let allocations: Vec<&MemoryEvent> = memory_events.iter()
-            .filter(|e| matches!(e.event_type, crate::mlx::memory_tracker::MemoryEventType::Allocation))
+        let allocations: Vec<&MemoryEvent> = memory_events
+            .iter()
+            .filter(|e| {
+                matches!(
+                    e.event_type,
+                    crate::mlx::memory_tracker::MemoryEventType::Allocation
+                )
+            })
             .collect();
 
-        let deallocations: Vec<&MemoryEvent> = memory_events.iter()
-            .filter(|e| matches!(e.event_type, crate::mlx::memory_tracker::MemoryEventType::Deallocation))
+        let deallocations: Vec<&MemoryEvent> = memory_events
+            .iter()
+            .filter(|e| {
+                matches!(
+                    e.event_type,
+                    crate::mlx::memory_tracker::MemoryEventType::Deallocation
+                )
+            })
             .collect();
 
         let allocation_sizes: Vec<usize> = allocations.iter().map(|e| e.size_bytes).collect();
@@ -704,7 +770,10 @@ impl PerformanceReportGenerator {
     }
 
     /// Generate device comparisons
-    fn generate_device_comparisons(&self, comparisons: &[ComparisonResult]) -> Result<Vec<DeviceComparison>> {
+    fn generate_device_comparisons(
+        &self,
+        comparisons: &[ComparisonResult],
+    ) -> Result<Vec<DeviceComparison>> {
         let mut device_comparisons = Vec::new();
 
         for comparison in comparisons {
@@ -716,7 +785,7 @@ impl PerformanceReportGenerator {
                     speedup: comparison.speedup,
                     throughput_improvement: comparison.throughput_improvement,
                     latency_improvement: 1.0 / comparison.speedup, // Inverse of speedup
-                    consistency_comparison: 0.9, // Placeholder
+                    consistency_comparison: 0.9,                   // Placeholder
                 },
                 memory_comparison: MemoryComparison {
                     memory_efficiency_improvement: comparison.memory_improvement,
@@ -742,12 +811,17 @@ impl PerformanceReportGenerator {
         let mut recommendations = Vec::new();
 
         // Performance recommendations
-        let avg_throughput = metrics.iter().map(|m| m.performance.throughput).sum::<f64>() / metrics.len() as f64;
+        let avg_throughput = metrics
+            .iter()
+            .map(|m| m.performance.throughput)
+            .sum::<f64>()
+            / metrics.len() as f64;
         if avg_throughput < 100.0 {
             recommendations.push(OptimizationRecommendation {
                 category: OptimizationCategory::Performance,
                 title: "Optimize Batch Processing".to_string(),
-                description: "Increase batch sizes to improve throughput and GPU utilization".to_string(),
+                description: "Increase batch sizes to improve throughput and GPU utilization"
+                    .to_string(),
                 expected_improvement: ExpectedImprovement {
                     performance_gain: Some(2.0),
                     memory_reduction: None,
@@ -756,11 +830,10 @@ impl PerformanceReportGenerator {
                 },
                 implementation_effort: ImplementationEffort::Low,
                 priority: Priority::High,
-                code_examples: vec![
-                    CodeExample {
-                        language: "rust".to_string(),
-                        title: "Batch Processing Example".to_string(),
-                        code: r#"
+                code_examples: vec![CodeExample {
+                    language: "rust".to_string(),
+                    title: "Batch Processing Example".to_string(),
+                    code: r#"
 // Process tensors in larger batches
 let batch_size = 64; // Increase from 32
 let batched_tensors = tensors.chunks(batch_size);
@@ -768,10 +841,11 @@ for batch in batched_tensors {
     let result = mlx_operation(batch)?;
     // Process results
 }
-"#.to_string(),
-                        explanation: "Larger batch sizes improve GPU utilization and throughput".to_string(),
-                    }
-                ],
+"#
+                    .to_string(),
+                    explanation: "Larger batch sizes improve GPU utilization and throughput"
+                        .to_string(),
+                }],
             });
         }
 
@@ -795,10 +869,16 @@ for batch in batched_tensors {
             };
 
             let effort = match opt.implementation_effort {
-                crate::mlx::memory_tracker::ImplementationEffort::Minimal => ImplementationEffort::Minimal,
+                crate::mlx::memory_tracker::ImplementationEffort::Minimal => {
+                    ImplementationEffort::Minimal
+                }
                 crate::mlx::memory_tracker::ImplementationEffort::Low => ImplementationEffort::Low,
-                crate::mlx::memory_tracker::ImplementationEffort::Medium => ImplementationEffort::Medium,
-                crate::mlx::memory_tracker::ImplementationEffort::High => ImplementationEffort::High,
+                crate::mlx::memory_tracker::ImplementationEffort::Medium => {
+                    ImplementationEffort::Medium
+                }
+                crate::mlx::memory_tracker::ImplementationEffort::High => {
+                    ImplementationEffort::High
+                }
             };
 
             recommendations.push(OptimizationRecommendation {
@@ -821,7 +901,10 @@ for batch in batched_tensors {
     }
 
     /// Generate regression analysis
-    fn generate_regression_analysis(&self, metrics: &[MlxMetrics]) -> Result<Option<RegressionAnalysis>> {
+    fn generate_regression_analysis(
+        &self,
+        metrics: &[MlxMetrics],
+    ) -> Result<Option<RegressionAnalysis>> {
         if metrics.len() < 10 {
             return Ok(None); // Not enough data for regression analysis
         }
@@ -839,12 +922,18 @@ for batch in batched_tensors {
         let mut comparison_stats: HashMap<String, f64> = HashMap::new();
 
         for metric in baseline_metrics {
-            let key = format!("{}_{}", metric.operation_context.operation_name, metric.performance.device_type);
+            let key = format!(
+                "{}_{}",
+                metric.operation_context.operation_name, metric.performance.device_type
+            );
             baseline_stats.insert(key, metric.performance.throughput);
         }
 
         for metric in comparison_metrics {
-            let key = format!("{}_{}", metric.operation_context.operation_name, metric.performance.device_type);
+            let key = format!(
+                "{}_{}",
+                metric.operation_context.operation_name, metric.performance.device_type
+            );
             comparison_stats.insert(key, metric.performance.throughput);
         }
 
@@ -917,15 +1006,32 @@ for batch in batched_tensors {
     fn generate_appendix(&self, metrics: &[MlxMetrics]) -> Result<ReportAppendix> {
         let mut configuration_details = HashMap::new();
         configuration_details.insert("mlx_version".to_string(), "0.1.0".to_string());
-        configuration_details.insert("rust_version".to_string(),
-            std::env::var("RUSTC_VERSION").unwrap_or_else(|_| "unknown".to_string()));
-        configuration_details.insert("target_arch".to_string(), std::env::consts::ARCH.to_string());
+        configuration_details.insert(
+            "rust_version".to_string(),
+            std::env::var("RUSTC_VERSION").unwrap_or_else(|_| "unknown".to_string()),
+        );
+        configuration_details.insert(
+            "target_arch".to_string(),
+            std::env::consts::ARCH.to_string(),
+        );
 
         let mut glossary = HashMap::new();
-        glossary.insert("Throughput".to_string(), "Number of operations completed per second".to_string());
-        glossary.insert("Latency".to_string(), "Time taken to complete a single operation".to_string());
-        glossary.insert("Memory Efficiency".to_string(), "Ratio of useful memory to total allocated memory".to_string());
-        glossary.insert("Speedup".to_string(), "Performance improvement ratio between two configurations".to_string());
+        glossary.insert(
+            "Throughput".to_string(),
+            "Number of operations completed per second".to_string(),
+        );
+        glossary.insert(
+            "Latency".to_string(),
+            "Time taken to complete a single operation".to_string(),
+        );
+        glossary.insert(
+            "Memory Efficiency".to_string(),
+            "Ratio of useful memory to total allocated memory".to_string(),
+        );
+        glossary.insert(
+            "Speedup".to_string(),
+            "Performance improvement ratio between two configurations".to_string(),
+        );
 
         Ok(ReportAppendix {
             raw_metrics: metrics.to_vec(),
@@ -943,7 +1049,7 @@ for batch in batched_tensors {
     /// Generate HTML report
     pub fn generate_html_report(&self, report: &PerformanceReport) -> Result<String> {
         let mut html = String::new();
-        
+
         html.push_str("<!DOCTYPE html>\n<html>\n<head>\n");
         html.push_str("<title>MLX Performance Report</title>\n");
         html.push_str("<style>\n");
@@ -960,13 +1066,22 @@ for batch in batched_tensors {
 
         // Title and metadata
         html.push_str("<h1>MLX Performance Analysis Report</h1>\n");
-        html.push_str(&format!("<p>Generated: {:?}</p>\n", report.metadata.generated_at));
-        html.push_str(&format!("<p>Operations Analyzed: {}</p>\n", report.metadata.total_operations_analyzed));
+        html.push_str(&format!(
+            "<p>Generated: {:?}</p>\n",
+            report.metadata.generated_at
+        ));
+        html.push_str(&format!(
+            "<p>Operations Analyzed: {}</p>\n",
+            report.metadata.total_operations_analyzed
+        ));
 
         // Executive Summary
         html.push_str("<h2>Executive Summary</h2>\n");
-        html.push_str(&format!("<div class='metric'><strong>Overall Performance Score: {:.1}/100</strong></div>\n", report.executive_summary.overall_score));
-        
+        html.push_str(&format!(
+            "<div class='metric'><strong>Overall Performance Score: {:.1}/100</strong></div>\n",
+            report.executive_summary.overall_score
+        ));
+
         html.push_str("<h3>Key Findings</h3>\n<ul>\n");
         for finding in &report.executive_summary.key_findings {
             html.push_str(&format!("<li>{}</li>\n", finding));
@@ -1027,7 +1142,7 @@ for batch in batched_tensors {
             &[], // Empty memory events for now
             &[], // Empty optimizations for now
         )?;
-        
+
         serde_json::to_string_pretty(&report)
             .map_err(|e| anyhow::anyhow!("Failed to serialize report to JSON: {}", e))
     }
@@ -1037,11 +1152,9 @@ for batch in batched_tensors {
         if values.is_empty() {
             return 0.0;
         }
-        
+
         let mean = values.iter().sum::<f64>() / values.len() as f64;
-        let variance = values.iter()
-            .map(|x| (x - mean).powi(2))
-            .sum::<f64>() / values.len() as f64;
+        let variance = values.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / values.len() as f64;
         variance
     }
 
@@ -1059,13 +1172,14 @@ for batch in batched_tensors {
         for i in 0..10 {
             let range_start = min_latency + bucket_size * i as u32;
             let range_end = min_latency + bucket_size * (i + 1) as u32;
-            
-            let count = latencies.iter()
+
+            let count = latencies
+                .iter()
                 .filter(|&&lat| lat >= range_start && lat < range_end)
                 .count();
-            
+
             let percentage = count as f64 / latencies.len() as f64 * 100.0;
-            
+
             buckets.push(LatencyBucket {
                 range_start,
                 range_end,
@@ -1094,7 +1208,8 @@ for batch in batched_tensors {
         let iqr = q3.saturating_sub(q1);
         let outlier_threshold = q3 + iqr + iqr / 2; // 1.5 * IQR above Q3
 
-        let outlier_count = latencies.iter()
+        let outlier_count = latencies
+            .iter()
             .filter(|&&lat| lat > outlier_threshold)
             .count();
 

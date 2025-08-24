@@ -1,15 +1,15 @@
 //! Performance Comparison Framework
-//! 
+//!
 //! This module provides utilities for comparing MLX and Candle performance
 //! across different operations, tensor sizes, and device configurations.
 
+use candle_core::{DType, Device, Tensor};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use serde::{Serialize, Deserialize};
-use candle_core::{Tensor, Device, DType};
 
 #[cfg(feature = "mlx")]
-use bitnet_core::mlx::{MlxTensor, BitNetMlxDevice, operations::BitNetMlxOps};
+use bitnet_core::mlx::{operations::BitNetMlxOps, BitNetMlxDevice, MlxTensor};
 
 use crate::candle_ops::CandleOps;
 
@@ -52,15 +52,8 @@ impl Default for ComparisonConfig {
                 "quantize".to_string(),
                 "bitlinear".to_string(),
             ],
-            devices: vec![
-                "cpu".to_string(),
-                "metal".to_string(),
-                "mlx".to_string(),
-            ],
-            data_types: vec![
-                "f32".to_string(),
-                "f16".to_string(),
-            ],
+            devices: vec!["cpu".to_string(), "metal".to_string(), "mlx".to_string()],
+            data_types: vec!["f32".to_string(), "f16".to_string()],
             timeout: Duration::from_secs(30),
         }
     }
@@ -75,7 +68,7 @@ pub struct PerformanceMeasurement {
     pub tensor_size: (usize, usize),
     pub data_type: String,
     pub execution_time: Duration,
-    pub throughput: f64, // operations per second
+    pub throughput: f64,     // operations per second
     pub memory_usage: usize, // bytes
     pub success: bool,
     pub error_message: Option<String>,
@@ -115,20 +108,24 @@ impl PerformanceComparator {
     /// Run comprehensive performance comparison
     pub fn run_comparison(&mut self) -> anyhow::Result<Vec<ComparisonResult>> {
         println!("Starting performance comparison...");
-        
+
         // Run benchmarks for each configuration
         for operation in &self.config.operations.clone() {
             for &tensor_size in &self.config.tensor_sizes {
                 for data_type in &self.config.data_types.clone() {
                     // Benchmark Candle CPU
-                    if let Ok(measurement) = self.benchmark_candle_cpu(operation, tensor_size, data_type) {
+                    if let Ok(measurement) =
+                        self.benchmark_candle_cpu(operation, tensor_size, data_type)
+                    {
                         self.measurements.push(measurement);
                     }
 
                     // Benchmark Candle Metal (if available)
                     #[cfg(target_os = "macos")]
                     if Device::new_metal(0).is_ok() {
-                        if let Ok(measurement) = self.benchmark_candle_metal(operation, tensor_size, data_type) {
+                        if let Ok(measurement) =
+                            self.benchmark_candle_metal(operation, tensor_size, data_type)
+                        {
                             self.measurements.push(measurement);
                         }
                     }
@@ -262,7 +259,7 @@ impl PerformanceComparator {
         data_type: &str,
     ) -> anyhow::Result<PerformanceMeasurement> {
         use bitnet_core::tensor::BitNetDType;
-        
+
         let device = BitNetMlxDevice::default()?;
         let dtype = match data_type {
             "f32" => BitNetDType::F32,
@@ -317,7 +314,7 @@ impl PerformanceComparator {
         dtype: DType,
     ) -> anyhow::Result<Option<Tensor>> {
         let (rows, cols) = tensor_size;
-        
+
         match operation {
             "matmul" => {
                 let a = Tensor::randn(0f32, 1f32, (rows, cols), device)?;
@@ -364,7 +361,7 @@ impl PerformanceComparator {
         dtype: bitnet_core::tensor::BitNetDType,
     ) -> anyhow::Result<Option<MlxTensor>> {
         let (rows, cols) = tensor_size;
-        
+
         match operation {
             "matmul" => {
                 let a = MlxTensor::randn(&[rows, cols], dtype, device.clone())?;
@@ -431,10 +428,11 @@ impl PerformanceComparator {
     /// Generate comparison results
     fn generate_comparisons(&self) -> anyhow::Result<Vec<ComparisonResult>> {
         let mut comparisons = Vec::new();
-        
+
         // Group measurements by operation and tensor size
-        let mut grouped: HashMap<(String, (usize, usize)), Vec<&PerformanceMeasurement>> = HashMap::new();
-        
+        let mut grouped: HashMap<(String, (usize, usize)), Vec<&PerformanceMeasurement>> =
+            HashMap::new();
+
         for measurement in &self.measurements {
             let key = (measurement.operation.clone(), measurement.tensor_size);
             grouped.entry(key).or_default().push(measurement);
@@ -443,19 +441,27 @@ impl PerformanceComparator {
         // Generate comparisons for each group
         for ((operation, tensor_size), measurements) in grouped {
             // Find baseline (usually CPU Candle)
-            let baseline = measurements.iter()
+            let baseline = measurements
+                .iter()
                 .find(|m| m.backend == "candle" && m.device == "cpu")
                 .or_else(|| measurements.first());
 
             if let Some(baseline) = baseline {
                 for measurement in &measurements {
-                    if measurement.backend != baseline.backend || measurement.device != baseline.device {
-                        let speedup = baseline.execution_time.as_secs_f64() / measurement.execution_time.as_secs_f64();
+                    if measurement.backend != baseline.backend
+                        || measurement.device != baseline.device
+                    {
+                        let speedup = baseline.execution_time.as_secs_f64()
+                            / measurement.execution_time.as_secs_f64();
                         let throughput_ratio = measurement.throughput / baseline.throughput;
-                        let memory_ratio = measurement.memory_usage as f64 / baseline.memory_usage as f64;
-                        
+                        let memory_ratio =
+                            measurement.memory_usage as f64 / baseline.memory_usage as f64;
+
                         let recommendation = if speedup > 1.5 {
-                            format!("Use {} for better performance ({:.2}x speedup)", measurement.backend, speedup)
+                            format!(
+                                "Use {} for better performance ({:.2}x speedup)",
+                                measurement.backend, speedup
+                            )
                         } else if speedup < 0.8 {
                             format!("Use {} for better performance", baseline.backend)
                         } else {
@@ -466,7 +472,10 @@ impl PerformanceComparator {
                             operation: operation.clone(),
                             tensor_size,
                             baseline_backend: format!("{}_{}", baseline.backend, baseline.device),
-                            comparison_backend: format!("{}_{}", measurement.backend, measurement.device),
+                            comparison_backend: format!(
+                                "{}_{}",
+                                measurement.backend, measurement.device
+                            ),
                             baseline_time: baseline.execution_time,
                             comparison_time: measurement.execution_time,
                             speedup,
@@ -494,7 +503,7 @@ impl PerformanceComparator {
             "measurements": self.measurements,
             "timestamp": std::time::SystemTime::now(),
         });
-        
+
         serde_json::to_string_pretty(&data)
             .map_err(|e| anyhow::anyhow!("Failed to serialize results: {}", e))
     }
@@ -503,7 +512,7 @@ impl PerformanceComparator {
     pub fn export_csv(&self) -> String {
         let mut csv = String::new();
         csv.push_str("operation,backend,device,tensor_size,data_type,execution_time_ms,throughput,memory_usage,success\n");
-        
+
         for measurement in &self.measurements {
             csv.push_str(&format!(
                 "{},{},{},{}x{},{},{:.3},{:.2},{},{}\n",
@@ -519,7 +528,7 @@ impl PerformanceComparator {
                 measurement.success
             ));
         }
-        
+
         csv
     }
 }

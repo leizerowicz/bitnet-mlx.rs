@@ -18,30 +18,30 @@ pub struct QATTrainingState {
     pub epoch: usize,
     pub step: usize,
     pub learning_rate: f32,
-    
+
     // Loss tracking
     pub current_loss: f32,
     pub loss_history: Vec<f32>,
     pub validation_loss: Option<f32>,
     pub validation_history: Vec<f32>,
-    
+
     // Quantization metrics
     pub quantization_error: f32,
     pub ste_statistics: HashMap<String, STEStatistics>,
-    
+
     // Regularization state
     pub regularization_stats: Option<RegularizationStats>,
-    
+
     // Training performance
     pub training_time: f64, // seconds
     pub samples_processed: usize,
     pub throughput: f32, // samples per second
-    
+
     // Model performance
     pub validation_accuracy: Option<f32>,
     pub quantized_model_size: Option<usize>, // bytes
     pub compression_ratio: Option<f32>,
-    
+
     // Checkpointing info
     pub last_checkpoint_step: usize,
     pub checkpoint_path: Option<String>,
@@ -54,7 +54,7 @@ impl QATTrainingState {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
-            
+
         Self {
             epoch: 0,
             step: 0,
@@ -95,7 +95,7 @@ impl QATTrainingState {
         self.loss_history.push(loss);
         self.samples_processed += samples_this_step;
         self.training_time += step_time;
-        
+
         // Update throughput
         if self.training_time > 0.0 {
             self.throughput = self.samples_processed as f32 / self.training_time as f32;
@@ -118,7 +118,7 @@ impl QATTrainingState {
         } else {
             0.0
         };
-        
+
         self.ste_statistics = stats;
     }
 
@@ -163,11 +163,11 @@ pub struct TrainingMetrics {
 pub struct QATStateTracker {
     state: QATTrainingState,
     device: Device,
-    
+
     // Configuration
     checkpoint_frequency: usize,
     max_history_length: usize,
-    
+
     // Statistics tracking
     layer_statistics: HashMap<String, Vec<f32>>,
     performance_history: Vec<TrainingMetrics>,
@@ -186,25 +186,25 @@ impl QATStateTracker {
     }
 
     /// Update training state
-    pub fn update(&mut self, 
-        epoch: usize, 
-        step: usize, 
-        learning_rate: f32, 
+    pub fn update(&mut self,
+        epoch: usize,
+        step: usize,
+        learning_rate: f32,
         loss: f32,
         samples: usize,
         step_time: f64
     ) {
         self.state.update_training_metrics(epoch, step, learning_rate, loss, samples, step_time);
-        
+
         // Trim history if too long
         if self.state.loss_history.len() > self.max_history_length {
             self.state.loss_history.truncate(self.max_history_length / 2);
         }
-        
+
         // Update performance history
         let metrics = self.state.get_summary();
         self.performance_history.push(metrics);
-        
+
         // Trim performance history
         if self.performance_history.len() > 1000 {
             self.performance_history.truncate(500);
@@ -271,7 +271,7 @@ impl CheckpointManager {
     /// Save training state (simplified - in practice would use proper serialization)
     pub fn save_state(&self, state: &QATTrainingState, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
         let path = Path::new(&self.checkpoint_dir).join(filename);
-        
+
         // Create directory if it doesn't exist
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
@@ -305,7 +305,7 @@ impl CheckpointManager {
     pub fn load_state(&self, filename: &str) -> Result<QATTrainingState, Box<dyn std::error::Error>> {
         let path = Path::new(&self.checkpoint_dir).join(filename);
         let _content = std::fs::read_to_string(path)?;
-        
+
         // In a real implementation, we would deserialize from JSON/bincode
         // For now, return a new state
         Ok(QATTrainingState::new())
@@ -315,7 +315,7 @@ impl CheckpointManager {
     pub fn list_checkpoints(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let dir = std::fs::read_dir(&self.checkpoint_dir)?;
         let mut checkpoints = Vec::new();
-        
+
         for entry in dir {
             let entry = entry?;
             if let Some(filename) = entry.file_name().to_str() {
@@ -324,7 +324,7 @@ impl CheckpointManager {
                 }
             }
         }
-        
+
         checkpoints.sort();
         Ok(checkpoints)
     }

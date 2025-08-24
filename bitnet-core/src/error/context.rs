@@ -3,9 +3,9 @@
 //! This module provides utilities for adding rich context information to errors,
 //! making debugging and error analysis more effective.
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
-use serde::{Deserialize, Serialize};
 
 /// Rich context information for errors
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -86,8 +86,8 @@ impl ErrorContext {
 
     /// Checks if the context is empty
     pub fn is_empty(&self) -> bool {
-        self.data.is_empty() 
-            && self.stack_trace.is_none() 
+        self.data.is_empty()
+            && self.stack_trace.is_none()
             && self.source_location.is_none()
             && self.operation.is_none()
             && self.description.is_none()
@@ -98,19 +98,19 @@ impl ErrorContext {
         for (key, value) in &other.data {
             self.data.insert(key.clone(), value.clone());
         }
-        
+
         if other.stack_trace.is_some() {
             self.stack_trace = other.stack_trace.clone();
         }
-        
+
         if other.source_location.is_some() {
             self.source_location = other.source_location.clone();
         }
-        
+
         if other.operation.is_some() {
             self.operation = other.operation.clone();
         }
-        
+
         if other.description.is_some() {
             self.description = other.description.clone();
         }
@@ -136,26 +136,26 @@ impl Default for ErrorContext {
 impl fmt::Display for ErrorContext {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut parts = Vec::new();
-        
+
         if let Some(ref operation) = self.operation {
             parts.push(format!("operation={}", operation));
         }
-        
+
         if let Some(ref description) = self.description {
             parts.push(format!("description=\"{}\"", description));
         }
-        
+
         for (key, value) in &self.data {
             parts.push(format!("{}={}", key, value));
         }
-        
+
         if let Some(ref location) = self.source_location {
             parts.push(format!("location={}:{}", location.file, location.line));
             if let Some(ref function) = location.function {
                 parts.push(format!("function={}", function));
             }
         }
-        
+
         write!(f, "{}", parts.join(", "))
     }
 }
@@ -229,10 +229,10 @@ impl Default for ErrorContextBuilder {
 pub trait ContextualError {
     /// Adds context to the error
     fn with_context(self, context: ErrorContext) -> Self;
-    
+
     /// Adds a simple context message
     fn with_context_msg(self, message: &str) -> Self;
-    
+
     /// Adds operation context
     fn with_operation(self, operation: &str) -> Self;
 }
@@ -286,10 +286,10 @@ mod tests {
     fn test_error_context_creation() {
         let mut context = ErrorContext::new();
         assert!(context.is_empty());
-        
+
         context.add("key1", "value1");
         context.add("key2", "value2");
-        
+
         assert!(!context.is_empty());
         assert_eq!(context.len(), 2);
         assert_eq!(context.get("key1"), Some(&"value1".to_string()));
@@ -304,10 +304,13 @@ mod tests {
             .description("Failed to allocate GPU buffer")
             .source_location("memory.rs", 42)
             .build();
-        
+
         assert_eq!(context.get("device"), Some(&"Metal".to_string()));
         assert_eq!(context.operation, Some("memory_management".to_string()));
-        assert_eq!(context.description, Some("Failed to allocate GPU buffer".to_string()));
+        assert_eq!(
+            context.description,
+            Some("Failed to allocate GPU buffer".to_string())
+        );
         assert!(context.source_location.is_some());
     }
 
@@ -316,13 +319,13 @@ mod tests {
         let mut context1 = ErrorContext::new();
         context1.add("key1", "value1");
         context1.set_operation("op1");
-        
+
         let mut context2 = ErrorContext::new();
         context2.add("key2", "value2");
         context2.set_description("desc2");
-        
+
         context1.merge(&context2);
-        
+
         assert_eq!(context1.get("key1"), Some(&"value1".to_string()));
         assert_eq!(context1.get("key2"), Some(&"value2".to_string()));
         assert_eq!(context1.operation, Some("op1".to_string()));
@@ -336,7 +339,7 @@ mod tests {
             .add("device", "CPU")
             .add("size", "1024")
             .build();
-        
+
         let display_str = format!("{}", context);
         assert!(display_str.contains("operation=test_operation"));
         assert!(display_str.contains("device=CPU"));
@@ -351,10 +354,10 @@ mod tests {
             column: Some(10),
             function: Some("test_function".to_string()),
         };
-        
+
         let mut context = ErrorContext::new();
         context.set_source_location(location);
-        
+
         assert!(context.source_location.is_some());
         let loc = context.source_location.as_ref().unwrap();
         assert_eq!(loc.file, "test.rs");

@@ -1,5 +1,5 @@
 //! MLX Advanced Performance Profiler
-//! 
+//!
 //! This module provides detailed performance profiling capabilities for MLX operations,
 //! including call stack analysis, hotspot detection, and performance bottleneck identification.
 
@@ -7,16 +7,16 @@
 use mlx_rs::Array;
 
 use crate::mlx::{
-    MlxTensor, BitNetMlxDevice,
-    performance::PerformanceMetrics,
-    memory_tracker::{MlxMemoryTracker, MemoryEvent},
+    memory_tracker::{MemoryEvent, MlxMemoryTracker},
     metrics::{MlxMetrics, OperationContext},
+    performance::PerformanceMetrics,
+    BitNetMlxDevice, MlxTensor,
 };
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime};
-use serde::{Serialize, Deserialize};
 
 /// Profiling session configuration
 #[derive(Debug, Clone)]
@@ -404,10 +404,14 @@ impl MlxAdvancedProfiler {
 
             // Analyze collected data
             if self.config.enable_hotspot_detection {
-                session.hotspots = self.hotspot_detector.analyze_hotspots(&session.call_stacks)?;
+                session.hotspots = self
+                    .hotspot_detector
+                    .analyze_hotspots(&session.call_stacks)?;
             }
 
-            session.bottlenecks = self.bottleneck_analyzer.analyze_bottlenecks(&session.performance_timeline)?;
+            session.bottlenecks = self
+                .bottleneck_analyzer
+                .analyze_bottlenecks(&session.performance_timeline)?;
 
             // Analyze memory profile
             if self.config.enable_memory_profiling {
@@ -484,24 +488,26 @@ impl MlxAdvancedProfiler {
     /// Generate flame graph data
     pub fn generate_flame_graph(&self, session: &ProfilingSession) -> Result<String> {
         let mut flame_graph_data = String::new();
-        
+
         // Aggregate call stacks
         let mut stack_counts: HashMap<String, usize> = HashMap::new();
-        
+
         for sample in &session.call_stacks {
-            let stack_trace = sample.stack_frames.iter()
+            let stack_trace = sample
+                .stack_frames
+                .iter()
                 .map(|frame| frame.function_name.clone())
                 .collect::<Vec<_>>()
                 .join(";");
-            
+
             *stack_counts.entry(stack_trace).or_insert(0) += 1;
         }
-        
+
         // Generate flame graph format
         for (stack, count) in stack_counts {
             flame_graph_data.push_str(&format!("{} {}\n", stack, count));
         }
-        
+
         Ok(flame_graph_data)
     }
 
@@ -526,12 +532,14 @@ impl MlxAdvancedProfiler {
     }
 
     /// Export profiling session
-    pub fn export_session(&self, session: &ProfilingSession, format: ProfileOutputFormat) -> Result<String> {
+    pub fn export_session(
+        &self,
+        session: &ProfilingSession,
+        format: ProfileOutputFormat,
+    ) -> Result<String> {
         match format {
-            ProfileOutputFormat::Json => {
-                serde_json::to_string_pretty(session)
-                    .map_err(|e| anyhow::anyhow!("Failed to serialize session: {}", e))
-            }
+            ProfileOutputFormat::Json => serde_json::to_string_pretty(session)
+                .map_err(|e| anyhow::anyhow!("Failed to serialize session: {}", e)),
             ProfileOutputFormat::FlameGraph => self.generate_flame_graph(session),
             ProfileOutputFormat::CallTree => self.generate_call_tree(session),
             ProfileOutputFormat::Timeline => self.generate_timeline(session),
@@ -551,16 +559,14 @@ impl MlxAdvancedProfiler {
         let sample = CallStackSample {
             timestamp: SystemTime::now(),
             thread_id: format!("{:?}", std::thread::current().id()),
-            stack_frames: vec![
-                StackFrame {
-                    function_name: operation_name.to_string(),
-                    file_name: Some("mlx_operations.rs".to_string()),
-                    line_number: Some(42),
-                    module_name: "bitnet_core::mlx".to_string(),
-                    execution_time: Duration::from_millis(1),
-                    memory_allocated: 1024,
-                }
-            ],
+            stack_frames: vec![StackFrame {
+                function_name: operation_name.to_string(),
+                file_name: Some("mlx_operations.rs".to_string()),
+                line_number: Some(42),
+                module_name: "bitnet_core::mlx".to_string(),
+                execution_time: Duration::from_millis(1),
+                memory_allocated: 1024,
+            }],
             cpu_usage: self.get_cpu_usage(),
             memory_usage: 1024 * 1024, // 1MB placeholder
         };
@@ -592,8 +598,9 @@ impl MlxAdvancedProfiler {
 
     fn analyze_memory_profile(&self, tracker: &MlxMemoryTracker) -> Result<MemoryProfile> {
         let events = tracker.get_events();
-        
-        let allocation_timeline: Vec<AllocationEvent> = events.iter()
+
+        let allocation_timeline: Vec<AllocationEvent> = events
+            .iter()
             .map(|event| AllocationEvent {
                 timestamp: event.timestamp,
                 event_type: format!("{:?}", event.event_type),
@@ -664,14 +671,23 @@ impl MlxAdvancedProfiler {
         summary.push_str("========================\n\n");
 
         summary.push_str(&format!("Session ID: {}\n", session.session_id));
-        summary.push_str(&format!("Duration: {:?}\n", 
-            session.end_time.unwrap_or(SystemTime::now())
+        summary.push_str(&format!(
+            "Duration: {:?}\n",
+            session
+                .end_time
+                .unwrap_or(SystemTime::now())
                 .duration_since(session.start_time)
                 .unwrap_or(Duration::ZERO)
         ));
-        summary.push_str(&format!("Call Stack Samples: {}\n", session.call_stacks.len()));
+        summary.push_str(&format!(
+            "Call Stack Samples: {}\n",
+            session.call_stacks.len()
+        ));
         summary.push_str(&format!("Hotspots Detected: {}\n", session.hotspots.len()));
-        summary.push_str(&format!("Bottlenecks Found: {}\n", session.bottlenecks.len()));
+        summary.push_str(&format!(
+            "Bottlenecks Found: {}\n",
+            session.bottlenecks.len()
+        ));
 
         if !session.hotspots.is_empty() {
             summary.push_str("\nTop Hotspots:\n");
@@ -704,16 +720,15 @@ impl HotspotDetector {
         // Aggregate function execution times
         for sample in call_stacks {
             for frame in &sample.stack_frames {
-                let (total_time, count) = function_stats.entry(frame.function_name.clone())
+                let (total_time, count) = function_stats
+                    .entry(frame.function_name.clone())
                     .or_insert((Duration::ZERO, 0));
                 *total_time += frame.execution_time;
                 *count += 1;
             }
         }
 
-        let total_time: Duration = function_stats.values()
-            .map(|(time, _)| *time)
-            .sum();
+        let total_time: Duration = function_stats.values().map(|(time, _)| *time).sum();
 
         let mut hotspots = Vec::new();
         for (function_name, (total_function_time, call_count)) in function_stats {
@@ -723,7 +738,8 @@ impl HotspotDetector {
                 0.0
             };
 
-            if percentage > 1.0 { // Only include functions that take >1% of total time
+            if percentage > 1.0 {
+                // Only include functions that take >1% of total time
                 hotspots.push(Hotspot {
                     function_name: function_name.clone(),
                     total_time: total_function_time,
@@ -746,7 +762,11 @@ impl HotspotDetector {
         }
 
         // Sort by percentage of total time
-        hotspots.sort_by(|a, b| b.percentage_of_total.partial_cmp(&a.percentage_of_total).unwrap());
+        hotspots.sort_by(|a, b| {
+            b.percentage_of_total
+                .partial_cmp(&a.percentage_of_total)
+                .unwrap()
+        });
 
         Ok(hotspots)
     }
@@ -760,11 +780,15 @@ impl BottleneckAnalyzer {
         Self
     }
 
-    fn analyze_bottlenecks(&self, timeline: &[PerformanceTimelineEntry]) -> Result<Vec<PerformanceBottleneck>> {
+    fn analyze_bottlenecks(
+        &self,
+        timeline: &[PerformanceTimelineEntry],
+    ) -> Result<Vec<PerformanceBottleneck>> {
         let mut bottlenecks = Vec::new();
 
         // Analyze CPU utilization
-        let avg_cpu_usage: f64 = timeline.iter().map(|e| e.cpu_usage).sum::<f64>() / timeline.len() as f64;
+        let avg_cpu_usage: f64 =
+            timeline.iter().map(|e| e.cpu_usage).sum::<f64>() / timeline.len() as f64;
         if avg_cpu_usage > 80.0 {
             bottlenecks.push(PerformanceBottleneck {
                 bottleneck_type: BottleneckType::CpuBound,
@@ -781,13 +805,15 @@ impl BottleneckAnalyzer {
         }
 
         // Analyze GPU utilization
-        let avg_gpu_usage: f64 = timeline.iter().map(|e| e.gpu_usage).sum::<f64>() / timeline.len() as f64;
+        let avg_gpu_usage: f64 =
+            timeline.iter().map(|e| e.gpu_usage).sum::<f64>() / timeline.len() as f64;
         if avg_gpu_usage < 30.0 {
             bottlenecks.push(PerformanceBottleneck {
                 bottleneck_type: BottleneckType::GpuUtilization,
                 severity: BottleneckSeverity::Medium,
                 description: "Low GPU utilization detected".to_string(),
-                affected_operations: timeline.iter()
+                affected_operations: timeline
+                    .iter()
                     .filter(|e| e.device == "gpu")
                     .map(|e| e.operation.clone())
                     .collect(),

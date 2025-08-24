@@ -36,7 +36,7 @@ impl PaddingOptions {
     /// Calculate the actual target length considering multiple constraint
     pub fn calculate_target_length(&self, current_length: usize) -> usize {
         let base_target = self.target_length.max(current_length);
-        
+
         if let Some(multiple) = self.pad_to_multiple {
             if multiple > 0 {
                 ((base_target + multiple - 1) / multiple) * multiple
@@ -70,15 +70,15 @@ impl PaddingOptions {
 pub fn pad_sequence(sequence: Vec<u32>, options: &PaddingOptions) -> SequenceResult<Vec<u32>> {
     let current_length = sequence.len();
     let target_length = options.calculate_target_length(current_length);
-    
+
     if current_length >= target_length {
         return Ok(sequence);
     }
-    
+
     let mut padded = sequence;
     let padding_needed = target_length - current_length;
     padded.extend(vec![options.pad_token; padding_needed]);
-    
+
     Ok(padded)
 }
 
@@ -91,7 +91,11 @@ pub fn pad_sequence(sequence: Vec<u32>, options: &PaddingOptions) -> SequenceRes
 ///
 /// # Returns
 /// The padded sequence
-pub fn pad_to_length(sequence: Vec<u32>, pad_token: u32, target_length: usize) -> SequenceResult<Vec<u32>> {
+pub fn pad_to_length(
+    sequence: Vec<u32>,
+    pad_token: u32,
+    target_length: usize,
+) -> SequenceResult<Vec<u32>> {
     let options = PaddingOptions::new(pad_token, target_length);
     pad_sequence(sequence, &options)
 }
@@ -113,17 +117,17 @@ pub fn pad_sequences_to_length(
     if sequences.is_empty() {
         return Ok(sequences);
     }
-    
+
     let max_length = sequences.iter().map(|s| s.len()).max().unwrap_or(0);
     let final_length = target_length.unwrap_or(max_length);
-    
+
     let mut padded_sequences = Vec::with_capacity(sequences.len());
-    
+
     for sequence in sequences {
         let padded = pad_to_length(sequence, pad_token, final_length)?;
         padded_sequences.push(padded);
     }
-    
+
     Ok(padded_sequences)
 }
 
@@ -158,17 +162,17 @@ pub fn pad_to_multiple(
             message: "Multiple cannot be zero".to_string(),
         });
     }
-    
+
     let mut padded_sequences = Vec::with_capacity(sequences.len());
-    
+
     for sequence in sequences {
         let current_length = sequence.len();
         let target_length = ((current_length + multiple - 1) / multiple) * multiple;
-        
+
         let padded = pad_to_length(sequence, pad_token, target_length)?;
         padded_sequences.push(padded);
     }
-    
+
     Ok(padded_sequences)
 }
 
@@ -181,15 +185,19 @@ pub fn pad_to_multiple(
 ///
 /// # Returns
 /// The left-padded sequence
-pub fn left_pad_sequence(sequence: Vec<u32>, pad_token: u32, target_length: usize) -> SequenceResult<Vec<u32>> {
+pub fn left_pad_sequence(
+    sequence: Vec<u32>,
+    pad_token: u32,
+    target_length: usize,
+) -> SequenceResult<Vec<u32>> {
     if sequence.len() >= target_length {
         return Ok(sequence);
     }
-    
+
     let padding_needed = target_length - sequence.len();
     let mut padded = vec![pad_token; padding_needed];
     padded.extend(sequence);
-    
+
     Ok(padded)
 }
 
@@ -202,7 +210,11 @@ pub fn left_pad_sequence(sequence: Vec<u32>, pad_token: u32, target_length: usiz
 ///
 /// # Returns
 /// The right-padded sequence
-pub fn right_pad_sequence(sequence: Vec<u32>, pad_token: u32, target_length: usize) -> SequenceResult<Vec<u32>> {
+pub fn right_pad_sequence(
+    sequence: Vec<u32>,
+    pad_token: u32,
+    target_length: usize,
+) -> SequenceResult<Vec<u32>> {
     pad_to_length(sequence, pad_token, target_length)
 }
 
@@ -216,7 +228,7 @@ pub fn right_pad_sequence(sequence: Vec<u32>, pad_token: u32, target_length: usi
 /// The sequence with padding removed from the end
 pub fn remove_padding(sequence: Vec<u32>, pad_token: u32) -> Vec<u32> {
     let mut result = sequence;
-    
+
     // Remove padding tokens from the end
     while let Some(&last) = result.last() {
         if last == pad_token {
@@ -225,7 +237,7 @@ pub fn remove_padding(sequence: Vec<u32>, pad_token: u32) -> Vec<u32> {
             break;
         }
     }
-    
+
     result
 }
 
@@ -239,7 +251,7 @@ pub fn remove_padding(sequence: Vec<u32>, pad_token: u32) -> Vec<u32> {
 /// The sequence with padding removed from the beginning
 pub fn remove_left_padding(sequence: Vec<u32>, pad_token: u32) -> Vec<u32> {
     let mut start_idx = 0;
-    
+
     // Find first non-padding token
     for (i, &token) in sequence.iter().enumerate() {
         if token != pad_token {
@@ -247,7 +259,7 @@ pub fn remove_left_padding(sequence: Vec<u32>, pad_token: u32) -> Vec<u32> {
             break;
         }
     }
-    
+
     sequence[start_idx..].to_vec()
 }
 
@@ -271,31 +283,31 @@ impl PaddingStats {
         let total_original_tokens: usize = original_sequences.iter().map(|s| s.len()).sum();
         let total_final_tokens: usize = padded_sequences.iter().map(|s| s.len()).sum();
         let total_padding_added = total_final_tokens - total_original_tokens;
-        
+
         let avg_original_length = if total_sequences > 0 {
             total_original_tokens as f32 / total_sequences as f32
         } else {
             0.0
         };
-        
+
         let avg_final_length = if total_sequences > 0 {
             total_final_tokens as f32 / total_sequences as f32
         } else {
             0.0
         };
-        
+
         let avg_padding_per_sequence = if total_sequences > 0 {
             total_padding_added as f32 / total_sequences as f32
         } else {
             0.0
         };
-        
+
         let padding_efficiency = if total_final_tokens > 0 {
             total_original_tokens as f32 / total_final_tokens as f32
         } else {
             1.0
         };
-        
+
         Self {
             total_sequences,
             total_original_tokens,
@@ -332,13 +344,13 @@ mod tests {
     #[test]
     fn test_pad_to_multiple() {
         let sequences = vec![
-            vec![1, 2, 3],      // length 3 -> pad to 4
+            vec![1, 2, 3],       // length 3 -> pad to 4
             vec![4, 5, 6, 7, 8], // length 5 -> pad to 8
             vec![9, 10],         // length 2 -> pad to 4
         ];
-        
+
         let padded = pad_to_multiple(sequences, 0, 4).unwrap();
-        
+
         assert_eq!(padded[0], vec![1, 2, 3, 0]);
         assert_eq!(padded[1], vec![4, 5, 6, 7, 8, 0, 0, 0]);
         assert_eq!(padded[2], vec![9, 10, 0, 0]);
@@ -367,14 +379,10 @@ mod tests {
 
     #[test]
     fn test_pad_sequences_to_longest() {
-        let sequences = vec![
-            vec![1, 2, 3],
-            vec![4, 5, 6, 7, 8],
-            vec![9, 10],
-        ];
-        
+        let sequences = vec![vec![1, 2, 3], vec![4, 5, 6, 7, 8], vec![9, 10]];
+
         let padded = pad_to_longest(sequences, 0).unwrap();
-        
+
         assert_eq!(padded[0], vec![1, 2, 3, 0, 0]);
         assert_eq!(padded[1], vec![4, 5, 6, 7, 8]);
         assert_eq!(padded[2], vec![9, 10, 0, 0, 0]);
@@ -383,33 +391,25 @@ mod tests {
     #[test]
     fn test_padding_options_with_multiple() {
         let options = PaddingOptions::new(0, 10).with_multiple(8);
-        
+
         // Current length 5, target 10, multiple 8 -> should pad to 16
         assert_eq!(options.calculate_target_length(5), 16);
-        
+
         // Current length 12, target 10, multiple 8 -> should pad to 16
         assert_eq!(options.calculate_target_length(12), 16);
     }
 
     #[test]
     fn test_padding_stats() {
-        let original = vec![
-            vec![1, 2, 3],
-            vec![4, 5, 6, 7],
-            vec![8, 9],
-        ];
-        
-        let padded = vec![
-            vec![1, 2, 3, 0],
-            vec![4, 5, 6, 7],
-            vec![8, 9, 0, 0],
-        ];
-        
+        let original = vec![vec![1, 2, 3], vec![4, 5, 6, 7], vec![8, 9]];
+
+        let padded = vec![vec![1, 2, 3, 0], vec![4, 5, 6, 7], vec![8, 9, 0, 0]];
+
         let stats = PaddingStats::calculate(&original, &padded);
-        
+
         assert_eq!(stats.total_sequences, 3);
         assert_eq!(stats.total_original_tokens, 9); // 3 + 4 + 2
-        assert_eq!(stats.total_final_tokens, 12);   // 4 + 4 + 4
+        assert_eq!(stats.total_final_tokens, 12); // 4 + 4 + 4
         assert_eq!(stats.total_padding_added, 3);
         assert_eq!(stats.avg_original_length, 3.0);
         assert_eq!(stats.avg_final_length, 4.0);

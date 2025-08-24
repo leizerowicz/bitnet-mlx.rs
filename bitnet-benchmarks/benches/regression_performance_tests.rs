@@ -1,18 +1,16 @@
 //! Performance Regression Testing Benchmarks
-//! 
+//!
 //! This benchmark suite provides automated performance regression detection
 //! and continuous performance monitoring for BitNet operations.
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use candle_core::{Tensor, Device};
-use std::time::{Duration, Instant};
+use candle_core::{Device, Tensor};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
+use std::time::{Duration, Instant};
 
 #[cfg(feature = "mlx")]
-use bitnet_core::mlx::{
-    MlxTensor, BitNetMlxDevice, operations::BitNetMlxOps,
-};
+use bitnet_core::mlx::{operations::BitNetMlxOps, BitNetMlxDevice, MlxTensor};
 
 /// Performance baseline for regression testing
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,10 +40,10 @@ struct RegressionResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 enum RegressionSeverity {
     None,
-    Minor,      // 5-15% degradation
-    Moderate,   // 15-30% degradation
-    Major,      // 30-50% degradation
-    Critical,   // >50% degradation
+    Minor,    // 5-15% degradation
+    Moderate, // 15-30% degradation
+    Major,    // 30-50% degradation
+    Critical, // >50% degradation
 }
 
 /// Regression detector utility
@@ -63,20 +61,31 @@ impl RegressionDetector {
     }
 
     fn add_baseline(&mut self, baseline: PerformanceBaseline) {
-        let key = format!("{}_{}_{}x{}", 
-            baseline.operation, baseline.device, 
-            baseline.tensor_size.0, baseline.tensor_size.1);
+        let key = format!(
+            "{}_{}_{}x{}",
+            baseline.operation, baseline.device, baseline.tensor_size.0, baseline.tensor_size.1
+        );
         self.baselines.insert(key, baseline);
     }
 
-    fn check_regression(&self, operation: &str, device: &str, tensor_size: (usize, usize), 
-                       current_time: Duration) -> Option<RegressionResult> {
-        let key = format!("{}_{}_{}x{}", operation, device, tensor_size.0, tensor_size.1);
-        
+    fn check_regression(
+        &self,
+        operation: &str,
+        device: &str,
+        tensor_size: (usize, usize),
+        current_time: Duration,
+    ) -> Option<RegressionResult> {
+        let key = format!(
+            "{}_{}_{}x{}",
+            operation, device, tensor_size.0, tensor_size.1
+        );
+
         if let Some(baseline) = self.baselines.get(&key) {
-            let performance_change = ((current_time.as_secs_f64() - baseline.baseline_time.as_secs_f64()) 
-                / baseline.baseline_time.as_secs_f64()) * 100.0;
-            
+            let performance_change = ((current_time.as_secs_f64()
+                - baseline.baseline_time.as_secs_f64())
+                / baseline.baseline_time.as_secs_f64())
+                * 100.0;
+
             let is_regression = performance_change > self.tolerance_percent;
             let severity = if performance_change > 50.0 {
                 RegressionSeverity::Critical
@@ -108,13 +117,13 @@ impl RegressionDetector {
 /// Core operation regression tests
 fn bench_core_operations_regression(c: &mut Criterion) {
     let mut group = c.benchmark_group("core_operations_regression");
-    
+
     group.warm_up_time(Duration::from_secs(2));
     group.measurement_time(Duration::from_secs(8));
 
     // Define baseline expectations (these would typically be loaded from a file)
     let mut detector = RegressionDetector::new(10.0); // 10% tolerance
-    
+
     // Add some example baselines (in practice, these would be historical data)
     detector.add_baseline(PerformanceBaseline {
         operation: "matmul".to_string(),
@@ -144,13 +153,13 @@ fn bench_core_operations_regression(c: &mut Criterion) {
                 &(rows, cols),
                 |bencher, &(rows, cols)| {
                     let device = Device::Cpu;
-                    
+
                     bencher.iter_custom(|iters| {
                         let mut total_time = Duration::ZERO;
-                        
+
                         for _ in 0..iters {
                             let start = Instant::now();
-                            
+
                             match operation {
                                 "matmul" => {
                                     let a = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
@@ -176,19 +185,19 @@ fn bench_core_operations_regression(c: &mut Criterion) {
                                 },
                                 _ => {}
                             }
-                            
+
                             total_time += start.elapsed();
                         }
-                        
+
                         // Check for regression
                         let avg_time = total_time / iters as u32;
                         if let Some(regression) = detector.check_regression(operation, "cpu", (rows, cols), avg_time) {
                             if regression.is_regression {
-                                eprintln!("⚠️  Performance regression detected in {} on CPU: {:.1}% slower", 
+                                eprintln!("⚠️  Performance regression detected in {} on CPU: {:.1}% slower",
                                     operation, regression.performance_change);
                             }
                         }
-                        
+
                         total_time
                     })
                 },
@@ -203,13 +212,13 @@ fn bench_core_operations_regression(c: &mut Criterion) {
                     |bencher, &(rows, cols)| {
                         use bitnet_core::memory::tensor::BitNetDType;
                         let device = BitNetMlxDevice::default();
-                        
+
                         bencher.iter_custom(|iters| {
                             let mut total_time = Duration::ZERO;
-                            
+
                             for _ in 0..iters {
                                 let start = Instant::now();
-                                
+
                                 match operation {
                                     "matmul" => {
                                         let a = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
@@ -232,19 +241,19 @@ fn bench_core_operations_regression(c: &mut Criterion) {
                                     },
                                     _ => {}
                                 }
-                                
+
                                 total_time += start.elapsed();
                             }
-                            
+
                             // Check for regression
                             let avg_time = total_time / iters as u32;
                             if let Some(regression) = detector.check_regression(operation, "mlx", (rows, cols), avg_time) {
                                 if regression.is_regression {
-                                    eprintln!("⚠️  Performance regression detected in {} on MLX: {:.1}% slower", 
+                                    eprintln!("⚠️  Performance regression detected in {} on MLX: {:.1}% slower",
                                         operation, regression.performance_change);
                                 }
                             }
-                            
+
                             total_time
                         })
                     },
@@ -259,7 +268,7 @@ fn bench_core_operations_regression(c: &mut Criterion) {
 /// Memory usage regression tests
 fn bench_memory_regression(c: &mut Criterion) {
     let mut group = c.benchmark_group("memory_regression");
-    
+
     group.warm_up_time(Duration::from_secs(2));
     group.measurement_time(Duration::from_secs(6));
 
@@ -271,65 +280,61 @@ fn bench_memory_regression(c: &mut Criterion) {
 
     for (scenario_name, tensor_sizes) in memory_scenarios {
         // CPU memory regression test
-        group.bench_function(
-            format!("cpu_memory_{scenario_name}"),
-            |bencher| {
-                bencher.iter(|| {
-                    let device = Device::Cpu;
-                    let mut tensors = Vec::new();
-                    
-                    // Allocate tensors
-                    for &(rows, cols) in &tensor_sizes {
-                        let tensor = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
-                        tensors.push(tensor);
-                    }
-                    
-                    // Perform operations
-                    for i in 0..tensors.len().min(5) {
-                        for j in (i + 1)..tensors.len().min(5) {
-                            if tensors[i].shape() == tensors[j].shape() {
-                                let result = (&tensors[i] + &tensors[j]).unwrap();
-                                black_box(result);
-                            }
+        group.bench_function(format!("cpu_memory_{scenario_name}"), |bencher| {
+            bencher.iter(|| {
+                let device = Device::Cpu;
+                let mut tensors = Vec::new();
+
+                // Allocate tensors
+                for &(rows, cols) in &tensor_sizes {
+                    let tensor = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
+                    tensors.push(tensor);
+                }
+
+                // Perform operations
+                for i in 0..tensors.len().min(5) {
+                    for j in (i + 1)..tensors.len().min(5) {
+                        if tensors[i].shape() == tensors[j].shape() {
+                            let result = (&tensors[i] + &tensors[j]).unwrap();
+                            black_box(result);
                         }
                     }
-                    
-                    black_box(tensors)
-                })
-            },
-        );
+                }
+
+                black_box(tensors)
+            })
+        });
 
         // MLX memory regression test
         #[cfg(feature = "mlx")]
         {
-            group.bench_function(
-                &format!("mlx_memory_{}", scenario_name),
-                |bencher| {
-                    bencher.iter(|| {
-                        use bitnet_core::memory::tensor::BitNetDType;
-                        let device = BitNetMlxDevice::default();
-                        let mut tensors = Vec::new();
-                        
-                        // Allocate tensors
-                        for &(rows, cols) in &tensor_sizes {
-                            let tensor = MlxTensor::randn(&[rows, cols], BitNetDType::F32, device.clone()).unwrap();
-                            tensors.push(tensor);
-                        }
-                        
-                        // Perform operations
-                        for i in 0..tensors.len().min(5) {
-                            for j in (i + 1)..tensors.len().min(5) {
-                                if tensors[i].shape() == tensors[j].shape() {
-                                    let result = BitNetMlxOps::add(&tensors[i], &tensors[j]).unwrap();
-                                    black_box(result);
-                                }
+            group.bench_function(&format!("mlx_memory_{}", scenario_name), |bencher| {
+                bencher.iter(|| {
+                    use bitnet_core::memory::tensor::BitNetDType;
+                    let device = BitNetMlxDevice::default();
+                    let mut tensors = Vec::new();
+
+                    // Allocate tensors
+                    for &(rows, cols) in &tensor_sizes {
+                        let tensor =
+                            MlxTensor::randn(&[rows, cols], BitNetDType::F32, device.clone())
+                                .unwrap();
+                        tensors.push(tensor);
+                    }
+
+                    // Perform operations
+                    for i in 0..tensors.len().min(5) {
+                        for j in (i + 1)..tensors.len().min(5) {
+                            if tensors[i].shape() == tensors[j].shape() {
+                                let result = BitNetMlxOps::add(&tensors[i], &tensors[j]).unwrap();
+                                black_box(result);
                             }
                         }
-                        
-                        black_box(tensors)
-                    })
-                },
-            );
+                    }
+
+                    black_box(tensors)
+                })
+            });
         }
     }
 
@@ -339,7 +344,7 @@ fn bench_memory_regression(c: &mut Criterion) {
 /// Throughput regression tests
 fn bench_throughput_regression(c: &mut Criterion) {
     let mut group = c.benchmark_group("throughput_regression");
-    
+
     group.warm_up_time(Duration::from_secs(3));
     group.measurement_time(Duration::from_secs(10));
 
@@ -356,13 +361,13 @@ fn bench_throughput_regression(c: &mut Criterion) {
             &batch_size,
             |bencher, &batch_size| {
                 let device = Device::Cpu;
-                
+
                 bencher.iter_custom(|iters| {
                     let mut total_time = Duration::ZERO;
-                    
+
                     for _ in 0..iters {
                         let start = Instant::now();
-                        
+
                         // Simulate batch processing
                         for _ in 0..batch_size {
                             let a = Tensor::randn(0f32, 1f32, tensor_size, &device).unwrap();
@@ -370,14 +375,14 @@ fn bench_throughput_regression(c: &mut Criterion) {
                             let result = a.matmul(&b).unwrap();
                             black_box(result);
                         }
-                        
+
                         total_time += start.elapsed();
                     }
-                    
+
                     // Calculate and check throughput
                     let avg_time = total_time / iters as u32;
                     let throughput = batch_size as f64 / avg_time.as_secs_f64();
-                    
+
                     // Expected throughput baselines (these would be loaded from historical data)
                     let expected_throughput = match batch_size {
                         1 => 1.0,
@@ -387,13 +392,16 @@ fn bench_throughput_regression(c: &mut Criterion) {
                         64 => 20.0,
                         _ => 1.0,
                     };
-                    
-                    let throughput_change = ((throughput - expected_throughput) / expected_throughput) * 100.0;
+
+                    let throughput_change =
+                        ((throughput - expected_throughput) / expected_throughput) * 100.0;
                     if throughput_change < -10.0 {
-                        eprintln!("⚠️  Throughput regression detected for batch size {}: {:.1}% decrease", 
-                            batch_size, -throughput_change);
+                        eprintln!(
+                            "⚠️  Throughput regression detected for batch size {}: {:.1}% decrease",
+                            batch_size, -throughput_change
+                        );
                     }
-                    
+
                     total_time
                 })
             },
@@ -406,7 +414,7 @@ fn bench_throughput_regression(c: &mut Criterion) {
 /// Latency regression tests
 fn bench_latency_regression(c: &mut Criterion) {
     let mut group = c.benchmark_group("latency_regression");
-    
+
     group.warm_up_time(Duration::from_secs(2));
     group.measurement_time(Duration::from_secs(8));
 
@@ -426,13 +434,13 @@ fn bench_latency_regression(c: &mut Criterion) {
             &tensor_size,
             |bencher, &(rows, cols)| {
                 let device = Device::Cpu;
-                
+
                 bencher.iter_custom(|iters| {
                     let mut latencies = Vec::new();
-                    
+
                     for _ in 0..iters {
                         let start = Instant::now();
-                        
+
                         match op_name {
                             "single_matmul" => {
                                 let a = Tensor::randn(0f32, 1f32, (rows, cols), &device).unwrap();
@@ -455,15 +463,15 @@ fn bench_latency_regression(c: &mut Criterion) {
                             },
                             _ => {}
                         }
-                        
+
                         latencies.push(start.elapsed());
                     }
-                    
+
                     // Analyze latency distribution
                     latencies.sort();
                     let p95_latency = latencies[latencies.len() * 95 / 100];
                     let p99_latency = latencies[latencies.len() * 99 / 100];
-                    
+
                     // Expected latency baselines (would be loaded from historical data)
                     let expected_p95 = Duration::from_millis(match op_name {
                         "single_matmul" => 10,
@@ -471,12 +479,12 @@ fn bench_latency_regression(c: &mut Criterion) {
                         "inference_step" => 15,
                         _ => 10,
                     });
-                    
+
                     if p95_latency > expected_p95 * 110 / 100 { // 10% tolerance
-                        eprintln!("⚠️  Latency regression detected in {}: P95 latency {:.2}ms vs expected {:.2}ms", 
+                        eprintln!("⚠️  Latency regression detected in {}: P95 latency {:.2}ms vs expected {:.2}ms",
                             op_name, p95_latency.as_millis(), expected_p95.as_millis());
                     }
-                    
+
                     latencies.iter().sum()
                 })
             },
@@ -489,7 +497,7 @@ fn bench_latency_regression(c: &mut Criterion) {
 /// Stability regression tests (variance in performance)
 fn bench_stability_regression(c: &mut Criterion) {
     let mut group = c.benchmark_group("stability_regression");
-    
+
     group.warm_up_time(Duration::from_secs(2));
     group.measurement_time(Duration::from_secs(12));
 
@@ -497,37 +505,44 @@ fn bench_stability_regression(c: &mut Criterion) {
     group.bench_function("performance_stability", |bencher| {
         let device = Device::Cpu;
         let tensor_size = (1024, 1024);
-        
+
         bencher.iter_custom(|iters| {
             let mut execution_times = Vec::new();
-            
+
             for _ in 0..iters {
                 let start = Instant::now();
-                
+
                 // Perform a standard operation
                 let a = Tensor::randn(0f32, 1f32, tensor_size, &device).unwrap();
                 let b = Tensor::randn(0f32, 1f32, tensor_size, &device).unwrap();
                 let result = a.matmul(&b).unwrap();
                 black_box(result);
-                
+
                 execution_times.push(start.elapsed());
             }
-            
+
             // Calculate coefficient of variation (CV)
             if execution_times.len() > 1 {
-                let mean_time = execution_times.iter().sum::<Duration>().as_secs_f64() / execution_times.len() as f64;
-                let variance = execution_times.iter()
+                let mean_time = execution_times.iter().sum::<Duration>().as_secs_f64()
+                    / execution_times.len() as f64;
+                let variance = execution_times
+                    .iter()
                     .map(|t| (t.as_secs_f64() - mean_time).powi(2))
-                    .sum::<f64>() / execution_times.len() as f64;
+                    .sum::<f64>()
+                    / execution_times.len() as f64;
                 let std_dev = variance.sqrt();
                 let cv = std_dev / mean_time;
-                
+
                 // Check for stability regression (CV should be low)
-                if cv > 0.15 { // 15% coefficient of variation threshold
-                    eprintln!("⚠️  Performance stability regression detected: CV = {:.1}%", cv * 100.0);
+                if cv > 0.15 {
+                    // 15% coefficient of variation threshold
+                    eprintln!(
+                        "⚠️  Performance stability regression detected: CV = {:.1}%",
+                        cv * 100.0
+                    );
                 }
             }
-            
+
             execution_times.iter().sum()
         })
     });

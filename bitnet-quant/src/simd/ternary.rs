@@ -5,11 +5,10 @@
 //! across x86 and ARM architectures.
 
 use super::capabilities::{detect_simd_capabilities, SimdCapabilities};
-use crate::{QuantizationResult, QuantizationError};
+use crate::{QuantizationError, QuantizationResult};
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use std::arch::x86_64::*;
-
 
 /// SIMD-accelerated ternary quantization operations
 pub struct SimdTernaryOps {
@@ -25,9 +24,16 @@ impl SimdTernaryOps {
     }
 
     /// Quantize a batch of f32 values to ternary i8 values using SIMD
-    pub fn quantize_batch(&self, input: &[f32], output: &mut [i8], abs_mean: f32) -> QuantizationResult<()> {
+    pub fn quantize_batch(
+        &self,
+        input: &[f32],
+        output: &mut [i8],
+        abs_mean: f32,
+    ) -> QuantizationResult<()> {
         if input.len() != output.len() {
-            return Err(QuantizationError::ConfigError("Input and output lengths must match".into()));
+            return Err(QuantizationError::ConfigError(
+                "Input and output lengths must match".into(),
+            ));
         }
 
         let threshold = 0.5 * abs_mean;
@@ -35,9 +41,16 @@ impl SimdTernaryOps {
     }
 
     /// Dequantize a batch of i8 ternary values to f32 using SIMD
-    pub fn dequantize_batch(&self, input: &[i8], output: &mut [f32], abs_mean: f32) -> QuantizationResult<()> {
+    pub fn dequantize_batch(
+        &self,
+        input: &[i8],
+        output: &mut [f32],
+        abs_mean: f32,
+    ) -> QuantizationResult<()> {
         if input.len() != output.len() {
-            return Err(QuantizationError::ConfigError("Input and output lengths must match".into()));
+            return Err(QuantizationError::ConfigError(
+                "Input and output lengths must match".into(),
+            ));
         }
 
         self.dequantize_batch_scalar(input, output, abs_mean)
@@ -53,7 +66,12 @@ impl SimdTernaryOps {
     }
 
     // Scalar fallback implementations - made public for standalone functions
-    pub fn quantize_batch_scalar(&self, input: &[f32], output: &mut [i8], threshold: f32) -> QuantizationResult<()> {
+    pub fn quantize_batch_scalar(
+        &self,
+        input: &[f32],
+        output: &mut [i8],
+        threshold: f32,
+    ) -> QuantizationResult<()> {
         for (inp, out) in input.iter().zip(output.iter_mut()) {
             *out = if *inp > threshold {
                 1
@@ -66,7 +84,12 @@ impl SimdTernaryOps {
         Ok(())
     }
 
-    pub fn dequantize_batch_scalar(&self, input: &[i8], output: &mut [f32], abs_mean: f32) -> QuantizationResult<()> {
+    pub fn dequantize_batch_scalar(
+        &self,
+        input: &[i8],
+        output: &mut [f32],
+        abs_mean: f32,
+    ) -> QuantizationResult<()> {
         for (inp, out) in input.iter().zip(output.iter_mut()) {
             *out = match *inp {
                 1 => abs_mean,
@@ -90,13 +113,21 @@ impl Default for SimdTernaryOps {
 }
 
 /// Vectorized ternary quantization function for direct use
-pub fn vectorized_ternary_quantize(input: &[f32], output: &mut [i8], threshold: f32) -> QuantizationResult<()> {
+pub fn vectorized_ternary_quantize(
+    input: &[f32],
+    output: &mut [i8],
+    threshold: f32,
+) -> QuantizationResult<()> {
     let ops = SimdTernaryOps::new();
     ops.quantize_batch_scalar(input, output, threshold)
 }
 
 /// Vectorized ternary dequantization function for direct use
-pub fn vectorized_ternary_dequantize(input: &[i8], output: &mut [f32], abs_mean: f32) -> QuantizationResult<()> {
+pub fn vectorized_ternary_dequantize(
+    input: &[i8],
+    output: &mut [f32],
+    abs_mean: f32,
+) -> QuantizationResult<()> {
     let ops = SimdTernaryOps::new();
     ops.dequantize_batch_scalar(input, output, abs_mean)
 }
@@ -113,7 +144,7 @@ mod tests {
         let abs_mean = 1.0;
 
         ops.quantize_batch(&input, &mut output, abs_mean).unwrap();
-        
+
         assert_eq!(output, [1, -1, 0, 0, 1, -1]);
     }
 
@@ -125,7 +156,7 @@ mod tests {
         let abs_mean = 1.5;
 
         ops.dequantize_batch(&input, &mut output, abs_mean).unwrap();
-        
+
         assert_eq!(output, [1.5, -1.5, 0.0, 0.0, 1.5, -1.5]);
     }
 
@@ -133,7 +164,7 @@ mod tests {
     fn test_compute_absmean() {
         let ops = SimdTernaryOps::new();
         let input = [1.0, -2.0, 3.0, -4.0];
-        
+
         let result = ops.compute_absmean(&input);
         assert!((result - 2.5).abs() < 1e-6);
     }
@@ -142,7 +173,7 @@ mod tests {
     fn test_empty_input() {
         let ops = SimdTernaryOps::new();
         let input = [];
-        
+
         let result = ops.compute_absmean(&input);
         assert_eq!(result, 0.0);
     }
@@ -151,8 +182,8 @@ mod tests {
     fn test_length_mismatch() {
         let ops = SimdTernaryOps::new();
         let input = [1.0, 2.0, 3.0];
-        let mut output = [0i8; 2];  // Different length
-        
+        let mut output = [0i8; 2]; // Different length
+
         let result = ops.quantize_batch(&input, &mut output, 1.0);
         assert!(result.is_err());
     }

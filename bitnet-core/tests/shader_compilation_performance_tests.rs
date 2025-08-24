@@ -6,9 +6,9 @@
 #[cfg(all(target_os = "macos", feature = "metal"))]
 mod performance_tests {
     use bitnet_core::metal::*;
+    use std::collections::HashMap;
     use std::path::PathBuf;
     use std::time::{Duration, Instant};
-    use std::collections::HashMap;
 
     /// Performance metrics for shader compilation
     #[derive(Debug, Clone)]
@@ -40,10 +40,10 @@ mod performance_tests {
 
             // Benchmark individual shader compilation
             let shader_files = ["bitlinear.metal", "quantization.metal", "activation.metal"];
-            
+
             for shader_file in &shader_files {
                 let shader_path = PathBuf::from("bitnet-core/src/metal/shaders").join(shader_file);
-                
+
                 if shader_path.exists() {
                     // Read source size
                     let source_size = std::fs::metadata(&shader_path)
@@ -62,7 +62,7 @@ mod performance_tests {
                             source_size,
                             cache_hit: false,
                         };
-                        
+
                         metrics.insert(format!("{}_cold", shader_file), cold_metrics);
 
                         // Second compilation (warm cache)
@@ -76,7 +76,7 @@ mod performance_tests {
                             source_size,
                             cache_hit: true,
                         };
-                        
+
                         metrics.insert(format!("{}_warm", shader_file), warm_metrics);
 
                         println!("Shader: {}", shader_file);
@@ -84,8 +84,11 @@ mod performance_tests {
                         println!("  Functions: {}", compiled_shader.function_names.len());
                         println!("  Cold compilation: {:?}", cold_compilation_time);
                         println!("  Warm compilation: {:?}", warm_compilation_time);
-                        println!("  Speedup: {:.2}x", 
-                                cold_compilation_time.as_nanos() as f64 / warm_compilation_time.as_nanos() as f64);
+                        println!(
+                            "  Speedup: {:.2}x",
+                            cold_compilation_time.as_nanos() as f64
+                                / warm_compilation_time.as_nanos() as f64
+                        );
                         println!();
                     }
                 }
@@ -125,8 +128,12 @@ mod performance_tests {
                 total_time += round_time;
                 total_shaders += compiled_shaders.len();
 
-                println!("Round {}: {} shaders in {:?}", 
-                        round + 1, compiled_shaders.len(), round_time);
+                println!(
+                    "Round {}: {} shaders in {:?}",
+                    round + 1,
+                    compiled_shaders.len(),
+                    round_time
+                );
             }
 
             let avg_time_per_round = total_time / rounds;
@@ -140,9 +147,14 @@ mod performance_tests {
             println!("  Throughput: {:.2} shaders/second", throughput);
 
             // Performance assertions
-            assert!(throughput > 0.1, "Throughput should be at least 0.1 shaders/second");
-            assert!(avg_time_per_round < Duration::from_secs(30), 
-                   "Average compilation time should be under 30 seconds");
+            assert!(
+                throughput > 0.1,
+                "Throughput should be at least 0.1 shaders/second"
+            );
+            assert!(
+                avg_time_per_round < Duration::from_secs(30),
+                "Average compilation time should be under 30 seconds"
+            );
         } else {
             println!("Skipping throughput test - no Metal device available");
         }
@@ -192,7 +204,10 @@ mod performance_tests {
             // Test memory cleanup
             compiler.clear_cache();
             let cleared_stats = compiler.get_stats();
-            assert_eq!(cleared_stats.cached_shaders, 0, "Cache should be empty after clearing");
+            assert_eq!(
+                cleared_stats.cached_shaders, 0,
+                "Cache should be empty after clearing"
+            );
             println!("✓ Memory cleanup verified");
         } else {
             println!("Skipping memory usage test - no Metal device available");
@@ -205,7 +220,7 @@ mod performance_tests {
         let device_result = create_metal_device();
         if let Ok(device) = device_result {
             let shaders_result = BitNetShaders::new(device);
-            
+
             match shaders_result {
                 Ok(shaders) => {
                     let test_functions = vec![
@@ -240,37 +255,45 @@ mod performance_tests {
                             println!("Pipeline {:?}:", function);
                             println!("  Cold creation: {:?}", cold_time);
                             println!("  Warm creation: {:?}", warm_time);
-                            
+
                             if warm_time.as_nanos() > 0 {
-                                let speedup = cold_time.as_nanos() as f64 / warm_time.as_nanos() as f64;
+                                let speedup =
+                                    cold_time.as_nanos() as f64 / warm_time.as_nanos() as f64;
                                 println!("  Cache speedup: {:.2}x", speedup);
                             }
                         }
                     }
 
                     // Analyze pipeline creation performance
-                    let cold_times: Vec<_> = pipeline_times.iter()
+                    let cold_times: Vec<_> = pipeline_times
+                        .iter()
                         .filter(|(_, _, cached)| !cached)
                         .map(|(_, time, _)| *time)
                         .collect();
 
-                    let warm_times: Vec<_> = pipeline_times.iter()
+                    let warm_times: Vec<_> = pipeline_times
+                        .iter()
                         .filter(|(_, _, cached)| *cached)
                         .map(|(_, time, _)| *time)
                         .collect();
 
                     if !cold_times.is_empty() {
-                        let avg_cold_time = cold_times.iter().sum::<Duration>() / cold_times.len() as u32;
+                        let avg_cold_time =
+                            cold_times.iter().sum::<Duration>() / cold_times.len() as u32;
                         println!("Average cold pipeline creation: {:?}", avg_cold_time);
                     }
 
                     if !warm_times.is_empty() {
-                        let avg_warm_time = warm_times.iter().sum::<Duration>() / warm_times.len() as u32;
+                        let avg_warm_time =
+                            warm_times.iter().sum::<Duration>() / warm_times.len() as u32;
                         println!("Average warm pipeline creation: {:?}", avg_warm_time);
                     }
                 }
                 Err(e) => {
-                    println!("Pipeline performance test skipped (shader files missing): {}", e);
+                    println!(
+                        "Pipeline performance test skipped (shader files missing): {}",
+                        e
+                    );
                 }
             }
         } else {
@@ -305,24 +328,32 @@ mod performance_tests {
                 let compiled_shaders = compiler.compile_all_shaders().unwrap();
                 let compilation_time = start_time.elapsed();
 
-                println!("  Compiled {} shaders in {:?}", 
-                        compiled_shaders.len(), compilation_time);
+                println!(
+                    "  Compiled {} shaders in {:?}",
+                    compiled_shaders.len(),
+                    compilation_time
+                );
 
                 // Test a simple pipeline creation to verify optimization doesn't break functionality
                 for shader in &compiled_shaders {
                     if !shader.function_names.is_empty() {
                         let function_name = &shader.function_names[0];
-                        let pipeline_result = compiler.create_compute_pipeline(&shader.name, function_name);
-                        
+                        let pipeline_result =
+                            compiler.create_compute_pipeline(&shader.name, function_name);
+
                         match pipeline_result {
                             Ok(_) => {
-                                println!("  ✓ Pipeline creation successful for {}::{}", 
-                                        shader.name, function_name);
+                                println!(
+                                    "  ✓ Pipeline creation successful for {}::{}",
+                                    shader.name, function_name
+                                );
                                 break; // Test one pipeline per optimization level
                             }
                             Err(e) => {
-                                println!("  ✗ Pipeline creation failed for {}::{}: {}", 
-                                        shader.name, function_name, e);
+                                println!(
+                                    "  ✗ Pipeline creation failed for {}::{}: {}",
+                                    shader.name, function_name, e
+                                );
                             }
                         }
                     }
@@ -347,19 +378,19 @@ mod performance_tests {
             };
 
             let compiler = std::sync::Arc::new(ShaderCompiler::new(device, config).unwrap());
-            
+
             // Test different thread counts
             let thread_counts = vec![1, 2, 4, 8];
-            
+
             for thread_count in thread_counts {
                 println!("Testing with {} threads:", thread_count);
-                
+
                 // Clear cache for fair comparison
                 compiler.clear_cache();
-                
+
                 let start_time = Instant::now();
                 let mut handles = vec![];
-                
+
                 for i in 0..thread_count {
                     let compiler_clone = compiler.clone();
                     let handle = std::thread::spawn(move || {
@@ -371,17 +402,17 @@ mod performance_tests {
                     });
                     handles.push(handle);
                 }
-                
+
                 let mut total_compiled = 0;
                 for handle in handles {
                     total_compiled += handle.join().unwrap();
                 }
-                
+
                 let total_time = start_time.elapsed();
-                
+
                 println!("  Total time: {:?}", total_time);
                 println!("  Total shaders compiled: {}", total_compiled);
-                
+
                 if total_time.as_millis() > 0 {
                     let throughput = total_compiled as f64 / total_time.as_secs_f64();
                     println!("  Throughput: {:.2} shaders/second", throughput);
@@ -421,17 +452,20 @@ mod performance_tests {
             println!("Cache Performance Analysis:");
             println!("  First compilation (cache miss): {:?}", cache_miss_time);
             println!("  Second compilation (cache hit): {:?}", cache_hit_time);
-            
+
             if cache_hit_time.as_nanos() > 0 {
                 let speedup = cache_miss_time.as_nanos() as f64 / cache_hit_time.as_nanos() as f64;
                 println!("  Cache speedup: {:.2}x", speedup);
-                
+
                 // Cache should provide significant speedup
                 assert!(speedup > 1.5, "Cache should provide at least 1.5x speedup");
             }
 
-            assert_eq!(first_result.len(), second_result.len(), 
-                      "Both compilations should produce same number of shaders");
+            assert_eq!(
+                first_result.len(),
+                second_result.len(),
+                "Both compilations should produce same number of shaders"
+            );
 
             // Test cache efficiency over multiple operations
             let mut cache_times = Vec::new();
@@ -440,7 +474,7 @@ mod performance_tests {
                 let _result = compiler.compile_all_shaders().unwrap();
                 let time = start_time.elapsed();
                 cache_times.push(time);
-                
+
                 if i % 3 == 0 {
                     // Occasionally clear cache to test mixed scenarios
                     compiler.clear_cache();
@@ -448,7 +482,10 @@ mod performance_tests {
             }
 
             let avg_cache_time = cache_times.iter().sum::<Duration>() / cache_times.len() as u32;
-            println!("  Average compilation time over 10 runs: {:?}", avg_cache_time);
+            println!(
+                "  Average compilation time over 10 runs: {:?}",
+                avg_cache_time
+            );
         } else {
             println!("Skipping cache performance test - no Metal device available");
         }
@@ -474,7 +511,7 @@ mod performance_tests {
             let avg_cold = cold_times.iter().sum::<Duration>() / cold_times.len() as u32;
             let max_cold = cold_times.iter().max().unwrap();
             let min_cold = cold_times.iter().min().unwrap();
-            
+
             println!("Cold Compilation Times:");
             println!("  Average: {:?}", avg_cold);
             println!("  Min: {:?}", min_cold);
@@ -485,7 +522,7 @@ mod performance_tests {
             let avg_warm = warm_times.iter().sum::<Duration>() / warm_times.len() as u32;
             let max_warm = warm_times.iter().max().unwrap();
             let min_warm = warm_times.iter().min().unwrap();
-            
+
             println!("Warm Compilation Times:");
             println!("  Average: {:?}", avg_warm);
             println!("  Min: {:?}", min_warm);
@@ -493,12 +530,14 @@ mod performance_tests {
         }
 
         // Calculate efficiency metrics
-        let total_functions: usize = metrics.values()
+        let total_functions: usize = metrics
+            .values()
             .filter(|m| !m.cache_hit)
             .map(|m| m.function_count)
             .sum();
 
-        let total_source_size: usize = metrics.values()
+        let total_source_size: usize = metrics
+            .values()
             .filter(|m| !m.cache_hit)
             .map(|m| m.source_size)
             .sum();
@@ -506,7 +545,7 @@ mod performance_tests {
         println!("Efficiency Metrics:");
         println!("  Total functions compiled: {}", total_functions);
         println!("  Total source size: {} bytes", total_source_size);
-        
+
         if !cold_times.is_empty() && total_functions > 0 {
             let avg_cold = cold_times.iter().sum::<Duration>() / cold_times.len() as u32;
             let time_per_function = avg_cold.as_millis() / total_functions as u128;

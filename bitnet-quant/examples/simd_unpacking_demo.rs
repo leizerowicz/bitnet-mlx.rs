@@ -1,5 +1,5 @@
 //! SIMD Weight Unpacking Performance Demo
-//! 
+//!
 //! This example demonstrates the performance benefits of SIMD-optimized
 //! weight unpacking compared to scalar implementations.
 
@@ -51,7 +51,7 @@ fn test_strategy_performance(
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Generate test data
     let weights = generate_test_weights(size, strategy);
-    
+
     // Pack the weights
     let config = TernaryPackingConfig {
         strategy,
@@ -76,7 +76,7 @@ fn test_strategy_performance(
 
     // Benchmark
     let iterations = 1000;
-    
+
     // SIMD benchmark
     let start = Instant::now();
     for _ in 0..iterations {
@@ -99,15 +99,17 @@ fn test_strategy_performance(
     println!("    SIMD time:   {simd_time:?}");
     println!("    Scalar time: {scalar_time:?}");
     println!("    Speedup:     {speedup:.2}x");
-    println!("    Memory:      {} -> {} bytes", 
-             size, packed.memory_footprint);
+    println!(
+        "    Memory:      {} -> {} bytes",
+        size, packed.memory_footprint
+    );
 
     Ok(())
 }
 
 fn detailed_bitpacked_benchmark() -> Result<(), Box<dyn std::error::Error>> {
     let sizes = vec![1000, 5000, 10000, 50000, 100000];
-    
+
     println!("Size\t\tSIMD (μs)\tScalar (μs)\tSpeedup");
     println!("{}", "-".repeat(50));
 
@@ -119,14 +121,16 @@ fn detailed_bitpacked_benchmark() -> Result<(), Box<dyn std::error::Error>> {
 
         // Use the benchmark utility
         let benchmark = bitnet_quant::quantization::simd_unpacking::benchmark::benchmark_unpacking(
-            &packed, 1000
+            &packed, 1000,
         )?;
 
         let simd_us = benchmark.simd_time_ns as f64 / 1000.0 / 1000.0; // Convert to microseconds
         let scalar_us = benchmark.scalar_time_ns as f64 / 1000.0 / 1000.0;
 
-        println!("{}\t\t{:.2}\t\t{:.2}\t\t{:.2}x",
-                 size, simd_us, scalar_us, benchmark.speedup);
+        println!(
+            "{}\t\t{:.2}\t\t{:.2}\t\t{:.2}x",
+            size, simd_us, scalar_us, benchmark.speedup
+        );
     }
 
     Ok(())
@@ -139,7 +143,7 @@ fn generate_test_weights(size: usize, strategy: TernaryPackingStrategy) -> Vec<i
             let mut weights = Vec::with_capacity(size);
             let mut current_val = -1i8;
             let mut run_length = 0;
-            
+
             for i in 0..size {
                 if run_length == 0 {
                     // Start new run
@@ -150,7 +154,7 @@ fn generate_test_weights(size: usize, strategy: TernaryPackingStrategy) -> Vec<i
                     };
                     run_length = 5 + (i % 15); // Variable run lengths
                 }
-                
+
                 weights.push(current_val);
                 run_length -= 1;
             }
@@ -168,11 +172,13 @@ fn generate_test_weights(size: usize, strategy: TernaryPackingStrategy) -> Vec<i
         }
         _ => {
             // Generate balanced ternary data
-            (0..size).map(|i| match i % 3 {
-                0 => -1i8,
-                1 => 0i8,
-                _ => 1i8,
-            }).collect()
+            (0..size)
+                .map(|i| match i % 3 {
+                    0 => -1i8,
+                    1 => 0i8,
+                    _ => 1i8,
+                })
+                .collect()
         }
     }
 }
@@ -185,7 +191,7 @@ mod tests {
     fn test_generate_test_weights() {
         let weights = generate_test_weights(100, TernaryPackingStrategy::BitPacked2Bit);
         assert_eq!(weights.len(), 100);
-        
+
         // Check that all values are ternary
         for &w in &weights {
             assert!(w == -1 || w == 0 || w == 1);
@@ -196,7 +202,7 @@ mod tests {
     fn test_sparse_generation() {
         let weights = generate_test_weights(100, TernaryPackingStrategy::CompressedSparse);
         let zeros = weights.iter().filter(|&&w| w == 0).count();
-        
+
         // Should be mostly zeros
         assert!(zeros > 80);
     }
@@ -204,18 +210,18 @@ mod tests {
     #[test]
     fn test_rle_generation() {
         let weights = generate_test_weights(100, TernaryPackingStrategy::RunLengthEncoded);
-        
+
         // Should have runs of identical values
         let mut run_count = 0;
         let mut current_val = weights[0];
-        
+
         for &w in &weights[1..] {
             if w != current_val {
                 run_count += 1;
                 current_val = w;
             }
         }
-        
+
         // Should have fewer runs than total elements (indicating runs exist)
         assert!(run_count < weights.len() / 2);
     }

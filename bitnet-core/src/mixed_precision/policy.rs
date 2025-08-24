@@ -3,9 +3,9 @@
 //! This module provides a policy-based system for making precision decisions,
 //! allowing flexible and configurable precision management strategies.
 
-use super::{LayerType, ComponentType, MixedPrecisionError, MixedPrecisionResult};
 use super::layer_precision::LayerPrecisionSpec;
 use super::precision_manager::PrecisionContext;
+use super::{ComponentType, LayerType, MixedPrecisionError, MixedPrecisionResult};
 use crate::memory::tensor::BitNetDType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -134,7 +134,9 @@ impl PolicyRule {
         }
 
         // All conditions must be satisfied
-        self.conditions.iter().all(|condition| condition.evaluate(context))
+        self.conditions
+            .iter()
+            .all(|condition| condition.evaluate(context))
     }
 
     /// Apply the rule action
@@ -156,7 +158,11 @@ pub struct PolicyCondition {
 
 impl PolicyCondition {
     /// Create a new policy condition
-    pub fn new(condition_type: ConditionType, operator: ConditionOperator, value: ConditionValue) -> Self {
+    pub fn new(
+        condition_type: ConditionType,
+        operator: ConditionOperator,
+        value: ConditionValue,
+    ) -> Self {
         Self {
             condition_type,
             operator,
@@ -173,12 +179,8 @@ impl PolicyCondition {
     /// Extract the relevant value from the context
     fn extract_context_value(&self, context: &PolicyContext) -> ConditionValue {
         match &self.condition_type {
-            ConditionType::LayerType => {
-                ConditionValue::LayerType(context.layer_type)
-            }
-            ConditionType::ComponentType => {
-                ConditionValue::ComponentType(context.component_type)
-            }
+            ConditionType::LayerType => ConditionValue::LayerType(context.layer_type),
+            ConditionType::ComponentType => ConditionValue::ComponentType(context.component_type),
             ConditionType::MemoryUsage => {
                 ConditionValue::Float(context.memory_usage_mb.unwrap_or(0.0))
             }
@@ -191,11 +193,11 @@ impl PolicyCondition {
             ConditionType::LayerName => {
                 ConditionValue::String(context.layer_name.clone().unwrap_or_default())
             }
-            ConditionType::Custom(key) => {
-                context.custom_attributes.get(key)
-                    .cloned()
-                    .unwrap_or(ConditionValue::String("".to_string()))
-            }
+            ConditionType::Custom(key) => context
+                .custom_attributes
+                .get(key)
+                .cloned()
+                .unwrap_or(ConditionValue::String("".to_string())),
         }
     }
 }
@@ -250,48 +252,38 @@ impl ConditionOperator {
     /// Compare two condition values using this operator
     pub fn compare(&self, left: &ConditionValue, right: &ConditionValue) -> bool {
         match (left, right) {
-            (ConditionValue::Float(l), ConditionValue::Float(r)) => {
-                match self {
-                    ConditionOperator::Equal => (l - r).abs() < f32::EPSILON,
-                    ConditionOperator::NotEqual => (l - r).abs() >= f32::EPSILON,
-                    ConditionOperator::GreaterThan => l > r,
-                    ConditionOperator::GreaterThanOrEqual => l >= r,
-                    ConditionOperator::LessThan => l < r,
-                    ConditionOperator::LessThanOrEqual => l <= r,
-                    _ => false,
-                }
-            }
-            (ConditionValue::String(l), ConditionValue::String(r)) => {
-                match self {
-                    ConditionOperator::Equal => l == r,
-                    ConditionOperator::NotEqual => l != r,
-                    ConditionOperator::Contains => l.contains(r),
-                    ConditionOperator::StartsWith => l.starts_with(r),
-                    ConditionOperator::EndsWith => l.ends_with(r),
-                    _ => false,
-                }
-            }
-            (ConditionValue::LayerType(l), ConditionValue::LayerType(r)) => {
-                match self {
-                    ConditionOperator::Equal => l == r,
-                    ConditionOperator::NotEqual => l != r,
-                    _ => false,
-                }
-            }
-            (ConditionValue::ComponentType(l), ConditionValue::ComponentType(r)) => {
-                match self {
-                    ConditionOperator::Equal => l == r,
-                    ConditionOperator::NotEqual => l != r,
-                    _ => false,
-                }
-            }
-            (ConditionValue::Precision(l), ConditionValue::Precision(r)) => {
-                match self {
-                    ConditionOperator::Equal => l == r,
-                    ConditionOperator::NotEqual => l != r,
-                    _ => false,
-                }
-            }
+            (ConditionValue::Float(l), ConditionValue::Float(r)) => match self {
+                ConditionOperator::Equal => (l - r).abs() < f32::EPSILON,
+                ConditionOperator::NotEqual => (l - r).abs() >= f32::EPSILON,
+                ConditionOperator::GreaterThan => l > r,
+                ConditionOperator::GreaterThanOrEqual => l >= r,
+                ConditionOperator::LessThan => l < r,
+                ConditionOperator::LessThanOrEqual => l <= r,
+                _ => false,
+            },
+            (ConditionValue::String(l), ConditionValue::String(r)) => match self {
+                ConditionOperator::Equal => l == r,
+                ConditionOperator::NotEqual => l != r,
+                ConditionOperator::Contains => l.contains(r),
+                ConditionOperator::StartsWith => l.starts_with(r),
+                ConditionOperator::EndsWith => l.ends_with(r),
+                _ => false,
+            },
+            (ConditionValue::LayerType(l), ConditionValue::LayerType(r)) => match self {
+                ConditionOperator::Equal => l == r,
+                ConditionOperator::NotEqual => l != r,
+                _ => false,
+            },
+            (ConditionValue::ComponentType(l), ConditionValue::ComponentType(r)) => match self {
+                ConditionOperator::Equal => l == r,
+                ConditionOperator::NotEqual => l != r,
+                _ => false,
+            },
+            (ConditionValue::Precision(l), ConditionValue::Precision(r)) => match self {
+                ConditionOperator::Equal => l == r,
+                ConditionOperator::NotEqual => l != r,
+                _ => false,
+            },
             _ => false,
         }
     }
@@ -343,18 +335,20 @@ impl PolicyAction {
             PolicyAction::UseMemoryEfficient => {
                 // Return the most memory-efficient precision for the layer type
                 let alternatives = context.layer_type.precision_alternatives();
-                alternatives.into_iter()
-                    .max_by(|a, b| a.memory_efficiency().partial_cmp(&b.memory_efficiency()).unwrap())
+                alternatives.into_iter().max_by(|a, b| {
+                    a.memory_efficiency()
+                        .partial_cmp(&b.memory_efficiency())
+                        .unwrap()
+                })
             }
             PolicyAction::UseHighAccuracy => {
                 // Return the highest precision supported by the layer type
                 let alternatives = context.layer_type.precision_alternatives();
-                alternatives.into_iter()
+                alternatives
+                    .into_iter()
                     .min_by_key(|p| p.bits_per_element())
             }
-            PolicyAction::UseFormula(formula) => {
-                formula.evaluate(context)
-            }
+            PolicyAction::UseFormula(formula) => formula.evaluate(context),
             PolicyAction::DelegateToPolicy(_policy_id) => {
                 // In a full implementation, this would delegate to another policy
                 None
@@ -376,18 +370,10 @@ impl PrecisionFormula {
     /// Evaluate the formula and return a precision
     pub fn evaluate(&self, context: &PolicyContext) -> Option<BitNetDType> {
         match self.formula_type {
-            FormulaType::MemoryBudget => {
-                self.evaluate_memory_budget(context)
-            }
-            FormulaType::AccuracyTarget => {
-                self.evaluate_accuracy_target(context)
-            }
-            FormulaType::PerformanceTarget => {
-                self.evaluate_performance_target(context)
-            }
-            FormulaType::Balanced => {
-                self.evaluate_balanced(context)
-            }
+            FormulaType::MemoryBudget => self.evaluate_memory_budget(context),
+            FormulaType::AccuracyTarget => self.evaluate_accuracy_target(context),
+            FormulaType::PerformanceTarget => self.evaluate_performance_target(context),
+            FormulaType::Balanced => self.evaluate_balanced(context),
         }
     }
 
@@ -395,7 +381,7 @@ impl PrecisionFormula {
     fn evaluate_memory_budget(&self, context: &PolicyContext) -> Option<BitNetDType> {
         let memory_budget = self.parameters.get("memory_budget")?;
         let current_usage = context.memory_usage_mb.unwrap_or(0.0);
-        
+
         if current_usage > *memory_budget {
             // Use more aggressive quantization
             Some(BitNetDType::I4)
@@ -409,7 +395,7 @@ impl PrecisionFormula {
     fn evaluate_accuracy_target(&self, context: &PolicyContext) -> Option<BitNetDType> {
         let accuracy_target = self.parameters.get("accuracy_target")?;
         let current_accuracy = context.accuracy_requirement.unwrap_or(1.0);
-        
+
         if current_accuracy < *accuracy_target {
             // Use higher precision
             Some(BitNetDType::F16)
@@ -423,7 +409,7 @@ impl PrecisionFormula {
     fn evaluate_performance_target(&self, context: &PolicyContext) -> Option<BitNetDType> {
         let performance_target = self.parameters.get("performance_target")?;
         let current_performance = context.performance_requirement.unwrap_or(1.0);
-        
+
         if current_performance < *performance_target {
             // Use lower precision for better performance
             Some(BitNetDType::I4)
@@ -438,26 +424,26 @@ impl PrecisionFormula {
         let memory_weight = self.parameters.get("memory_weight").unwrap_or(&0.33);
         let accuracy_weight = self.parameters.get("accuracy_weight").unwrap_or(&0.33);
         let performance_weight = self.parameters.get("performance_weight").unwrap_or(&0.34);
-        
+
         // Calculate weighted score for different precisions
         let mut best_precision = BitNetDType::I8;
         let mut best_score = 0.0;
-        
+
         for precision in context.layer_type.precision_alternatives() {
             let memory_score = precision.memory_efficiency() / 32.0; // Normalize to 0-1
             let accuracy_score = precision.bits_per_element() as f32 / 32.0; // Higher bits = higher accuracy
             let performance_score = 1.0 / precision.bits_per_element() as f32; // Lower bits = better performance
-            
-            let total_score = memory_score * memory_weight + 
-                            accuracy_score * accuracy_weight + 
-                            performance_score * performance_weight;
-            
+
+            let total_score = memory_score * memory_weight
+                + accuracy_score * accuracy_weight
+                + performance_score * performance_weight;
+
             if total_score > best_score {
                 best_score = total_score;
                 best_precision = precision;
             }
         }
-        
+
         Some(best_precision)
     }
 }
@@ -555,7 +541,7 @@ impl PolicyEngine {
             policies: HashMap::new(),
             stats: PolicyStats::default(),
         };
-        
+
         // Add default policies
         engine.add_default_policies();
         engine
@@ -579,7 +565,7 @@ impl PolicyEngine {
                 ConditionType::LayerType,
                 ConditionOperator::Equal,
                 ConditionValue::LayerType(LayerType::Linear),
-            ))
+            )),
         );
 
         self.add_policy(memory_policy);
@@ -600,7 +586,7 @@ impl PolicyEngine {
                 ConditionType::LayerType,
                 ConditionOperator::Equal,
                 ConditionValue::LayerType(LayerType::Attention),
-            ))
+            )),
         );
 
         self.add_policy(accuracy_policy);
@@ -628,7 +614,9 @@ impl PolicyEngine {
             .with_layer_name(layer_spec.layer_id.clone());
 
         // Collect applicable policies
-        let mut applicable_policies: Vec<_> = self.policies.values()
+        let mut applicable_policies: Vec<_> = self
+            .policies
+            .values()
             .filter(|policy| policy.applies_to(&policy_context))
             .collect();
 
@@ -668,14 +656,19 @@ impl PolicyEngine {
     }
 
     /// Enable or disable a policy
-    pub fn set_policy_enabled(&mut self, policy_id: &str, enabled: bool) -> MixedPrecisionResult<()> {
+    pub fn set_policy_enabled(
+        &mut self,
+        policy_id: &str,
+        enabled: bool,
+    ) -> MixedPrecisionResult<()> {
         if let Some(policy) = self.policies.get_mut(policy_id) {
             policy.enabled = enabled;
             Ok(())
         } else {
-            Err(MixedPrecisionError::InvalidConfiguration(
-                format!("Policy '{}' not found", policy_id)
-            ))
+            Err(MixedPrecisionError::InvalidConfiguration(format!(
+                "Policy '{}' not found",
+                policy_id
+            )))
         }
     }
 }
@@ -699,7 +692,10 @@ impl PolicyStats {
     /// Record a policy application
     pub fn record_policy_application(&mut self, policy_id: &str) {
         self.total_applications += 1;
-        *self.applications_per_policy.entry(policy_id.to_string()).or_insert(0) += 1;
+        *self
+            .applications_per_policy
+            .entry(policy_id.to_string())
+            .or_insert(0) += 1;
     }
 
     /// Get the most frequently used policy
@@ -797,8 +793,8 @@ mod tests {
             parameters,
         };
 
-        let context = PolicyContext::new(LayerType::Linear, ComponentType::Weights)
-            .with_memory_usage(100.0);
+        let context =
+            PolicyContext::new(LayerType::Linear, ComponentType::Weights).with_memory_usage(100.0);
 
         let result = formula.evaluate(&context);
         assert!(result.is_some());

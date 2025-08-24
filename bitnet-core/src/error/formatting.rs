@@ -3,9 +3,9 @@
 //! This module provides advanced error formatting capabilities with detailed
 //! reports, severity levels, and structured output for debugging and logging.
 
-use std::fmt;
-use serde::{Deserialize, Serialize};
 use super::{BitNetError, BitNetErrorKind, ErrorContext};
+use serde::{Deserialize, Serialize};
+use std::fmt;
 
 /// Error severity levels
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -134,9 +134,9 @@ impl ErrorReport {
     pub fn from_error(error: &BitNetError) -> Self {
         let timestamp = error.timestamp();
         let timestamp_human = format_timestamp(timestamp);
-        
+
         let (category, suggestions, technical_details) = match &error.kind() {
-            BitNetErrorKind::Device {  .. } => {
+            BitNetErrorKind::Device { .. } => {
                 let suggestions = vec![
                     "Check device availability and drivers".to_string(),
                     "Verify device compatibility".to_string(),
@@ -152,15 +152,19 @@ impl ErrorReport {
                 };
                 ("Device".to_string(), suggestions, technical_details)
             }
-            BitNetErrorKind::Memory { size, operation, .. } => {
+            BitNetErrorKind::Memory {
+                size, operation, ..
+            } => {
                 let mut suggestions = vec![
                     "Check available system memory".to_string(),
                     "Reduce batch size or tensor dimensions".to_string(),
                     "Enable memory cleanup and garbage collection".to_string(),
                 ];
                 if let Some(size) = size {
-                    if *size >= 1024 * 1024 * 1024 { // >= 1GB
-                        suggestions.push("Consider using streaming or chunked processing".to_string());
+                    if *size >= 1024 * 1024 * 1024 {
+                        // >= 1GB
+                        suggestions
+                            .push("Consider using streaming or chunked processing".to_string());
                     }
                 }
                 let technical_details = TechnicalDetails {
@@ -173,7 +177,7 @@ impl ErrorReport {
                 };
                 ("Memory".to_string(), suggestions, technical_details)
             }
-            BitNetErrorKind::Tensor {   .. } => {
+            BitNetErrorKind::Tensor { .. } => {
                 let suggestions = vec![
                     "Verify tensor dimensions and data types".to_string(),
                     "Check input data compatibility".to_string(),
@@ -189,9 +193,14 @@ impl ErrorReport {
                 };
                 ("Tensor".to_string(), suggestions, technical_details)
             }
-            BitNetErrorKind::Conversion { from_type, to_type, .. } => {
+            BitNetErrorKind::Conversion {
+                from_type, to_type, ..
+            } => {
                 let suggestions = vec![
-                    format!("Check if conversion from {} to {} is supported", from_type, to_type),
+                    format!(
+                        "Check if conversion from {} to {} is supported",
+                        from_type, to_type
+                    ),
                     "Consider intermediate conversion steps".to_string(),
                     "Verify data ranges and precision requirements".to_string(),
                 ];
@@ -205,7 +214,11 @@ impl ErrorReport {
                 };
                 ("Conversion".to_string(), suggestions, technical_details)
             }
-            BitNetErrorKind::Metal { device_name, operation, .. } => {
+            BitNetErrorKind::Metal {
+                device_name,
+                operation,
+                ..
+            } => {
                 let mut suggestions = vec![
                     "Check Metal framework availability".to_string(),
                     "Verify GPU drivers and system compatibility".to_string(),
@@ -331,53 +344,74 @@ impl ErrorReport {
     /// Formats the error report as a human-readable string
     pub fn format_human_readable(&self) -> String {
         let mut output = String::new();
-        
+
         output.push_str(&format!("🚨 {} Error Report\n", self.severity));
-        output.push_str(&format!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"));
+        output.push_str(&format!(
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        ));
         output.push_str(&format!("Error ID: {}\n", self.error_id));
         output.push_str(&format!("Time: {}\n", self.timestamp_human));
         output.push_str(&format!("Category: {}\n", self.category));
-        output.push_str(&format!("Component: {}\n", self.technical_details.component));
-        
+        output.push_str(&format!(
+            "Component: {}\n",
+            self.technical_details.component
+        ));
+
         // Include device information if available in context
-        if let Some(device_info) = self.context.get("device_name").or_else(|| self.context.get("device")) {
+        if let Some(device_info) = self
+            .context
+            .get("device_name")
+            .or_else(|| self.context.get("device"))
+        {
             output.push_str(&format!("Device: {}\n", device_info));
         }
-        
+
         output.push_str(&format!("\n📋 Message:\n{}\n", self.message));
-        
+
         if let Some(ref description) = self.description {
             output.push_str(&format!("\n📝 Description:\n{}\n", description));
         }
-        
+
         if !self.context.is_empty() {
             output.push_str(&format!("\n🔍 Context:\n{}\n", self.context));
         }
-        
+
         if !self.suggestions.is_empty() {
             output.push_str("\n💡 Suggested Actions:\n");
             for (i, suggestion) in self.suggestions.iter().enumerate() {
                 output.push_str(&format!("  {}. {}\n", i + 1, suggestion));
             }
         }
-        
+
         output.push_str(&format!("\n🔧 Technical Details:\n"));
-        output.push_str(&format!("  Operation: {}\n", self.technical_details.operation));
-        output.push_str(&format!("  Error Kind: {}\n", self.technical_details.error_kind));
-        output.push_str(&format!("  System: {} ({})\n", 
-                                self.technical_details.system_info.os,
-                                self.technical_details.system_info.arch));
-        
+        output.push_str(&format!(
+            "  Operation: {}\n",
+            self.technical_details.operation
+        ));
+        output.push_str(&format!(
+            "  Error Kind: {}\n",
+            self.technical_details.error_kind
+        ));
+        output.push_str(&format!(
+            "  System: {} ({})\n",
+            self.technical_details.system_info.os, self.technical_details.system_info.arch
+        ));
+
         if let Some(ref gpu_info) = self.technical_details.system_info.gpu_info {
             output.push_str(&format!("  GPU: {}\n", gpu_info));
         }
-        
+
         if let Some(memory) = self.technical_details.system_info.available_memory {
-            output.push_str(&format!("  Available Memory: {} MB\n", memory / 1024 / 1024));
+            output.push_str(&format!(
+                "  Available Memory: {} MB\n",
+                memory / 1024 / 1024
+            ));
         }
-        
-        output.push_str("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
-        
+
+        output.push_str(
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
+        );
+
         output
     }
 
@@ -388,11 +422,13 @@ impl ErrorReport {
 
     /// Formats the error report as a compact single line
     pub fn format_compact(&self) -> String {
-        format!("[{}] {} - {} ({})", 
-                self.severity.as_str(),
-                self.category,
-                self.message,
-                self.error_id)
+        format!(
+            "[{}] {} - {} ({})",
+            self.severity.as_str(),
+            self.category,
+            self.message,
+            self.error_id
+        )
     }
 }
 
@@ -436,7 +472,7 @@ impl ErrorFormatter {
     /// Formats a BitNetError using this formatter
     pub fn format(&self, error: &BitNetError) -> String {
         let report = ErrorReport::from_error(error);
-        
+
         if !self.include_technical_details && !self.include_suggestions && !self.include_context {
             report.format_compact()
         } else {
@@ -454,7 +490,7 @@ impl Default for ErrorFormatter {
 /// Formats a timestamp as a human-readable string
 fn format_timestamp(timestamp: u64) -> String {
     use std::time::{Duration, UNIX_EPOCH};
-    
+
     let datetime = UNIX_EPOCH + Duration::from_secs(timestamp);
     // For simplicity, we'll use a basic format
     // In a real implementation, you might want to use chrono or time crate
@@ -502,7 +538,7 @@ mod tests {
         assert!(ErrorSeverity::Critical.is_at_least(ErrorSeverity::Error));
         assert!(ErrorSeverity::Error.is_at_least(ErrorSeverity::Warning));
         assert!(ErrorSeverity::Warning.is_at_least(ErrorSeverity::Info));
-        
+
         assert!(!ErrorSeverity::Info.is_at_least(ErrorSeverity::Warning));
     }
 
@@ -511,9 +547,9 @@ mod tests {
         let error = BitNetError::device_error("Test device error", "Metal")
             .add_context("operation", "buffer_allocation")
             .set_severity(ErrorSeverity::Critical);
-        
+
         let report = ErrorReport::from_error(&error);
-        
+
         assert_eq!(report.category, "Device");
         assert_eq!(report.severity, ErrorSeverity::Critical);
         assert!(!report.suggestions.is_empty());
@@ -523,16 +559,16 @@ mod tests {
     #[test]
     fn test_error_formatter() {
         let error = BitNetError::memory_error_with_size("Out of memory", 1024, "allocation");
-        
+
         let formatter = ErrorFormatter::new();
         let formatted = formatter.format(&error);
-        
+
         assert!(formatted.contains("Memory"));
         assert!(formatted.contains("Out of memory"));
-        
+
         let minimal_formatter = ErrorFormatter::minimal();
         let minimal_formatted = minimal_formatter.format(&error);
-        
+
         assert!(minimal_formatted.len() < formatted.len());
     }
 
@@ -540,10 +576,10 @@ mod tests {
     fn test_error_report_json_serialization() {
         let error = BitNetError::tensor_error("Shape mismatch");
         let report = ErrorReport::from_error(&error);
-        
+
         let json_result = report.format_json();
         assert!(json_result.is_ok());
-        
+
         let json_str = json_result.unwrap();
         assert!(json_str.contains("tensor"));
         assert!(json_str.contains("Shape mismatch"));
@@ -552,7 +588,7 @@ mod tests {
     #[test]
     fn test_system_info() {
         let system_info = get_system_info();
-        
+
         assert!(!system_info.os.is_empty());
         assert!(!system_info.arch.is_empty());
     }
@@ -561,10 +597,10 @@ mod tests {
     fn test_compact_formatting() {
         let error = BitNetError::conversion_error("Invalid conversion", "f32", "i8")
             .set_severity(ErrorSeverity::Warning);
-        
+
         let report = ErrorReport::from_error(&error);
         let compact = report.format_compact();
-        
+
         assert!(compact.contains("WARN"));
         assert!(compact.contains("Conversion"));
         assert!(compact.contains("Invalid conversion"));

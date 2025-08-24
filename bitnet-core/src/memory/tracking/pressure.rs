@@ -3,16 +3,16 @@
 //! This module provides real-time memory pressure monitoring with configurable
 //! thresholds and callback system for pressure events.
 
-use std::sync::{Arc, RwLock, Mutex};
-use std::time::{Duration, Instant, SystemTime};
-use std::collections::VecDeque;
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
+use std::sync::{Arc, Mutex, RwLock};
+use std::time::{Duration, Instant, SystemTime};
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, warn, error};
+use tracing::{debug, error, info, warn};
 
-use super::{TrackingError, TrackingResult};
 use super::config::PressureThresholds;
+use super::{TrackingError, TrackingResult};
 
 /// Memory pressure levels indicating system memory stress
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -123,10 +123,15 @@ impl MemoryPressureDetector {
     /// ```
     pub fn new(thresholds: PressureThresholds) -> TrackingResult<Self> {
         #[cfg(feature = "tracing")]
-        info!("Creating memory pressure detector with thresholds: {:?}", thresholds);
+        info!(
+            "Creating memory pressure detector with thresholds: {:?}",
+            thresholds
+        );
 
         // Validate thresholds
-        thresholds.validate().map_err(|e| TrackingError::InvalidConfiguration { reason: e })?;
+        thresholds
+            .validate()
+            .map_err(|e| TrackingError::InvalidConfiguration { reason: e })?;
 
         let system_memory = Self::get_system_memory_info()
             .map_err(|e| TrackingError::PressureDetectionError { reason: e })?;
@@ -178,7 +183,11 @@ impl MemoryPressureDetector {
 
         if level_changed {
             #[cfg(feature = "tracing")]
-            debug!("Memory pressure level changed to {:?} ({}%)", new_level, usage_percentage * 100.0);
+            debug!(
+                "Memory pressure level changed to {:?} ({}%)",
+                new_level,
+                usage_percentage * 100.0
+            );
 
             // Update current level
             {
@@ -270,7 +279,7 @@ impl MemoryPressureDetector {
         let (total_events, events_by_level, avg_time_between_events) = {
             let history = self.event_history.lock().unwrap();
             let total = history.len();
-            
+
             let mut by_level = std::collections::HashMap::new();
             for event in history.iter() {
                 let level_str = format!("{:?}", event.level);
@@ -278,7 +287,8 @@ impl MemoryPressureDetector {
             }
 
             let avg_time = if history.len() > 1 {
-                let total_time: Duration = history.iter()
+                let total_time: Duration = history
+                    .iter()
                     .filter_map(|event| event.time_since_last_event)
                     .sum();
                 Some(total_time / (history.len() - 1) as u32)
@@ -314,11 +324,7 @@ impl MemoryPressureDetector {
     /// Vector of recent pressure events
     pub fn get_recent_events(&self, limit: usize) -> Vec<PressureEvent> {
         let history = self.event_history.lock().unwrap();
-        history.iter()
-            .rev()
-            .take(limit)
-            .cloned()
-            .collect()
+        history.iter().rev().take(limit).cloned().collect()
     }
 
     // Private helper methods
@@ -327,13 +333,13 @@ impl MemoryPressureDetector {
         #[cfg(target_os = "macos")]
         {
             use std::process::Command;
-            
+
             // Get total memory
             let total_output = Command::new("sysctl")
                 .args(&["-n", "hw.memsize"])
                 .output()
                 .map_err(|e| format!("Failed to get total memory: {}", e))?;
-            
+
             let total_memory = String::from_utf8(total_output.stdout)
                 .map_err(|e| format!("Invalid total memory output: {}", e))?
                 .trim()
@@ -353,24 +359,28 @@ impl MemoryPressureDetector {
         #[cfg(target_os = "linux")]
         {
             use std::fs;
-            
+
             let meminfo = fs::read_to_string("/proc/meminfo")
                 .map_err(|e| format!("Failed to read /proc/meminfo: {}", e))?;
-            
+
             let mut total_memory = 0;
             let mut available_memory = 0;
-            
+
             for line in meminfo.lines() {
                 if line.starts_with("MemTotal:") {
-                    total_memory = line.split_whitespace()
+                    total_memory = line
+                        .split_whitespace()
                         .nth(1)
                         .and_then(|s| s.parse::<u64>().ok())
-                        .unwrap_or(0) * 1024; // Convert from KB to bytes
+                        .unwrap_or(0)
+                        * 1024; // Convert from KB to bytes
                 } else if line.starts_with("MemAvailable:") {
-                    available_memory = line.split_whitespace()
+                    available_memory = line
+                        .split_whitespace()
                         .nth(1)
                         .and_then(|s| s.parse::<u64>().ok())
-                        .unwrap_or(0) * 1024; // Convert from KB to bytes
+                        .unwrap_or(0)
+                        * 1024; // Convert from KB to bytes
                 }
             }
 
@@ -385,7 +395,7 @@ impl MemoryPressureDetector {
         {
             // Fallback for unsupported platforms
             Ok(SystemMemoryInfo {
-                total_memory: 8 * 1024 * 1024 * 1024, // 8GB default
+                total_memory: 8 * 1024 * 1024 * 1024,     // 8GB default
                 available_memory: 4 * 1024 * 1024 * 1024, // 4GB default
                 last_updated: Instant::now(),
             })
@@ -453,23 +463,30 @@ impl MemoryPressureDetector {
             let should_notify = last_notification
                 .map(|last| now.duration_since(last) >= self.thresholds.notification_cooldown)
                 .unwrap_or(true);
-            
+
             if should_notify {
                 *last_notification = Some(now);
             }
-            
+
             should_notify
         } else {
             false
         }
     }
 
-    fn notify_pressure_change(&self, level: MemoryPressureLevel, usage_percentage: f64, current_usage: u64) {
+    fn notify_pressure_change(
+        &self,
+        level: MemoryPressureLevel,
+        usage_percentage: f64,
+        current_usage: u64,
+    ) {
         // Create pressure event
         let time_since_last = {
             let history = self.event_history.lock().unwrap();
             history.back().map(|last_event| {
-                SystemTime::now().duration_since(last_event.timestamp).unwrap_or(Duration::ZERO)
+                SystemTime::now()
+                    .duration_since(last_event.timestamp)
+                    .unwrap_or(Duration::ZERO)
             })
         };
 
@@ -487,7 +504,7 @@ impl MemoryPressureDetector {
         {
             let mut history = self.event_history.lock().unwrap();
             history.push_back(event.clone());
-            
+
             // Keep only recent events (last 1000)
             if history.len() > 1000 {
                 history.pop_front();
@@ -505,23 +522,38 @@ impl MemoryPressureDetector {
         match level {
             MemoryPressureLevel::Critical => {
                 #[cfg(feature = "tracing")]
-                error!("CRITICAL memory pressure detected: {:.1}% usage", usage_percentage * 100.0);
+                error!(
+                    "CRITICAL memory pressure detected: {:.1}% usage",
+                    usage_percentage * 100.0
+                );
             }
             MemoryPressureLevel::High => {
                 #[cfg(feature = "tracing")]
-                warn!("HIGH memory pressure detected: {:.1}% usage", usage_percentage * 100.0);
+                warn!(
+                    "HIGH memory pressure detected: {:.1}% usage",
+                    usage_percentage * 100.0
+                );
             }
             MemoryPressureLevel::Medium => {
                 #[cfg(feature = "tracing")]
-                warn!("MEDIUM memory pressure detected: {:.1}% usage", usage_percentage * 100.0);
+                warn!(
+                    "MEDIUM memory pressure detected: {:.1}% usage",
+                    usage_percentage * 100.0
+                );
             }
             MemoryPressureLevel::Low => {
                 #[cfg(feature = "tracing")]
-                info!("LOW memory pressure detected: {:.1}% usage", usage_percentage * 100.0);
+                info!(
+                    "LOW memory pressure detected: {:.1}% usage",
+                    usage_percentage * 100.0
+                );
             }
             MemoryPressureLevel::None => {
                 #[cfg(feature = "tracing")]
-                info!("Memory pressure resolved: {:.1}% usage", usage_percentage * 100.0);
+                info!(
+                    "Memory pressure resolved: {:.1}% usage",
+                    usage_percentage * 100.0
+                );
             }
         }
     }
@@ -544,7 +576,7 @@ impl MemoryPressureDetector {
         // Calculate trend over recent samples
         let samples: Vec<_> = history.iter().collect();
         let n = samples.len();
-        
+
         if n < 2 {
             return 0.0;
         }
@@ -552,21 +584,23 @@ impl MemoryPressureDetector {
         // Simple linear regression to calculate trend
         let x_sum: f64 = (0..n).map(|i| i as f64).sum();
         let y_sum: f64 = samples.iter().map(|s| s.usage_bytes as f64).sum();
-        let xy_sum: f64 = samples.iter().enumerate()
+        let xy_sum: f64 = samples
+            .iter()
+            .enumerate()
             .map(|(i, s)| i as f64 * s.usage_bytes as f64)
             .sum();
         let x2_sum: f64 = (0..n).map(|i| (i as f64).powi(2)).sum();
 
         let n_f64 = n as f64;
         let slope = (n_f64 * xy_sum - x_sum * y_sum) / (n_f64 * x2_sum - x_sum.powi(2));
-        
+
         slope / 1024.0 / 1024.0 // Convert to MB/sample trend
     }
 
     fn calculate_time_in_levels(&self) -> std::collections::HashMap<String, Duration> {
         let mut time_in_levels = std::collections::HashMap::new();
         let history = self.event_history.lock().unwrap();
-        
+
         if history.is_empty() {
             return time_in_levels;
         }
@@ -577,19 +611,22 @@ impl MemoryPressureDetector {
         for event in history.iter() {
             if event.level != current_level {
                 // Calculate time spent in previous level
-                let time_in_level = event.timestamp.duration_since(level_start_time)
+                let time_in_level = event
+                    .timestamp
+                    .duration_since(level_start_time)
                     .unwrap_or(Duration::ZERO);
-                
+
                 let level_str = format!("{:?}", current_level);
                 *time_in_levels.entry(level_str).or_insert(Duration::ZERO) += time_in_level;
-                
+
                 current_level = event.level;
                 level_start_time = event.timestamp;
             }
         }
 
         // Add time for current level
-        let current_time_in_level = SystemTime::now().duration_since(level_start_time)
+        let current_time_in_level = SystemTime::now()
+            .duration_since(level_start_time)
             .unwrap_or(Duration::ZERO);
         let level_str = format!("{:?}", current_level);
         *time_in_levels.entry(level_str).or_insert(Duration::ZERO) += current_time_in_level;
@@ -608,7 +645,13 @@ impl std::fmt::Debug for MemoryPressureDetector {
         f.debug_struct("MemoryPressureDetector")
             .field("thresholds", &self.thresholds)
             .field("current_level", &self.current_level)
-            .field("callbacks", &format!("{} callbacks", self.callbacks.lock().map(|c| c.len()).unwrap_or(0)))
+            .field(
+                "callbacks",
+                &format!(
+                    "{} callbacks",
+                    self.callbacks.lock().map(|c| c.len()).unwrap_or(0)
+                ),
+            )
             .field("event_history", &self.event_history)
             .field("last_notification", &self.last_notification)
             .field("usage_history", &self.usage_history)
@@ -619,14 +662,14 @@ impl std::fmt::Debug for MemoryPressureDetector {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::config::PressureThresholds;
+    use super::*;
 
     #[test]
     fn test_pressure_detector_creation() {
         let thresholds = PressureThresholds::default();
         let detector = MemoryPressureDetector::new(thresholds).unwrap();
-        
+
         assert_eq!(detector.get_current_level(), MemoryPressureLevel::None);
     }
 
@@ -634,30 +677,45 @@ mod tests {
     fn test_pressure_level_calculation() {
         let thresholds = PressureThresholds::default();
         let detector = MemoryPressureDetector::new(thresholds).unwrap();
-        
+
         // Test different usage levels
-        assert_eq!(detector.calculate_pressure_level(0.5), MemoryPressureLevel::None);
-        assert_eq!(detector.calculate_pressure_level(0.75), MemoryPressureLevel::Low);
-        assert_eq!(detector.calculate_pressure_level(0.85), MemoryPressureLevel::Medium);
-        assert_eq!(detector.calculate_pressure_level(0.92), MemoryPressureLevel::High);
-        assert_eq!(detector.calculate_pressure_level(0.97), MemoryPressureLevel::Critical);
+        assert_eq!(
+            detector.calculate_pressure_level(0.5),
+            MemoryPressureLevel::None
+        );
+        assert_eq!(
+            detector.calculate_pressure_level(0.75),
+            MemoryPressureLevel::Low
+        );
+        assert_eq!(
+            detector.calculate_pressure_level(0.85),
+            MemoryPressureLevel::Medium
+        );
+        assert_eq!(
+            detector.calculate_pressure_level(0.92),
+            MemoryPressureLevel::High
+        );
+        assert_eq!(
+            detector.calculate_pressure_level(0.97),
+            MemoryPressureLevel::Critical
+        );
     }
 
     #[test]
     fn test_callback_registration() {
         let thresholds = PressureThresholds::default();
         let detector = MemoryPressureDetector::new(thresholds).unwrap();
-        
+
         let callback_called = Arc::new(Mutex::new(false));
         let callback_called_clone = callback_called.clone();
-        
+
         detector.register_callback(Box::new(move |_level| {
             *callback_called_clone.lock().unwrap() = true;
         }));
-        
+
         // Simulate high memory usage to trigger callback
         detector.update_memory_usage(u64::MAX);
-        
+
         // Note: In a real test, we'd need to wait or use synchronization
         // to ensure the callback was called
     }
@@ -666,14 +724,14 @@ mod tests {
     fn test_usage_trend_calculation() {
         let thresholds = PressureThresholds::default();
         let detector = MemoryPressureDetector::new(thresholds).unwrap();
-        
+
         // Add some usage samples
         detector.record_usage_sample(1024 * 1024 * 1024); // 1GB
         std::thread::sleep(Duration::from_millis(10));
         detector.record_usage_sample(2 * 1024 * 1024 * 1024); // 2GB
         std::thread::sleep(Duration::from_millis(10));
         detector.record_usage_sample(3 * 1024 * 1024 * 1024); // 3GB
-        
+
         let trend = detector.calculate_usage_trend();
         assert!(trend > 0.0); // Should show increasing trend
     }
@@ -682,7 +740,7 @@ mod tests {
     fn test_pressure_statistics() {
         let thresholds = PressureThresholds::default();
         let detector = MemoryPressureDetector::new(thresholds).unwrap();
-        
+
         let stats = detector.get_statistics();
         assert_eq!(stats.current_level, MemoryPressureLevel::None);
         assert_eq!(stats.total_pressure_events, 0);

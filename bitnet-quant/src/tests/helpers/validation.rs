@@ -55,12 +55,12 @@ pub struct QuantizationCounts {
 /// Validate that a tensor contains only ternary values {-1, 0, +1}
 pub fn validate_ternary_values(tensor: &Tensor) -> QuantizationResult<TernaryValidationResult> {
     let values = tensor.flatten_all()
-        .map_err(|e| QuantizationError::TensorError { 
-            reason: format!("Failed to flatten tensor: {}", e) 
+        .map_err(|e| QuantizationError::TensorError {
+            reason: format!("Failed to flatten tensor: {}", e)
         })?
         .to_vec1::<f32>()
-        .map_err(|e| QuantizationError::TensorError { 
-            reason: format!("Failed to convert to vector: {}", e) 
+        .map_err(|e| QuantizationError::TensorError {
+            reason: format!("Failed to convert to vector: {}", e)
         })?;
 
     let mut minus_one_count = 0;
@@ -144,33 +144,33 @@ pub fn validate_round_trip_accuracy(
     // Ensure tensors have the same shape
     if original.shape() != reconstructed.shape() {
         return Err(QuantizationError::ValidationError {
-            reason: format!("Shape mismatch: original {:?}, reconstructed {:?}", 
+            reason: format!("Shape mismatch: original {:?}, reconstructed {:?}",
                           original.shape(), reconstructed.shape())
         });
     }
 
     let orig_values = original.flatten_all()
-        .map_err(|e| QuantizationError::TensorError { 
-            reason: format!("Failed to flatten original: {}", e) 
+        .map_err(|e| QuantizationError::TensorError {
+            reason: format!("Failed to flatten original: {}", e)
         })?
         .to_vec1::<f32>()
-        .map_err(|e| QuantizationError::TensorError { 
-            reason: format!("Failed to convert original to vector: {}", e) 
+        .map_err(|e| QuantizationError::TensorError {
+            reason: format!("Failed to convert original to vector: {}", e)
         })?;
 
     let recon_values = reconstructed.flatten_all()
-        .map_err(|e| QuantizationError::TensorError { 
-            reason: format!("Failed to flatten reconstructed: {}", e) 
+        .map_err(|e| QuantizationError::TensorError {
+            reason: format!("Failed to flatten reconstructed: {}", e)
         })?
         .to_vec1::<f32>()
-        .map_err(|e| QuantizationError::TensorError { 
-            reason: format!("Failed to convert reconstructed to vector: {}", e) 
+        .map_err(|e| QuantizationError::TensorError {
+            reason: format!("Failed to convert reconstructed to vector: {}", e)
         })?;
 
     // Compute error metrics
     let mut squared_errors = Vec::new();
     let mut absolute_errors = Vec::new();
-    
+
     for (&orig, &recon) in orig_values.iter().zip(recon_values.iter()) {
         let error = orig - recon;
         squared_errors.push((error * error) as f64);
@@ -181,7 +181,7 @@ pub fn validate_round_trip_accuracy(
     let mae = absolute_errors.iter().sum::<f32>() as f64 / absolute_errors.len() as f64;
 
     // Compute SQNR
-    let signal_power: f64 = orig_values.iter().map(|&x| (x * x) as f64).sum::<f64>() 
+    let signal_power: f64 = orig_values.iter().map(|&x| (x * x) as f64).sum::<f64>()
                            / orig_values.len() as f64;
     let sqnr_db = if mse > 1e-10 {
         10.0 * (signal_power / mse).log10()
@@ -202,7 +202,7 @@ pub fn validate_round_trip_accuracy(
         .map(|(&a, &b)| (a * b) as f64).sum();
     let orig_norm: f64 = orig_values.iter().map(|&x| (x * x) as f64).sum::<f64>().sqrt();
     let recon_norm: f64 = recon_values.iter().map(|&x| (x * x) as f64).sum::<f64>().sqrt();
-    
+
     let cosine_similarity = if orig_norm > 1e-10 && recon_norm > 1e-10 {
         dot_product / (orig_norm * recon_norm)
     } else {
@@ -212,7 +212,7 @@ pub fn validate_round_trip_accuracy(
     // Error analysis
     let mut sorted_errors = absolute_errors.clone();
     sorted_errors.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    
+
     let max_error = sorted_errors.last().copied().unwrap_or(0.0);
     let p95_index = ((sorted_errors.len() as f32) * 0.95) as usize;
     let p95_error = sorted_errors.get(p95_index.min(sorted_errors.len() - 1)).copied().unwrap_or(0.0);
@@ -225,7 +225,7 @@ pub fn validate_round_trip_accuracy(
         else if error < 0.1 { "0.05-0.1" }
         else if error < 0.5 { "0.1-0.5" }
         else { "> 0.5" };
-        
+
         *error_histogram.entry(bucket.to_string()).or_insert(0) += 1;
     }
 
@@ -270,21 +270,21 @@ pub fn validate_scaling_factor(
 ) -> QuantizationResult<ScalingFactorValidationResult> {
     // Manually compute expected scaling factor using least squares
     let orig_flat = original.flatten_all()
-        .map_err(|e| QuantizationError::TensorError { 
-            reason: format!("Failed to flatten original: {}", e) 
+        .map_err(|e| QuantizationError::TensorError {
+            reason: format!("Failed to flatten original: {}", e)
         })?
         .to_vec1::<f32>()
-        .map_err(|e| QuantizationError::TensorError { 
-            reason: format!("Failed to convert original: {}", e) 
+        .map_err(|e| QuantizationError::TensorError {
+            reason: format!("Failed to convert original: {}", e)
         })?;
 
     let quant_flat = quantized.flatten_all()
-        .map_err(|e| QuantizationError::TensorError { 
-            reason: format!("Failed to flatten quantized: {}", e) 
+        .map_err(|e| QuantizationError::TensorError {
+            reason: format!("Failed to flatten quantized: {}", e)
         })?
         .to_vec1::<f32>()
-        .map_err(|e| QuantizationError::TensorError { 
-            reason: format!("Failed to convert quantized: {}", e) 
+        .map_err(|e| QuantizationError::TensorError {
+            reason: format!("Failed to convert quantized: {}", e)
         })?;
 
     // Compute α = (W·Q) / (Q·Q)
@@ -309,8 +309,8 @@ pub fn validate_scaling_factor(
     let is_finite = computed_scale.is_finite();
     let is_reasonable_magnitude = computed_scale.abs() > 1e-6 && computed_scale.abs() < 1000.0;
 
-    let passes_validation = is_finite && 
-                           is_reasonable_magnitude && 
+    let passes_validation = is_finite &&
+                           is_reasonable_magnitude &&
                            relative_error < 0.1; // 10% tolerance
 
     let validation_details = format!(
@@ -373,7 +373,7 @@ pub fn validate_shape_preservation(original: &Tensor, processed: &Tensor) -> Val
         )
     } else {
         ValidationResult::failure(
-            format!("Shape mismatch: original {:?}, processed {:?}", 
+            format!("Shape mismatch: original {:?}, processed {:?}",
                    original.shape(), processed.shape())
         )
     }
@@ -388,7 +388,7 @@ pub fn validate_value_bounds(tensor: &Tensor, min_val: f32, max_val: f32) -> Val
                     let out_of_bounds = values.iter()
                         .filter(|&&v| v < min_val || v > max_val)
                         .count();
-                    
+
                     if out_of_bounds == 0 {
                         ValidationResult::success(
                             1.0,
@@ -396,7 +396,7 @@ pub fn validate_value_bounds(tensor: &Tensor, min_val: f32, max_val: f32) -> Val
                         )
                     } else {
                         ValidationResult::failure(
-                            format!("{} out of {} values outside bounds [{}, {}]", 
+                            format!("{} out of {} values outside bounds [{}, {}]",
                                    out_of_bounds, values.len(), min_val, max_val)
                         )
                     }
@@ -411,32 +411,32 @@ pub fn validate_value_bounds(tensor: &Tensor, min_val: f32, max_val: f32) -> Val
 /// Compute comprehensive tensor statistics
 pub fn compute_tensor_statistics(tensor: &Tensor) -> QuantizationResult<TensorStatistics> {
     let values = tensor.flatten_all()
-        .map_err(|e| QuantizationError::TensorError { 
-            reason: format!("Failed to flatten tensor: {}", e) 
+        .map_err(|e| QuantizationError::TensorError {
+            reason: format!("Failed to flatten tensor: {}", e)
         })?
         .to_vec1::<f32>()
-        .map_err(|e| QuantizationError::TensorError { 
-            reason: format!("Failed to convert tensor: {}", e) 
+        .map_err(|e| QuantizationError::TensorError {
+            reason: format!("Failed to convert tensor: {}", e)
         })?;
 
     let n = values.len() as f64;
     let mean = values.iter().sum::<f32>() as f64 / n;
-    
+
     let variance = values.iter()
         .map(|&x| ((x as f64) - mean).powi(2))
         .sum::<f64>() / n;
-    
+
     let std_dev = variance.sqrt();
-    
+
     let min = values.iter().fold(f32::INFINITY, |a, &b| a.min(b));
     let max = values.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
-    
+
     let zero_count = values.iter().filter(|&&x| x.abs() < 1e-8).count();
     let sparsity = zero_count as f64 / n;
-    
+
     let l1_norm = values.iter().map(|&x| x.abs() as f64).sum::<f64>();
     let l2_norm = values.iter().map(|&x| (x * x) as f64).sum::<f64>().sqrt();
-    
+
     Ok(TensorStatistics {
         mean,
         std_dev,
@@ -470,7 +470,7 @@ mod tests {
     fn test_validate_ternary_values_all_valid() {
         let device = create_test_device();
         let tensor = generate_test_tensor(TestPattern::RandomTernary, &[100], &device).unwrap();
-        
+
         let result = validate_ternary_values(&tensor).unwrap();
         assert!(result.is_strictly_ternary);
         assert_eq!(result.quantization_counts.invalid, 0);
@@ -482,7 +482,7 @@ mod tests {
         let device = create_test_device();
         // Generate non-ternary data
         let tensor = generate_test_tensor(TestPattern::NormalDistribution, &[50], &device).unwrap();
-        
+
         let result = validate_ternary_values(&tensor).unwrap();
         assert!(!result.is_strictly_ternary);
         assert!(result.quantization_counts.invalid > 0);
@@ -494,7 +494,7 @@ mod tests {
         let device = create_test_device();
         let original = generate_test_tensor(TestPattern::RandomTernary, &[50], &device).unwrap();
         let reconstructed = original.clone();
-        
+
         let result = validate_round_trip_accuracy(&original, &reconstructed, 0.01).unwrap();
         assert!(result.mse < 1e-10);
         assert!(result.cosine_similarity > 0.999);
@@ -506,10 +506,10 @@ mod tests {
         let device = create_test_device();
         let original = generate_test_tensor(TestPattern::UniformDistribution, &[20], &device).unwrap();
         let quantized = generate_test_tensor(TestPattern::RandomTernary, &[20], &device).unwrap();
-        
+
         // Use a reasonable scale factor
         let computed_scale = 1.5;
-        
+
         let result = validate_scaling_factor(&original, &quantized, computed_scale).unwrap();
         assert!(result.is_positive);
         assert!(result.is_finite);
@@ -520,7 +520,7 @@ mod tests {
     fn test_tensor_statistics() {
         let device = create_test_device();
         let tensor = generate_test_tensor(TestPattern::AllZeros, &[100], &device).unwrap();
-        
+
         let stats = compute_tensor_statistics(&tensor).unwrap();
         assert_eq!(stats.mean, 0.0);
         assert_eq!(stats.std_dev, 0.0);

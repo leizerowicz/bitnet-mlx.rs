@@ -166,8 +166,8 @@ pub fn simd_add_f32(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<Bi
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx2")]
 unsafe fn simd_add_f32_avx2_impl(
-    lhs_data: &[f32], 
-    rhs_data: &[f32], 
+    lhs_data: &[f32],
+    rhs_data: &[f32],
     result_data: &mut [f32]
 ) {
     // Simplified scalar implementation for compatibility
@@ -178,8 +178,8 @@ unsafe fn simd_add_f32_avx2_impl(
 
 #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
 unsafe fn simd_add_f32_avx2_impl(
-    lhs_data: &[f32], 
-    rhs_data: &[f32], 
+    lhs_data: &[f32],
+    rhs_data: &[f32],
     result_data: &mut [f32]
 ) {
     // Fallback scalar implementation
@@ -209,8 +209,8 @@ fn simd_add_f32_avx2(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<B
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "sse4.1")]
 unsafe fn simd_add_f32_sse41_impl(
-    lhs_data: &[f32], 
-    rhs_data: &[f32], 
+    lhs_data: &[f32],
+    rhs_data: &[f32],
     result_data: &mut [f32]
 ) {
     let len = lhs_data.len();
@@ -276,7 +276,7 @@ fn simd_add_f32_neon(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<B
 
 #[cfg(not(target_arch = "aarch64"))]
 fn simd_add_f32_neon(_lhs: &BitNetTensor, _rhs: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
-    Err(TensorOpError::UnsupportedOperation { 
+    Err(TensorOpError::UnsupportedOperation {
         operation: "simd_add_f32_neon".to_string(),
         reason: "NEON not available on this architecture".to_string(),
     })
@@ -323,8 +323,8 @@ fn simd_mul_f32_avx2(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<B
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx2")]
 unsafe fn simd_mul_f32_avx2_impl(
-    lhs_data: &[f32], 
-    rhs_data: &[f32], 
+    lhs_data: &[f32],
+    rhs_data: &[f32],
     result_data: &mut [f32]
 ) {
     let len = lhs_data.len();
@@ -358,8 +358,8 @@ fn simd_mul_f32_sse41(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "sse4.1")]
 unsafe fn simd_mul_f32_sse41_impl(
-    lhs_data: &[f32], 
-    rhs_data: &[f32], 
+    lhs_data: &[f32],
+    rhs_data: &[f32],
     result_data: &mut [f32]
 ) {
     let len = lhs_data.len();
@@ -407,7 +407,7 @@ fn simd_mul_f32_neon(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<B
 
 #[cfg(not(target_arch = "aarch64"))]
 fn simd_mul_f32_neon(_lhs: &BitNetTensor, _rhs: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
-    Err(TensorOpError::UnsupportedOperation { 
+    Err(TensorOpError::UnsupportedOperation {
         operation: "simd_mul_f32_neon".to_string(),
         reason: "NEON not available on this architecture".to_string(),
     })
@@ -442,10 +442,10 @@ pub fn simd_sum_f32(tensor: &BitNetTensor) -> TensorOpResult<f32> {
 
 fn simd_sum_f32_avx2(tensor: &BitNetTensor) -> TensorOpResult<f32> {
     let data = tensor.as_slice_f32()?;
-    
+
     unsafe {
         simd_sum_f32_avx2_impl(data)
-    }.map_err(|e| TensorOpError::NumericalError { 
+    }.map_err(|e| TensorOpError::NumericalError {
         operation: "simd_sum_f32_avx2".to_string(),
         details: e.to_string(),
     })
@@ -456,30 +456,30 @@ fn simd_sum_f32_avx2(tensor: &BitNetTensor) -> TensorOpResult<f32> {
 unsafe fn simd_sum_f32_avx2_impl(data: &[f32]) -> Result<f32, Box<dyn std::error::Error>> {
     let len = data.len();
     let simd_len = len - (len % 8);
-    
+
     let mut sum_vec = _mm256_setzero_ps();
-    
+
     // Process 8 elements at a time
     for i in (0..simd_len).step_by(8) {
         let vec = _mm256_loadu_ps(data.as_ptr().add(i));
         sum_vec = _mm256_add_ps(sum_vec, vec);
     }
-    
+
     // Horizontal sum of the vector
     let sum_high = _mm256_extractf128_ps(sum_vec, 1);
     let sum_low = _mm256_castps256_ps128(sum_vec);
     let sum_quad = _mm_add_ps(sum_high, sum_low);
-    
+
     let sum_dual = _mm_add_ps(sum_quad, _mm_movehl_ps(sum_quad, sum_quad));
     let sum_single = _mm_add_ss(sum_dual, _mm_shuffle_ps(sum_dual, sum_dual, 0x55));
-    
+
     let mut simd_sum = _mm_cvtss_f32(sum_single);
-    
+
     // Add remaining elements
     for i in simd_len..len {
         simd_sum += data[i];
     }
-    
+
     Ok(simd_sum)
 }
 
@@ -531,21 +531,21 @@ fn simd_add_scalar_f32_avx2(tensor: &BitNetTensor, scalar: f32) -> TensorOpResul
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx2")]
 unsafe fn simd_add_scalar_f32_avx2_impl(
-    data: &[f32], 
-    scalar: f32, 
+    data: &[f32],
+    scalar: f32,
     result_data: &mut [f32]
 ) {
     let len = data.len();
     let simd_len = len - (len % 8);
-    
+
     let scalar_vec = _mm256_set1_ps(scalar);
-    
+
     for i in (0..simd_len).step_by(8) {
         let vec = _mm256_loadu_ps(data.as_ptr().add(i));
         let result_vec = _mm256_add_ps(vec, scalar_vec);
         _mm256_storeu_ps(result_data.as_mut_ptr().add(i), result_vec);
     }
-    
+
     for i in simd_len..len {
         result_data[i] = data[i] + scalar;
     }
@@ -628,7 +628,7 @@ pub fn benchmark_simd_performance(sizes: &[usize]) -> Result<SimdBenchmarkResult
         })?;
 
         let speedup = scalar_time.as_secs_f64() / simd_time.as_secs_f64();
-        
+
         results.add_result(size, scalar_time, simd_time, speedup);
     }
 
@@ -679,9 +679,9 @@ impl SimdBenchmarkResults {
         println!("SIMD Performance Benchmark Results:");
         println!("{:<10} {:<15} {:<15} {:<10}", "Size", "Scalar (ms)", "SIMD (ms)", "Speedup");
         println!("{}", "-".repeat(50));
-        
+
         for result in &self.results {
-            println!("{:<10} {:<15.2} {:<15.2} {:<10.2}x", 
+            println!("{:<10} {:<15.2} {:<15.2} {:<10.2}x",
                 result.size,
                 result.scalar_time.as_secs_f64() * 1000.0,
                 result.simd_time.as_secs_f64() * 1000.0,

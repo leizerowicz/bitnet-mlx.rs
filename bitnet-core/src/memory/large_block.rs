@@ -4,13 +4,13 @@
 //! It uses a buddy allocation algorithm to minimize fragmentation while providing
 //! efficient allocation and deallocation for large memory blocks.
 
+use crate::memory::handle::{CpuMemoryMetadata, PoolType};
+use crate::memory::{MemoryError, MemoryHandle, MemoryResult};
+use candle_core::Device;
+use std::alloc::{alloc, dealloc, Layout};
+use std::collections::HashMap;
 use std::ptr::NonNull;
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use std::alloc::{alloc, dealloc, Layout};
-use candle_core::Device;
-use crate::memory::{MemoryError, MemoryResult, MemoryHandle};
-use crate::memory::handle::{PoolType, CpuMemoryMetadata};
 
 #[cfg(feature = "tracing")]
 use tracing::debug;
@@ -130,12 +130,16 @@ impl LargeBlockPool {
     /// A Result containing the new pool or an error if creation fails
     pub fn new(initial_size: usize, max_size: usize, device: &Device) -> MemoryResult<Self> {
         #[cfg(feature = "tracing")]
-        debug!("Creating large block pool: initial_size={}, max_size={}, device={:?}", 
-               initial_size, max_size, device);
+        debug!(
+            "Creating large block pool: initial_size={}, max_size={}, device={:?}",
+            initial_size, max_size, device
+        );
 
         // Validate parameters
         if max_size == 0 {
-            return Err(MemoryError::InvalidAlignment { alignment: max_size });
+            return Err(MemoryError::InvalidAlignment {
+                alignment: max_size,
+            });
         }
 
         // Initialize free lists for each buddy level
@@ -199,15 +203,18 @@ impl LargeBlockPool {
         let level = self.size_to_level(required_size);
 
         #[cfg(feature = "tracing")]
-        debug!("Allocating {} bytes (required: {}, level: {}) from large block pool", 
-               size, required_size, level);
+        debug!(
+            "Allocating {} bytes (required: {}, level: {}) from large block pool",
+            size, required_size, level
+        );
 
         // Get a block of the required size
         let block = self.get_block(level)?;
 
         // Generate unique handle ID
         let handle_id = {
-            let mut counter = handle_id_counter.lock()
+            let mut counter = handle_id_counter
+                .lock()
                 .map_err(|_| MemoryError::InternalError {
                     reason: "Failed to acquire handle ID counter lock".to_string(),
                 })?;
@@ -223,7 +230,8 @@ impl LargeBlockPool {
             alignment,
             level,
         };
-        self.block_metadata.insert(block.ptr.as_ptr() as usize, metadata);
+        self.block_metadata
+            .insert(block.ptr.as_ptr() as usize, metadata);
 
         // Create CPU metadata
         let cpu_metadata = CpuMemoryMetadata {
@@ -250,7 +258,10 @@ impl LargeBlockPool {
         self.update_fragmentation_ratio();
 
         #[cfg(feature = "tracing")]
-        debug!("Successfully allocated large block with handle ID {}", handle_id);
+        debug!(
+            "Successfully allocated large block with handle ID {}",
+            handle_id
+        );
 
         Ok(handle)
     }
@@ -289,10 +300,12 @@ impl LargeBlockPool {
         debug!("Deallocating large block with handle ID {}", handle.id());
 
         // Get block metadata
-        let metadata = self.block_metadata.remove(&ptr_addr)
-            .ok_or_else(|| MemoryError::InvalidHandle {
-                reason: "Block metadata not found".to_string(),
-            })?;
+        let metadata =
+            self.block_metadata
+                .remove(&ptr_addr)
+                .ok_or_else(|| MemoryError::InvalidHandle {
+                    reason: "Block metadata not found".to_string(),
+                })?;
 
         // Create block for deallocation
         let block = Block {
@@ -309,7 +322,10 @@ impl LargeBlockPool {
         self.update_fragmentation_ratio();
 
         #[cfg(feature = "tracing")]
-        debug!("Successfully deallocated large block with handle ID {}", handle.id());
+        debug!(
+            "Successfully deallocated large block with handle ID {}",
+            handle.id()
+        );
 
         Ok(())
     }
@@ -339,7 +355,7 @@ impl LargeBlockPool {
                 // CUDA device comparison not implemented yet
                 // For now, treat all CUDA devices as different
                 false
-            },
+            }
             _ => false,
         }
     }
@@ -392,7 +408,10 @@ impl LargeBlockPool {
 
     fn split_block(&mut self, mut block: Block, target_level: usize) -> MemoryResult<Block> {
         #[cfg(feature = "tracing")]
-        debug!("Splitting block from level {} to level {}", block.level, target_level);
+        debug!(
+            "Splitting block from level {} to level {}",
+            block.level, target_level
+        );
 
         // Split the block down to the target level
         while block.level > target_level {
@@ -400,9 +419,7 @@ impl LargeBlockPool {
             let new_level = block.level - 1;
 
             // Create buddy block (second half)
-            let buddy_ptr = unsafe {
-                NonNull::new_unchecked(block.ptr.as_ptr().add(new_size))
-            };
+            let buddy_ptr = unsafe { NonNull::new_unchecked(block.ptr.as_ptr().add(new_size)) };
             let buddy_block = Block {
                 ptr: buddy_ptr,
                 size: new_size,
@@ -420,7 +437,10 @@ impl LargeBlockPool {
         }
 
         #[cfg(feature = "tracing")]
-        debug!("Block split completed, returning block at level {}", block.level);
+        debug!(
+            "Block split completed, returning block at level {}",
+            block.level
+        );
 
         Ok(block)
     }
@@ -436,10 +456,8 @@ impl LargeBlockPool {
             }
 
             // Find buddy block
-            let buddy_addr = self.calculate_buddy_address(
-                current_block.ptr.as_ptr() as usize,
-                current_block.level,
-            );
+            let buddy_addr = self
+                .calculate_buddy_address(current_block.ptr.as_ptr() as usize, current_block.level);
 
             // Look for buddy in free list
             let buddy_index = self.free_lists[current_block.level]
@@ -545,8 +563,11 @@ impl LargeBlockPool {
     }
 
     fn allocate_cpu_arena(&self, arena_size: usize) -> MemoryResult<(NonNull<u8>, Layout)> {
-        let layout = Layout::from_size_align(arena_size, MIN_BLOCK_SIZE)
-            .map_err(|_| MemoryError::InvalidAlignment { alignment: MIN_BLOCK_SIZE })?;
+        let layout = Layout::from_size_align(arena_size, MIN_BLOCK_SIZE).map_err(|_| {
+            MemoryError::InvalidAlignment {
+                alignment: MIN_BLOCK_SIZE,
+            }
+        })?;
 
         unsafe {
             let ptr = alloc(layout);
@@ -588,16 +609,17 @@ impl LargeBlockPool {
 impl Drop for LargeBlockPool {
     fn drop(&mut self) {
         #[cfg(feature = "tracing")]
-        debug!("Dropping large block pool, deallocating {} arenas", self.arenas.len());
+        debug!(
+            "Dropping large block pool, deallocating {} arenas",
+            self.arenas.len()
+        );
 
         // Deallocate all arenas
         for arena in &self.arenas {
             match &self.device {
-                Device::Cpu => {
-                    unsafe {
-                        dealloc(arena.ptr.as_ptr(), arena.layout);
-                    }
-                }
+                Device::Cpu => unsafe {
+                    dealloc(arena.ptr.as_ptr(), arena.layout);
+                },
                 Device::Metal(_) => {
                     #[cfg(feature = "metal")]
                     {
@@ -631,7 +653,7 @@ mod tests {
     fn test_large_block_pool_creation() {
         let device = get_cpu_device();
         let pool = LargeBlockPool::new(64 * 1024 * 1024, 256 * 1024 * 1024, &device).unwrap();
-        
+
         assert_eq!(pool.current_usage(), 0);
         assert_eq!(pool.max_size(), 256 * 1024 * 1024);
     }
@@ -640,34 +662,41 @@ mod tests {
     fn test_size_calculations() {
         let device = get_cpu_device();
         let pool = LargeBlockPool::new(64 * 1024 * 1024, 256 * 1024 * 1024, &device).unwrap();
-        
+
         // Test size to level conversion
         assert_eq!(pool.size_to_level(MIN_BLOCK_SIZE), 0);
         assert_eq!(pool.size_to_level(MIN_BLOCK_SIZE * 2), 1);
         assert_eq!(pool.size_to_level(MIN_BLOCK_SIZE * 4), 2);
-        
+
         // Test level to size conversion
         assert_eq!(pool.level_to_size(0), MIN_BLOCK_SIZE);
         assert_eq!(pool.level_to_size(1), MIN_BLOCK_SIZE * 2);
         assert_eq!(pool.level_to_size(2), MIN_BLOCK_SIZE * 4);
-        
+
         // Test required size calculation
-        assert_eq!(pool.calculate_required_size(1024, 16).unwrap(), MIN_BLOCK_SIZE);
-        assert_eq!(pool.calculate_required_size(MIN_BLOCK_SIZE + 1, 16).unwrap(), MIN_BLOCK_SIZE * 2);
+        assert_eq!(
+            pool.calculate_required_size(1024, 16).unwrap(),
+            MIN_BLOCK_SIZE
+        );
+        assert_eq!(
+            pool.calculate_required_size(MIN_BLOCK_SIZE + 1, 16)
+                .unwrap(),
+            MIN_BLOCK_SIZE * 2
+        );
     }
 
     #[test]
     fn test_buddy_address_calculation() {
         let device = get_cpu_device();
         let pool = LargeBlockPool::new(64 * 1024 * 1024, 256 * 1024 * 1024, &device).unwrap();
-        
+
         // Test buddy address calculation
         let base_addr = 0x1000000; // 16MB aligned
-        
+
         // Level 0 (64KB blocks)
         let buddy0 = pool.calculate_buddy_address(base_addr, 0);
         assert_eq!(buddy0, base_addr ^ MIN_BLOCK_SIZE);
-        
+
         // Level 1 (128KB blocks)
         let buddy1 = pool.calculate_buddy_address(base_addr, 1);
         assert_eq!(buddy1, base_addr ^ (MIN_BLOCK_SIZE * 2));
@@ -678,19 +707,21 @@ mod tests {
         let device = get_cpu_device();
         let mut pool = LargeBlockPool::new(64 * 1024 * 1024, 256 * 1024 * 1024, &device).unwrap();
         let handle_counter = Arc::new(Mutex::new(1));
-        
+
         // Allocate a large block
-        let handle = pool.allocate(1024 * 1024, 16, &device, handle_counter.clone()).unwrap();
+        let handle = pool
+            .allocate(1024 * 1024, 16, &device, handle_counter.clone())
+            .unwrap();
         assert_eq!(handle.size(), 1024 * 1024);
         assert_eq!(handle.alignment(), 16);
         assert!(handle.is_cpu());
-        
+
         // Pool should have allocated an arena
         assert!(pool.current_usage() > 0);
-        
+
         // Deallocate the block
         pool.deallocate(handle).unwrap();
-        
+
         // Pool size should remain the same (arena is not freed)
         assert!(pool.current_usage() > 0);
     }
@@ -700,23 +731,25 @@ mod tests {
         let device = get_cpu_device();
         let mut pool = LargeBlockPool::new(64 * 1024 * 1024, 256 * 1024 * 1024, &device).unwrap();
         let handle_counter = Arc::new(Mutex::new(1));
-        
+
         let mut handles = Vec::new();
-        
+
         // Allocate multiple large blocks
         for _ in 0..5 {
-            let handle = pool.allocate(2 * 1024 * 1024, 16, &device, handle_counter.clone()).unwrap();
+            let handle = pool
+                .allocate(2 * 1024 * 1024, 16, &device, handle_counter.clone())
+                .unwrap();
             assert_eq!(handle.size(), 2 * 1024 * 1024);
             handles.push(handle);
         }
-        
+
         // All handles should be unique
         for i in 0..handles.len() {
-            for j in i+1..handles.len() {
+            for j in i + 1..handles.len() {
                 assert_ne!(handles[i].id(), handles[j].id());
             }
         }
-        
+
         // Deallocate all blocks
         for handle in handles {
             pool.deallocate(handle).unwrap();
@@ -727,7 +760,7 @@ mod tests {
     fn test_size_too_large() {
         let device = get_cpu_device();
         let pool = LargeBlockPool::new(64 * 1024 * 1024, 256 * 1024 * 1024, &device).unwrap();
-        
+
         // Try to allocate something larger than MAX_BLOCK_SIZE
         let result = pool.calculate_required_size(MAX_BLOCK_SIZE + 1, 1);
         assert!(result.is_err());
@@ -738,13 +771,15 @@ mod tests {
         let device = get_cpu_device();
         let mut pool = LargeBlockPool::new(64 * 1024 * 1024, 128 * 1024 * 1024, &device).unwrap();
         let handle_counter = Arc::new(Mutex::new(1));
-        
+
         // First allocation should succeed
-        let handle1 = pool.allocate(32 * 1024 * 1024, 16, &device, handle_counter.clone()).unwrap();
-        
+        let handle1 = pool
+            .allocate(32 * 1024 * 1024, 16, &device, handle_counter.clone())
+            .unwrap();
+
         // Second large allocation might fail due to size limit
         let result = pool.allocate(64 * 1024 * 1024, 16, &device, handle_counter.clone());
-        
+
         // Clean up
         pool.deallocate(handle1).unwrap();
         if let Ok(handle2) = result {
@@ -757,15 +792,17 @@ mod tests {
         let device = get_cpu_device();
         let mut pool = LargeBlockPool::new(64 * 1024 * 1024, 256 * 1024 * 1024, &device).unwrap();
         let handle_counter = Arc::new(Mutex::new(1));
-        
+
         // Initial fragmentation should be 0
         let stats = pool.get_stats();
         assert_eq!(stats.fragmentation_ratio, 0.0);
-        
+
         // Allocate and deallocate to create some fragmentation
-        let handle = pool.allocate(1024 * 1024, 16, &device, handle_counter.clone()).unwrap();
+        let handle = pool
+            .allocate(1024 * 1024, 16, &device, handle_counter.clone())
+            .unwrap();
         pool.deallocate(handle).unwrap();
-        
+
         // Fragmentation ratio should be updated
         let stats = pool.get_stats();
         assert!(stats.fragmentation_ratio >= 0.0);

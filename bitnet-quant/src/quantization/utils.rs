@@ -1,9 +1,9 @@
 //! Quantization utilities and helper functions
-//! 
+//!
 //! This module provides common utilities, error types, and helper functions
 //! used throughout the quantization system.
 
-use candle_core::{Tensor, DType, Device, Shape};
+use candle_core::{DType, Device, Shape, Tensor};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -12,53 +12,53 @@ use thiserror::Error;
 pub enum QuantizationError {
     #[error("Invalid input: {0}")]
     InvalidInput(String),
-    
+
     #[error("Unsupported precision: {0}")]
     UnsupportedPrecision(String),
-    
+
     #[error("Calibration error: {0}")]
     CalibrationError(String),
-    
+
     #[error("Device error: {0}")]
     DeviceError(String),
-    
+
     #[error("Tensor operation error: {0}")]
     TensorError(#[from] candle_core::Error),
-    
+
     #[error("Configuration error: {0}")]
     ConfigError(String),
-    
+
     #[error("Configuration error: {0}")]
     ConfigurationError(String),
-    
+
     #[error("Conversion error: {0}")]
     ConversionError(String),
-    
+
     #[error("Numerical error: {0}")]
     NumericalError(String),
-    
+
     #[error("Memory error: {0}")]
     MemoryError(String),
-    
+
     /// Data corruption errors
     #[error("Data corruption detected: {0}")]
     DataCorruption(String),
-    
+
     #[error("Checksum verification failed: expected {expected:08X}, got {actual:08X}")]
     ChecksumMismatch { expected: u32, actual: u32 },
-    
+
     #[error("Data size mismatch: expected {expected} bytes, got {actual} bytes")]
     SizeMismatch { expected: usize, actual: usize },
-    
+
     #[error("Invalid data format: {0}")]
     InvalidFormat(String),
-    
+
     #[error("Data truncation detected: {0}")]
     DataTruncation(String),
-    
+
     #[error("Recovery failed: {0}")]
     RecoveryFailed(String),
-    
+
     #[error("Validation failed: {0}")]
     ValidationFailed(String),
 }
@@ -103,13 +103,15 @@ impl ScalingFactor {
         if !self.per_channel {
             return Ok(self.value);
         }
-        
+
         match &self.scale_tensor {
             Some(scales) => {
                 if channel < scales.len() {
                     Ok(scales[channel])
                 } else {
-                    Err(QuantizationError::InvalidInput(format!("Channel {channel} out of bounds")))
+                    Err(QuantizationError::InvalidInput(format!(
+                        "Channel {channel} out of bounds"
+                    )))
                 }
             }
             None => Ok(self.value),
@@ -141,24 +143,30 @@ pub struct QuantizationUtils;
 
 impl QuantizationUtils {
     /// Compute optimal scaling factor for symmetric quantization
-    pub fn compute_symmetric_scale(tensor: &Tensor, num_bits: u8) -> Result<f32, QuantizationError> {
+    pub fn compute_symmetric_scale(
+        tensor: &Tensor,
+        num_bits: u8,
+    ) -> Result<f32, QuantizationError> {
         let abs_max = tensor.abs()?.max_all()?.to_scalar::<f32>()?;
         let max_val = (1 << (num_bits - 1)) - 1;
         Ok(abs_max / max_val as f32)
     }
 
     /// Compute scaling factor and zero point for asymmetric quantization
-    pub fn compute_asymmetric_params(tensor: &Tensor, num_bits: u8) -> Result<(f32, i32), QuantizationError> {
+    pub fn compute_asymmetric_params(
+        tensor: &Tensor,
+        num_bits: u8,
+    ) -> Result<(f32, i32), QuantizationError> {
         let min_val = tensor.min_all()?.to_scalar::<f32>()?;
         let max_val = tensor.max_all()?.to_scalar::<f32>()?;
-        
+
         let qmin = 0i32;
         let qmax = (1 << num_bits) - 1;
-        
+
         let scale = (max_val - min_val) / (qmax - qmin) as f32;
         let zero_point = qmin as f32 - min_val / scale;
         let zero_point = zero_point.round().clamp(qmin as f32, qmax as f32) as i32;
-        
+
         Ok((scale, zero_point))
     }
 
@@ -171,10 +179,10 @@ impl QuantizationUtils {
     ) -> Result<Tensor, QuantizationError> {
         let max_val = (1 << (num_bits - 1)) - 1;
         let min_val = -(1 << (num_bits - 1));
-        
+
         let scaled = tensor.div(&Tensor::new(scale, device)?)?;
         let quantized = scaled.round()?.clamp(min_val as f32, max_val as f32)?;
-        
+
         Ok(quantized)
     }
 
@@ -188,11 +196,11 @@ impl QuantizationUtils {
     ) -> Result<Tensor, QuantizationError> {
         let qmin = 0;
         let qmax = (1 << num_bits) - 1;
-        
+
         let scaled = tensor.div(&Tensor::new(scale, device)?)?;
         let shifted = scaled.add(&Tensor::new(zero_point as f32, device)?)?;
         let quantized = shifted.round()?.clamp(qmin as f32, qmax as f32)?;
-        
+
         Ok(quantized)
     }
 
@@ -230,17 +238,14 @@ impl QuantizationUtils {
     }
 
     /// Compute signal-to-noise ratio (SNR) for quantization
-    pub fn compute_snr(
-        original: &Tensor,
-        dequantized: &Tensor,
-    ) -> Result<f32, QuantizationError> {
+    pub fn compute_snr(original: &Tensor, dequantized: &Tensor) -> Result<f32, QuantizationError> {
         let signal_power = original.sqr()?.mean_all()?.to_scalar::<f32>()?;
         let noise_power = Self::compute_quantization_error(original, dequantized)?;
-        
+
         if noise_power < f32::EPSILON {
             return Ok(f32::INFINITY);
         }
-        
+
         let snr_db = 10.0 * (signal_power / noise_power).log10();
         Ok(snr_db)
     }
@@ -254,10 +259,10 @@ impl QuantizationUtils {
         let data = tensor.flatten_all()?.to_vec1::<f32>()?;
         let mut sorted_data = data;
         sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        
+
         let index = ((percentile / 100.0) * sorted_data.len() as f32) as usize;
         let threshold = sorted_data[index.min(sorted_data.len() - 1)];
-        
+
         Ok(threshold)
     }
 
@@ -268,11 +273,11 @@ impl QuantizationUtils {
         device: &Device,
     ) -> Result<Tensor, QuantizationError> {
         let grad_norm = gradients.sqr()?.sum_all()?.sqrt()?.to_scalar::<f32>()?;
-        
+
         if grad_norm <= max_norm {
             return Ok(gradients.clone());
         }
-        
+
         let scale_factor = max_norm / grad_norm;
         let clipped = gradients.mul(&Tensor::new(scale_factor, device)?)?;
         Ok(clipped)
@@ -282,21 +287,21 @@ impl QuantizationUtils {
     pub fn compute_entropy(quantized: &Tensor) -> Result<f32, QuantizationError> {
         let data = quantized.flatten_all()?.to_vec1::<f32>()?;
         let mut value_counts = std::collections::HashMap::new();
-        
+
         for &value in &data {
             *value_counts.entry(value as i32).or_insert(0) += 1;
         }
-        
+
         let total_count = data.len() as f32;
         let mut entropy = 0.0;
-        
+
         for count in value_counts.values() {
             let probability = *count as f32 / total_count;
             if probability > 0.0 {
                 entropy -= probability * probability.log2();
             }
         }
-        
+
         Ok(entropy)
     }
 
@@ -306,16 +311,20 @@ impl QuantizationUtils {
         let min_val = tensor.min_all()?.to_scalar::<f32>()?;
         let max_val = tensor.max_all()?.to_scalar::<f32>()?;
         let dynamic_range = max_val - min_val;
-        
+
         if dynamic_range < f32::EPSILON {
-            return Err(QuantizationError::NumericalError("Tensor has zero dynamic range".to_string()));
+            return Err(QuantizationError::NumericalError(
+                "Tensor has zero dynamic range".to_string(),
+            ));
         }
-        
+
         // Check for extreme values that might indicate NaN/Inf
         if !min_val.is_finite() || !max_val.is_finite() {
-            return Err(QuantizationError::NumericalError("Tensor contains non-finite values".to_string()));
+            return Err(QuantizationError::NumericalError(
+                "Tensor contains non-finite values".to_string(),
+            ));
         }
-        
+
         Ok(())
     }
 
@@ -329,9 +338,9 @@ impl QuantizationUtils {
     ) -> MemorySavingsEstimate {
         let num_elements = original_shape.elem_count();
         let original_size = num_elements * original_dtype.size_in_bytes();
-        
+
         let mut quantized_size = num_elements * quantized_dtype.size_in_bytes();
-        
+
         // Add overhead for scales and zero points
         if has_scales {
             quantized_size += std::mem::size_of::<f32>(); // Assuming per-tensor scale
@@ -339,11 +348,11 @@ impl QuantizationUtils {
         if has_zero_points {
             quantized_size += std::mem::size_of::<i32>(); // Assuming per-tensor zero point
         }
-        
+
         let compression_ratio = original_size as f32 / quantized_size as f32;
         let memory_saved = original_size.saturating_sub(quantized_size);
         let savings_percentage = (memory_saved as f32 / original_size as f32) * 100.0;
-        
+
         MemorySavingsEstimate {
             original_size_bytes: original_size,
             quantized_size_bytes: quantized_size,
@@ -426,10 +435,10 @@ impl BitUtils {
         if bits_per_value >= 8 {
             return values.to_vec();
         }
-        
+
         let values_per_byte = 8 / bits_per_value;
         let mut packed = Vec::new();
-        
+
         for chunk in values.chunks(values_per_byte as usize) {
             let mut byte = 0u8;
             for (i, &value) in chunk.iter().enumerate() {
@@ -437,7 +446,7 @@ impl BitUtils {
             }
             packed.push(byte);
         }
-        
+
         packed
     }
 
@@ -446,11 +455,11 @@ impl BitUtils {
         if bits_per_value >= 8 {
             return packed.to_vec();
         }
-        
+
         let values_per_byte = 8 / bits_per_value;
         let mask = (1 << bits_per_value) - 1;
         let mut unpacked = Vec::new();
-        
+
         for &byte in packed {
             for i in 0..values_per_byte {
                 if unpacked.len() >= num_values {
@@ -460,7 +469,7 @@ impl BitUtils {
                 unpacked.push(value);
             }
         }
-        
+
         unpacked.truncate(num_values);
         unpacked
     }
@@ -485,7 +494,9 @@ impl CalibrationUtils {
     /// Collect statistics from calibration data
     pub fn collect_statistics(data: &[Tensor]) -> Result<CalibrationStatistics, QuantizationError> {
         if data.is_empty() {
-            return Err(QuantizationError::CalibrationError("No calibration data provided".to_string()));
+            return Err(QuantizationError::CalibrationError(
+                "No calibration data provided".to_string(),
+            ));
         }
 
         let mut min_vals = Vec::new();
@@ -581,14 +592,9 @@ mod tests {
     #[test]
     fn test_memory_savings_estimate() {
         let shape = Shape::from_dims(&[100, 100]);
-        let estimate = QuantizationUtils::estimate_memory_savings(
-            &shape,
-            DType::F32,
-            DType::U8,
-            true,
-            false,
-        );
-        
+        let estimate =
+            QuantizationUtils::estimate_memory_savings(&shape, DType::F32, DType::U8, true, false);
+
         assert!(estimate.compression_ratio > 1.0);
         assert!(estimate.savings_percentage > 0.0);
         assert_eq!(estimate.original_size_bytes, 100 * 100 * 4); // f32 = 4 bytes
@@ -616,7 +622,7 @@ mod tests {
         assert_eq!(QuantizationUtils::round_clip(1.0, -1.0, 1.0), 1.0);
         assert_eq!(QuantizationUtils::round_clip(-1.0, -1.0, 1.0), -1.0);
         assert_eq!(QuantizationUtils::round_clip(0.0, -1.0, 1.0), 0.0);
-        
+
         // Test values exactly at 0.5 (Rust rounds away from zero)
         assert_eq!(QuantizationUtils::round_clip(0.5, -1.0, 1.0), 1.0); // 0.5 rounds to 1
         assert_eq!(QuantizationUtils::round_clip(-0.5, -1.0, 1.0), -1.0); // -0.5 rounds to -1
@@ -629,10 +635,10 @@ mod tests {
         let device = Device::Cpu;
         let data = vec![1.7f32, -2.3, 0.4, 0.6, -0.6];
         let tensor = Tensor::from_slice(&data, (5,), &device).unwrap();
-        
+
         let result = QuantizationUtils::round_clip_tensor(&tensor, -1.0, 1.0, &device).unwrap();
         let result_data = result.to_vec1::<f32>().unwrap();
-        
+
         let expected = vec![1.0f32, -1.0, 0.0, 1.0, -1.0];
         assert_eq!(result_data, expected);
     }

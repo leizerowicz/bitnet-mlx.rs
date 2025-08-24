@@ -3,8 +3,8 @@
 //! This module provides histogram-based analysis of activation distributions
 //! to optimize quantization parameters and improve quantization quality.
 
-use crate::calibration::error::{CalibrationError, CalibrationResult};
 use crate::calibration::config::{HistogramConfig, HistogramRangeStrategy};
+use crate::calibration::error::{CalibrationError, CalibrationResult};
 use candle_core::Tensor;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -141,19 +141,22 @@ impl HistogramCollector {
 
         // Convert tensor to values
         let values = self.tensor_to_vec(activations)?;
-        
+
         // Update range statistics
         self.update_range_stats(layer_name, &values);
-        
+
         // Get or create histogram
         let range = self.determine_histogram_range(layer_name, &values)?;
-        let histogram = self.histograms.entry(layer_name.to_string()).or_insert_with(|| {
-            ActivationHistogram::new(self.config.num_bins, range, SystemTime::now())
-        });
-        
+        let histogram = self
+            .histograms
+            .entry(layer_name.to_string())
+            .or_insert_with(|| {
+                ActivationHistogram::new(self.config.num_bins, range, SystemTime::now())
+            });
+
         // Update histogram with values
         histogram.update_with_values(&values);
-        
+
         Ok(())
     }
 
@@ -173,9 +176,10 @@ impl HistogramCollector {
         layer_name: &str,
         strategy: OptimizationStrategy,
     ) -> CalibrationResult<QuantizationOptimizer> {
-        let histogram = self.get_histogram(layer_name)
-            .ok_or_else(|| CalibrationError::histogram(format!("No histogram for layer: {layer_name}")))?;
-        
+        let histogram = self.get_histogram(layer_name).ok_or_else(|| {
+            CalibrationError::histogram(format!("No histogram for layer: {layer_name}"))
+        })?;
+
         Ok(QuantizationOptimizer::new(histogram.clone(), strategy))
     }
 
@@ -187,21 +191,24 @@ impl HistogramCollector {
 
     /// Convert tensor to Vec<f32>
     fn tensor_to_vec(&self, tensor: &Tensor) -> CalibrationResult<Vec<f32>> {
-        let flattened = tensor.flatten_all()
+        let flattened = tensor
+            .flatten_all()
             .map_err(|e| CalibrationError::histogram(format!("Failed to flatten tensor: {e}")))?;
-        
-        let values: Vec<f32> = flattened.to_vec1()
+
+        let values: Vec<f32> = flattened
+            .to_vec1()
             .map_err(|e| CalibrationError::histogram(format!("Failed to convert tensor: {e}")))?;
-        
+
         Ok(values)
     }
 
     /// Update range statistics for a layer
     fn update_range_stats(&mut self, layer_name: &str, values: &[f32]) {
-        let stats = self.range_stats.entry(layer_name.to_string()).or_insert_with(|| {
-            RangeStatistics::new()
-        });
-        
+        let stats = self
+            .range_stats
+            .entry(layer_name.to_string())
+            .or_insert_with(|| RangeStatistics::new());
+
         for &value in values {
             if value.is_finite() {
                 stats.min_value = stats.min_value.min(value);
@@ -213,48 +220,54 @@ impl HistogramCollector {
     }
 
     /// Determine histogram range based on configuration
-    fn determine_histogram_range(&self, layer_name: &str, values: &[f32]) -> CalibrationResult<(f32, f32)> {
+    fn determine_histogram_range(
+        &self,
+        layer_name: &str,
+        values: &[f32],
+    ) -> CalibrationResult<(f32, f32)> {
         match &self.config.range_strategy {
             HistogramRangeStrategy::MinMax => {
                 let min_val = values.iter().fold(f32::INFINITY, |a, &b| a.min(b));
                 let max_val = values.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
                 Ok((min_val, max_val))
-            },
+            }
             HistogramRangeStrategy::Percentile { lower, upper } => {
-                let stats = self.range_stats.get(layer_name)
+                let stats = self
+                    .range_stats
+                    .get(layer_name)
                     .ok_or_else(|| CalibrationError::histogram("Range statistics not available"))?;
-                
+
                 let lower_val = stats.percentile_estimator.estimate_percentile(*lower);
                 let upper_val = stats.percentile_estimator.estimate_percentile(*upper);
                 Ok((lower_val, upper_val))
-            },
-            HistogramRangeStrategy::Custom => {
-                self.config.custom_range.ok_or_else(|| {
-                    CalibrationError::histogram("Custom range not specified in configuration")
-                })
-            },
+            }
+            HistogramRangeStrategy::Custom => self.config.custom_range.ok_or_else(|| {
+                CalibrationError::histogram("Custom range not specified in configuration")
+            }),
             HistogramRangeStrategy::Adaptive => {
                 // Use a combination of min/max and percentiles for robustness
-                let stats = self.range_stats.get(layer_name)
+                let stats = self
+                    .range_stats
+                    .get(layer_name)
                     .ok_or_else(|| CalibrationError::histogram("Range statistics not available"))?;
-                
+
                 let percentile_range = (
                     stats.percentile_estimator.estimate_percentile(0.1),
                     stats.percentile_estimator.estimate_percentile(99.9),
                 );
-                
+
                 let min_max_range = (stats.min_value, stats.max_value);
-                
+
                 // Use percentile range if it's reasonable, otherwise fall back to min/max
                 let range_width = percentile_range.1 - percentile_range.0;
                 let total_width = min_max_range.1 - min_max_range.0;
-                
+
                 if range_width > 0.0 && range_width < total_width * 2.0 {
                     Ok(percentile_range)
                 } else {
                     Ok(min_max_range)
                 }
-            },
+            }
         }
     }
 }
@@ -306,7 +319,7 @@ impl ActivationHistogram {
                 let bin_index = bin_index.min(self.bins.len() - 1);
                 self.bins[bin_index].count += 1;
             }
-            
+
             self.total_count += 1;
         }
 
@@ -336,12 +349,12 @@ impl ActivationHistogram {
     pub fn calculate_cdf(&self) -> Vec<f32> {
         let mut cdf = Vec::with_capacity(self.bins.len());
         let mut cumulative = 0.0;
-        
+
         for bin in &self.bins {
             cumulative += bin.density;
             cdf.push(cumulative);
         }
-        
+
         cdf
     }
 
@@ -426,7 +439,10 @@ impl PercentileEstimator {
 impl QuantizationOptimizer {
     /// Create a new quantization optimizer
     pub fn new(histogram: ActivationHistogram, strategy: OptimizationStrategy) -> Self {
-        Self { histogram, strategy }
+        Self {
+            histogram,
+            strategy,
+        }
     }
 
     /// Optimize quantization parameters
@@ -437,7 +453,7 @@ impl QuantizationOptimizer {
             OptimizationStrategy::EntropyBased => self.optimize_entropy_based(bit_width),
             OptimizationStrategy::PercentileClipping { lower, upper } => {
                 self.optimize_percentile_clipping(*lower, *upper, bit_width)
-            },
+            }
         }
     }
 
@@ -445,13 +461,13 @@ impl QuantizationOptimizer {
     fn optimize_mse(&self, bit_width: u8) -> CalibrationResult<OptimizedQuantizationParams> {
         let num_levels = (1 << bit_width) as f32;
         let clip_range = self.histogram.find_optimal_clip_range(0.99);
-        
+
         let scale = (clip_range.1 - clip_range.0) / (num_levels - 1.0);
         let zero_point = (-clip_range.0 / scale).round() as i32;
-        
+
         let error_estimate = self.estimate_quantization_error(scale, zero_point, clip_range);
         let confidence = self.calculate_confidence();
-        
+
         Ok(OptimizedQuantizationParams {
             scale,
             zero_point,
@@ -463,32 +479,35 @@ impl QuantizationOptimizer {
     }
 
     /// Optimize using KL divergence minimization
-    fn optimize_kl_divergence(&self, bit_width: u8) -> CalibrationResult<OptimizedQuantizationParams> {
+    fn optimize_kl_divergence(
+        &self,
+        bit_width: u8,
+    ) -> CalibrationResult<OptimizedQuantizationParams> {
         // Simplified KL divergence optimization
         // In practice, this would involve iterative optimization
         let num_levels = (1 << bit_width) as f32;
-        
+
         // Start with percentile-based clipping
         let mut best_clip_range = self.histogram.find_optimal_clip_range(0.99);
         let mut best_kl_div = f32::INFINITY;
-        
+
         // Try different clipping percentiles
         for percentile in &[0.95, 0.97, 0.99, 0.999] {
             let clip_range = self.histogram.find_optimal_clip_range(*percentile);
             let kl_div = self.calculate_kl_divergence(clip_range, num_levels as usize);
-            
+
             if kl_div < best_kl_div {
                 best_kl_div = kl_div;
                 best_clip_range = clip_range;
             }
         }
-        
+
         let scale = (best_clip_range.1 - best_clip_range.0) / (num_levels - 1.0);
         let zero_point = (-best_clip_range.0 / scale).round() as i32;
-        
+
         let error_estimate = best_kl_div;
         let confidence = self.calculate_confidence();
-        
+
         Ok(OptimizedQuantizationParams {
             scale,
             zero_point,
@@ -500,20 +519,23 @@ impl QuantizationOptimizer {
     }
 
     /// Optimize using entropy-based approach
-    fn optimize_entropy_based(&self, bit_width: u8) -> CalibrationResult<OptimizedQuantizationParams> {
+    fn optimize_entropy_based(
+        &self,
+        bit_width: u8,
+    ) -> CalibrationResult<OptimizedQuantizationParams> {
         let entropy = self.histogram.calculate_entropy();
         let num_levels = (1 << bit_width) as f32;
-        
+
         // Use entropy to guide clipping
         let entropy_percentile = (entropy / 10.0).min(0.99).max(0.9); // Heuristic mapping
         let clip_range = self.histogram.find_optimal_clip_range(entropy_percentile);
-        
+
         let scale = (clip_range.1 - clip_range.0) / (num_levels - 1.0);
         let zero_point = (-clip_range.0 / scale).round() as i32;
-        
+
         let error_estimate = self.estimate_quantization_error(scale, zero_point, clip_range);
         let confidence = (entropy / 10.0).min(1.0); // Higher entropy = higher confidence
-        
+
         Ok(OptimizedQuantizationParams {
             scale,
             zero_point,
@@ -533,10 +555,10 @@ impl QuantizationOptimizer {
     ) -> CalibrationResult<OptimizedQuantizationParams> {
         let cdf = self.histogram.calculate_cdf();
         let num_levels = (1 << bit_width) as f32;
-        
+
         let mut lower_bound = self.histogram.value_range.0;
         let mut upper_bound = self.histogram.value_range.1;
-        
+
         // Find bounds based on percentiles
         for (i, &cumulative) in cdf.iter().enumerate() {
             if cumulative >= lower / 100.0 && lower_bound == self.histogram.value_range.0 {
@@ -547,14 +569,14 @@ impl QuantizationOptimizer {
                 break;
             }
         }
-        
+
         let clip_range = (lower_bound, upper_bound);
         let scale = (clip_range.1 - clip_range.0) / (num_levels - 1.0);
         let zero_point = (-clip_range.0 / scale).round() as i32;
-        
+
         let error_estimate = self.estimate_quantization_error(scale, zero_point, clip_range);
         let confidence = self.calculate_confidence();
-        
+
         Ok(OptimizedQuantizationParams {
             scale,
             zero_point,
@@ -566,21 +588,26 @@ impl QuantizationOptimizer {
     }
 
     /// Estimate quantization error
-    fn estimate_quantization_error(&self, scale: f32, zero_point: i32, clip_range: (f32, f32)) -> f32 {
+    fn estimate_quantization_error(
+        &self,
+        scale: f32,
+        zero_point: i32,
+        clip_range: (f32, f32),
+    ) -> f32 {
         let mut mse = 0.0;
         let mut total_weight = 0.0;
-        
+
         for bin in &self.histogram.bins {
             if bin.center >= clip_range.0 && bin.center <= clip_range.1 {
                 // Quantize the bin center
                 let quantized = ((bin.center / scale).round() + zero_point as f32) * scale;
                 let error = (bin.center - quantized).powi(2);
-                
+
                 mse += error * bin.density;
                 total_weight += bin.density;
             }
         }
-        
+
         if total_weight > 0.0 {
             mse / total_weight
         } else {
@@ -591,11 +618,11 @@ impl QuantizationOptimizer {
     /// Calculate KL divergence between original and quantized distributions
     fn calculate_kl_divergence(&self, clip_range: (f32, f32), num_levels: usize) -> f32 {
         let mut kl_div = 0.0;
-        
+
         // Create quantized histogram
         let level_width = (clip_range.1 - clip_range.0) / num_levels as f32;
         let mut quantized_bins = vec![0.0; num_levels];
-        
+
         // Map original bins to quantized levels
         for bin in &self.histogram.bins {
             if bin.center >= clip_range.0 && bin.center <= clip_range.1 {
@@ -604,20 +631,20 @@ impl QuantizationOptimizer {
                 quantized_bins[level_index] += bin.density;
             }
         }
-        
+
         // Calculate KL divergence
         for bin in &self.histogram.bins {
             if bin.density > 0.0 && bin.center >= clip_range.0 && bin.center <= clip_range.1 {
                 let level_index = ((bin.center - clip_range.0) / level_width) as usize;
                 let level_index = level_index.min(num_levels - 1);
                 let q_prob = quantized_bins[level_index];
-                
+
                 if q_prob > 0.0 {
                     kl_div += bin.density * (bin.density / q_prob).ln();
                 }
             }
         }
-        
+
         kl_div
     }
 
@@ -625,8 +652,10 @@ impl QuantizationOptimizer {
     fn calculate_confidence(&self) -> f32 {
         // Simple heuristic based on sample count and distribution spread
         let sample_confidence = (self.histogram.total_count as f32 / 10000.0).min(1.0);
-        let distribution_confidence = 1.0 - (self.histogram.overflow_count + self.histogram.underflow_count) as f32 / self.histogram.total_count as f32;
-        
+        let distribution_confidence = 1.0
+            - (self.histogram.overflow_count + self.histogram.underflow_count) as f32
+                / self.histogram.total_count as f32;
+
         (sample_confidence + distribution_confidence) / 2.0
     }
 }
@@ -652,26 +681,26 @@ mod tests {
     fn test_histogram_update() -> CalibrationResult<()> {
         let config = HistogramConfig::default();
         let mut collector = HistogramCollector::new(config);
-        
+
         let data = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         let tensor = create_test_tensor(data, &[1, 5])?;
-        
+
         collector.update_histogram("test_layer", &tensor)?;
-        
+
         let histogram = collector.get_histogram("test_layer");
         assert!(histogram.is_some());
-        
+
         let histogram = histogram.unwrap();
         assert_eq!(histogram.total_count, 5);
         assert!(histogram.bins.len() > 0);
-        
+
         Ok(())
     }
 
     #[test]
     fn test_histogram_bin_creation() {
         let histogram = ActivationHistogram::new(10, (0.0, 10.0), SystemTime::now());
-        
+
         assert_eq!(histogram.bins.len(), 10);
         assert_eq!(histogram.bin_width, 1.0);
         assert_eq!(histogram.bins[0].lower_bound, 0.0);
@@ -682,9 +711,9 @@ mod tests {
     fn test_histogram_value_update() {
         let mut histogram = ActivationHistogram::new(10, (0.0, 10.0), SystemTime::now());
         let values = vec![1.5, 2.5, 1.7, 8.9];
-        
+
         histogram.update_with_values(&values);
-        
+
         assert_eq!(histogram.total_count, 4);
         // Values should be distributed across appropriate bins
         let total_counts: usize = histogram.bins.iter().map(|b| b.count).sum();
@@ -694,15 +723,15 @@ mod tests {
     #[test]
     fn test_percentile_estimator() {
         let mut estimator = PercentileEstimator::new(100, 1.0);
-        
+
         // Add values 1-100
         for i in 1..=100 {
             estimator.add_sample(i as f32);
         }
-        
+
         let median = estimator.estimate_percentile(50.0);
         assert!((median - 50.0).abs() < 5.0); // Allow some tolerance
-        
+
         let p95 = estimator.estimate_percentile(95.0);
         assert!((p95 - 95.0).abs() < 10.0);
     }
@@ -710,7 +739,7 @@ mod tests {
     #[test]
     fn test_quantization_optimizer() -> CalibrationResult<()> {
         let mut histogram = ActivationHistogram::new(100, (-10.0, 10.0), SystemTime::now());
-        
+
         // Create a normal-like distribution
         let mut values = Vec::new();
         for i in 0..1000 {
@@ -718,29 +747,29 @@ mod tests {
             values.push(x);
         }
         histogram.update_with_values(&values);
-        
+
         let optimizer = QuantizationOptimizer::new(histogram, OptimizationStrategy::MinimizeMSE);
         let params = optimizer.optimize(8)?; // 8-bit quantization
-        
+
         assert!(params.scale > 0.0);
         assert!(params.error_estimate >= 0.0);
         assert!(params.confidence >= 0.0 && params.confidence <= 1.0);
-        
+
         Ok(())
     }
 
     #[test]
     fn test_optimal_clip_range() {
         let mut histogram = ActivationHistogram::new(100, (0.0, 100.0), SystemTime::now());
-        
+
         // Add values with some outliers
         let mut values: Vec<f32> = (10..90).map(|x| x as f32).collect();
         values.extend(vec![1.0, 2.0, 98.0, 99.0]); // Some outliers
-        
+
         histogram.update_with_values(&values);
-        
+
         let clip_range = histogram.find_optimal_clip_range(0.95);
-        
+
         // Should exclude some outliers
         assert!(clip_range.0 > 1.0);
         assert!(clip_range.1 < 99.0);
@@ -750,11 +779,11 @@ mod tests {
     #[test]
     fn test_histogram_entropy() {
         let mut histogram = ActivationHistogram::new(10, (0.0, 10.0), SystemTime::now());
-        
+
         // Uniform distribution should have high entropy
         let uniform_values: Vec<f32> = (0..100).map(|x| x as f32 / 10.0).collect();
         histogram.update_with_values(&uniform_values);
-        
+
         let entropy = histogram.calculate_entropy();
         assert!(entropy > 0.0);
     }

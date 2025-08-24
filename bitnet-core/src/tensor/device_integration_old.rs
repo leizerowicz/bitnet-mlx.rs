@@ -175,19 +175,19 @@ pub enum DeviceError {
     /// Device not supported for operation
     #[error("Device {device:?} not supported for operation: {reason}")]
     UnsupportedDevice { device: Device, reason: String },
-    
+
     /// Data type not supported on device
     #[error("Data type {dtype:?} not supported on device {device:?}")]
     UnsupportedDataType { device: Device, dtype: BitNetDType },
-    
+
     /// Tensor size exceeds device limits
     #[error("Tensor size {size} bytes exceeds device limit {limit} bytes")]
     TensorSizeExceeded { size: usize, limit: usize },
-    
+
     /// Device migration failed
     #[error("Failed to migrate from {from:?} to {to:?}: {reason}")]
     MigrationFailed { from: Device, to: Device, reason: String },
-    
+
     /// Device capability detection failed
     #[error("Failed to detect device capabilities: {reason}")]
     CapabilityDetectionFailed { reason: String },
@@ -307,7 +307,7 @@ impl TensorDeviceManager {
     /// # let pool = Arc::new(HybridMemoryPool::new()?);
     /// # let device = get_cpu_device();
     /// # let manager = TensorDeviceManager::new(device, pool)?;
-    /// 
+    ///
     /// assert!(manager.supports_dtype(BitNetDType::F32));
     /// # Ok(())
     /// # }
@@ -355,7 +355,7 @@ impl TensorDeviceManager {
     /// # let pool = Arc::new(HybridMemoryPool::new()?);
     /// # let device = get_cpu_device();
     /// # let manager = TensorDeviceManager::new(device, pool.clone())?;
-    /// 
+    ///
     /// let new_device = auto_select_device();
     /// let migrated_manager = manager.migrate_to_device(new_device, pool)?;
     /// # Ok(())
@@ -451,7 +451,7 @@ impl TensorDeviceManager {
                 capabilities.unified_memory = true; // CPU uses system RAM
                 capabilities.hardware_acceleration = false;
                 capabilities.compute_capability = Some("CPU".to_string());
-                
+
                 // CPU supports all data types
                 capabilities.supported_dtypes = BitNetDType::all_types().to_vec();
             }
@@ -462,7 +462,7 @@ impl TensorDeviceManager {
                 capabilities.unified_memory = true; // Metal on Apple Silicon uses unified memory
                 capabilities.hardware_acceleration = true;
                 capabilities.compute_capability = Some("Metal GPU".to_string());
-                
+
                 // Metal supports most data types but may have limitations
                 capabilities.supported_dtypes = vec![
                     BitNetDType::F32,
@@ -475,7 +475,7 @@ impl TensorDeviceManager {
                     BitNetDType::BitNet158,
                     BitNetDType::BitNet1,
                 ];
-                
+
                 // Estimate memory bandwidth for Apple Silicon GPUs
                 capabilities.memory_bandwidth = Some(400.0); // Rough estimate
             }
@@ -486,7 +486,7 @@ impl TensorDeviceManager {
                 capabilities.unified_memory = false; // CUDA typically uses separate memory
                 capabilities.hardware_acceleration = true;
                 capabilities.compute_capability = Some("CUDA GPU".to_string());
-                
+
                 // CUDA has good support for standard types
                 capabilities.supported_dtypes = vec![
                     BitNetDType::F32,
@@ -614,7 +614,7 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().map_err(|e| DeviceError::CapabilityDetectionFailed {
             reason: format!("Memory pool creation failed: {}", e),
         })?);
-        
+
         let manager = TensorDeviceManager::new(pool, None)?;
         assert!(manager.supports_dtype(BitNetDType::F32));
         Ok(())
@@ -625,9 +625,9 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().map_err(|e| DeviceError::CapabilityDetectionFailed {
             reason: format!("Memory pool creation failed: {}", e),
         })?);
-        
+
         let manager = TensorDeviceManager::new(pool, None)?;
-        
+
         // Test force CPU
         let cpu_device = manager.select_optimal_device(
             DeviceSelectionStrategy::ForceCpu,
@@ -636,7 +636,7 @@ mod tests {
             &[TensorOperation::Arithmetic],
         )?;
         assert!(matches!(cpu_device, Device::Cpu));
-        
+
         // Test auto selection
         let auto_device = manager.select_optimal_device(
             DeviceSelectionStrategy::Auto,
@@ -646,7 +646,7 @@ mod tests {
         )?;
         // Should be CPU or Metal depending on availability
         assert!(matches!(auto_device, Device::Cpu | Device::Metal(_)));
-        
+
         Ok(())
     }
 
@@ -655,13 +655,13 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().map_err(|e| DeviceError::CapabilityDetectionFailed {
             reason: format!("Memory pool creation failed: {}", e),
         })?);
-        
+
         let manager = TensorDeviceManager::new(pool, None)?;
-        
+
         let strategy = manager.recommend_allocation_strategy(1024, BitNetDType::F32);
         assert_eq!(strategy.alignment, 16); // SIMD alignment for F32
         assert!(matches!(strategy.memory_hint, MemoryHint::Standard | MemoryHint::CPUOptimized));
-        
+
         Ok(())
     }
 
@@ -669,7 +669,7 @@ mod tests {
     fn test_device_utils() {
         let cpu_device = DeviceUtils::to_cpu();
         assert!(matches!(cpu_device, Device::Cpu));
-        
+
         let auto_device = DeviceUtils::auto_device();
         assert!(matches!(auto_device, Device::Cpu | Device::Metal(_)));
     }
@@ -736,19 +736,19 @@ pub enum DeviceError {
     /// Device not supported for operation
     #[error("Device {device:?} not supported for operation: {reason}")]
     UnsupportedDevice { device: Device, reason: String },
-    
+
     /// Data type not supported on device
     #[error("Data type {dtype:?} not supported on device {device:?}")]
     UnsupportedDataType { device: Device, dtype: BitNetDType },
-    
+
     /// Tensor size exceeds device limits
     #[error("Tensor size {size} bytes exceeds device limit {limit} bytes")]
     TensorSizeExceeded { size: usize, limit: usize },
-    
+
     /// Device migration failed
     #[error("Failed to migrate from {from:?} to {to:?}: {reason}")]
     MigrationFailed { from: Device, to: Device, reason: String },
-    
+
     /// Device capability detection failed
     #[error("Failed to detect device capabilities: {reason}")]
     CapabilityDetectionFailed { reason: String },
@@ -769,7 +769,7 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         let manager = TensorDeviceManager::new(device, pool).unwrap();
-        
+
         assert!(matches!(manager.device(), Device::Cpu));
         assert!(manager.supports_dtype(BitNetDType::F32));
         assert!(manager.supports_tensor_size(1024));
@@ -779,7 +779,7 @@ mod tests {
     fn test_auto_device_manager() {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let manager = TensorDeviceManager::auto(pool).unwrap();
-        
+
         // Should successfully create with auto-selected device
         assert!(manager.capabilities().supported_dtypes.len() > 0);
     }
@@ -802,7 +802,7 @@ mod tests {
         );
         // Should prefer GPU for large matrices, but CPU is okay as fallback
         assert!(matches!(device, Device::Cpu | Device::Metal(_)));
-        
+
         // Test small element-wise operation
         let device = TensorDeviceManager::get_optimal_device(
             TensorOperation::ElementWise,
@@ -818,7 +818,7 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         let manager = TensorDeviceManager::new(device, pool).unwrap();
-        
+
         let strategy = manager.recommend_allocation_strategy(1024, BitNetDType::F32);
         assert_eq!(strategy.alignment, 16); // SIMD alignment for F32
         assert!(matches!(strategy.device, Device::Cpu));
@@ -829,10 +829,10 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         let manager = TensorDeviceManager::new(device, pool.clone()).unwrap();
-        
+
         let new_device = auto_select_device();
         let migrated = manager.migrate_to_device(new_device, pool).unwrap();
-        
+
         // Migration should succeed (might migrate to same device)
         assert!(migrated.capabilities().supported_dtypes.len() > 0);
     }
@@ -842,7 +842,7 @@ mod tests {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         let manager = TensorDeviceManager::new(device, pool).unwrap();
-        
+
         // CPU should support all standard data types
         assert!(manager.supports_dtype(BitNetDType::F32));
         assert!(manager.supports_dtype(BitNetDType::I32));

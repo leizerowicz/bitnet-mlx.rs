@@ -8,9 +8,11 @@ pub mod runner;
 pub mod visualization;
 
 pub use candle_ops::{CandleOps, CandlePerformanceUtils};
-pub use comparison::{ComparisonConfig, PerformanceComparator, PerformanceMeasurement, ComparisonResult};
-pub use runner::{BenchmarkRunner, run_cli};
-pub use visualization::{PerformanceVisualizer, PerformanceExporter, ChartConfig, ChartTheme};
+pub use comparison::{
+    ComparisonConfig, ComparisonResult, PerformanceComparator, PerformanceMeasurement,
+};
+pub use runner::{run_cli, BenchmarkRunner};
+pub use visualization::{ChartConfig, ChartTheme, PerformanceExporter, PerformanceVisualizer};
 
 /// Placeholder function for basic functionality
 pub fn placeholder() {

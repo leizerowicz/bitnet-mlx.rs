@@ -150,18 +150,16 @@ pub mod shader_compiler;
 pub mod shader_utils;
 
 pub use shader_compiler::{
-    ShaderCompiler, ShaderLoader, ShaderCompilerConfig, CompileOptions,
-    LanguageVersion, OptimizationLevel, CompiledShader, ShaderCompilerStats,
-    create_shader_compiler, create_shader_compiler_with_config,
-    create_shader_loader, create_shader_loader_with_config,
-    compile_shader_file, compile_shader_source,
+    compile_shader_file, compile_shader_source, create_shader_compiler,
+    create_shader_compiler_with_config, create_shader_loader, create_shader_loader_with_config,
+    CompileOptions, CompiledShader, LanguageVersion, OptimizationLevel, ShaderCompiler,
+    ShaderCompilerConfig, ShaderCompilerStats, ShaderLoader,
 };
 
 pub use shader_utils::{
-    BitNetShaders, BitNetShaderFunction,
-    initialize_global_shaders, get_global_shaders,
-    create_bitlinear_forward_encoder, create_quantization_encoder, create_activation_encoder,
-    dispatch_bitlinear_forward, dispatch_quantization, dispatch_activation,
+    create_activation_encoder, create_bitlinear_forward_encoder, create_quantization_encoder,
+    dispatch_activation, dispatch_bitlinear_forward, dispatch_quantization, get_global_shaders,
+    initialize_global_shaders, BitNetShaderFunction, BitNetShaders,
 };
 
 /// Error types for Metal device operations
@@ -417,21 +415,21 @@ pub struct ResourceTracker {
 }
 
 /// Creates a Metal device for GPU computations.
-/// 
+///
 /// This function attempts to create a Metal device by selecting the default
 /// system GPU. On systems with multiple GPUs, it will select the most appropriate
 /// one for compute operations.
-/// 
+///
 /// # Returns
-/// 
+///
 /// * `Ok(metal::Device)` - A Metal device ready for use
 /// * `Err(MetalError)` - If device creation fails or no devices are available
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```rust
 /// use bitnet_metal::create_metal_device;
-/// 
+///
 /// # #[cfg(target_os = "macos")]
 /// # fn example() -> anyhow::Result<()> {
 /// let device = create_metal_device()?;
@@ -445,35 +443,39 @@ pub fn create_metal_device() -> Result<metal::Device> {
     let device = metal::Device::system_default()
         .ok_or(MetalError::NoDevicesAvailable)
         .context("Failed to get default Metal device")?;
-    
-    // Verify the device supports compute operations
-    if !device.supports_feature_set(metal::MTLFeatureSet::macOS_GPUFamily1_v1) {
+
+    // Verify the device supports compute operations (modern approach)
+    // Note: Feature set checks are deprecated in newer macOS versions.
+    // The system_default() device should support compute operations by default on supported hardware.
+    // We'll keep this as a basic validation but remove the deprecated feature set check.
+    if device.name().is_empty() {
         return Err(MetalError::DeviceCreationFailed(
-            "Device does not support required Metal feature set".to_string()
-        ).into());
+            "Invalid Metal device detected".to_string(),
+        )
+        .into());
     }
-    
+
     Ok(device)
 }
 
 /// Creates a command queue for the given Metal device.
-/// 
+///
 /// Command queues are used to submit GPU work to Metal devices. This function
 /// creates a command queue with default settings optimized for BitNet operations.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `device` - A reference to the Metal device
-/// 
+///
 /// # Returns
-/// 
+///
 /// A Metal command queue ready for submitting GPU commands
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```rust
 /// use bitnet_metal::{create_metal_device, create_command_queue};
-/// 
+///
 /// # #[cfg(target_os = "macos")]
 /// # fn example() -> anyhow::Result<()> {
 /// let device = create_metal_device()?;
@@ -487,25 +489,25 @@ pub fn create_command_queue(device: &metal::Device) -> metal::CommandQueue {
 }
 
 /// Creates a Metal library containing BitNet compute shaders.
-/// 
+///
 /// This function creates a Metal library that contains the compute shaders
 /// and kernels needed for BitNet operations. The library is created from
 /// the default Metal library, which should contain pre-compiled shaders.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `device` - A reference to the Metal device
-/// 
+///
 /// # Returns
-/// 
+///
 /// * `Ok(metal::Library)` - A Metal library containing BitNet shaders
 /// * `Err(MetalError)` - If library creation fails
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```rust
 /// use bitnet_metal::{create_metal_device, create_library};
-/// 
+///
 /// # #[cfg(target_os = "macos")]
 /// # fn example() -> anyhow::Result<()> {
 /// let device = create_metal_device()?;
@@ -517,50 +519,51 @@ pub fn create_command_queue(device: &metal::Device) -> metal::CommandQueue {
 pub fn create_library(device: &metal::Device) -> Result<metal::Library> {
     // Create the default library
     let library = device.new_default_library();
-    
+
     Ok(library)
 }
 
 /// Alternative library creation from source code.
-/// 
+///
 /// This function creates a Metal library from Metal Shading Language (MSL) source code.
 /// This is useful for dynamically compiling shaders or when the default library
 /// doesn't contain the required kernels.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `device` - A reference to the Metal device
 /// * `source` - The MSL source code as a string
-/// 
+///
 /// # Returns
-/// 
+///
 /// * `Ok(metal::Library)` - A Metal library compiled from the source
 /// * `Err(MetalError)` - If compilation fails
 #[cfg(all(target_os = "macos", feature = "metal"))]
 pub fn create_library_from_source(device: &metal::Device, source: &str) -> Result<metal::Library> {
-    let library = device.new_library_with_source(source, &metal::CompileOptions::new())
-        .map_err(|e| MetalError::LibraryCreationFailed(format!("Compilation error: {}", e)))
+    let library = device
+        .new_library_with_source(source, &metal::CompileOptions::new())
+        .map_err(|e| MetalError::LibraryCreationFailed(format!("Compilation error: {e}")))
         .context("Failed to compile Metal library from source")?;
-    
+
     Ok(library)
 }
 
 /// Initializes a complete Metal compute context.
-/// 
+///
 /// This convenience function creates a Metal device, command queue, and library
 /// all at once, returning them as a tuple. This is the recommended way to
 /// initialize Metal for BitNet operations.
-/// 
+///
 /// # Returns
-/// 
+///
 /// * `Ok((Device, CommandQueue, Library))` - Complete Metal context
 /// * `Err(MetalError)` - If any initialization step fails
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```rust
 /// use bitnet_metal::initialize_metal_context;
-/// 
+///
 /// # #[cfg(target_os = "macos")]
 /// # fn example() -> anyhow::Result<()> {
 /// let (device, command_queue, library) = initialize_metal_context()?;
@@ -570,14 +573,12 @@ pub fn create_library_from_source(device: &metal::Device, source: &str) -> Resul
 /// ```
 #[cfg(all(target_os = "macos", feature = "metal"))]
 pub fn initialize_metal_context() -> Result<(metal::Device, metal::CommandQueue, metal::Library)> {
-    let device = create_metal_device()
-        .context("Failed to create Metal device")?;
-    
+    let device = create_metal_device().context("Failed to create Metal device")?;
+
     let command_queue = create_command_queue(&device);
-    
-    let library = create_library(&device)
-        .context("Failed to create Metal library")?;
-    
+
+    let library = create_library(&device).context("Failed to create Metal library")?;
+
     Ok((device, command_queue, library))
 }
 
@@ -618,21 +619,19 @@ pub fn create_buffer<T>(device: &metal::Device, data: &[T]) -> Result<metal::Buf
 where
     T: Copy + 'static,
 {
-    use std::mem;
-    
     if data.is_empty() {
         return Err(MetalError::InvalidBufferSize.into());
     }
-    
-    let size = data.len() * mem::size_of::<T>();
-    
+
+    let size = std::mem::size_of_val(data);
+
     // Create buffer with shared storage mode for CPU/GPU access
     let buffer = device.new_buffer_with_data(
         data.as_ptr() as *const std::ffi::c_void,
         size as u64,
         metal::MTLResourceOptions::StorageModeShared,
     );
-    
+
     Ok(buffer)
 }
 
@@ -680,14 +679,12 @@ pub fn create_buffer_no_copy<T>(device: &metal::Device, data: &[T]) -> Result<me
 where
     T: Copy + 'static,
 {
-    use std::mem;
-    
     if data.is_empty() {
         return Err(MetalError::InvalidBufferSize.into());
     }
-    
-    let size = data.len() * mem::size_of::<T>();
-    
+
+    let size = std::mem::size_of_val(data);
+
     // Create buffer with no copy using shared storage mode
     let buffer = device.new_buffer_with_bytes_no_copy(
         data.as_ptr() as *const std::ffi::c_void,
@@ -695,7 +692,7 @@ where
         metal::MTLResourceOptions::StorageModeShared,
         None, // No deallocator - caller manages memory
     );
-    
+
     Ok(buffer)
 }
 
@@ -740,35 +737,35 @@ where
 {
     use std::mem;
     use std::slice;
-    
+
     let buffer_length = buffer.length() as usize;
     let element_size = mem::size_of::<T>();
-    
+
     if buffer_length == 0 {
         return Ok(Vec::new());
     }
-    
+
     if buffer_length % element_size != 0 {
-        return Err(MetalError::BufferReadFailed(
-            format!("Buffer size {} is not aligned to element size {}", buffer_length, element_size)
-        ).into());
+        return Err(MetalError::BufferReadFailed(format!(
+            "Buffer size {buffer_length} is not aligned to element size {element_size}"
+        ))
+        .into());
     }
-    
+
     let element_count = buffer_length / element_size;
-    
+
     // Get pointer to buffer contents
     let contents_ptr = buffer.contents() as *const T;
     if contents_ptr.is_null() {
         return Err(MetalError::BufferReadFailed(
-            "Buffer contents pointer is null - buffer may not be CPU accessible".to_string()
-        ).into());
+            "Buffer contents pointer is null - buffer may not be CPU accessible".to_string(),
+        )
+        .into());
     }
-    
+
     // Safely read the buffer contents
-    let data = unsafe {
-        slice::from_raw_parts(contents_ptr, element_count)
-    };
-    
+    let data = unsafe { slice::from_raw_parts(contents_ptr, element_count) };
+
     Ok(data.to_vec())
 }
 
@@ -791,12 +788,12 @@ where
 pub fn create_empty_buffer(
     device: &metal::Device,
     size: usize,
-    storage_mode: metal::MTLResourceOptions
+    storage_mode: metal::MTLResourceOptions,
 ) -> Result<metal::Buffer> {
     if size == 0 {
         return Err(MetalError::InvalidBufferSize.into());
     }
-    
+
     let buffer = device.new_buffer(size as u64, storage_mode);
     Ok(buffer)
 }
@@ -821,7 +818,11 @@ impl BufferPool {
     }
 
     /// Gets a buffer from the pool or creates a new one
-    pub fn get_buffer(&self, size: usize, storage_mode: metal::MTLResourceOptions) -> Result<metal::Buffer> {
+    pub fn get_buffer(
+        &self,
+        size: usize,
+        storage_mode: metal::MTLResourceOptions,
+    ) -> Result<metal::Buffer> {
         let mut stats = self.stats.lock().unwrap();
         stats.total_allocations += 1;
 
@@ -845,7 +846,7 @@ impl BufferPool {
 
         // Create new buffer
         let buffer = self.device.new_buffer(size as u64, storage_mode);
-        
+
         // Update memory tracking
         *self.total_memory.lock().unwrap() += size;
         stats.total_memory_allocated += size;
@@ -857,9 +858,9 @@ impl BufferPool {
     /// Returns a buffer to the pool for reuse
     pub fn return_buffer(&self, buffer: metal::Buffer) -> Result<()> {
         let size = buffer.length() as usize;
-        
+
         let mut pools = self.pools.write().unwrap();
-        let pool = pools.entry(size).or_insert_with(Vec::new);
+        let pool = pools.entry(size).or_default();
 
         // Check if we have room in this size bucket
         if pool.len() >= self.config.max_buffers_per_size {
@@ -887,26 +888,26 @@ impl BufferPool {
     /// Tries to get a buffer from the existing pool
     fn try_get_from_pool(&self, size: usize) -> Result<Option<metal::Buffer>> {
         let mut pools = self.pools.write().unwrap();
-        
+
         if let Some(pool) = pools.get_mut(&size) {
             // Find an unused buffer
             for pooled_buffer in pool.iter_mut() {
                 if !pooled_buffer.in_use {
                     pooled_buffer.in_use = true;
                     pooled_buffer.last_used = Instant::now();
-                    
+
                     // Clone the buffer (Metal buffers are reference counted)
                     let buffer = pooled_buffer.buffer.clone();
-                    
+
                     // Remove from pool
                     let mut stats = self.stats.lock().unwrap();
                     stats.pool_size = stats.pool_size.saturating_sub(1);
-                    
+
                     return Ok(Some(buffer));
                 }
             }
         }
-        
+
         Ok(None)
     }
 
@@ -919,8 +920,9 @@ impl BufferPool {
 
         for (size, pool) in pools.iter_mut() {
             pool.retain(|pooled_buffer| {
-                if !pooled_buffer.in_use &&
-                   now.duration_since(pooled_buffer.last_used) > self.config.cleanup_timeout {
+                if !pooled_buffer.in_use
+                    && now.duration_since(pooled_buffer.last_used) > self.config.cleanup_timeout
+                {
                     total_freed += size;
                     buffers_freed += 1;
                     false
@@ -948,7 +950,7 @@ impl BufferPool {
     pub fn clear(&self) -> Result<()> {
         let mut pools = self.pools.write().unwrap();
         pools.clear();
-        
+
         *self.total_memory.lock().unwrap() = 0;
         let mut stats = self.stats.lock().unwrap();
         stats.pool_size = 0;
@@ -978,7 +980,7 @@ impl MetalSynchronizer {
     /// Creates a new synchronization point
     pub fn create_sync_point(&self) -> Result<SyncPoint> {
         let event = self.device.new_event();
-        
+
         Ok(SyncPoint {
             event,
             command_buffer: None,
@@ -990,9 +992,9 @@ impl MetalSynchronizer {
         let command_buffer = self.command_queue.new_command_buffer();
         command_buffer.encode_signal_event(&sync_point.event, 1);
         command_buffer.commit();
-        
+
         sync_point.command_buffer = Some(command_buffer.to_owned());
-        
+
         Ok(())
     }
 
@@ -1002,34 +1004,39 @@ impl MetalSynchronizer {
         command_buffer.encode_wait_for_event(&sync_point.event, 1);
         command_buffer.commit();
         command_buffer.wait_until_completed();
-        
+
         Ok(())
     }
 
     /// Waits for an event with a timeout
-    pub fn wait_for_event_timeout(&self, sync_point: &SyncPoint, timeout: Duration) -> Result<bool> {
+    pub fn wait_for_event_timeout(
+        &self,
+        sync_point: &SyncPoint,
+        timeout: Duration,
+    ) -> Result<bool> {
         let command_buffer = self.command_queue.new_command_buffer();
         command_buffer.encode_wait_for_event(&sync_point.event, 1);
         command_buffer.commit();
-        
+
         let start = Instant::now();
-        while command_buffer.status() == metal::MTLCommandBufferStatus::NotEnqueued ||
-              command_buffer.status() == metal::MTLCommandBufferStatus::Enqueued ||
-              command_buffer.status() == metal::MTLCommandBufferStatus::Committed ||
-              command_buffer.status() == metal::MTLCommandBufferStatus::Scheduled {
-            
+        while command_buffer.status() == metal::MTLCommandBufferStatus::NotEnqueued
+            || command_buffer.status() == metal::MTLCommandBufferStatus::Enqueued
+            || command_buffer.status() == metal::MTLCommandBufferStatus::Committed
+            || command_buffer.status() == metal::MTLCommandBufferStatus::Scheduled
+        {
             if start.elapsed() > timeout {
                 return Ok(false);
             }
-            
+
             std::thread::sleep(Duration::from_millis(1));
         }
-        
+
         match command_buffer.status() {
             metal::MTLCommandBufferStatus::Completed => Ok(true),
-            metal::MTLCommandBufferStatus::Error => {
-                Err(MetalError::CommandBufferFailed("Command buffer execution failed".to_string()).into())
-            }
+            metal::MTLCommandBufferStatus::Error => Err(MetalError::CommandBufferFailed(
+                "Command buffer execution failed".to_string(),
+            )
+            .into()),
             _ => Ok(false),
         }
     }
@@ -1044,13 +1051,16 @@ impl MetalSynchronizer {
         let command_buffer = self.command_queue.new_command_buffer();
         command_buffer.commit();
         command_buffer.wait_until_completed();
-        
+
         match command_buffer.status() {
             metal::MTLCommandBufferStatus::Completed => Ok(()),
             metal::MTLCommandBufferStatus::Error => {
                 Err(MetalError::CommandBufferFailed("Sync operation failed".to_string()).into())
             }
-            _ => Err(MetalError::SynchronizationError("Unexpected command buffer status".to_string()).into()),
+            _ => Err(MetalError::SynchronizationError(
+                "Unexpected command buffer status".to_string(),
+            )
+            .into()),
         }
     }
 }
@@ -1112,9 +1122,10 @@ impl ManagedCommandBuffer {
                 self.state = CommandBufferState::Encoding;
                 Ok(())
             }
-            _ => Err(MetalError::InvalidCommandBufferState(
-                format!("Cannot begin encoding in state {:?}", self.state)
-            )),
+            _ => Err(MetalError::InvalidCommandBufferState(format!(
+                "Cannot begin encoding in state {:?}",
+                self.state
+            ))),
         }
     }
 
@@ -1127,23 +1138,25 @@ impl ManagedCommandBuffer {
                 self.committed_at = Some(Instant::now());
                 Ok(())
             }
-            _ => Err(MetalError::InvalidCommandBufferState(
-                format!("Cannot commit in state {:?}", self.state)
-            )),
+            _ => Err(MetalError::InvalidCommandBufferState(format!(
+                "Cannot commit in state {:?}",
+                self.state
+            ))),
         }
     }
 
     /// Waits for the command buffer to complete
     pub fn wait_until_completed(&mut self) -> Result<(), MetalError> {
         if self.state != CommandBufferState::Committed {
-            return Err(MetalError::InvalidCommandBufferState(
-                format!("Cannot wait for completion in state {:?}", self.state)
-            ));
+            return Err(MetalError::InvalidCommandBufferState(format!(
+                "Cannot wait for completion in state {:?}",
+                self.state
+            )));
         }
 
         self.command_buffer.wait_until_completed();
         self.update_state_from_metal();
-        
+
         match self.state {
             CommandBufferState::Completed => {
                 self.completed_at = Some(Instant::now());
@@ -1151,14 +1164,16 @@ impl ManagedCommandBuffer {
                 Ok(())
             }
             CommandBufferState::Failed => {
-                let error = MetalError::CommandBufferFailed("Command buffer execution failed".to_string());
+                let error =
+                    MetalError::CommandBufferFailed("Command buffer execution failed".to_string());
                 self.call_completion_handlers(Err(error.clone()));
                 Err(error)
             }
             _ => {
-                let error = MetalError::InvalidCommandBufferState(
-                    format!("Unexpected state after completion: {:?}", self.state)
-                );
+                let error = MetalError::InvalidCommandBufferState(format!(
+                    "Unexpected state after completion: {:?}",
+                    self.state
+                ));
                 self.call_completion_handlers(Err(error.clone()));
                 Err(error)
             }
@@ -1168,15 +1183,16 @@ impl ManagedCommandBuffer {
     /// Waits for completion with a timeout
     pub fn wait_until_completed_timeout(&mut self, timeout: Duration) -> Result<bool, MetalError> {
         if self.state != CommandBufferState::Committed {
-            return Err(MetalError::InvalidCommandBufferState(
-                format!("Cannot wait for completion in state {:?}", self.state)
-            ));
+            return Err(MetalError::InvalidCommandBufferState(format!(
+                "Cannot wait for completion in state {:?}",
+                self.state
+            )));
         }
 
         let start = Instant::now();
         while start.elapsed() < timeout {
             self.update_state_from_metal();
-            
+
             match self.state {
                 CommandBufferState::Completed => {
                     self.completed_at = Some(Instant::now());
@@ -1184,7 +1200,9 @@ impl ManagedCommandBuffer {
                     return Ok(true);
                 }
                 CommandBufferState::Failed => {
-                    let error = MetalError::CommandBufferFailed("Command buffer execution failed".to_string());
+                    let error = MetalError::CommandBufferFailed(
+                        "Command buffer execution failed".to_string(),
+                    );
                     self.call_completion_handlers(Err(error.clone()));
                     return Err(error);
                 }
@@ -1193,9 +1211,10 @@ impl ManagedCommandBuffer {
                     continue;
                 }
                 _ => {
-                    let error = MetalError::InvalidCommandBufferState(
-                        format!("Unexpected state during wait: {:?}", self.state)
-                    );
+                    let error = MetalError::InvalidCommandBufferState(format!(
+                        "Unexpected state during wait: {:?}",
+                        self.state
+                    ));
                     return Err(error);
                 }
             }
@@ -1214,8 +1233,7 @@ impl ManagedCommandBuffer {
                     self.state = CommandBufferState::Available;
                 }
             }
-            metal::MTLCommandBufferStatus::Enqueued |
-            metal::MTLCommandBufferStatus::Scheduled => {
+            metal::MTLCommandBufferStatus::Enqueued | metal::MTLCommandBufferStatus::Scheduled => {
                 if self.state == CommandBufferState::Available {
                     self.state = CommandBufferState::Committed;
                 }
@@ -1277,8 +1295,8 @@ impl ManagedCommandBuffer {
                 Ok(())
             }
             _ => Err(MetalError::InvalidCommandBufferState(
-                "Cannot cancel command buffer in current state".to_string()
-            ))
+                "Cannot cancel command buffer in current state".to_string(),
+            )),
         }
     }
 }
@@ -1356,7 +1374,7 @@ impl CommandBufferPool {
     /// Returns a command buffer to the pool
     pub fn return_command_buffer(&self, id: usize) -> Result<(), MetalError> {
         let mut active = self.active_buffers.lock().unwrap();
-        if let Some(mut managed_buffer) = active.remove(&id) {
+        if let Some(managed_buffer) = active.remove(&id) {
             let mut stats = self.stats.lock().unwrap();
             stats.active_count = active.len();
 
@@ -1368,7 +1386,9 @@ impl CommandBufferPool {
                         // Update average execution time
                         let total_completed = stats.total_completed as f64;
                         let current_avg = stats.average_execution_time.as_secs_f64();
-                        let new_avg = (current_avg * (total_completed - 1.0) + exec_time.as_secs_f64()) / total_completed;
+                        let new_avg = (current_avg * (total_completed - 1.0)
+                            + exec_time.as_secs_f64())
+                            / total_completed;
                         stats.average_execution_time = Duration::from_secs_f64(new_avg);
                     }
                 }
@@ -1382,7 +1402,9 @@ impl CommandBufferPool {
             }
 
             // Add to available pool if reuse is enabled and buffer is in good state
-            if self.config.enable_reuse && matches!(managed_buffer.state(), CommandBufferState::Completed) {
+            if self.config.enable_reuse
+                && matches!(managed_buffer.state(), CommandBufferState::Completed)
+            {
                 let mut available = self.available_buffers.lock().unwrap();
                 available.push(managed_buffer);
                 stats.available_count = available.len();
@@ -1390,22 +1412,25 @@ impl CommandBufferPool {
 
             Ok(())
         } else {
-            Err(MetalError::CommandBufferPoolError(
-                format!("Command buffer with ID {} not found in active pool", id)
-            ))
+            Err(MetalError::CommandBufferPoolError(format!(
+                "Command buffer with ID {id} not found in active pool"
+            )))
         }
     }
 
     /// Gets a mutable reference to an active command buffer
-    pub fn get_active_buffer(&self, id: usize) -> Result<std::sync::MutexGuard<HashMap<usize, ManagedCommandBuffer>>, MetalError> {
+    pub fn get_active_buffer(
+        &self,
+        id: usize,
+    ) -> Result<std::sync::MutexGuard<HashMap<usize, ManagedCommandBuffer>>, MetalError> {
         let active = self.active_buffers.lock().unwrap();
         if active.contains_key(&id) {
             drop(active);
             Ok(self.active_buffers.lock().unwrap())
         } else {
-            Err(MetalError::CommandBufferPoolError(
-                format!("Command buffer with ID {} not found", id)
-            ))
+            Err(MetalError::CommandBufferPoolError(format!(
+                "Command buffer with ID {id} not found"
+            )))
         }
     }
 
@@ -1415,21 +1440,25 @@ impl CommandBufferPool {
         if let Some(managed_buffer) = active.get_mut(&id) {
             managed_buffer.wait_until_completed()
         } else {
-            Err(MetalError::CommandBufferPoolError(
-                format!("Command buffer with ID {} not found", id)
-            ))
+            Err(MetalError::CommandBufferPoolError(format!(
+                "Command buffer with ID {id} not found"
+            )))
         }
     }
 
     /// Waits for a command buffer with timeout
-    pub fn wait_for_completion_timeout(&self, id: usize, timeout: Duration) -> Result<bool, MetalError> {
+    pub fn wait_for_completion_timeout(
+        &self,
+        id: usize,
+        timeout: Duration,
+    ) -> Result<bool, MetalError> {
         let mut active = self.active_buffers.lock().unwrap();
         if let Some(managed_buffer) = active.get_mut(&id) {
             managed_buffer.wait_until_completed_timeout(timeout)
         } else {
-            Err(MetalError::CommandBufferPoolError(
-                format!("Command buffer with ID {} not found", id)
-            ))
+            Err(MetalError::CommandBufferPoolError(format!(
+                "Command buffer with ID {id} not found"
+            )))
         }
     }
 
@@ -1453,9 +1482,9 @@ impl CommandBufferPool {
         if let Some(managed_buffer) = active.get_mut(&id) {
             managed_buffer.cancel()
         } else {
-            Err(MetalError::CommandBufferPoolError(
-                format!("Command buffer with ID {} not found", id)
-            ))
+            Err(MetalError::CommandBufferPoolError(format!(
+                "Command buffer with ID {id} not found"
+            )))
         }
     }
 
@@ -1466,9 +1495,12 @@ impl CommandBufferPool {
 
         for (id, managed_buffer) in active.iter_mut() {
             managed_buffer.update_state_from_metal();
-            
-            if matches!(managed_buffer.state(), CommandBufferState::Completed | CommandBufferState::Failed) ||
-               managed_buffer.is_timed_out() {
+
+            if matches!(
+                managed_buffer.state(),
+                CommandBufferState::Completed | CommandBufferState::Failed
+            ) || managed_buffer.is_timed_out()
+            {
                 to_remove.push(*id);
             }
         }
@@ -1501,7 +1533,7 @@ impl CommandBufferPool {
     pub fn clear(&self) -> Result<(), MetalError> {
         let mut active = self.active_buffers.lock().unwrap();
         let mut available = self.available_buffers.lock().unwrap();
-        
+
         active.clear();
         available.clear();
 
@@ -1532,7 +1564,7 @@ impl CommandBufferManager {
     ) -> Self {
         let pool = CommandBufferPool::new(command_queue.clone(), config);
         let synchronizer = MetalSynchronizer::new(device.clone(), command_queue);
-        
+
         Self {
             pool,
             device,
@@ -1546,7 +1578,10 @@ impl CommandBufferManager {
     }
 
     /// Creates a new command buffer with specified priority
-    pub fn create_command_buffer(&self, priority: CommandBufferPriority) -> Result<usize, MetalError> {
+    pub fn create_command_buffer(
+        &self,
+        priority: CommandBufferPriority,
+    ) -> Result<usize, MetalError> {
         self.pool.get_command_buffer(priority)
     }
 
@@ -1556,26 +1591,32 @@ impl CommandBufferManager {
         if let Some(managed_buffer) = active.get_mut(&id) {
             managed_buffer.begin_encoding()
         } else {
-            Err(MetalError::CommandBufferPoolError(
-                format!("Command buffer with ID {} not found", id)
-            ))
+            Err(MetalError::CommandBufferPoolError(format!(
+                "Command buffer with ID {id} not found"
+            )))
         }
     }
 
     /// Creates a compute command encoder for the specified command buffer
-    pub fn create_compute_encoder(&self, id: usize) -> Result<metal::ComputeCommandEncoder, MetalError> {
+    pub fn create_compute_encoder(
+        &self,
+        id: usize,
+    ) -> Result<metal::ComputeCommandEncoder, MetalError> {
         let active = self.pool.get_active_buffer(id)?;
         if let Some(managed_buffer) = active.get(&id) {
             if managed_buffer.state() != CommandBufferState::Encoding {
                 return Err(MetalError::InvalidCommandBufferState(
-                    "Command buffer must be in encoding state".to_string()
+                    "Command buffer must be in encoding state".to_string(),
                 ));
             }
-            Ok(managed_buffer.command_buffer().new_compute_command_encoder().to_owned())
+            Ok(managed_buffer
+                .command_buffer()
+                .new_compute_command_encoder()
+                .to_owned())
         } else {
-            Err(MetalError::CommandBufferPoolError(
-                format!("Command buffer with ID {} not found", id)
-            ))
+            Err(MetalError::CommandBufferPoolError(format!(
+                "Command buffer with ID {id} not found"
+            )))
         }
     }
 
@@ -1585,14 +1626,17 @@ impl CommandBufferManager {
         if let Some(managed_buffer) = active.get(&id) {
             if managed_buffer.state() != CommandBufferState::Encoding {
                 return Err(MetalError::InvalidCommandBufferState(
-                    "Command buffer must be in encoding state".to_string()
+                    "Command buffer must be in encoding state".to_string(),
                 ));
             }
-            Ok(managed_buffer.command_buffer().new_blit_command_encoder().to_owned())
+            Ok(managed_buffer
+                .command_buffer()
+                .new_blit_command_encoder()
+                .to_owned())
         } else {
-            Err(MetalError::CommandBufferPoolError(
-                format!("Command buffer with ID {} not found", id)
-            ))
+            Err(MetalError::CommandBufferPoolError(format!(
+                "Command buffer with ID {id} not found"
+            )))
         }
     }
 
@@ -1603,9 +1647,9 @@ impl CommandBufferManager {
             managed_buffer.add_resource(buffer);
             Ok(())
         } else {
-            Err(MetalError::CommandBufferPoolError(
-                format!("Command buffer with ID {} not found", id)
-            ))
+            Err(MetalError::CommandBufferPoolError(format!(
+                "Command buffer with ID {id} not found"
+            )))
         }
     }
 
@@ -1619,9 +1663,9 @@ impl CommandBufferManager {
             managed_buffer.add_completion_handler(handler);
             Ok(())
         } else {
-            Err(MetalError::CommandBufferPoolError(
-                format!("Command buffer with ID {} not found", id)
-            ))
+            Err(MetalError::CommandBufferPoolError(format!(
+                "Command buffer with ID {id} not found"
+            )))
         }
     }
 
@@ -1631,9 +1675,9 @@ impl CommandBufferManager {
         if let Some(managed_buffer) = active.get_mut(&id) {
             managed_buffer.commit()
         } else {
-            Err(MetalError::CommandBufferPoolError(
-                format!("Command buffer with ID {} not found", id)
-            ))
+            Err(MetalError::CommandBufferPoolError(format!(
+                "Command buffer with ID {id} not found"
+            )))
         }
     }
 
@@ -1645,7 +1689,11 @@ impl CommandBufferManager {
     }
 
     /// Commits and waits for a command buffer with timeout
-    pub fn commit_and_wait_timeout(&self, id: usize, timeout: Duration) -> Result<bool, MetalError> {
+    pub fn commit_and_wait_timeout(
+        &self,
+        id: usize,
+        timeout: Duration,
+    ) -> Result<bool, MetalError> {
         self.commit(id)?;
         let completed = self.pool.wait_for_completion_timeout(id, timeout)?;
         if completed {
@@ -1661,17 +1709,23 @@ impl CommandBufferManager {
 
     /// Creates a synchronization point
     pub fn create_sync_point(&self) -> Result<SyncPoint, MetalError> {
-        self.synchronizer.create_sync_point().map_err(|e| MetalError::SynchronizationError(e.to_string()))
+        self.synchronizer
+            .create_sync_point()
+            .map_err(|e| MetalError::SynchronizationError(e.to_string()))
     }
 
     /// Signals an event from a command buffer
     pub fn signal_event(&self, sync_point: &mut SyncPoint) -> Result<(), MetalError> {
-        self.synchronizer.signal_event(sync_point).map_err(|e| MetalError::SynchronizationError(e.to_string()))
+        self.synchronizer
+            .signal_event(sync_point)
+            .map_err(|e| MetalError::SynchronizationError(e.to_string()))
     }
 
     /// Waits for an event to be signaled
     pub fn wait_for_event(&self, sync_point: &SyncPoint) -> Result<(), MetalError> {
-        self.synchronizer.wait_for_event(sync_point).map_err(|e| MetalError::SynchronizationError(e.to_string()))
+        self.synchronizer
+            .wait_for_event(sync_point)
+            .map_err(|e| MetalError::SynchronizationError(e.to_string()))
     }
 
     /// Gets pool statistics
@@ -1765,19 +1819,28 @@ pub fn create_buffer_pool(device: &metal::Device) -> BufferPool {
 
 /// Convenience function to create a buffer pool with custom configuration
 #[cfg(all(target_os = "macos", feature = "metal"))]
-pub fn create_buffer_pool_with_config(device: &metal::Device, config: BufferPoolConfig) -> BufferPool {
+pub fn create_buffer_pool_with_config(
+    device: &metal::Device,
+    config: BufferPoolConfig,
+) -> BufferPool {
     BufferPool::new(device.clone(), config)
 }
 
 /// Convenience function to create a synchronizer
 #[cfg(all(target_os = "macos", feature = "metal"))]
-pub fn create_synchronizer(device: &metal::Device, command_queue: &metal::CommandQueue) -> MetalSynchronizer {
+pub fn create_synchronizer(
+    device: &metal::Device,
+    command_queue: &metal::CommandQueue,
+) -> MetalSynchronizer {
     MetalSynchronizer::new(device.clone(), command_queue.clone())
 }
 
 /// Convenience function to create a command buffer manager with default settings
 #[cfg(all(target_os = "macos", feature = "metal"))]
-pub fn create_command_buffer_manager(device: &metal::Device, command_queue: &metal::CommandQueue) -> CommandBufferManager {
+pub fn create_command_buffer_manager(
+    device: &metal::Device,
+    command_queue: &metal::CommandQueue,
+) -> CommandBufferManager {
     CommandBufferManager::new_default(device.clone(), command_queue.clone())
 }
 
@@ -1835,20 +1898,27 @@ pub fn create_command_buffer_pool_with_config(
 /// # }
 /// ```
 #[cfg(all(target_os = "macos", feature = "metal"))]
-pub fn create_compute_pipeline(device: &metal::Device, function_name: &str) -> Result<metal::ComputePipelineState> {
+pub fn create_compute_pipeline(
+    device: &metal::Device,
+    function_name: &str,
+) -> Result<metal::ComputePipelineState> {
     // Get the default library
     let library = device.new_default_library();
-    
+
     // Get the compute function
-    let function = library.get_function(function_name, None)
-        .map_err(|e| MetalError::ComputeFunctionNotFound(format!("{}: {}", function_name, e)))?;
-    
+    let function = library
+        .get_function(function_name, None)
+        .map_err(|e| MetalError::ComputeFunctionNotFound(format!("{function_name}: {e}")))?;
+
     // Create the compute pipeline state
-    let pipeline_state = device.new_compute_pipeline_state_with_function(&function)
-        .map_err(|e| MetalError::ComputePipelineCreationFailed(
-            format!("Failed to create pipeline for function '{}': {}", function_name, e)
-        ))?;
-    
+    let pipeline_state = device
+        .new_compute_pipeline_state_with_function(&function)
+        .map_err(|e| {
+            MetalError::ComputePipelineCreationFailed(format!(
+                "Failed to create pipeline for function '{function_name}': {e}"
+            ))
+        })?;
+
     Ok(pipeline_state)
 }
 
@@ -1871,18 +1941,22 @@ pub fn create_compute_pipeline(device: &metal::Device, function_name: &str) -> R
 pub fn create_compute_pipeline_with_library(
     device: &metal::Device,
     library: &metal::Library,
-    function_name: &str
+    function_name: &str,
 ) -> Result<metal::ComputePipelineState> {
     // Get the compute function from the specified library
-    let function = library.get_function(function_name, None)
-        .map_err(|e| MetalError::ComputeFunctionNotFound(format!("{}: {}", function_name, e)))?;
-    
+    let function = library
+        .get_function(function_name, None)
+        .map_err(|e| MetalError::ComputeFunctionNotFound(format!("{function_name}: {e}")))?;
+
     // Create the compute pipeline state
-    let pipeline_state = device.new_compute_pipeline_state_with_function(&function)
-        .map_err(|e| MetalError::ComputePipelineCreationFailed(
-            format!("Failed to create pipeline for function '{}': {}", function_name, e)
-        ))?;
-    
+    let pipeline_state = device
+        .new_compute_pipeline_state_with_function(&function)
+        .map_err(|e| {
+            MetalError::ComputePipelineCreationFailed(format!(
+                "Failed to create pipeline for function '{function_name}': {e}"
+            ))
+        })?;
+
     Ok(pipeline_state)
 }
 
@@ -1922,7 +1996,7 @@ pub fn create_compute_pipeline_with_library(
 pub fn dispatch_compute(
     encoder: &metal::ComputeCommandEncoderRef,
     threads: metal::MTLSize,
-    threadgroup: metal::MTLSize
+    threadgroup: metal::MTLSize,
 ) {
     encoder.dispatch_threads(threads, threadgroup);
 }
@@ -1942,7 +2016,7 @@ pub fn dispatch_compute(
 pub fn dispatch_threadgroups(
     encoder: &metal::ComputeCommandEncoderRef,
     threadgroups: metal::MTLSize,
-    threadgroup_size: metal::MTLSize
+    threadgroup_size: metal::MTLSize,
 ) {
     encoder.dispatch_thread_groups(threadgroups, threadgroup_size);
 }
@@ -1963,7 +2037,7 @@ pub fn set_compute_buffer(
     encoder: &metal::ComputeCommandEncoderRef,
     buffer: &metal::Buffer,
     offset: u64,
-    index: u64
+    index: u64,
 ) {
     encoder.set_buffer(index, Some(buffer), offset);
 }
@@ -1979,21 +2053,18 @@ pub fn set_compute_buffer(
 /// * `bytes` - A slice of bytes to pass to the kernel
 /// * `index` - The argument index in the compute kernel
 #[cfg(all(target_os = "macos", feature = "metal"))]
-pub fn set_compute_bytes<T>(
-    encoder: &metal::ComputeCommandEncoderRef,
-    data: &[T],
-    index: u64
-) where
+pub fn set_compute_bytes<T>(encoder: &metal::ComputeCommandEncoderRef, data: &[T], index: u64)
+where
     T: Copy + 'static,
 {
-    use std::mem;
     let bytes = unsafe {
-        std::slice::from_raw_parts(
-            data.as_ptr() as *const u8,
-            data.len() * mem::size_of::<T>()
-        )
+        std::slice::from_raw_parts(data.as_ptr() as *const u8, std::mem::size_of_val(data))
     };
-    encoder.set_bytes(index, bytes.len() as u64, bytes.as_ptr() as *const std::ffi::c_void);
+    encoder.set_bytes(
+        index,
+        bytes.len() as u64,
+        bytes.as_ptr() as *const std::ffi::c_void,
+    );
 }
 
 /// Calculates optimal threadgroup size for a given total thread count.
@@ -2015,33 +2086,33 @@ pub fn set_compute_bytes<T>(
 pub fn calculate_optimal_threadgroup_size(
     device: &metal::Device,
     pipeline_state: &metal::ComputePipelineState,
-    total_threads: usize
+    total_threads: usize,
 ) -> (metal::MTLSize, metal::MTLSize) {
     // Get the maximum threads per threadgroup for this pipeline
     let max_threads_per_threadgroup = pipeline_state.max_total_threads_per_threadgroup();
-    
+
     // Get the threadgroup execution width (SIMD width)
     let execution_width = pipeline_state.thread_execution_width();
-    
+
     // Calculate a good threadgroup size (prefer multiples of execution width)
     let max_threads = max_threads_per_threadgroup as usize;
     let exec_width = execution_width as usize;
-    
+
     let threads_per_threadgroup = if total_threads < max_threads {
         // For small workloads, use the total threads but round up to execution width
-        ((total_threads + exec_width - 1) / exec_width) * exec_width
+        total_threads.div_ceil(exec_width) * exec_width
     } else {
         // For larger workloads, use a multiple of execution width that's close to max
         let target = max_threads / exec_width * exec_width;
         std::cmp::min(target, max_threads)
     };
-    
+
     // Calculate number of threadgroups needed
-    let threadgroups = (total_threads + threads_per_threadgroup - 1) / threads_per_threadgroup;
-    
+    let threadgroups = total_threads.div_ceil(threads_per_threadgroup);
+
     (
         metal::MTLSize::new(threads_per_threadgroup as u64, 1, 1),
-        metal::MTLSize::new(threadgroups as u64, 1, 1)
+        metal::MTLSize::new(threadgroups as u64, 1, 1),
     )
 }
 
@@ -2121,7 +2192,11 @@ pub fn create_command_buffer_manager(_device: &(), _command_queue: &()) -> Resul
 }
 
 #[cfg(not(all(target_os = "macos", feature = "metal")))]
-pub fn create_command_buffer_manager_with_config(_device: &(), _command_queue: &(), _config: ()) -> Result<()> {
+pub fn create_command_buffer_manager_with_config(
+    _device: &(),
+    _command_queue: &(),
+    _config: (),
+) -> Result<()> {
     Err(MetalError::UnsupportedPlatform.into())
 }
 
@@ -2141,7 +2216,11 @@ pub fn create_compute_pipeline(_device: &(), _function_name: &str) -> Result<()>
 }
 
 #[cfg(not(all(target_os = "macos", feature = "metal")))]
-pub fn create_compute_pipeline_with_library(_device: &(), _library: &(), _function_name: &str) -> Result<()> {
+pub fn create_compute_pipeline_with_library(
+    _device: &(),
+    _library: &(),
+    _function_name: &str,
+) -> Result<()> {
     Err(MetalError::UnsupportedPlatform.into())
 }
 
@@ -2169,10 +2248,13 @@ where
 }
 
 #[cfg(not(all(target_os = "macos", feature = "metal")))]
-pub fn calculate_optimal_threadgroup_size(_device: &(), _pipeline_state: &(), _total_threads: usize) -> ((), ()) {
+pub fn calculate_optimal_threadgroup_size(
+    _device: &(),
+    _pipeline_state: &(),
+    _total_threads: usize,
+) -> ((), ()) {
     ((), ())
 }
-
 
 #[cfg(test)]
 mod tests {

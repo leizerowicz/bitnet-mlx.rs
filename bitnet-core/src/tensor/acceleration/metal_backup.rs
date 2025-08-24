@@ -74,28 +74,28 @@ impl MetalAccelerationMetrics {
     pub fn new() -> Self {
         Self::default()
     }
-    
+
     pub fn record_operation(&mut self, execution_time: f64) {
         self.operations_executed += 1;
         self.average_execution_time = (self.average_execution_time * (self.operations_executed - 1) as f64 + execution_time) / self.operations_executed as f64;
     }
-    
+
     pub fn record_allocation(&mut self, size: u64) {
         self.gpu_memory_allocated += size;
     }
-    
+
     pub fn record_deallocation(&mut self, size: u64) {
         self.gpu_memory_freed += size;
     }
-    
+
     pub fn record_buffer_cache_hit(&mut self) {
         self.buffer_cache_hits += 1;
     }
-    
+
     pub fn record_buffer_cache_miss(&mut self) {
         self.buffer_cache_misses += 1;
     }
-    
+
     pub fn record_transfer(&mut self, transfer_time: f64) {
         self.transfer_operations += 1;
         self.total_transfer_time += transfer_time;
@@ -108,37 +108,37 @@ pub struct MetalAccelerator {
     /// Metal device for GPU operations
     #[cfg(all(target_os = "macos", feature = "metal"))]
     device: Option<Device>,
-    
+
     /// Command queue for GPU operations
     #[cfg(all(target_os = "macos", feature = "metal"))]
     command_queue: Option<CommandQueue>,
-    
+
     /// Compiled shaders library
     #[cfg(all(target_os = "macos", feature = "metal"))]
     library: Option<Library>,
-    
+
     /// Command buffer manager
     #[cfg(all(target_os = "macos", feature = "metal"))]
     command_buffer_manager: Option<Arc<CommandBufferManager>>,
-    
+
     /// BitNet-specific shader collection
     #[cfg(all(target_os = "macos", feature = "metal"))]
     bitnet_shaders: Option<BitNetShaders>,
-    
+
     /// GPU memory pool for Metal buffers
     #[cfg(all(target_os = "macos", feature = "metal"))]
     gpu_memory_pool: Option<Arc<HybridMemoryPool>>,
-    
+
     /// Buffer cache for reusing GPU memory
     #[cfg(all(target_os = "macos", feature = "metal"))]
     buffer_cache: Arc<Mutex<HashMap<String, MetalBuffer>>>,
-    
+
     /// Performance metrics tracking
     metrics: Arc<Mutex<MetalAccelerationMetrics>>,
-    
+
     /// Initialization state
     initialized: bool,
-    
+
     /// Availability check result
     available: bool,
 }
@@ -149,37 +149,37 @@ pub struct MetalAccelerator {
     /// Metal device for GPU operations
     #[cfg(all(target_os = "macos", feature = "metal"))]
     device: Option<Device>,
-    
+
     /// Command queue for GPU operations
     #[cfg(all(target_os = "macos", feature = "metal"))]
     command_queue: Option<CommandQueue>,
-    
+
     /// Compiled shaders library
     #[cfg(all(target_os = "macos", feature = "metal"))]
     library: Option<Library>,
-    
+
     /// Command buffer manager
     #[cfg(all(target_os = "macos", feature = "metal"))]
     command_buffer_manager: Option<Arc<CommandBufferManager>>,
-    
+
     /// BitNet-specific shader collection
     #[cfg(all(target_os = "macos", feature = "metal"))]
     bitnet_shaders: Option<BitNetShaders>,
-    
+
     /// GPU memory pool for Metal buffers
     #[cfg(all(target_os = "macos", feature = "metal"))]
     gpu_memory_pool: Option<Arc<HybridMemoryPool>>,
-    
+
     /// Buffer cache for reusing GPU memory
     #[cfg(all(target_os = "macos", feature = "metal"))]
     buffer_cache: Arc<Mutex<HashMap<String, MetalBuffer>>>,
-    
+
     /// Performance metrics tracking
     metrics: Arc<Mutex<MetalAccelerationMetrics>>,
-    
+
     /// Initialization state
     initialized: bool,
-    
+
     /// Availability check result
     available: bool,
 }
@@ -210,28 +210,28 @@ impl MetalAccelerationMetrics {
     pub fn new() -> Self {
         Self::default()
     }
-    
+
     pub fn record_operation(&mut self, execution_time: f64) {
         self.operations_executed += 1;
         self.average_execution_time = (self.average_execution_time * (self.operations_executed - 1) as f64 + execution_time) / self.operations_executed as f64;
     }
-    
+
     pub fn record_allocation(&mut self, size: u64) {
         self.gpu_memory_allocated += size;
     }
-    
+
     pub fn record_deallocation(&mut self, size: u64) {
         self.gpu_memory_freed += size;
     }
-    
+
     pub fn record_buffer_cache_hit(&mut self) {
         self.buffer_cache_hits += 1;
     }
-    
+
     pub fn record_buffer_cache_miss(&mut self) {
         self.buffer_cache_misses += 1;
     }
-    
+
     pub fn record_transfer(&mut self, transfer_time: f64) {
         self.transfer_operations += 1;
         self.total_transfer_time += transfer_time;
@@ -246,7 +246,7 @@ impl MetalAccelerator {
         debug!("Creating Metal accelerator");
 
         let available = Self::is_platform_supported();
-        
+
         Ok(Self {
             #[cfg(all(target_os = "macos", feature = "metal"))]
             device: None,
@@ -267,7 +267,7 @@ impl MetalAccelerator {
             available,
         })
     }
-    
+
     /// Checks if Metal is supported on this platform
     fn is_platform_supported() -> bool {
         #[cfg(all(target_os = "macos", feature = "metal"))]
@@ -329,9 +329,9 @@ impl MetalAccelerator {
             })?;
 
         let options = MTLResourceOptions::StorageModeShared;
-        
+
         let buffer = device.new_buffer(size as u64, options);
-        
+
         let buffer_info = MetalBuffer {
             buffer,
             size,
@@ -354,15 +354,15 @@ impl MetalAccelerator {
     #[cfg(all(target_os = "macos", feature = "metal"))]
     fn get_or_create_buffer(&self, key: &str, size: usize) -> AccelerationResult<MetalBuffer> {
         let mut cache = self.buffer_cache.lock().unwrap();
-        
+
         if let Some(cached_buffer) = cache.get(key) {
             if cached_buffer.size >= size {
                 let mut metrics = self.metrics.lock().unwrap();
                 metrics.record_buffer_cache_hit();
-                
+
                 #[cfg(feature = "tracing")]
                 debug!("Using cached Metal buffer for key: {}", key);
-                
+
                 return Ok(MetalBuffer {
                     buffer: cached_buffer.buffer.clone(),
                     size: cached_buffer.size,
@@ -393,7 +393,7 @@ impl MetalAccelerator {
     #[cfg(all(target_os = "macos", feature = "metal"))]
     fn transfer_tensor_to_gpu(&self, tensor: &BitNetTensor) -> AccelerationResult<MetalBuffer> {
         use std::time::Instant;
-        
+
         let start_time = Instant::now();
 
         // Get tensor data as f32 slice
@@ -404,7 +404,7 @@ impl MetalAccelerator {
 
         let byte_size = data.len() * std::mem::size_of::<f32>();
         let buffer_key = format!("tensor_{}_{}", tensor.tensor_id(), byte_size);
-        
+
         let metal_buffer = self.get_or_create_buffer(&buffer_key, byte_size)?;
 
         // Copy data to Metal buffer
@@ -414,7 +414,7 @@ impl MetalAccelerator {
         }
 
         let transfer_time = start_time.elapsed().as_secs_f64();
-        
+
         // Update metrics
         {
             let mut metrics = self.metrics.lock().unwrap();
@@ -431,7 +431,7 @@ impl MetalAccelerator {
     #[cfg(all(target_os = "macos", feature = "metal"))]
     fn transfer_buffer_to_cpu(&self, buffer: &MetalBuffer, shape: &[usize], dtype: BitNetDType) -> AccelerationResult<BitNetTensor> {
         use std::time::Instant;
-        
+
         let start_time = Instant::now();
 
         // Calculate expected data size
@@ -458,7 +458,7 @@ impl MetalAccelerator {
             })?;
 
         let transfer_time = start_time.elapsed().as_secs_f64();
-        
+
         // Update metrics
         {
             let mut metrics = self.metrics.lock().unwrap();
@@ -473,10 +473,10 @@ impl MetalAccelerator {
 
     /// Execute Metal compute shader for matrix multiplication
     #[cfg(all(target_os = "macos", feature = "metal"))]
-    fn execute_matmul_shader(&self, a_buffer: &MetalBuffer, b_buffer: &MetalBuffer, output_buffer: &MetalBuffer, 
+    fn execute_matmul_shader(&self, a_buffer: &MetalBuffer, b_buffer: &MetalBuffer, output_buffer: &MetalBuffer,
                            shape_a: &[usize], shape_b: &[usize]) -> AccelerationResult<f64> {
         use std::time::Instant;
-        
+
         let start_time = Instant::now();
 
         let command_buffer_manager = self.command_buffer_manager.as_ref()
@@ -494,17 +494,17 @@ impl MetalAccelerator {
 
         // Get matrix multiplication compute shader
         let compute_encoder = command_buffer.compute_command_encoder();
-        
+
         // For now, use a basic matrix multiplication approach
         // In a real implementation, we would use the BitNet shaders
         let device = self.device.as_ref().unwrap();
         let library = self.library.as_ref().unwrap();
-        
+
         // Create a simple matrix multiply kernel
         let source = r#"
         #include <metal_stdlib>
         using namespace metal;
-        
+
         kernel void matrix_multiply(
             device const float* A [[buffer(0)]],
             device const float* B [[buffer(1)]],
@@ -515,17 +515,17 @@ impl MetalAccelerator {
             uint M = dims.x;
             uint K = dims.y;
             uint N = dims.z;
-            
+
             uint row = gid.y;
             uint col = gid.x;
-            
+
             if (row >= M || col >= N) return;
-            
+
             float sum = 0.0f;
             for (uint k = 0; k < K; k++) {
                 sum += A[row * K + k] * B[k * N + col];
             }
-            
+
             C[row * N + col] = sum;
         }
         "#;
@@ -672,7 +672,7 @@ impl MetalAccelerator {
         };
 
         #[cfg(feature = "tracing")]
-        info!("Metal {} completed: {:.2}M ops/sec, {:.3}ms total", 
+        info!("Metal {} completed: {:.2}M ops/sec, {:.3}ms total",
               operation, acceleration_metrics.operations_per_second / 1e6, total_time * 1000.0);
 
         Ok((result_tensor, acceleration_metrics))
@@ -705,14 +705,14 @@ impl AccelerationBackendImpl for MetalAccelerator {
 
         Ok(())
     }
-    
+
     fn is_available(&self) -> bool {
         self.available
     }
-    
+
     fn get_capabilities(&self) -> AccelerationCapabilities {
         let mut caps = AccelerationCapabilities::default_for_backend(AccelerationBackend::Metal);
-        
+
         // Enhanced capabilities for Metal GPU acceleration
         caps.supports_fp16 = true;
         caps.supports_int8 = true;
@@ -720,10 +720,10 @@ impl AccelerationBackendImpl for MetalAccelerator {
         caps.supports_in_place_operations = true;
         caps.max_tensor_size = Some(1024 * 1024 * 1024); // 1GB GPU memory limit
         caps.preferred_block_size = Some(256); // Optimal for GPU threads
-        
+
         caps
     }
-    
+
     fn matmul(&self, a: &BitNetTensor, b: &BitNetTensor) -> AccelerationResult<(BitNetTensor, AccelerationMetrics)> {
         #[cfg(not(all(target_os = "macos", feature = "metal")))]
         {
@@ -800,13 +800,13 @@ impl AccelerationBackendImpl for MetalAccelerator {
             };
 
             #[cfg(feature = "tracing")]
-            info!("Metal matmul completed: {:.2}x speedup, {:.3}ms total", 
+            info!("Metal matmul completed: {:.2}x speedup, {:.3}ms total",
                   acceleration_metrics.operations_per_second / 1e6, total_time * 1000.0);
 
             Ok((result_tensor, acceleration_metrics))
         }
     }
-    
+
     fn add(&self, a: &BitNetTensor, b: &BitNetTensor) -> AccelerationResult<(BitNetTensor, AccelerationMetrics)> {
         #[cfg(not(all(target_os = "macos", feature = "metal")))]
         {
@@ -821,7 +821,7 @@ impl AccelerationBackendImpl for MetalAccelerator {
             self.execute_binary_elementwise_op("add", a, b)
         }
     }
-    
+
     fn mul(&self, a: &BitNetTensor, b: &BitNetTensor) -> AccelerationResult<(BitNetTensor, AccelerationMetrics)> {
         #[cfg(not(all(target_os = "macos", feature = "metal")))]
         {
@@ -836,7 +836,7 @@ impl AccelerationBackendImpl for MetalAccelerator {
             self.execute_binary_elementwise_op("mul", a, b)
         }
     }
-    
+
     fn create_tensor(&self, shape: &[usize], dtype: BitNetDType, data: Option<&[f32]>) -> AccelerationResult<BitNetTensor> {
         match data {
             Some(data) => {
@@ -853,7 +853,7 @@ impl AccelerationBackendImpl for MetalAccelerator {
             }
         }
     }
-    
+
     fn transfer_to_device(&self, tensor: &BitNetTensor) -> AccelerationResult<BitNetTensor> {
         #[cfg(not(all(target_os = "macos", feature = "metal")))]
         {
@@ -867,15 +867,15 @@ impl AccelerationBackendImpl for MetalAccelerator {
             Ok(tensor.clone())
         }
     }
-    
+
     fn transfer_to_cpu(&self, tensor: &BitNetTensor) -> AccelerationResult<BitNetTensor> {
         // Tensors are already stored on CPU in our system
         Ok(tensor.clone())
     }
-    
+
     fn get_memory_stats(&self) -> anyhow::Result<MemoryMetrics> {
         let metrics = self.metrics.lock().unwrap();
-        
+
         Ok(MemoryMetrics {
             total_allocated: metrics.gpu_memory_allocated,
             total_freed: metrics.gpu_memory_freed,
@@ -888,7 +888,7 @@ impl AccelerationBackendImpl for MetalAccelerator {
             allocation_efficiency: metrics.buffer_cache_hits as f64 / (metrics.buffer_cache_hits + metrics.buffer_cache_misses).max(1) as f64,
         })
     }
-    
+
     fn cleanup(&mut self) -> AccelerationResult<()> {
         #[cfg(all(target_os = "macos", feature = "metal"))]
         {
@@ -938,36 +938,36 @@ impl AccelerationBackendImpl for MetalAccelerator {
             platform: std::env::consts::OS.to_string(),
         })
     }
-    
+
     fn is_available(&self) -> bool {
         false
     }
-    
+
     fn get_capabilities(&self) -> AccelerationCapabilities {
         AccelerationCapabilities::default_for_backend(AccelerationBackend::Metal)
     }
-    
+
     fn matmul(&self, _a: &BitNetTensor, _b: &BitNetTensor) -> AccelerationResult<(BitNetTensor, AccelerationMetrics)> {
         Err(AccelerationError::PlatformNotSupported {
             backend: "Metal".to_string(),
             platform: std::env::consts::OS.to_string(),
         })
     }
-    
+
     fn add(&self, _a: &BitNetTensor, _b: &BitNetTensor) -> AccelerationResult<(BitNetTensor, AccelerationMetrics)> {
         Err(AccelerationError::PlatformNotSupported {
             backend: "Metal".to_string(),
             platform: std::env::consts::OS.to_string(),
         })
     }
-    
+
     fn mul(&self, _a: &BitNetTensor, _b: &BitNetTensor) -> AccelerationResult<(BitNetTensor, AccelerationMetrics)> {
         Err(AccelerationError::PlatformNotSupported {
             backend: "Metal".to_string(),
             platform: std::env::consts::OS.to_string(),
         })
     }
-    
+
     fn create_tensor(&self, shape: &[usize], dtype: BitNetDType, data: Option<&[f32]>) -> AccelerationResult<BitNetTensor> {
         match data {
             Some(data) => {
@@ -984,19 +984,19 @@ impl AccelerationBackendImpl for MetalAccelerator {
             }
         }
     }
-    
+
     fn transfer_to_device(&self, tensor: &BitNetTensor) -> AccelerationResult<BitNetTensor> {
         Ok(tensor.clone())
     }
-    
+
     fn transfer_to_cpu(&self, tensor: &BitNetTensor) -> AccelerationResult<BitNetTensor> {
         Ok(tensor.clone())
     }
-    
+
     fn get_memory_stats(&self) -> anyhow::Result<MemoryMetrics> {
         Ok(MemoryMetrics::default())
     }
-    
+
     fn cleanup(&mut self) -> AccelerationResult<()> {
         self.initialized = false;
         Ok(())

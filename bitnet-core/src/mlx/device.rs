@@ -1,5 +1,5 @@
 //! MLX device management for BitNet
-//! 
+//!
 //! This module provides device abstraction for MLX operations,
 //! integrating with BitNet's memory management system.
 
@@ -7,8 +7,8 @@
 use mlx_rs::{Device as MlxDevice, DeviceType as MlxDeviceType};
 
 // Simplified device management for MLX
-use anyhow::Result;
 use crate::memory::MemoryMetrics;
+use anyhow::Result;
 
 /// BitNet MLX Device wrapper
 #[derive(Debug)]
@@ -32,7 +32,7 @@ impl Clone for BitNetMlxDevice {
             } else {
                 MlxDevice::cpu()
             };
-            
+
             Self {
                 inner,
                 device_info: self.device_info.clone(),
@@ -59,7 +59,7 @@ impl BitNetMlxDevice {
             initialized: false,
         }
     }
-    
+
     /// Create a new BitNet MLX device without MLX feature
     #[cfg(not(feature = "mlx"))]
     pub fn new() -> Result<Self> {
@@ -68,7 +68,7 @@ impl BitNetMlxDevice {
             initialized: false,
         })
     }
-    
+
     /// Create default BitNet MLX device
     pub fn default() -> Result<Self> {
         #[cfg(feature = "mlx")]
@@ -85,7 +85,7 @@ impl BitNetMlxDevice {
             Self::new()
         }
     }
-    
+
     /// Create a CPU-based MLX device
     pub fn cpu() -> Result<Self> {
         #[cfg(feature = "mlx")]
@@ -97,7 +97,7 @@ impl BitNetMlxDevice {
                 memory_limit: Some(16 * 1024 * 1024 * 1024), // 16GB default CPU memory
                 supports_unified_memory: false,
             };
-            
+
             Ok(Self {
                 #[cfg(feature = "mlx")]
                 inner: mlx_device,
@@ -105,7 +105,7 @@ impl BitNetMlxDevice {
                 initialized: true,
             })
         }
-        
+
         #[cfg(not(feature = "mlx"))]
         {
             Err(anyhow::anyhow!("MLX feature not enabled"))
@@ -123,7 +123,7 @@ impl BitNetMlxDevice {
                 memory_limit: Some(64 * 1024 * 1024 * 1024), // 64GB default unified memory
                 supports_unified_memory: true,
             };
-            
+
             Ok(Self {
                 #[cfg(feature = "mlx")]
                 inner: mlx_device,
@@ -131,20 +131,20 @@ impl BitNetMlxDevice {
                 initialized: true,
             })
         }
-        
+
         #[cfg(not(feature = "mlx"))]
         {
             Err(anyhow::anyhow!("MLX feature not enabled"))
         }
     }
-    
+
     /// Initialize the device
     pub fn initialize(&mut self) -> Result<()> {
         // MLX devices don't require explicit initialization
         self.initialized = true;
         Ok(())
     }
-    
+
     /// Check if the device is available
     pub fn is_available(&self) -> bool {
         #[cfg(feature = "mlx")]
@@ -156,20 +156,20 @@ impl BitNetMlxDevice {
             false
         }
     }
-    
+
     /// Get memory statistics
     pub fn get_memory_stats(&self) -> crate::memory::MemoryResult<crate::memory::MemoryMetrics> {
         // For now, return default metrics
         // In a real implementation, this would query MLX device memory
         Ok(crate::memory::MemoryMetrics::default())
     }
-    
+
     /// Cleanup device resources
     pub fn cleanup(&mut self) -> Result<()> {
         self.initialized = false;
         Ok(())
     }
-    
+
     /// Get the device type as string
     pub fn device_type(&self) -> &str {
         #[cfg(feature = "mlx")]
@@ -188,7 +188,7 @@ impl BitNetMlxDevice {
             "mock"
         }
     }
-    
+
     /// Check if this device supports unified memory
     pub fn supports_unified_memory(&self) -> bool {
         #[cfg(feature = "mlx")]
@@ -203,13 +203,13 @@ impl BitNetMlxDevice {
             false
         }
     }
-    
+
     /// Get the underlying MLX device
     #[cfg(feature = "mlx")]
     pub fn inner(&self) -> &MlxDevice {
         &self.inner
     }
-    
+
     /// Get device info
     pub fn device_info(&self) -> Option<&MlxDeviceInfo> {
         self.device_info.as_ref()
@@ -227,7 +227,7 @@ impl Default for BitNetMlxDevice {
                     inner: MlxDevice::cpu(),
                     device_info: Some(MlxDeviceInfo::cpu()),
                     initialized: false,
-                }
+                },
             }
         }
         #[cfg(not(feature = "mlx"))]
@@ -305,7 +305,7 @@ impl MlxDeviceManager {
             available_devices: Vec::new(),
             default_device: None,
         };
-        
+
         manager.discover_devices()?;
         Ok(manager)
     }
@@ -341,16 +341,16 @@ impl MlxDeviceManager {
 
     /// Get device by type
     pub fn get_device_by_type(&self, device_type: &str) -> Option<&MlxDeviceInfo> {
-        self.available_devices.iter().find(|device| {
-            device.to_bitnet_device_type() == device_type
-        })
+        self.available_devices
+            .iter()
+            .find(|device| device.to_bitnet_device_type() == device_type)
     }
 
     /// Check if GPU is available
     pub fn has_gpu(&self) -> bool {
-        self.available_devices.iter().any(|device| {
-            matches!(device.device_type, MlxDeviceType::Gpu)
-        })
+        self.available_devices
+            .iter()
+            .any(|device| matches!(device.device_type, MlxDeviceType::Gpu))
     }
 
     /// Get device capabilities for MLX device
@@ -384,7 +384,8 @@ pub fn get_mlx_device_manager() -> &'static MlxDeviceManager {
 #[cfg(feature = "mlx")]
 pub fn auto_select_mlx_device() -> Result<MlxDeviceInfo> {
     let manager = get_mlx_device_manager();
-    manager.default_device()
+    manager
+        .default_device()
         .cloned()
         .ok_or_else(|| anyhow::anyhow!("No MLX devices available"))
 }

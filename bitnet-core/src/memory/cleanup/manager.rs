@@ -4,28 +4,27 @@
 //! operations, manages strategies, and provides both automatic and manual
 //! cleanup capabilities.
 
-use std::sync::{Arc, RwLock, Mutex};
-use std::time::{Duration, Instant};
-use std::collections::HashMap;
-use std::thread;
 use candle_core::Device;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, RwLock};
+use std::thread;
+use std::time::{Duration, Instant};
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, info};
 
-use crate::memory::{HybridMemoryPool, MemoryMetrics};
-use crate::memory::tracking::{MemoryTracker, MemoryPressureLevel, DetailedMemoryMetrics};
-use super::{
-    CleanupError, CleanupResult, CleanupOperationId, CleanupOperation, GlobalCleanupStats
-};
 use super::config::{CleanupConfig, CleanupStrategyType};
-use super::strategies::{
-    CleanupStrategy, CleanupPriority,
-    IdleCleanupStrategy, PressureCleanupStrategy, PeriodicCleanupStrategy,
-    DeviceCleanupStrategy, GenerationalCleanupStrategy
-};
 use super::scheduler::CleanupScheduler;
+use super::strategies::{
+    CleanupPriority, CleanupStrategy, DeviceCleanupStrategy, GenerationalCleanupStrategy,
+    IdleCleanupStrategy, PeriodicCleanupStrategy, PressureCleanupStrategy,
+};
+use super::{
+    CleanupError, CleanupOperation, CleanupOperationId, CleanupResult, GlobalCleanupStats,
+};
+use crate::memory::tracking::{DetailedMemoryMetrics, MemoryPressureLevel, MemoryTracker};
+use crate::memory::{HybridMemoryPool, MemoryMetrics};
 
 /// Result of a cleanup operation with detailed information
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -164,12 +163,11 @@ pub struct CleanupManager {
 
 impl CleanupManager {
     /// Creates a new cleanup manager
-    pub fn new(
-        config: CleanupConfig,
-        pool: Arc<HybridMemoryPool>,
-    ) -> CleanupResult<Self> {
+    pub fn new(config: CleanupConfig, pool: Arc<HybridMemoryPool>) -> CleanupResult<Self> {
         // Validate configuration
-        config.validate().map_err(|e| CleanupError::InvalidConfiguration { reason: e })?;
+        config
+            .validate()
+            .map_err(|e| CleanupError::InvalidConfiguration { reason: e })?;
 
         #[cfg(feature = "tracing")]
         info!("Creating cleanup manager with config: {:?}", config);
@@ -179,7 +177,9 @@ impl CleanupManager {
 
         // Create scheduler if enabled
         let scheduler = if config.scheduler.enabled {
-            Some(Arc::new(Mutex::new(CleanupScheduler::new(config.scheduler.clone())?)))
+            Some(Arc::new(Mutex::new(CleanupScheduler::new(
+                config.scheduler.clone(),
+            )?)))
         } else {
             None
         };
@@ -211,9 +211,11 @@ impl CleanupManager {
 
     /// Registers default cleanup strategies based on configuration
     fn register_default_strategies(&self) -> CleanupResult<()> {
-        let mut strategies = self.strategies.write()
-            .map_err(|_| CleanupError::InternalError { 
-                reason: "Failed to acquire strategies lock".to_string() 
+        let mut strategies = self
+            .strategies
+            .write()
+            .map_err(|_| CleanupError::InternalError {
+                reason: "Failed to acquire strategies lock".to_string(),
             })?;
 
         // Register strategies based on feature flags
@@ -230,7 +232,10 @@ impl CleanupManager {
                 self.config.thresholds.pressure.light_cleanup_threshold,
                 self.config.thresholds.pressure.aggressive_cleanup_threshold,
                 self.config.thresholds.pressure.emergency_cleanup_threshold,
-                self.config.thresholds.pressure.min_pressure_cleanup_interval,
+                self.config
+                    .thresholds
+                    .pressure
+                    .min_pressure_cleanup_interval,
             );
             strategies.insert(CleanupStrategyType::Pressure, Box::new(pressure_strategy));
         }
@@ -244,7 +249,10 @@ impl CleanupManager {
         }
 
         if self.config.features.enable_device_cleanup {
-            strategies.insert(CleanupStrategyType::Device, Box::new(DeviceCleanupStrategy::cpu()));
+            strategies.insert(
+                CleanupStrategyType::Device,
+                Box::new(DeviceCleanupStrategy::cpu()),
+            );
         }
 
         if self.config.features.enable_generational_cleanup {
@@ -254,7 +262,10 @@ impl CleanupManager {
                 self.config.thresholds.age.ancient_generation_age,
                 Duration::from_secs(15),
             );
-            strategies.insert(CleanupStrategyType::Generational, Box::new(generational_strategy));
+            strategies.insert(
+                CleanupStrategyType::Generational,
+                Box::new(generational_strategy),
+            );
         }
 
         #[cfg(feature = "tracing")]
@@ -266,31 +277,33 @@ impl CleanupManager {
     /// Starts the automatic cleanup scheduler
     pub fn start_scheduler(&self) -> CleanupResult<()> {
         if !self.config.scheduler.enabled {
-            return Err(CleanupError::SchedulerError { 
-                reason: "Scheduler is disabled in configuration".to_string() 
+            return Err(CleanupError::SchedulerError {
+                reason: "Scheduler is disabled in configuration".to_string(),
             });
         }
 
         // Set running state
         {
-            let mut is_running = self.is_running.write()
-                .map_err(|_| CleanupError::InternalError { 
-                    reason: "Failed to acquire running state lock".to_string() 
-                })?;
-            
+            let mut is_running =
+                self.is_running
+                    .write()
+                    .map_err(|_| CleanupError::InternalError {
+                        reason: "Failed to acquire running state lock".to_string(),
+                    })?;
+
             if *is_running {
-                return Err(CleanupError::SchedulerError { 
-                    reason: "Scheduler is already running".to_string() 
+                return Err(CleanupError::SchedulerError {
+                    reason: "Scheduler is already running".to_string(),
                 });
             }
-            
+
             *is_running = true;
         }
 
         if let Some(ref scheduler) = self.scheduler {
             let scheduler_clone = scheduler.clone();
             let manager_weak = Arc::downgrade(&Arc::new(self.clone_for_scheduler()));
-            
+
             // Start scheduler in background thread
             thread::spawn(move || {
                 if let Ok(mut scheduler) = scheduler_clone.lock() {
@@ -309,15 +322,17 @@ impl CleanupManager {
     pub fn stop_scheduler(&self) -> CleanupResult<()> {
         // Set running state to false
         {
-            let mut is_running = self.is_running.write()
-                .map_err(|_| CleanupError::InternalError { 
-                    reason: "Failed to acquire running state lock".to_string() 
-                })?;
-            
+            let mut is_running =
+                self.is_running
+                    .write()
+                    .map_err(|_| CleanupError::InternalError {
+                        reason: "Failed to acquire running state lock".to_string(),
+                    })?;
+
             if !*is_running {
                 return Ok(()); // Already stopped
             }
-            
+
             *is_running = false;
         }
 
@@ -339,19 +354,24 @@ impl CleanupManager {
         debug!("Performing force cleanup");
 
         let metrics = self.pool.get_metrics();
-        let detailed_metrics = self.memory_tracker.as_ref()
+        let detailed_metrics = self
+            .memory_tracker
+            .as_ref()
             .map(|tracker| tracker.get_detailed_metrics());
 
         // Find the best strategy for current conditions
         let strategy_type = self.select_best_strategy(&metrics, detailed_metrics.as_ref())?;
-        
+
         self.execute_cleanup_strategy(strategy_type)
     }
 
     /// Performs cleanup on a specific device
     pub fn cleanup_device(&self, device: &Device) -> CleanupResult<CleanupOperationResult> {
         #[cfg(feature = "tracing")]
-        debug!("Performing device-specific cleanup for device: {:?}", device);
+        debug!(
+            "Performing device-specific cleanup for device: {:?}",
+            device
+        );
 
         // Use device-specific strategy
         self.execute_cleanup_strategy(CleanupStrategyType::Device)
@@ -365,8 +385,10 @@ impl CleanupManager {
         device_filter: Option<&Device>,
     ) -> CleanupResult<CleanupOperationResult> {
         #[cfg(feature = "tracing")]
-        debug!("Performing selective cleanup with filters - age: {:?}, size: {:?}, device: {:?}", 
-               min_age, min_size, device_filter);
+        debug!(
+            "Performing selective cleanup with filters - age: {:?}, size: {:?}, device: {:?}",
+            min_age, min_size, device_filter
+        );
 
         // For selective cleanup, use generational strategy if age is specified,
         // otherwise use the default strategy
@@ -382,13 +404,13 @@ impl CleanupManager {
     /// Compacts memory pools to reduce fragmentation
     pub fn compact_pools(&self) -> CleanupResult<CompactionResult> {
         let start_time = Instant::now();
-        
+
         #[cfg(feature = "tracing")]
         info!("Starting pool compaction");
 
         // Get current metrics to measure fragmentation
         let metrics_before = self.pool.get_metrics();
-        
+
         // Calculate fragmentation before (simplified calculation)
         let fragmentation_before = if metrics_before.peak_allocated > 0 {
             1.0 - (metrics_before.current_allocated as f64 / metrics_before.peak_allocated as f64)
@@ -422,9 +444,11 @@ impl CleanupManager {
         strategy_type: CleanupStrategyType,
         strategy: Box<dyn CleanupStrategy>,
     ) -> CleanupResult<()> {
-        let mut strategies = self.strategies.write()
-            .map_err(|_| CleanupError::InternalError { 
-                reason: "Failed to acquire strategies lock".to_string() 
+        let mut strategies = self
+            .strategies
+            .write()
+            .map_err(|_| CleanupError::InternalError {
+                reason: "Failed to acquire strategies lock".to_string(),
             })?;
 
         strategies.insert(strategy_type, strategy);
@@ -437,7 +461,8 @@ impl CleanupManager {
 
     /// Returns current cleanup statistics
     pub fn get_cleanup_stats(&self) -> GlobalCleanupStats {
-        self.stats.read()
+        self.stats
+            .read()
             .map(|stats| stats.clone())
             .unwrap_or_else(|_| GlobalCleanupStats::new())
     }
@@ -449,14 +474,16 @@ impl CleanupManager {
 
     /// Returns whether the scheduler is currently running
     pub fn is_scheduler_running(&self) -> bool {
-        self.is_running.read()
+        self.is_running
+            .read()
             .map(|running| *running)
             .unwrap_or(false)
     }
 
     /// Returns the operation history
     pub fn get_operation_history(&self) -> Vec<CleanupOperation> {
-        self.operation_history.read()
+        self.operation_history
+            .read()
             .map(|history| history.clone())
             .unwrap_or_else(|_| Vec::new())
     }
@@ -469,9 +496,11 @@ impl CleanupManager {
         metrics: &MemoryMetrics,
         detailed_metrics: Option<&DetailedMemoryMetrics>,
     ) -> CleanupResult<CleanupStrategyType> {
-        let strategies = self.strategies.read()
-            .map_err(|_| CleanupError::InternalError { 
-                reason: "Failed to acquire strategies lock".to_string() 
+        let strategies = self
+            .strategies
+            .read()
+            .map_err(|_| CleanupError::InternalError {
+                reason: "Failed to acquire strategies lock".to_string(),
             })?;
 
         // Check for emergency conditions first
@@ -497,13 +526,16 @@ impl CleanupManager {
             }
         }
 
-        best_strategy.ok_or_else(|| CleanupError::OperationFailed { 
-            reason: "No suitable cleanup strategy found".to_string() 
+        best_strategy.ok_or_else(|| CleanupError::OperationFailed {
+            reason: "No suitable cleanup strategy found".to_string(),
         })
     }
 
     /// Executes a specific cleanup strategy
-    fn execute_cleanup_strategy(&self, strategy_type: CleanupStrategyType) -> CleanupResult<CleanupOperationResult> {
+    fn execute_cleanup_strategy(
+        &self,
+        strategy_type: CleanupStrategyType,
+    ) -> CleanupResult<CleanupOperationResult> {
         let operation_id = self.generate_operation_id()?;
         let start_time = Instant::now();
 
@@ -516,25 +548,31 @@ impl CleanupManager {
 
         // Add to active operations
         {
-            let mut active_ops = self.active_operations.write()
-                .map_err(|_| CleanupError::InternalError { 
-                    reason: "Failed to acquire active operations lock".to_string() 
-                })?;
+            let mut active_ops =
+                self.active_operations
+                    .write()
+                    .map_err(|_| CleanupError::InternalError {
+                        reason: "Failed to acquire active operations lock".to_string(),
+                    })?;
             active_ops.insert(operation_id, operation.clone());
         }
 
         // Execute the strategy
         let result = {
-            let strategies = self.strategies.read()
-                .map_err(|_| CleanupError::InternalError { 
-                    reason: "Failed to acquire strategies lock".to_string() 
+            let strategies = self
+                .strategies
+                .read()
+                .map_err(|_| CleanupError::InternalError {
+                    reason: "Failed to acquire strategies lock".to_string(),
                 })?;
 
-            let strategy = strategies.get(&strategy_type)
-                .ok_or_else(|| CleanupError::StrategyFailed { 
-                    strategy: format!("{:?}", strategy_type),
-                    reason: "Strategy not found".to_string() 
-                })?;
+            let strategy =
+                strategies
+                    .get(&strategy_type)
+                    .ok_or_else(|| CleanupError::StrategyFailed {
+                        strategy: format!("{:?}", strategy_type),
+                        reason: "Strategy not found".to_string(),
+                    })?;
 
             strategy.cleanup(&self.pool, &self.config)
         };
@@ -562,7 +600,8 @@ impl CleanupManager {
             }
             Err(e) => {
                 operation.complete_failure(e.to_string(), duration);
-                let cleanup_result = CleanupOperationResult::failure(e.to_string(), duration, strategy_type);
+                let cleanup_result =
+                    CleanupOperationResult::failure(e.to_string(), duration, strategy_type);
                 self.record_operation_completion(operation_id, operation)?;
                 Ok(cleanup_result)
             }
@@ -571,11 +610,13 @@ impl CleanupManager {
 
     /// Generates a unique operation ID
     fn generate_operation_id(&self) -> CleanupResult<CleanupOperationId> {
-        let mut counter = self.next_operation_id.lock()
-            .map_err(|_| CleanupError::InternalError { 
-                reason: "Failed to acquire operation ID counter lock".to_string() 
-            })?;
-        
+        let mut counter =
+            self.next_operation_id
+                .lock()
+                .map_err(|_| CleanupError::InternalError {
+                    reason: "Failed to acquire operation ID counter lock".to_string(),
+                })?;
+
         let id = *counter;
         *counter += 1;
         Ok(CleanupOperationId::new(id))
@@ -589,22 +630,26 @@ impl CleanupManager {
     ) -> CleanupResult<()> {
         // Remove from active operations
         {
-            let mut active_ops = self.active_operations.write()
-                .map_err(|_| CleanupError::InternalError { 
-                    reason: "Failed to acquire active operations lock".to_string() 
-                })?;
+            let mut active_ops =
+                self.active_operations
+                    .write()
+                    .map_err(|_| CleanupError::InternalError {
+                        reason: "Failed to acquire active operations lock".to_string(),
+                    })?;
             active_ops.remove(&operation_id);
         }
 
         // Add to history (with size limit)
         {
-            let mut history = self.operation_history.write()
-                .map_err(|_| CleanupError::InternalError { 
-                    reason: "Failed to acquire operation history lock".to_string() 
-                })?;
-            
+            let mut history =
+                self.operation_history
+                    .write()
+                    .map_err(|_| CleanupError::InternalError {
+                        reason: "Failed to acquire operation history lock".to_string(),
+                    })?;
+
             history.push(operation.clone());
-            
+
             // Keep only last 1000 operations
             if history.len() > 1000 {
                 history.remove(0);
@@ -613,9 +658,11 @@ impl CleanupManager {
 
         // Update global statistics
         {
-            let mut stats = self.stats.write()
-                .map_err(|_| CleanupError::InternalError { 
-                    reason: "Failed to acquire stats lock".to_string() 
+            let mut stats = self
+                .stats
+                .write()
+                .map_err(|_| CleanupError::InternalError {
+                    reason: "Failed to acquire stats lock".to_string(),
                 })?;
             stats.record_operation(&operation);
         }
@@ -653,11 +700,13 @@ impl SchedulerCleanupManager {
     /// Executes automatic cleanup (called by scheduler)
     pub fn execute_automatic_cleanup(&self) -> CleanupResult<()> {
         let metrics = self.pool.get_metrics();
-        
+
         // Simple automatic cleanup logic
-        let strategies = self.strategies.read()
-            .map_err(|_| CleanupError::InternalError { 
-                reason: "Failed to acquire strategies lock".to_string() 
+        let strategies = self
+            .strategies
+            .read()
+            .map_err(|_| CleanupError::InternalError {
+                reason: "Failed to acquire strategies lock".to_string(),
             })?;
 
         for (_strategy_type, strategy) in strategies.iter() {
@@ -680,23 +729,32 @@ mod tests {
     fn test_cleanup_manager_creation() {
         let pool = Arc::new(HybridMemoryPool::new().unwrap());
         let config = CleanupConfig::default();
-        
+
         let manager = CleanupManager::new(config, pool).unwrap();
         assert!(!manager.is_scheduler_running());
-        
+
         let stats = manager.get_cleanup_stats();
         assert_eq!(stats.total_operations, 0);
     }
 
     #[test]
     fn test_cleanup_result() {
-        let result = CleanupOperationResult::success(1024, 5, Duration::from_millis(100), CleanupStrategyType::Idle);
+        let result = CleanupOperationResult::success(
+            1024,
+            5,
+            Duration::from_millis(100),
+            CleanupStrategyType::Idle,
+        );
         assert!(result.success);
         assert_eq!(result.bytes_freed, 1024);
         assert_eq!(result.allocations_cleaned, 5);
         assert_eq!(result.strategy_used, CleanupStrategyType::Idle);
 
-        let result = CleanupOperationResult::failure("test error".to_string(), Duration::from_millis(50), CleanupStrategyType::Pressure);
+        let result = CleanupOperationResult::failure(
+            "test error".to_string(),
+            Duration::from_millis(50),
+            CleanupStrategyType::Pressure,
+        );
         assert!(!result.success);
         assert_eq!(result.error_message, Some("test error".to_string()));
         assert_eq!(result.strategy_used, CleanupStrategyType::Pressure);

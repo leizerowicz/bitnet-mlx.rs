@@ -95,12 +95,19 @@ impl DeviceComparisonResult {
 impl fmt::Display for DeviceComparisonResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.equal {
-            write!(f, "Devices are equal: {:?} == {:?}", 
-                   self.details.device1_type, self.details.device2_type)
+            write!(
+                f,
+                "Devices are equal: {:?} == {:?}",
+                self.details.device1_type, self.details.device2_type
+            )
         } else {
-            write!(f, "Devices are not equal: {:?} != {:?} ({})", 
-                   self.details.device1_type, self.details.device2_type,
-                   self.details.metadata.capability_match.description())
+            write!(
+                f,
+                "Devices are not equal: {:?} != {:?} ({})",
+                self.details.device1_type,
+                self.details.device2_type,
+                self.details.metadata.capability_match.description()
+            )
         }
     }
 }
@@ -121,16 +128,16 @@ impl CapabilityMatch {
 pub fn compare_devices(device1: &Device, device2: &Device) -> DeviceComparisonResult {
     let device1_type = classify_device(device1);
     let device2_type = classify_device(device2);
-    
+
     let equal = device_types_equal(&device1_type, &device2_type);
     let metadata = analyze_device_compatibility(&device1_type, &device2_type);
-    
+
     let details = DeviceComparisonDetails {
         device1_type,
         device2_type,
         metadata,
     };
-    
+
     if equal {
         DeviceComparisonResult::equal(details)
     } else {
@@ -148,10 +155,11 @@ pub fn devices_equal(device1: &Device, device2: &Device) -> bool {
 /// Checks if devices are compatible for operations
 pub fn devices_compatible(device1: &Device, device2: &Device) -> bool {
     let comparison = compare_devices(device1, device2);
-    comparison.equal || matches!(
-        comparison.details.metadata.capability_match,
-        CapabilityMatch::Compatible
-    )
+    comparison.equal
+        || matches!(
+            comparison.details.metadata.capability_match,
+            CapabilityMatch::Compatible
+        )
 }
 
 /// Classifies a device into our comparison type system
@@ -196,7 +204,10 @@ fn device_types_equal(type1: &DeviceType, type2: &DeviceType) -> bool {
 }
 
 /// Analyzes compatibility between device types
-fn analyze_device_compatibility(type1: &DeviceType, type2: &DeviceType) -> DeviceComparisonMetadata {
+fn analyze_device_compatibility(
+    type1: &DeviceType,
+    type2: &DeviceType,
+) -> DeviceComparisonMetadata {
     let same_hardware = match (type1, type2) {
         (DeviceType::Cpu, DeviceType::Cpu) => true,
         (DeviceType::Metal { device_id: id1 }, DeviceType::Metal { device_id: id2 }) => {
@@ -217,7 +228,8 @@ fn analyze_device_compatibility(type1: &DeviceType, type2: &DeviceType) -> Devic
     let unified_memory_compatible = match (type1, type2) {
         (DeviceType::Cpu, DeviceType::Cpu) => true,
         (DeviceType::Metal { .. }, DeviceType::Metal { .. }) => true, // Apple Silicon unified memory
-        (DeviceType::Cpu, DeviceType::Metal { .. }) | (DeviceType::Metal { .. }, DeviceType::Cpu) => true,
+        (DeviceType::Cpu, DeviceType::Metal { .. })
+        | (DeviceType::Metal { .. }, DeviceType::Cpu) => true,
         _ => false,
     };
 
@@ -225,9 +237,8 @@ fn analyze_device_compatibility(type1: &DeviceType, type2: &DeviceType) -> Devic
         CapabilityMatch::Identical
     } else {
         match (type1, type2) {
-            (DeviceType::Cpu, DeviceType::Metal { .. }) | (DeviceType::Metal { .. }, DeviceType::Cpu) => {
-                CapabilityMatch::Compatible
-            }
+            (DeviceType::Cpu, DeviceType::Metal { .. })
+            | (DeviceType::Metal { .. }, DeviceType::Cpu) => CapabilityMatch::Compatible,
             (DeviceType::Metal { .. }, DeviceType::Metal { .. }) => CapabilityMatch::Compatible,
             (DeviceType::Cuda { .. }, DeviceType::Cuda { .. }) => CapabilityMatch::Compatible,
             _ => CapabilityMatch::Incompatible,
@@ -271,7 +282,10 @@ pub fn assert_devices_equal(device1: &Device, device2: &Device) {
 pub fn assert_devices_not_equal(device1: &Device, device2: &Device) {
     let comparison = compare_devices(device1, device2);
     if comparison.equal {
-        panic!("Device assertion failed: expected devices to be different, but they are equal: {}", comparison);
+        panic!(
+            "Device assertion failed: expected devices to be different, but they are equal: {}",
+            comparison
+        );
     }
 }
 
@@ -286,27 +300,30 @@ pub fn assert_devices_compatible(device1: &Device, device2: &Device) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::{get_cpu_device, auto_select_device};
+    use crate::device::{auto_select_device, get_cpu_device};
 
     #[test]
     fn test_cpu_device_equality() {
         let cpu1 = get_cpu_device();
         let cpu2 = get_cpu_device();
-        
+
         let comparison = compare_devices(&cpu1, &cpu2);
         assert!(comparison.equal);
         assert!(matches!(comparison.details.device1_type, DeviceType::Cpu));
         assert!(matches!(comparison.details.device2_type, DeviceType::Cpu));
         assert!(comparison.details.metadata.same_hardware);
         assert!(comparison.details.metadata.unified_memory_compatible);
-        assert!(matches!(comparison.details.metadata.capability_match, CapabilityMatch::Identical));
+        assert!(matches!(
+            comparison.details.metadata.capability_match,
+            CapabilityMatch::Identical
+        ));
     }
 
     #[test]
     fn test_device_equality_helper() {
         let cpu1 = get_cpu_device();
         let cpu2 = get_cpu_device();
-        
+
         assert!(devices_equal(&cpu1, &cpu2));
     }
 
@@ -314,7 +331,7 @@ mod tests {
     fn test_device_compatibility_helper() {
         let cpu = get_cpu_device();
         let auto_device = auto_select_device();
-        
+
         // CPU should be compatible with any device
         assert!(devices_compatible(&cpu, &auto_device));
     }
@@ -323,7 +340,7 @@ mod tests {
     fn test_assertion_helpers() {
         let cpu1 = get_cpu_device();
         let cpu2 = get_cpu_device();
-        
+
         // This should not panic
         assert_devices_equal(&cpu1, &cpu2);
         assert_devices_compatible(&cpu1, &cpu2);
@@ -333,7 +350,7 @@ mod tests {
     fn test_device_type_classification() {
         let cpu = get_cpu_device();
         let cpu_type = classify_device(&cpu);
-        
+
         assert!(matches!(cpu_type, DeviceType::Cpu));
     }
 
@@ -341,33 +358,51 @@ mod tests {
     fn test_comparison_result_display() {
         let cpu1 = get_cpu_device();
         let cpu2 = get_cpu_device();
-        
+
         let comparison = compare_devices(&cpu1, &cpu2);
         let display_str = format!("{}", comparison);
-        
+
         assert!(display_str.contains("Devices are equal"));
         assert!(display_str.contains("Cpu"));
     }
 
     #[test]
     fn test_capability_match_description() {
-        assert_eq!(CapabilityMatch::Identical.description(), "identical capabilities");
-        assert_eq!(CapabilityMatch::Compatible.description(), "compatible capabilities");
-        assert_eq!(CapabilityMatch::Incompatible.description(), "incompatible capabilities");
-        assert_eq!(CapabilityMatch::Unknown.description(), "unknown capability compatibility");
+        assert_eq!(
+            CapabilityMatch::Identical.description(),
+            "identical capabilities"
+        );
+        assert_eq!(
+            CapabilityMatch::Compatible.description(),
+            "compatible capabilities"
+        );
+        assert_eq!(
+            CapabilityMatch::Incompatible.description(),
+            "incompatible capabilities"
+        );
+        assert_eq!(
+            CapabilityMatch::Unknown.description(),
+            "unknown capability compatibility"
+        );
     }
 
     #[cfg(feature = "metal")]
     #[test]
     fn test_metal_device_comparison() {
         use crate::device::get_metal_device;
-        
+
         if let Ok(metal1) = get_metal_device() {
             if let Ok(metal2) = get_metal_device() {
                 let comparison = compare_devices(&metal1, &metal2);
                 assert!(comparison.equal);
-                assert!(matches!(comparison.details.device1_type, DeviceType::Metal { .. }));
-                assert!(matches!(comparison.details.device2_type, DeviceType::Metal { .. }));
+                assert!(matches!(
+                    comparison.details.device1_type,
+                    DeviceType::Metal { .. }
+                ));
+                assert!(matches!(
+                    comparison.details.device2_type,
+                    DeviceType::Metal { .. }
+                ));
             }
         }
     }
@@ -376,23 +411,32 @@ mod tests {
     fn test_cross_device_type_comparison() {
         let cpu = get_cpu_device();
         let auto_device = auto_select_device();
-        
+
         let comparison = compare_devices(&cpu, &auto_device);
-        
+
         // The result depends on what auto_select_device returns
         match auto_device {
             Device::Cpu => {
                 assert!(comparison.equal);
-                assert!(matches!(comparison.details.metadata.capability_match, CapabilityMatch::Identical));
+                assert!(matches!(
+                    comparison.details.metadata.capability_match,
+                    CapabilityMatch::Identical
+                ));
             }
             Device::Metal(_) => {
                 assert!(!comparison.equal);
-                assert!(matches!(comparison.details.metadata.capability_match, CapabilityMatch::Compatible));
+                assert!(matches!(
+                    comparison.details.metadata.capability_match,
+                    CapabilityMatch::Compatible
+                ));
                 assert!(comparison.details.metadata.unified_memory_compatible);
             }
             Device::Cuda(_) => {
                 assert!(!comparison.equal);
-                assert!(matches!(comparison.details.metadata.capability_match, CapabilityMatch::Incompatible));
+                assert!(matches!(
+                    comparison.details.metadata.capability_match,
+                    CapabilityMatch::Incompatible
+                ));
                 assert!(!comparison.details.metadata.unified_memory_compatible);
             }
         }

@@ -5,7 +5,7 @@
 
 use crate::quantization::{QuantizationResult, TernaryMethod, create_ternary_quantizer};
 use crate::tests::helpers::{
-    TestPattern, generate_test_tensor, validate_ternary_values, 
+    TestPattern, generate_test_tensor, validate_ternary_values,
     create_test_device
 };
 use candle_core::{Device, Tensor, DType};
@@ -31,7 +31,7 @@ impl EdgeCaseResults {
 /// Run comprehensive edge case tests
 pub fn run_edge_case_tests(device: &Device) -> QuantizationResult<EdgeCaseResults> {
     let mut results = EdgeCaseResults::default();
-    
+
     // Test all edge cases
     let edge_case_tests = vec![
         ("All zeros", test_all_zeros),
@@ -49,7 +49,7 @@ pub fn run_edge_case_tests(device: &Device) -> QuantizationResult<EdgeCaseResult
 
     for (test_name, test_fn) in edge_case_tests {
         results.total_tests += 1;
-        
+
         match test_fn(device) {
             Ok(passed) => {
                 results.edge_case_performance.insert(test_name.to_string(), passed);
@@ -71,7 +71,7 @@ pub fn run_edge_case_tests(device: &Device) -> QuantizationResult<EdgeCaseResult
     }
 
     results.robustness_score = results.success_rate();
-    
+
     Ok(results)
 }
 
@@ -98,8 +98,8 @@ fn test_single_nonzero(device: &Device) -> QuantizationResult<bool> {
 fn test_extreme_large_values(device: &Device) -> QuantizationResult<bool> {
     let data = vec![1e6f32; 32];
     let tensor = Tensor::from_vec(data, (32,), device)
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to create tensor: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to create tensor: {}", e)
         })?;
     test_quantization_robustness(&tensor, TernaryMethod::AdaptiveThreshold)
 }
@@ -107,8 +107,8 @@ fn test_extreme_large_values(device: &Device) -> QuantizationResult<bool> {
 fn test_extreme_small_values(device: &Device) -> QuantizationResult<bool> {
     let data = vec![1e-6f32; 32];
     let tensor = Tensor::from_vec(data, (32,), device)
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to create tensor: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to create tensor: {}", e)
         })?;
     test_quantization_robustness(&tensor, TernaryMethod::AdaptiveThreshold)
 }
@@ -117,8 +117,8 @@ fn test_mixed_extreme_values(device: &Device) -> QuantizationResult<bool> {
     let mut data = vec![1e6f32; 16];
     data.extend(vec![-1e6f32; 16]);
     let tensor = Tensor::from_vec(data, (32,), device)
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to create tensor: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to create tensor: {}", e)
         })?;
     test_quantization_robustness(&tensor, TernaryMethod::OptimalThreshold)
 }
@@ -128,8 +128,8 @@ fn test_very_sparse(device: &Device) -> QuantizationResult<bool> {
     data[0] = 1.0;
     data[999] = -1.0;
     let tensor = Tensor::from_vec(data, (1000,), device)
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to create tensor: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to create tensor: {}", e)
         })?;
     test_quantization_robustness(&tensor, TernaryMethod::MedianThreshold)
 }
@@ -137,8 +137,8 @@ fn test_very_sparse(device: &Device) -> QuantizationResult<bool> {
 fn test_constant_values(device: &Device) -> QuantizationResult<bool> {
     let data = vec![0.5f32; 64];
     let tensor = Tensor::from_vec(data, (64,), device)
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to create tensor: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to create tensor: {}", e)
         })?;
     test_quantization_robustness(&tensor, TernaryMethod::MeanThreshold)
 }
@@ -148,22 +148,22 @@ fn test_nan_handling(device: &Device) -> QuantizationResult<bool> {
     let mut data = vec![1.0f32; 32];
     data[15] = f32::NAN;
     let tensor = Tensor::from_vec(data, (32,), device)
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to create tensor: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to create tensor: {}", e)
         })?;
-    
+
     // Test should handle NaN gracefully (either reject or handle safely)
     let quantizer = create_ternary_quantizer(TernaryMethod::MeanThreshold, Some(0.7))?;
     match quantizer.quantize(&tensor) {
         Ok(result) => {
             // If quantization succeeds, result should not contain NaN
             let values = result.values.flatten_all()
-                .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-                    reason: format!("Failed to flatten: {}", e) 
+                .map_err(|e| crate::quantization::QuantizationError::TensorError {
+                    reason: format!("Failed to flatten: {}", e)
                 })?
                 .to_vec1::<f32>()
-                .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-                    reason: format!("Failed to convert: {}", e) 
+                .map_err(|e| crate::quantization::QuantizationError::TensorError {
+                    reason: format!("Failed to convert: {}", e)
                 })?;
             Ok(!values.iter().any(|x| x.is_nan()))
         }
@@ -177,22 +177,22 @@ fn test_infinity_handling(device: &Device) -> QuantizationResult<bool> {
     data[15] = f32::INFINITY;
     data[16] = f32::NEG_INFINITY;
     let tensor = Tensor::from_vec(data, (32,), device)
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to create tensor: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to create tensor: {}", e)
         })?;
-    
+
     // Test should handle infinity gracefully
     let quantizer = create_ternary_quantizer(TernaryMethod::AdaptiveThreshold, Some(0.7))?;
     match quantizer.quantize(&tensor) {
         Ok(result) => {
             // If quantization succeeds, result should be finite
             let values = result.values.flatten_all()
-                .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-                    reason: format!("Failed to flatten: {}", e) 
+                .map_err(|e| crate::quantization::QuantizationError::TensorError {
+                    reason: format!("Failed to flatten: {}", e)
                 })?
                 .to_vec1::<f32>()
-                .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-                    reason: format!("Failed to convert: {}", e) 
+                .map_err(|e| crate::quantization::QuantizationError::TensorError {
+                    reason: format!("Failed to convert: {}", e)
                 })?;
             Ok(values.iter().all(|x| x.is_finite()))
         }
@@ -202,12 +202,12 @@ fn test_infinity_handling(device: &Device) -> QuantizationResult<bool> {
 
 fn test_quantization_robustness(tensor: &Tensor, method: TernaryMethod) -> QuantizationResult<bool> {
     let quantizer = create_ternary_quantizer(method, Some(0.7))?;
-    
+
     match quantizer.quantize(tensor) {
         Ok(quantized) => {
             // Validate that result is properly formed
             let validation = validate_ternary_values(&quantized.values)?;
-            Ok(validation.is_strictly_ternary && 
+            Ok(validation.is_strictly_ternary &&
                quantized.stats.scale_factor.is_finite() &&
                quantized.stats.scale_factor > 0.0)
         }
@@ -227,7 +227,7 @@ mod tests {
     fn test_edge_cases_comprehensive() {
         let device = create_test_device();
         let results = run_edge_case_tests(&device).unwrap();
-        
+
         assert!(results.total_tests > 0);
         assert!(results.robustness_score >= 0.0 && results.robustness_score <= 1.0);
         // Should handle most edge cases gracefully
@@ -237,7 +237,7 @@ mod tests {
     #[test]
     fn test_specific_edge_cases() {
         let device = create_test_device();
-        
+
         // Test individual edge cases
         assert!(test_all_zeros(&device).unwrap());
         assert!(test_all_ones(&device).unwrap());

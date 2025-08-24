@@ -92,7 +92,7 @@ impl PrecisionConverter {
         target_precision: BitNetDType,
     ) -> MixedPrecisionResult<BitNetTensor> {
         let start_time = std::time::Instant::now();
-        
+
         // Check if conversion is needed
         if tensor.dtype() == target_precision {
             return Ok(tensor.clone());
@@ -105,8 +105,12 @@ impl PrecisionConverter {
         let converted_tensor = match self.config.strategy {
             ConversionStrategy::Direct => self.convert_direct(tensor, target_precision)?,
             ConversionStrategy::Scaled => self.convert_scaled(tensor, target_precision)?,
-            ConversionStrategy::QuantizationAware => self.convert_quantization_aware(tensor, target_precision)?,
-            ConversionStrategy::StochasticRounding => self.convert_stochastic(tensor, target_precision)?,
+            ConversionStrategy::QuantizationAware => {
+                self.convert_quantization_aware(tensor, target_precision)?
+            }
+            ConversionStrategy::StochasticRounding => {
+                self.convert_stochastic(tensor, target_precision)?
+            }
             ConversionStrategy::Custom => self.convert_custom(tensor, target_precision)?,
         };
 
@@ -136,23 +140,26 @@ impl PrecisionConverter {
     ) -> MixedPrecisionResult<BitNetTensor> {
         let device = tensor.device();
         let shape = tensor.shape();
-        
+
         // Convert to candle tensor for processing
-        let candle_tensor = tensor.to_candle()
-            .map_err(|e| MixedPrecisionError::ConversionError {
-                from: tensor.dtype(),
-                to: target_precision,
-                reason: format!("Failed to convert to candle tensor: {}", e),
-            })?;
+        let candle_tensor =
+            tensor
+                .to_candle()
+                .map_err(|e| MixedPrecisionError::ConversionError {
+                    from: tensor.dtype(),
+                    to: target_precision,
+                    reason: format!("Failed to convert to candle tensor: {}", e),
+                })?;
 
         // Convert to target candle dtype
         let target_candle_dtype = target_precision.to_candle_dtype();
-        let converted_candle = candle_tensor.to_dtype(target_candle_dtype)
-            .map_err(|e| MixedPrecisionError::ConversionError {
+        let converted_candle = candle_tensor.to_dtype(target_candle_dtype).map_err(|e| {
+            MixedPrecisionError::ConversionError {
                 from: tensor.dtype(),
                 to: target_precision,
                 reason: format!("Failed to convert dtype: {}", e),
-            })?;
+            }
+        })?;
 
         // Create new BitNet tensor
         let converted_tensor = BitNetTensor::from_candle(converted_candle, &self.memory_pool)
@@ -173,21 +180,24 @@ impl PrecisionConverter {
     ) -> MixedPrecisionResult<BitNetTensor> {
         let device = tensor.device();
         let shape = tensor.shape();
-        
+
         // Get tensor data as candle tensor
-        let candle_tensor = tensor.to_candle()
-            .map_err(|e| MixedPrecisionError::ConversionError {
-                from: tensor.dtype(),
-                to: target_precision,
-                reason: format!("Failed to convert to candle tensor: {}", e),
-            })?;
+        let candle_tensor =
+            tensor
+                .to_candle()
+                .map_err(|e| MixedPrecisionError::ConversionError {
+                    from: tensor.dtype(),
+                    to: target_precision,
+                    reason: format!("Failed to convert to candle tensor: {}", e),
+                })?;
 
         // Calculate optimal scaling factor
         let scale_factor = self.calculate_scale_factor(&candle_tensor, target_precision)?;
 
         // Apply scaling before conversion
         let scaled_tensor = if scale_factor != 1.0 {
-            candle_tensor.mul(&Tensor::new(scale_factor, &device)?)
+            candle_tensor
+                .mul(&Tensor::new(scale_factor, &device)?)
                 .map_err(|e| MixedPrecisionError::ConversionError {
                     from: tensor.dtype(),
                     to: target_precision,
@@ -199,12 +209,13 @@ impl PrecisionConverter {
 
         // Convert to target precision
         let target_candle_dtype = target_precision.to_candle_dtype();
-        let converted_candle = scaled_tensor.to_dtype(target_candle_dtype)
-            .map_err(|e| MixedPrecisionError::ConversionError {
+        let converted_candle = scaled_tensor.to_dtype(target_candle_dtype).map_err(|e| {
+            MixedPrecisionError::ConversionError {
                 from: tensor.dtype(),
                 to: target_precision,
                 reason: format!("Failed to convert dtype: {}", e),
-            })?;
+            }
+        })?;
 
         // Create new BitNet tensor
         let converted_tensor = BitNetTensor::from_candle(converted_candle, &self.memory_pool)
@@ -216,8 +227,11 @@ impl PrecisionConverter {
 
         // Store scale factor in metadata if needed
         if self.config.preserve_metadata && scale_factor != 1.0 {
-            converted_tensor.set_name(Some(format!("scaled_{}_{}", 
-                tensor.name().unwrap_or_default(), scale_factor)));
+            converted_tensor.set_name(Some(format!(
+                "scaled_{}_{}",
+                tensor.name().unwrap_or_default(),
+                scale_factor
+            )));
         }
 
         Ok(converted_tensor)
@@ -244,26 +258,29 @@ impl PrecisionConverter {
         target_precision: BitNetDType,
     ) -> MixedPrecisionResult<BitNetTensor> {
         let device = tensor.device();
-        
+
         // Get tensor data
-        let candle_tensor = tensor.to_candle()
-            .map_err(|e| MixedPrecisionError::ConversionError {
-                from: tensor.dtype(),
-                to: target_precision,
-                reason: format!("Failed to convert to candle tensor: {}", e),
-            })?;
+        let candle_tensor =
+            tensor
+                .to_candle()
+                .map_err(|e| MixedPrecisionError::ConversionError {
+                    from: tensor.dtype(),
+                    to: target_precision,
+                    reason: format!("Failed to convert to candle tensor: {}", e),
+                })?;
 
         // Apply stochastic rounding
         let rounded_tensor = self.apply_stochastic_rounding(&candle_tensor, target_precision)?;
 
         // Convert to target precision
         let target_candle_dtype = target_precision.to_candle_dtype();
-        let converted_candle = rounded_tensor.to_dtype(target_candle_dtype)
-            .map_err(|e| MixedPrecisionError::ConversionError {
+        let converted_candle = rounded_tensor.to_dtype(target_candle_dtype).map_err(|e| {
+            MixedPrecisionError::ConversionError {
                 from: tensor.dtype(),
                 to: target_precision,
                 reason: format!("Failed to convert dtype: {}", e),
-            })?;
+            }
+        })?;
 
         // Create new BitNet tensor
         let converted_tensor = BitNetTensor::from_candle(converted_candle, &self.memory_pool)
@@ -283,16 +300,28 @@ impl PrecisionConverter {
         target_precision: BitNetDType,
     ) -> MixedPrecisionResult<BitNetTensor> {
         // Custom conversion based on parameters
-        let custom_scale = self.config.custom_params.get("scale").copied().unwrap_or(1.0);
-        let custom_offset = self.config.custom_params.get("offset").copied().unwrap_or(0.0);
+        let custom_scale = self
+            .config
+            .custom_params
+            .get("scale")
+            .copied()
+            .unwrap_or(1.0);
+        let custom_offset = self
+            .config
+            .custom_params
+            .get("offset")
+            .copied()
+            .unwrap_or(0.0);
 
         let device = tensor.device();
-        let candle_tensor = tensor.to_candle()
-            .map_err(|e| MixedPrecisionError::ConversionError {
-                from: tensor.dtype(),
-                to: target_precision,
-                reason: format!("Failed to convert to candle tensor: {}", e),
-            })?;
+        let candle_tensor =
+            tensor
+                .to_candle()
+                .map_err(|e| MixedPrecisionError::ConversionError {
+                    from: tensor.dtype(),
+                    to: target_precision,
+                    reason: format!("Failed to convert to candle tensor: {}", e),
+                })?;
 
         // Apply custom transformation
         let transformed_tensor = if custom_scale != 1.0 || custom_offset != 0.0 {
@@ -305,7 +334,8 @@ impl PrecisionConverter {
 
         // Convert to target precision
         let target_candle_dtype = target_precision.to_candle_dtype();
-        let converted_candle = transformed_tensor.to_dtype(target_candle_dtype)
+        let converted_candle = transformed_tensor
+            .to_dtype(target_candle_dtype)
             .map_err(|e| MixedPrecisionError::ConversionError {
                 from: tensor.dtype(),
                 to: target_precision,
@@ -354,19 +384,22 @@ impl PrecisionConverter {
     fn convert_to_ternary(&self, tensor: &BitNetTensor) -> MixedPrecisionResult<BitNetTensor> {
         let device = tensor.device();
         let shape = tensor.shape();
-        
-        let candle_tensor = tensor.to_candle()
-            .map_err(|e| MixedPrecisionError::ConversionError {
-                from: tensor.dtype(),
-                to: BitNetDType::BitNet158,
-                reason: format!("Failed to convert to candle tensor: {}", e),
-            })?;
+
+        let candle_tensor =
+            tensor
+                .to_candle()
+                .map_err(|e| MixedPrecisionError::ConversionError {
+                    from: tensor.dtype(),
+                    to: BitNetDType::BitNet158,
+                    reason: format!("Failed to convert to candle tensor: {}", e),
+                })?;
 
         // Apply ternary quantization: values -> {-1, 0, +1}
         let abs_tensor = candle_tensor.abs()?;
         let threshold = abs_tensor.mean_all()?.to_scalar::<f32>()? * 0.7; // BitNet threshold
-        
-        let threshold_tensor = Tensor::new(threshold, &device)?.broadcast_as(candle_tensor.shape())?;
+
+        let threshold_tensor =
+            Tensor::new(threshold, &device)?.broadcast_as(candle_tensor.shape())?;
         let mask = abs_tensor.gt(&threshold_tensor)?;
         let signs = candle_tensor.sign()?;
         let ternary_tensor = signs.mul(&mask.to_dtype(candle_tensor.dtype())?)?;
@@ -389,44 +422,51 @@ impl PrecisionConverter {
         target_precision: BitNetDType,
     ) -> MixedPrecisionResult<BitNetTensor> {
         let device = tensor.device();
-        
-        let candle_tensor = tensor.to_candle()
-            .map_err(|e| MixedPrecisionError::ConversionError {
-                from: tensor.dtype(),
-                to: target_precision,
-                reason: format!("Failed to convert to candle tensor: {}", e),
-            })?;
+
+        let candle_tensor =
+            tensor
+                .to_candle()
+                .map_err(|e| MixedPrecisionError::ConversionError {
+                    from: tensor.dtype(),
+                    to: target_precision,
+                    reason: format!("Failed to convert to candle tensor: {}", e),
+                })?;
 
         // Get quantization range for target precision
-        let (min_val, max_val) = target_precision.value_range()
-            .ok_or_else(|| MixedPrecisionError::ConversionError {
-                from: tensor.dtype(),
-                to: target_precision,
-                reason: "Target precision does not have a defined range".to_string(),
-            })?;
+        let (min_val, max_val) =
+            target_precision
+                .value_range()
+                .ok_or_else(|| MixedPrecisionError::ConversionError {
+                    from: tensor.dtype(),
+                    to: target_precision,
+                    reason: "Target precision does not have a defined range".to_string(),
+                })?;
 
         // Calculate scale and zero point
         let tensor_min = candle_tensor.min_all()?.to_scalar::<f32>()?;
         let tensor_max = candle_tensor.max_all()?.to_scalar::<f32>()?;
-        
+
         let scale = (tensor_max - tensor_min) / (max_val as f32 - min_val as f32);
         let zero_point = min_val as f32 - tensor_min / scale;
 
         // Apply quantization
         let scale_tensor = Tensor::new(1.0 / scale, &device)?;
         let zero_point_tensor = Tensor::new(zero_point, &device)?;
-        
-        let quantized = candle_tensor.mul(&scale_tensor)?
+
+        let quantized = candle_tensor
+            .mul(&scale_tensor)?
             .add(&zero_point_tensor)?
             .round()?
             .clamp(min_val as f32, max_val as f32)?;
 
         // Create new BitNet tensor
-        let converted_tensor = BitNetTensor::from_candle(quantized, &self.memory_pool)
-            .map_err(|e| MixedPrecisionError::ConversionError {
-                from: tensor.dtype(),
-                to: target_precision,
-                reason: format!("Failed to create BitNet tensor: {}", e),
+        let converted_tensor =
+            BitNetTensor::from_candle(quantized, &self.memory_pool).map_err(|e| {
+                MixedPrecisionError::ConversionError {
+                    from: tensor.dtype(),
+                    to: target_precision,
+                    reason: format!("Failed to create BitNet tensor: {}", e),
+                }
             })?;
 
         Ok(converted_tensor)
@@ -448,10 +488,10 @@ impl PrecisionConverter {
         if let Some((min_val, max_val)) = target_precision.value_range() {
             let tensor_min = tensor.min_all()?.to_scalar::<f32>()?;
             let tensor_max = tensor.max_all()?.to_scalar::<f32>()?;
-            
+
             let tensor_range = tensor_max - tensor_min;
             let target_range = max_val as f32 - min_val as f32;
-            
+
             if tensor_range > 0.0 {
                 Ok(target_range / tensor_range)
             } else {
@@ -521,19 +561,25 @@ impl PrecisionConverter {
             let diff = original_candle.sub(&converted_candle).map_err(|e| {
                 MixedPrecisionError::ValidationError(format!("Failed to compute difference: {}", e))
             })?;
-            let max_diff = diff.abs().map_err(|e| {
-                MixedPrecisionError::ValidationError(format!("Failed to compute abs: {}", e))
-            })?.max_all().map_err(|e| {
-                MixedPrecisionError::ValidationError(format!("Failed to compute max: {}", e))
-            })?.to_scalar::<f32>().map_err(|e| {
-                MixedPrecisionError::ValidationError(format!("Failed to extract scalar: {}", e))
-            })?;
+            let max_diff = diff
+                .abs()
+                .map_err(|e| {
+                    MixedPrecisionError::ValidationError(format!("Failed to compute abs: {}", e))
+                })?
+                .max_all()
+                .map_err(|e| {
+                    MixedPrecisionError::ValidationError(format!("Failed to compute max: {}", e))
+                })?
+                .to_scalar::<f32>()
+                .map_err(|e| {
+                    MixedPrecisionError::ValidationError(format!("Failed to extract scalar: {}", e))
+                })?;
 
             if max_diff > self.config.validation_tolerance {
-                return Err(MixedPrecisionError::ValidationError(
-                    format!("Conversion error {} exceeds tolerance {}", 
-                        max_diff, self.config.validation_tolerance)
-                ));
+                return Err(MixedPrecisionError::ValidationError(format!(
+                    "Conversion error {} exceeds tolerance {}",
+                    max_diff, self.config.validation_tolerance
+                )));
             }
         }
 
@@ -583,8 +629,12 @@ impl ConversionStats {
 
         let precision_pair = (from_precision, to_precision);
         *self.conversion_counts.entry(precision_pair).or_insert(0) += 1;
-        
-        let current_avg = self.average_times_ms.get(&precision_pair).copied().unwrap_or(0.0);
+
+        let current_avg = self
+            .average_times_ms
+            .get(&precision_pair)
+            .copied()
+            .unwrap_or(0.0);
         let count = self.conversion_counts[&precision_pair] as f32;
         let new_avg = (current_avg * (count - 1.0) + duration_ms) / count;
         self.average_times_ms.insert(precision_pair, new_avg);
@@ -625,12 +675,12 @@ impl BatchConverter {
         target_precision: BitNetDType,
     ) -> MixedPrecisionResult<Vec<BitNetTensor>> {
         let mut converted_tensors = Vec::with_capacity(tensors.len());
-        
+
         for tensor in tensors {
             let converted = self.converter.convert_tensor(tensor, target_precision)?;
             converted_tensors.push(converted);
         }
-        
+
         Ok(converted_tensors)
     }
 
@@ -640,12 +690,12 @@ impl BatchConverter {
         tensors: &[(BitNetTensor, BitNetDType)],
     ) -> MixedPrecisionResult<Vec<BitNetTensor>> {
         let mut converted_tensors = Vec::with_capacity(tensors.len());
-        
+
         for (tensor, target_precision) in tensors {
             let converted = self.converter.convert_tensor(tensor, *target_precision)?;
             converted_tensors.push(converted);
         }
-        
+
         Ok(converted_tensors)
     }
 
@@ -658,7 +708,6 @@ impl BatchConverter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
 
     #[test]
     fn test_conversion_config() {
@@ -677,7 +726,10 @@ mod tests {
     #[test]
     fn test_conversion_strategy_enum() {
         assert_eq!(ConversionStrategy::default(), ConversionStrategy::Scaled);
-        assert_ne!(ConversionStrategy::Direct, ConversionStrategy::QuantizationAware);
+        assert_ne!(
+            ConversionStrategy::Direct,
+            ConversionStrategy::QuantizationAware
+        );
     }
 
     #[test]
@@ -685,7 +737,7 @@ mod tests {
         let mut stats = ConversionStats::default();
         assert_eq!(stats.total_conversions, 0);
         assert_eq!(stats.average_conversion_time_ms(), 0.0);
-        
+
         stats.record_conversion(
             BitNetDType::F32,
             BitNetDType::I8,
@@ -693,7 +745,7 @@ mod tests {
             1000,
             250,
         );
-        
+
         assert_eq!(stats.total_conversions, 1);
         assert!(stats.average_conversion_time_ms() > 0.0);
         assert!(stats.memory_efficiency() > 0.0); // Memory was saved

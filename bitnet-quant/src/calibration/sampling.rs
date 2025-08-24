@@ -232,9 +232,7 @@ impl RepresentativeSampler for StratifiedSampler {
             Some(meta) => &meta.clusters,
             None => {
                 // Create simple strata based on sample index
-                let strata: Vec<usize> = (0..total_samples)
-                    .map(|i| i % self.num_strata)
-                    .collect();
+                let strata: Vec<usize> = (0..total_samples).map(|i| i % self.num_strata).collect();
                 return self.sample_from_strata(&strata, total_samples, target_samples, start_time);
             }
         };
@@ -280,7 +278,8 @@ impl StratifiedSampler {
         let mut selected_indices = Vec::new();
 
         for (stratum_idx, (_, mut stratum_samples)) in strata_samples.into_iter().enumerate() {
-            let stratum_target = samples_per_stratum + if stratum_idx < extra_samples { 1 } else { 0 };
+            let stratum_target =
+                samples_per_stratum + if stratum_idx < extra_samples { 1 } else { 0 };
             let stratum_target = stratum_target.min(stratum_samples.len());
 
             stratum_samples.shuffle(&mut self.rng);
@@ -289,7 +288,8 @@ impl StratifiedSampler {
 
         // Update statistics
         self.statistics.selected_samples = selected_indices.len();
-        self.statistics.distribution_coverage = selected_indices.len() as f32 / total_samples as f32;
+        self.statistics.distribution_coverage =
+            selected_indices.len() as f32 / total_samples as f32;
         self.statistics.efficiency_score = 0.9; // High efficiency due to stratification
         self.statistics.representativeness = 0.95; // Excellent representativeness
         self.statistics.diversity_score = 0.9; // High diversity across strata
@@ -401,7 +401,10 @@ impl RepresentativeSampler for ImportanceSampler {
                 let mut remaining = remaining;
                 remaining.shuffle(&mut self.rng);
 
-                for &idx in remaining.iter().take(target_samples - selected_indices.len()) {
+                for &idx in remaining
+                    .iter()
+                    .take(target_samples - selected_indices.len())
+                {
                     selected_indices.push(idx);
                 }
                 break;
@@ -412,10 +415,12 @@ impl RepresentativeSampler for ImportanceSampler {
         let avg_importance: f32 = selected_indices
             .iter()
             .map(|&idx| importance_scores[idx])
-            .sum::<f32>() / selected_indices.len() as f32;
+            .sum::<f32>()
+            / selected_indices.len() as f32;
 
         self.statistics.selected_samples = selected_indices.len();
-        self.statistics.distribution_coverage = selected_indices.len() as f32 / total_samples as f32;
+        self.statistics.distribution_coverage =
+            selected_indices.len() as f32 / total_samples as f32;
         self.statistics.efficiency_score = (avg_importance * 10.0).min(1.0); // Based on avg importance
         self.statistics.representativeness = 0.85; // Good representativeness
         self.statistics.diversity_score = 0.75; // Moderate diversity (biased towards important samples)
@@ -586,10 +591,10 @@ mod tests {
     fn test_random_sampler() {
         let mut sampler = RandomSampler::new();
         let indices = sampler.sample_indices(100, 10, None).unwrap();
-        
+
         assert_eq!(indices.len(), 10);
         assert!(indices.iter().all(|&idx| idx < 100));
-        
+
         let stats = sampler.get_statistics();
         assert_eq!(stats.selected_samples, 10);
     }
@@ -598,7 +603,7 @@ mod tests {
     fn test_stratified_sampler() {
         let mut sampler = StratifiedSampler::with_strata(5);
         let indices = sampler.sample_indices(100, 20, None).unwrap();
-        
+
         assert_eq!(indices.len(), 20);
         assert!(indices.iter().all(|&idx| idx < 100));
     }
@@ -606,7 +611,7 @@ mod tests {
     #[test]
     fn test_importance_sampler() {
         let mut sampler = ImportanceSampler::new();
-        
+
         // Create metadata with importance scores
         let importance_scores = vec![0.1; 100]; // Uniform importance
         let metadata = SamplingMetadata {
@@ -616,7 +621,7 @@ mod tests {
             sample_weights: Vec::new(),
             extra_metadata: HashMap::new(),
         };
-        
+
         let indices = sampler.sample_indices(100, 10, Some(&metadata)).unwrap();
         assert_eq!(indices.len(), 10);
     }
@@ -625,18 +630,18 @@ mod tests {
     fn test_systematic_sampler() {
         let mut sampler = SystematicSampler::new();
         let indices = sampler.sample_indices(100, 10, None).unwrap();
-        
+
         assert_eq!(indices.len(), 10);
         assert!(indices.iter().all(|&idx| idx < 100));
-        
+
         // Check that indices are roughly evenly spaced
         let mut sorted_indices = indices.clone();
         sorted_indices.sort();
-        
+
         // Verify systematic spacing (approximate due to rounding)
         let expected_interval = 100.0 / 10.0;
         for i in 1..sorted_indices.len() {
-            let actual_interval = (sorted_indices[i] - sorted_indices[i-1]) as f32;
+            let actual_interval = (sorted_indices[i] - sorted_indices[i - 1]) as f32;
             assert!((actual_interval - expected_interval).abs() <= expected_interval * 0.5);
         }
     }
@@ -649,8 +654,13 @@ mod tests {
         let systematic_sampler = SamplerFactory::create(&SamplingStrategy::Systematic);
 
         // Test that they can all sample
-        let mut samplers = vec![random_sampler, stratified_sampler, importance_sampler, systematic_sampler];
-        
+        let mut samplers = vec![
+            random_sampler,
+            stratified_sampler,
+            importance_sampler,
+            systematic_sampler,
+        ];
+
         for sampler in &mut samplers {
             let indices = sampler.sample_indices(50, 5, None).unwrap();
             assert_eq!(indices.len(), 5);

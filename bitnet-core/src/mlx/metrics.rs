@@ -1,18 +1,18 @@
 //! MLX Performance Metrics Collection System
-//! 
+//!
 //! This module provides a comprehensive metrics collection system for MLX operations,
 //! integrating performance benchmarking, memory tracking, and system monitoring.
 
 use crate::mlx::{
-    MlxTensor, BitNetMlxDevice, 
-    performance::{PerformanceMetrics, MemoryUsage, BenchmarkConfig},
-    memory_tracker::{MlxMemoryTracker, MemoryEvent, MemorySnapshot, MemoryPressure},
+    memory_tracker::{MemoryEvent, MemoryPressure, MemorySnapshot, MlxMemoryTracker},
+    performance::{BenchmarkConfig, MemoryUsage, PerformanceMetrics},
+    BitNetMlxDevice, MlxTensor,
 };
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime};
-use serde::{Serialize, Deserialize};
 
 /// Comprehensive metrics collection for MLX operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -194,7 +194,12 @@ impl MlxMetricsCollector {
 
         // Collect performance metrics
         let performance = if self.config.collect_performance {
-            self.collect_performance_metrics(operation_name, device, execution_time, &tensor_shapes)?
+            self.collect_performance_metrics(
+                operation_name,
+                device,
+                execution_time,
+                &tensor_shapes,
+            )?
         } else {
             self.create_empty_performance_metrics(operation_name, device)
         };
@@ -238,7 +243,7 @@ impl MlxMetricsCollector {
         tensor_shapes: &[Vec<usize>],
     ) -> Result<PerformanceMetrics> {
         let throughput = 1.0 / execution_time.as_secs_f64();
-        
+
         // Get memory usage from tracker
         let memory_usage = {
             let tracker = self.memory_tracker.lock().unwrap();
@@ -278,30 +283,50 @@ impl MlxMetricsCollector {
     /// Collect memory metrics
     fn collect_memory_metrics(&self, device: &BitNetMlxDevice) -> Result<MemoryMetrics> {
         let tracker = self.memory_tracker.lock().unwrap();
-        
+
         let pressure = tracker.get_memory_pressure(device);
         let pressure_str = match pressure {
             MemoryPressure::Low => "Low",
             MemoryPressure::Medium => "Medium",
             MemoryPressure::High => "High",
             MemoryPressure::Critical => "Critical",
-        }.to_string();
+        }
+        .to_string();
 
         let events = tracker.get_events();
-        let device_events: Vec<_> = events.iter()
+        let device_events: Vec<_> = events
+            .iter()
             .filter(|e| e.device_type == device.device_type())
             .collect();
 
-        let allocation_events = device_events.iter()
-            .filter(|e| matches!(e.event_type, crate::mlx::memory_tracker::MemoryEventType::Allocation))
+        let allocation_events = device_events
+            .iter()
+            .filter(|e| {
+                matches!(
+                    e.event_type,
+                    crate::mlx::memory_tracker::MemoryEventType::Allocation
+                )
+            })
             .count();
-        
-        let deallocation_events = device_events.iter()
-            .filter(|e| matches!(e.event_type, crate::mlx::memory_tracker::MemoryEventType::Deallocation))
+
+        let deallocation_events = device_events
+            .iter()
+            .filter(|e| {
+                matches!(
+                    e.event_type,
+                    crate::mlx::memory_tracker::MemoryEventType::Deallocation
+                )
+            })
             .count();
-        
-        let transfer_events = device_events.iter()
-            .filter(|e| matches!(e.event_type, crate::mlx::memory_tracker::MemoryEventType::Transfer))
+
+        let transfer_events = device_events
+            .iter()
+            .filter(|e| {
+                matches!(
+                    e.event_type,
+                    crate::mlx::memory_tracker::MemoryEventType::Transfer
+                )
+            })
             .count();
 
         let efficiency_score = if allocation_events > 0 {
@@ -341,10 +366,10 @@ impl MlxMetricsCollector {
     fn collect_system_metrics(&self, device: &BitNetMlxDevice) -> Result<SystemMetrics> {
         // In a real implementation, this would query actual system metrics
         // For now, we'll provide placeholder values
-        
+
         let (cpu_usage, gpu_usage) = self.get_system_usage()?;
         let (system_memory, gpu_memory) = self.get_memory_usage()?;
-        
+
         Ok(SystemMetrics {
             cpu_usage,
             gpu_usage,
@@ -359,34 +384,44 @@ impl MlxMetricsCollector {
     /// Store metrics in history
     fn store_metrics(&self, metrics: &MlxMetrics) -> Result<()> {
         let mut history = self.metrics_history.lock().unwrap();
-        
+
         // Add new metrics
         history.push(metrics.clone());
-        
+
         // Trim history if it exceeds max size
         if history.len() > self.config.max_history_size {
             let excess = history.len() - self.config.max_history_size;
             history.drain(0..excess);
         }
-        
+
         Ok(())
     }
 
     /// Update aggregated statistics
     fn update_aggregated_stats(&self, metrics: &MlxMetrics) -> Result<()> {
         let mut stats = self.aggregated_stats.lock().unwrap();
-        
+
         stats.total_operations += 1;
         stats.total_execution_time += metrics.performance.execution_time;
-        stats.average_throughput = (stats.average_throughput * (stats.total_operations - 1) as f64 + metrics.performance.throughput) / stats.total_operations as f64;
-        
-        let current_memory = (metrics.memory.current_usage.peak_memory_mb * 1024.0 * 1024.0) as usize;
+        stats.average_throughput = (stats.average_throughput * (stats.total_operations - 1) as f64
+            + metrics.performance.throughput)
+            / stats.total_operations as f64;
+
+        let current_memory =
+            (metrics.memory.current_usage.peak_memory_mb * 1024.0 * 1024.0) as usize;
         stats.peak_memory_usage = stats.peak_memory_usage.max(current_memory);
-        stats.total_memory_allocated += (metrics.memory.current_usage.allocated_memory_mb * 1024.0 * 1024.0) as usize;
-        
-        *stats.operation_counts.entry(metrics.operation_context.operation_name.clone()).or_insert(0) += 1;
-        *stats.device_usage.entry(metrics.performance.device_type.clone()).or_insert(Duration::ZERO) += metrics.performance.execution_time;
-        
+        stats.total_memory_allocated +=
+            (metrics.memory.current_usage.allocated_memory_mb * 1024.0 * 1024.0) as usize;
+
+        *stats
+            .operation_counts
+            .entry(metrics.operation_context.operation_name.clone())
+            .or_insert(0) += 1;
+        *stats
+            .device_usage
+            .entry(metrics.performance.device_type.clone())
+            .or_insert(Duration::ZERO) += metrics.performance.execution_time;
+
         Ok(())
     }
 
@@ -406,14 +441,15 @@ impl MlxMetricsCollector {
     pub fn export_metrics(&self, format: Option<ExportFormat>) -> Result<String> {
         let export_format = format.unwrap_or_else(|| self.config.export_format.clone());
         let history = self.get_metrics_history();
-        
+
         match export_format {
             ExportFormat::Json => self.export_json(&history),
             ExportFormat::Csv => self.export_csv(&history),
             ExportFormat::Prometheus => self.export_prometheus(&history),
-            ExportFormat::Custom(format_name) => {
-                Err(anyhow::anyhow!("Custom format '{}' not implemented", format_name))
-            }
+            ExportFormat::Custom(format_name) => Err(anyhow::anyhow!(
+                "Custom format '{}' not implemented",
+                format_name
+            )),
         }
     }
 
@@ -427,7 +463,7 @@ impl MlxMetricsCollector {
     fn export_csv(&self, metrics: &[MlxMetrics]) -> Result<String> {
         let mut csv = String::new();
         csv.push_str("timestamp,operation,device,execution_time_ms,throughput,memory_mb,cpu_usage,gpu_usage\n");
-        
+
         for metric in metrics {
             csv.push_str(&format!(
                 "{:?},{},{},{:.3},{:.2},{:.2},{:.2},{:.2}\n",
@@ -441,31 +477,33 @@ impl MlxMetricsCollector {
                 metric.system.gpu_usage
             ));
         }
-        
+
         Ok(csv)
     }
 
     /// Export metrics in Prometheus format
     fn export_prometheus(&self, metrics: &[MlxMetrics]) -> Result<String> {
         let mut prometheus = String::new();
-        
+
         // Add metric definitions
         prometheus.push_str("# HELP mlx_execution_time_seconds Execution time of MLX operations\n");
         prometheus.push_str("# TYPE mlx_execution_time_seconds gauge\n");
-        
+
         prometheus.push_str("# HELP mlx_memory_usage_bytes Memory usage of MLX operations\n");
         prometheus.push_str("# TYPE mlx_memory_usage_bytes gauge\n");
-        
+
         prometheus.push_str("# HELP mlx_throughput_ops_per_second Throughput of MLX operations\n");
         prometheus.push_str("# TYPE mlx_throughput_ops_per_second gauge\n");
-        
+
         // Add metrics data
         for metric in metrics {
-            let timestamp = metric.performance.timestamp
+            let timestamp = metric
+                .performance
+                .timestamp
                 .duration_since(SystemTime::UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_millis();
-            
+
             prometheus.push_str(&format!(
                 "mlx_execution_time_seconds{{operation=\"{}\",device=\"{}\"}} {:.6} {}\n",
                 metric.operation_context.operation_name,
@@ -473,7 +511,7 @@ impl MlxMetricsCollector {
                 metric.performance.execution_time.as_secs_f64(),
                 timestamp
             ));
-            
+
             prometheus.push_str(&format!(
                 "mlx_memory_usage_bytes{{operation=\"{}\",device=\"{}\"}} {:.0} {}\n",
                 metric.operation_context.operation_name,
@@ -481,7 +519,7 @@ impl MlxMetricsCollector {
                 metric.memory.current_usage.allocated_memory_mb * 1024.0 * 1024.0,
                 timestamp
             ));
-            
+
             prometheus.push_str(&format!(
                 "mlx_throughput_ops_per_second{{operation=\"{}\",device=\"{}\"}} {:.2} {}\n",
                 metric.operation_context.operation_name,
@@ -490,7 +528,7 @@ impl MlxMetricsCollector {
                 timestamp
             ));
         }
-        
+
         Ok(prometheus)
     }
 
@@ -545,7 +583,11 @@ impl MlxMetricsCollector {
     }
 
     /// Create empty performance metrics when collection is disabled
-    fn create_empty_performance_metrics(&self, operation_name: &str, device: &BitNetMlxDevice) -> PerformanceMetrics {
+    fn create_empty_performance_metrics(
+        &self,
+        operation_name: &str,
+        device: &BitNetMlxDevice,
+    ) -> PerformanceMetrics {
         PerformanceMetrics {
             operation_name: operation_name.to_string(),
             device_type: device.device_type().to_string(),
@@ -602,13 +644,14 @@ impl Default for MlxMetricsCollector {
 }
 
 /// Global metrics collector instance
-static GLOBAL_COLLECTOR: std::sync::OnceLock<Arc<Mutex<MlxMetricsCollector>>> = std::sync::OnceLock::new();
+static GLOBAL_COLLECTOR: std::sync::OnceLock<Arc<Mutex<MlxMetricsCollector>>> =
+    std::sync::OnceLock::new();
 
 /// Get the global metrics collector
 pub fn get_global_metrics_collector() -> Arc<Mutex<MlxMetricsCollector>> {
-    GLOBAL_COLLECTOR.get_or_init(|| {
-        Arc::new(Mutex::new(MlxMetricsCollector::default()))
-    }).clone()
+    GLOBAL_COLLECTOR
+        .get_or_init(|| Arc::new(Mutex::new(MlxMetricsCollector::default())))
+        .clone()
 }
 
 /// Convenience function to collect metrics globally
@@ -621,5 +664,11 @@ pub fn collect_operation_metrics(
 ) -> Result<MlxMetrics> {
     let collector = get_global_metrics_collector();
     let collector = collector.lock().unwrap();
-    collector.collect_operation_metrics(operation_name, device, execution_time, tensor_shapes, context)
+    collector.collect_operation_metrics(
+        operation_name,
+        device,
+        execution_time,
+        tensor_shapes,
+        context,
+    )
 }

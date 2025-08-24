@@ -3,17 +3,17 @@
 //! This module provides comprehensive metrics collection and monitoring
 //! for cleanup operations, enabling performance analysis and optimization.
 
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant, SystemTime};
-use std::collections::{HashMap, VecDeque};
-use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, info};
 
-use super::{CleanupOperationId, CleanupOperation};
 use super::config::CleanupStrategyType;
 use super::strategies::CleanupPriority;
+use super::{CleanupOperation, CleanupOperationId};
 
 /// Comprehensive cleanup metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -247,12 +247,12 @@ impl CleanupMetricsCollector {
     /// Records a cleanup operation
     pub fn record_operation(&self, operation: &CleanupOperation) {
         let operation_metrics = CleanupOperationMetrics::from_operation(operation);
-        
+
         // Add to operation history
         {
             let mut history = self.operation_history.write().unwrap();
             history.push_back(operation_metrics.clone());
-            
+
             // Limit history size
             while history.len() > self.max_history_size {
                 history.pop_front();
@@ -263,7 +263,7 @@ impl CleanupMetricsCollector {
         if let Some(duration) = operation.duration {
             let mut duration_samples = self.duration_samples.write().unwrap();
             duration_samples.push_back(duration);
-            
+
             // Limit sample size
             while duration_samples.len() > self.max_history_size {
                 duration_samples.pop_front();
@@ -274,7 +274,7 @@ impl CleanupMetricsCollector {
         {
             let mut efficiency_samples = self.efficiency_samples.write().unwrap();
             efficiency_samples.push_back(operation_metrics.efficiency);
-            
+
             // Limit sample size
             while efficiency_samples.len() > self.max_history_size {
                 efficiency_samples.pop_front();
@@ -285,12 +285,16 @@ impl CleanupMetricsCollector {
         self.update_metrics();
 
         #[cfg(feature = "tracing")]
-        debug!("Recorded cleanup operation metrics: {:?}", operation_metrics.operation_id);
+        debug!(
+            "Recorded cleanup operation metrics: {:?}",
+            operation_metrics.operation_id
+        );
     }
 
     /// Returns current cleanup metrics
     pub fn get_metrics(&self) -> CleanupMetrics {
-        self.metrics.read()
+        self.metrics
+            .read()
             .map(|metrics| metrics.clone())
             .unwrap_or_else(|_| CleanupMetrics::new())
     }
@@ -298,11 +302,7 @@ impl CleanupMetricsCollector {
     /// Returns recent operation history
     pub fn get_recent_operations(&self, count: usize) -> Vec<CleanupOperationMetrics> {
         let history = self.operation_history.read().unwrap();
-        history.iter()
-            .rev()
-            .take(count)
-            .cloned()
-            .collect()
+        history.iter().rev().take(count).cloned().collect()
     }
 
     /// Returns performance percentiles
@@ -320,9 +320,18 @@ impl CleanupMetricsCollector {
         let p99_index = (len as f64 * 0.99) as usize;
         let max_index = len - 1;
 
-        let p95 = sorted_durations.get(p95_index).cloned().unwrap_or(Duration::ZERO);
-        let p99 = sorted_durations.get(p99_index).cloned().unwrap_or(Duration::ZERO);
-        let max = sorted_durations.get(max_index).cloned().unwrap_or(Duration::ZERO);
+        let p95 = sorted_durations
+            .get(p95_index)
+            .cloned()
+            .unwrap_or(Duration::ZERO);
+        let p99 = sorted_durations
+            .get(p99_index)
+            .cloned()
+            .unwrap_or(Duration::ZERO);
+        let max = sorted_durations
+            .get(max_index)
+            .cloned()
+            .unwrap_or(Duration::ZERO);
 
         (p95, p99, max)
     }
@@ -331,7 +340,7 @@ impl CleanupMetricsCollector {
     pub fn calculate_efficiency_trend(&self) -> f64 {
         let efficiency_samples = self.efficiency_samples.read().unwrap();
         let samples: Vec<f64> = efficiency_samples.iter().cloned().collect();
-        
+
         if samples.len() < 2 {
             return 0.0;
         }
@@ -353,17 +362,17 @@ impl CleanupMetricsCollector {
             let mut metrics = self.metrics.write().unwrap();
             *metrics = CleanupMetrics::new();
         }
-        
+
         {
             let mut history = self.operation_history.write().unwrap();
             history.clear();
         }
-        
+
         {
             let mut duration_samples = self.duration_samples.write().unwrap();
             duration_samples.clear();
         }
-        
+
         {
             let mut efficiency_samples = self.efficiency_samples.write().unwrap();
             efficiency_samples.clear();
@@ -415,33 +424,37 @@ impl CleanupMetricsCollector {
     }
 
     /// Calculates overall cleanup metrics
-    fn calculate_overall_metrics(&self, operations: &[CleanupOperationMetrics]) -> OverallCleanupMetrics {
+    fn calculate_overall_metrics(
+        &self,
+        operations: &[CleanupOperationMetrics],
+    ) -> OverallCleanupMetrics {
         let total_operations = operations.len() as u64;
         let successful_operations = operations.iter().filter(|op| op.success).count() as u64;
         let failed_operations = total_operations - successful_operations;
-        
+
         let total_bytes_freed: u64 = operations.iter().map(|op| op.bytes_freed).sum();
-        let total_allocations_cleaned: u64 = operations.iter().map(|op| op.allocations_cleaned).sum();
+        let total_allocations_cleaned: u64 =
+            operations.iter().map(|op| op.allocations_cleaned).sum();
         let total_cleanup_time: Duration = operations.iter().map(|op| op.duration).sum();
-        
+
         let success_rate = if total_operations > 0 {
             successful_operations as f64 / total_operations as f64
         } else {
             1.0
         };
-        
+
         let average_bytes_per_operation = if total_operations > 0 {
             total_bytes_freed as f64 / total_operations as f64
         } else {
             0.0
         };
-        
+
         let average_cleanup_duration = if total_operations > 0 {
             total_cleanup_time / total_operations as u32
         } else {
             Duration::ZERO
         };
-        
+
         let elapsed_hours = self.start_time.elapsed().as_secs_f64() / 3600.0;
         let cleanup_frequency = if elapsed_hours > 0.0 {
             total_operations as f64 / elapsed_hours
@@ -464,7 +477,10 @@ impl CleanupMetricsCollector {
     }
 
     /// Calculates per-strategy metrics
-    fn calculate_strategy_metrics(&self, operations: &[CleanupOperationMetrics]) -> HashMap<CleanupStrategyType, StrategyMetrics> {
+    fn calculate_strategy_metrics(
+        &self,
+        operations: &[CleanupOperationMetrics],
+    ) -> HashMap<CleanupStrategyType, StrategyMetrics> {
         let mut strategy_metrics = HashMap::new();
 
         for strategy_type in [
@@ -486,57 +502,67 @@ impl CleanupMetricsCollector {
             let usage_count = strategy_ops.len() as u64;
             let success_count = strategy_ops.iter().filter(|op| op.success).count() as u64;
             let failure_count = usage_count - success_count;
-            
+
             let bytes_freed: u64 = strategy_ops.iter().map(|op| op.bytes_freed).sum();
-            let allocations_cleaned: u64 = strategy_ops.iter().map(|op| op.allocations_cleaned).sum();
+            let allocations_cleaned: u64 =
+                strategy_ops.iter().map(|op| op.allocations_cleaned).sum();
             let total_execution_time: Duration = strategy_ops.iter().map(|op| op.duration).sum();
-            
+
             let average_execution_time = if usage_count > 0 {
                 total_execution_time / usage_count as u32
             } else {
                 Duration::ZERO
             };
-            
+
             let success_rate = if usage_count > 0 {
                 success_count as f64 / usage_count as f64
             } else {
                 1.0
             };
-            
+
             let efficiency = if total_execution_time.as_millis() > 0 {
                 bytes_freed as f64 / total_execution_time.as_millis() as f64
             } else {
                 0.0
             };
-            
+
             let last_execution = strategy_ops.iter().map(|op| op.start_time).max();
 
-            strategy_metrics.insert(strategy_type, StrategyMetrics {
+            strategy_metrics.insert(
                 strategy_type,
-                usage_count,
-                success_count,
-                failure_count,
-                bytes_freed,
-                allocations_cleaned,
-                total_execution_time,
-                average_execution_time,
-                success_rate,
-                efficiency,
-                last_execution,
-            });
+                StrategyMetrics {
+                    strategy_type,
+                    usage_count,
+                    success_count,
+                    failure_count,
+                    bytes_freed,
+                    allocations_cleaned,
+                    total_execution_time,
+                    average_execution_time,
+                    success_rate,
+                    efficiency,
+                    last_execution,
+                },
+            );
         }
 
         strategy_metrics
     }
 
     /// Calculates per-device metrics
-    fn calculate_device_metrics(&self, operations: &[CleanupOperationMetrics]) -> HashMap<String, DeviceMetrics> {
+    fn calculate_device_metrics(
+        &self,
+        operations: &[CleanupOperationMetrics],
+    ) -> HashMap<String, DeviceMetrics> {
         let mut device_metrics = HashMap::new();
 
         // Group operations by device type
         let mut device_groups: HashMap<String, Vec<&CleanupOperationMetrics>> = HashMap::new();
         for op in operations {
-            device_groups.entry(op.device_type.clone()).or_default().push(op);
+            device_groups
+                .entry(op.device_type.clone())
+                .or_default()
+                .push(op);
         }
 
         for (device_type, device_ops) in device_groups {
@@ -544,55 +570,62 @@ impl CleanupMetricsCollector {
             let bytes_freed: u64 = device_ops.iter().map(|op| op.bytes_freed).sum();
             let allocations_cleaned: u64 = device_ops.iter().map(|op| op.allocations_cleaned).sum();
             let total_cleanup_time: Duration = device_ops.iter().map(|op| op.duration).sum();
-            
+
             let average_cleanup_time = if operations_count > 0 {
                 total_cleanup_time / operations_count as u32
             } else {
                 Duration::ZERO
             };
-            
+
             let efficiency = if total_cleanup_time.as_millis() > 0 {
                 bytes_freed as f64 / total_cleanup_time.as_millis() as f64
             } else {
                 0.0
             };
-            
+
             let last_cleanup = device_ops.iter().map(|op| op.start_time).max();
 
-            device_metrics.insert(device_type.clone(), DeviceMetrics {
-                device_type,
-                operations: operations_count,
-                bytes_freed,
-                allocations_cleaned,
-                total_cleanup_time,
-                average_cleanup_time,
-                efficiency,
-                last_cleanup,
-            });
+            device_metrics.insert(
+                device_type.clone(),
+                DeviceMetrics {
+                    device_type,
+                    operations: operations_count,
+                    bytes_freed,
+                    allocations_cleaned,
+                    total_cleanup_time,
+                    average_cleanup_time,
+                    efficiency,
+                    last_cleanup,
+                },
+            );
         }
 
         device_metrics
     }
 
     /// Calculates performance metrics
-    fn calculate_performance_metrics(&self, operations: &[CleanupOperationMetrics]) -> PerformanceMetrics {
+    fn calculate_performance_metrics(
+        &self,
+        operations: &[CleanupOperationMetrics],
+    ) -> PerformanceMetrics {
         let durations: Vec<Duration> = operations.iter().map(|op| op.duration).collect();
-        
+
         let min_cleanup_duration = durations.iter().min().cloned().unwrap_or(Duration::ZERO);
         let max_cleanup_duration = durations.iter().max().cloned().unwrap_or(Duration::ZERO);
-        
+
         let (p95_cleanup_duration, p99_cleanup_duration, _) = self.get_performance_percentiles();
-        
+
         // Calculate standard deviation
         let mean_duration = if !durations.is_empty() {
             durations.iter().sum::<Duration>() / durations.len() as u32
         } else {
             Duration::ZERO
         };
-        
+
         let variance = if !durations.is_empty() {
             let mean_ms = mean_duration.as_millis() as f64;
-            let sum_squared_diff: f64 = durations.iter()
+            let sum_squared_diff: f64 = durations
+                .iter()
                 .map(|d| {
                     let diff = d.as_millis() as f64 - mean_ms;
                     diff * diff
@@ -602,18 +635,20 @@ impl CleanupMetricsCollector {
         } else {
             0.0
         };
-        
+
         let cleanup_duration_stddev = variance.sqrt();
-        
+
         // Calculate recent rates (last 60 seconds)
         let recent_cutoff = SystemTime::now() - Duration::from_secs(60);
-        let recent_ops: Vec<&CleanupOperationMetrics> = operations.iter()
+        let recent_ops: Vec<&CleanupOperationMetrics> = operations
+            .iter()
             .filter(|op| op.start_time >= recent_cutoff)
             .collect();
-        
+
         let operations_per_second = recent_ops.len() as f64 / 60.0;
-        let bytes_freed_per_second = recent_ops.iter().map(|op| op.bytes_freed).sum::<u64>() as f64 / 60.0;
-        
+        let bytes_freed_per_second =
+            recent_ops.iter().map(|op| op.bytes_freed).sum::<u64>() as f64 / 60.0;
+
         PerformanceMetrics {
             min_cleanup_duration,
             max_cleanup_duration,
@@ -627,21 +662,28 @@ impl CleanupMetricsCollector {
     }
 
     /// Calculates efficiency metrics
-    fn calculate_efficiency_metrics(&self, operations: &[CleanupOperationMetrics]) -> EfficiencyMetrics {
+    fn calculate_efficiency_metrics(
+        &self,
+        operations: &[CleanupOperationMetrics],
+    ) -> EfficiencyMetrics {
         let efficiencies: Vec<f64> = operations.iter().map(|op| op.efficiency).collect();
-        
+
         let overall_efficiency = if !efficiencies.is_empty() {
             efficiencies.iter().sum::<f64>() / efficiencies.len() as f64
         } else {
             0.0
         };
-        
+
         let best_efficiency = efficiencies.iter().cloned().fold(0.0, f64::max);
         let worst_efficiency = efficiencies.iter().cloned().fold(f64::INFINITY, f64::min);
-        let worst_efficiency = if worst_efficiency == f64::INFINITY { 0.0 } else { worst_efficiency };
-        
+        let worst_efficiency = if worst_efficiency == f64::INFINITY {
+            0.0
+        } else {
+            worst_efficiency
+        };
+
         let efficiency_trend = self.calculate_efficiency_trend();
-        
+
         EfficiencyMetrics {
             overall_efficiency,
             best_efficiency,
@@ -649,7 +691,7 @@ impl CleanupMetricsCollector {
             efficiency_trend,
             overhead_percentage: 0.0, // Would be calculated from system metrics
             resource_utilization: 0.0, // Would be calculated from system metrics
-            allocation_impact: 0.0, // Would be calculated from allocation performance
+            allocation_impact: 0.0,   // Would be calculated from allocation performance
         }
     }
 }
@@ -705,8 +747,8 @@ impl Default for CleanupMetrics {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::{CleanupOperation, CleanupOperationId};
+    use super::*;
 
     #[test]
     fn test_cleanup_metrics_creation() {
@@ -724,7 +766,7 @@ mod tests {
             CleanupStrategyType::Idle,
             "CPU".to_string(),
         );
-        
+
         let metrics = CleanupOperationMetrics::from_operation(&operation);
         assert_eq!(metrics.operation_id, operation.id);
         assert_eq!(metrics.strategy_type, CleanupStrategyType::Idle);
@@ -735,21 +777,21 @@ mod tests {
     #[test]
     fn test_metrics_collector() {
         let collector = CleanupMetricsCollector::new(100);
-        
+
         let mut operation = CleanupOperation::new(
             CleanupOperationId::new(1),
             CleanupStrategyType::Idle,
             "CPU".to_string(),
         );
         operation.complete_success(1024, 5, Duration::from_millis(100));
-        
+
         collector.record_operation(&operation);
-        
+
         let metrics = collector.get_metrics();
         assert_eq!(metrics.overall.total_operations, 1);
         assert_eq!(metrics.overall.successful_operations, 1);
         assert_eq!(metrics.overall.total_bytes_freed, 1024);
-        
+
         let recent_ops = collector.get_recent_operations(10);
         assert_eq!(recent_ops.len(), 1);
         assert_eq!(recent_ops[0].bytes_freed, 1024);
@@ -758,7 +800,7 @@ mod tests {
     #[test]
     fn test_efficiency_calculation() {
         let collector = CleanupMetricsCollector::new(100);
-        
+
         // Record multiple operations with different efficiencies
         for i in 1..=5 {
             let mut operation = CleanupOperation::new(
@@ -769,7 +811,7 @@ mod tests {
             operation.complete_success(i * 1024, i * 2, Duration::from_millis(i * 50));
             collector.record_operation(&operation);
         }
-        
+
         let metrics = collector.get_metrics();
         assert_eq!(metrics.overall.total_operations, 5);
         assert!(metrics.efficiency.overall_efficiency > 0.0);
@@ -779,14 +821,14 @@ mod tests {
     #[test]
     fn test_strategy_metrics() {
         let collector = CleanupMetricsCollector::new(100);
-        
+
         // Record operations with different strategies
         let strategies = [
             CleanupStrategyType::Idle,
             CleanupStrategyType::Pressure,
             CleanupStrategyType::Periodic,
         ];
-        
+
         for (i, strategy) in strategies.iter().enumerate() {
             let mut operation = CleanupOperation::new(
                 CleanupOperationId::new(i as u64 + 1),
@@ -796,10 +838,10 @@ mod tests {
             operation.complete_success(1024, 5, Duration::from_millis(100));
             collector.record_operation(&operation);
         }
-        
+
         let metrics = collector.get_metrics();
         assert_eq!(metrics.strategy_metrics.len(), 3);
-        
+
         for strategy in strategies {
             assert!(metrics.strategy_metrics.contains_key(&strategy));
             let strategy_metrics = &metrics.strategy_metrics[&strategy];
@@ -812,10 +854,10 @@ mod tests {
     #[test]
     fn test_device_metrics() {
         let collector = CleanupMetricsCollector::new(100);
-        
+
         // Record operations on different devices
         let devices = ["CPU", "Metal"];
-        
+
         for (i, device) in devices.iter().enumerate() {
             let mut operation = CleanupOperation::new(
                 CleanupOperationId::new(i as u64 + 1),
@@ -825,10 +867,10 @@ mod tests {
             operation.complete_success(1024, 5, Duration::from_millis(100));
             collector.record_operation(&operation);
         }
-        
+
         let metrics = collector.get_metrics();
         assert_eq!(metrics.device_metrics.len(), 2);
-        
+
         for device in devices {
             assert!(metrics.device_metrics.contains_key(device));
             let device_metrics = &metrics.device_metrics[device];

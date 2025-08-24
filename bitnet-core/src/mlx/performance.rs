@@ -1,17 +1,17 @@
 //! MLX Performance Comparison Tools
-//! 
+//!
 //! This module provides comprehensive performance comparison utilities for MLX operations,
 //! including benchmarking, profiling, device comparisons, and regression testing.
 
 #[cfg(feature = "mlx")]
-use mlx_rs::{Array, ops};
+use mlx_rs::{ops, Array};
 
-use crate::mlx::{MlxTensor, BitNetMlxDevice};
-use crate::mlx::optimization::{MlxProfiler, MemoryStats};
+use crate::mlx::optimization::{MemoryStats, MlxProfiler};
+use crate::mlx::{BitNetMlxDevice, MlxTensor};
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use serde::{Serialize, Deserialize};
 
 /// Performance metrics for MLX operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -110,7 +110,7 @@ impl MlxPerformanceBenchmarker {
         // Use the largest tensor size for this benchmark
         let default_shape = vec![1024, 1024];
         let shape = self.config.tensor_sizes.last().unwrap_or(&default_shape);
-        
+
         // Warmup iterations
         for _ in 0..self.config.warmup_iterations {
             let a = self.create_test_tensor(shape, device)?;
@@ -122,11 +122,11 @@ impl MlxPerformanceBenchmarker {
         for _ in 0..self.config.measurement_iterations {
             let a = self.create_test_tensor(shape, device)?;
             let b = self.create_test_tensor(shape, device)?;
-            
+
             let start = Instant::now();
             let _result = self.perform_matmul(&a, &b)?;
             let duration = start.elapsed();
-            
+
             total_time += duration;
         }
 
@@ -149,13 +149,16 @@ impl MlxPerformanceBenchmarker {
     }
 
     /// Benchmark quantization operation
-    pub fn benchmark_quantization(&mut self, device: &BitNetMlxDevice) -> Result<PerformanceMetrics> {
+    pub fn benchmark_quantization(
+        &mut self,
+        device: &BitNetMlxDevice,
+    ) -> Result<PerformanceMetrics> {
         let operation_name = "quantization";
         let mut total_time = Duration::ZERO;
-        
+
         let default_shape = vec![1024, 1024];
         let shape = self.config.tensor_sizes.last().unwrap_or(&default_shape);
-        
+
         // Warmup
         for _ in 0..self.config.warmup_iterations {
             let tensor = self.create_test_tensor(shape, device)?;
@@ -165,11 +168,11 @@ impl MlxPerformanceBenchmarker {
         // Measurement
         for _ in 0..self.config.measurement_iterations {
             let tensor = self.create_test_tensor(shape, device)?;
-            
+
             let start = Instant::now();
             let _result = self.perform_quantization(&tensor)?;
             let duration = start.elapsed();
-            
+
             total_time += duration;
         }
 
@@ -197,12 +200,16 @@ impl MlxPerformanceBenchmarker {
     }
 
     /// Benchmark element-wise operations
-    pub fn benchmark_elementwise(&mut self, device: &BitNetMlxDevice, operation: &str) -> Result<PerformanceMetrics> {
+    pub fn benchmark_elementwise(
+        &mut self,
+        device: &BitNetMlxDevice,
+        operation: &str,
+    ) -> Result<PerformanceMetrics> {
         let mut total_time = Duration::ZERO;
-        
+
         let default_shape = vec![1024, 1024];
         let shape = self.config.tensor_sizes.last().unwrap_or(&default_shape);
-        
+
         // Warmup
         for _ in 0..self.config.warmup_iterations {
             let a = self.create_test_tensor(shape, device)?;
@@ -214,11 +221,11 @@ impl MlxPerformanceBenchmarker {
         for _ in 0..self.config.measurement_iterations {
             let a = self.create_test_tensor(shape, device)?;
             let b = self.create_test_tensor(shape, device)?;
-            
+
             let start = Instant::now();
             let _result = self.perform_elementwise(&a, &b, operation)?;
             let duration = start.elapsed();
-            
+
             total_time += duration;
         }
 
@@ -248,28 +255,29 @@ impl MlxPerformanceBenchmarker {
     /// Compare performance between devices
     pub fn compare_devices(&mut self, operation: &str) -> Result<Vec<ComparisonResult>> {
         let mut comparisons = Vec::new();
-        
+
         let cpu_device = BitNetMlxDevice::cpu()?;
         let gpu_device = BitNetMlxDevice::gpu()?;
-        
+
         // Benchmark on CPU
         let cpu_metrics = match operation {
             "matmul" => self.benchmark_matmul(&cpu_device)?,
             "quantization" => self.benchmark_quantization(&cpu_device)?,
             op => self.benchmark_elementwise(&cpu_device, op)?,
         };
-        
+
         // Benchmark on GPU
         let gpu_metrics = match operation {
             "matmul" => self.benchmark_matmul(&gpu_device)?,
             "quantization" => self.benchmark_quantization(&gpu_device)?,
             op => self.benchmark_elementwise(&gpu_device, op)?,
         };
-        
+
         // Calculate comparison
-        let speedup = cpu_metrics.execution_time.as_secs_f64() / gpu_metrics.execution_time.as_secs_f64();
+        let speedup =
+            cpu_metrics.execution_time.as_secs_f64() / gpu_metrics.execution_time.as_secs_f64();
         let throughput_improvement = gpu_metrics.throughput / cpu_metrics.throughput;
-        
+
         let recommendation = if speedup > 1.5 {
             "Use GPU for better performance".to_string()
         } else if speedup < 0.8 {
@@ -277,7 +285,7 @@ impl MlxPerformanceBenchmarker {
         } else {
             "Performance is similar on both devices".to_string()
         };
-        
+
         let comparison = ComparisonResult {
             baseline_metrics: cpu_metrics,
             comparison_metrics: gpu_metrics,
@@ -286,7 +294,7 @@ impl MlxPerformanceBenchmarker {
             throughput_improvement,
             recommendation,
         };
-        
+
         comparisons.push(comparison);
         Ok(comparisons)
     }
@@ -297,11 +305,16 @@ impl MlxPerformanceBenchmarker {
     }
 
     /// Compare current performance against baseline
-    pub fn compare_against_baseline(&self, operation: &str, current_metrics: &PerformanceMetrics) -> Option<ComparisonResult> {
+    pub fn compare_against_baseline(
+        &self,
+        operation: &str,
+        current_metrics: &PerformanceMetrics,
+    ) -> Option<ComparisonResult> {
         if let Some(baseline) = self.baseline_results.get(operation) {
-            let speedup = baseline.execution_time.as_secs_f64() / current_metrics.execution_time.as_secs_f64();
+            let speedup = baseline.execution_time.as_secs_f64()
+                / current_metrics.execution_time.as_secs_f64();
             let throughput_improvement = current_metrics.throughput / baseline.throughput;
-            
+
             let recommendation = if speedup > 1.1 {
                 "Performance improved".to_string()
             } else if speedup < 0.9 {
@@ -309,7 +322,7 @@ impl MlxPerformanceBenchmarker {
             } else {
                 "Performance is stable".to_string()
             };
-            
+
             Some(ComparisonResult {
                 baseline_metrics: baseline.clone(),
                 comparison_metrics: current_metrics.clone(),
@@ -352,7 +365,12 @@ impl MlxPerformanceBenchmarker {
     }
 
     /// Helper function to perform element-wise operations
-    fn perform_elementwise(&self, a: &MlxTensor, b: &MlxTensor, operation: &str) -> Result<MlxTensor> {
+    fn perform_elementwise(
+        &self,
+        a: &MlxTensor,
+        b: &MlxTensor,
+        operation: &str,
+    ) -> Result<MlxTensor> {
         use crate::mlx::operations::BitNetMlxOps;
         match operation {
             "add" => BitNetMlxOps::add(a, b),
@@ -372,15 +390,21 @@ impl PerformanceReportGenerator {
         comparisons: &[ComparisonResult],
     ) -> String {
         let mut report = String::new();
-        
+
         report.push_str("# MLX Performance Report\n\n");
-        report.push_str(&format!("Generated at: {:?}\n\n", std::time::SystemTime::now()));
-        
+        report.push_str(&format!(
+            "Generated at: {:?}\n\n",
+            std::time::SystemTime::now()
+        ));
+
         // Summary statistics
         report.push_str("## Summary\n\n");
-        report.push_str(&format!("Total operations benchmarked: {}\n", metrics.len()));
+        report.push_str(&format!(
+            "Total operations benchmarked: {}\n",
+            metrics.len()
+        ));
         report.push_str(&format!("Device comparisons: {}\n\n", comparisons.len()));
-        
+
         // Individual metrics
         report.push_str("## Individual Metrics\n\n");
         for metric in metrics {
@@ -393,20 +417,25 @@ impl PerformanceReportGenerator {
             report.push_str(&format!("- Tensor shapes: {:?}\n", metric.tensor_shapes));
             report.push_str(&format!("- Data type: {}\n\n", metric.data_type));
         }
-        
+
         // Comparisons
         report.push_str("## Device Comparisons\n\n");
         for comparison in comparisons {
             report.push_str(&format!(
                 "### {} vs {}\n",
-                comparison.baseline_metrics.device_type,
-                comparison.comparison_metrics.device_type
+                comparison.baseline_metrics.device_type, comparison.comparison_metrics.device_type
             ));
             report.push_str(&format!("- Speedup: {:.2}x\n", comparison.speedup));
-            report.push_str(&format!("- Throughput improvement: {:.2}x\n", comparison.throughput_improvement));
-            report.push_str(&format!("- Recommendation: {}\n\n", comparison.recommendation));
+            report.push_str(&format!(
+                "- Throughput improvement: {:.2}x\n",
+                comparison.throughput_improvement
+            ));
+            report.push_str(&format!(
+                "- Recommendation: {}\n\n",
+                comparison.recommendation
+            ));
         }
-        
+
         report
     }
 
@@ -424,7 +453,7 @@ impl PerformanceReportGenerator {
                 "total_comparisons": comparisons.len(),
             }
         });
-        
+
         serde_json::to_string_pretty(&report)
             .map_err(|e| anyhow::anyhow!("Failed to serialize report: {}", e))
     }
@@ -433,7 +462,7 @@ impl PerformanceReportGenerator {
     pub fn generate_csv_report(metrics: &[PerformanceMetrics]) -> String {
         let mut csv = String::new();
         csv.push_str("operation,device,execution_time_ms,throughput,data_type,timestamp\n");
-        
+
         for metric in metrics {
             csv.push_str(&format!(
                 "{},{},{:.3},{:.2},{},{:?}\n",
@@ -445,7 +474,7 @@ impl PerformanceReportGenerator {
                 metric.timestamp
             ));
         }
-        
+
         csv
     }
 }
@@ -476,13 +505,14 @@ impl RegressionDetector {
     /// Check for performance regressions
     pub fn check_regression(&self, current_metrics: &[PerformanceMetrics]) -> Vec<String> {
         let mut regressions = Vec::new();
-        
+
         for metric in current_metrics {
             let key = format!("{}_{}", metric.operation_name, metric.device_type);
-            
+
             if let Some(baseline) = self.baseline_metrics.get(&key) {
-                let performance_ratio = metric.execution_time.as_secs_f64() / baseline.execution_time.as_secs_f64();
-                
+                let performance_ratio =
+                    metric.execution_time.as_secs_f64() / baseline.execution_time.as_secs_f64();
+
                 if performance_ratio > (1.0 + self.threshold) {
                     let degradation = (performance_ratio - 1.0) * 100.0;
                     regressions.push(format!(
@@ -492,7 +522,7 @@ impl RegressionDetector {
                 }
             }
         }
-        
+
         regressions
     }
 }
@@ -506,7 +536,7 @@ impl MlxPerformanceBenchmarker {
     pub fn new(_config: BenchmarkConfig) -> Self {
         Self
     }
-    
+
     pub fn benchmark_matmul(&mut self, _device: &()) -> Result<PerformanceMetrics> {
         anyhow::bail!("MLX support not compiled in")
     }

@@ -4,10 +4,10 @@
 //! in the memory pool system. Handles are used to track and manage memory
 //! allocations across different devices and pool types.
 
+use crate::memory::MemoryError;
+use candle_core::Device;
 use std::ptr::NonNull;
 use std::sync::Arc;
-use candle_core::Device;
-use crate::memory::MemoryError;
 
 /// A handle representing allocated memory in the memory pool system
 ///
@@ -426,31 +426,24 @@ mod tests {
     fn test_memory_handle_creation() {
         let device = get_cpu_device();
         let layout = Layout::from_size_align(1024, 16).unwrap();
-        
+
         unsafe {
             let ptr = alloc(layout);
             assert!(!ptr.is_null());
             let non_null_ptr = NonNull::new(ptr).unwrap();
-            
-            let handle = MemoryHandle::new(
-                1,
-                non_null_ptr,
-                1024,
-                16,
-                device,
-                PoolType::SmallBlock,
-            );
-            
+
+            let handle = MemoryHandle::new(1, non_null_ptr, 1024, 16, device, PoolType::SmallBlock);
+
             assert_eq!(handle.id(), 1);
             assert_eq!(handle.size(), 1024);
             assert_eq!(handle.alignment(), 16);
             assert_eq!(handle.pool_type(), PoolType::SmallBlock);
             assert!(handle.is_cpu());
             assert!(!handle.is_metal());
-            
+
             // Validate the handle
             handle.validate().unwrap();
-            
+
             // Clean up
             dealloc(ptr, layout);
         }
@@ -460,18 +453,18 @@ mod tests {
     fn test_memory_handle_cpu_metadata() {
         let device = get_cpu_device();
         let layout = Layout::from_size_align(4096, 4096).unwrap();
-        
+
         unsafe {
             let ptr = alloc(layout);
             assert!(!ptr.is_null());
             let non_null_ptr = NonNull::new(ptr).unwrap();
-            
+
             let cpu_metadata = CpuMemoryMetadata {
                 page_aligned: true,
                 locked: false,
                 numa_node: Some(0),
             };
-            
+
             let handle = MemoryHandle::new_cpu(
                 2,
                 non_null_ptr,
@@ -481,12 +474,12 @@ mod tests {
                 PoolType::LargeBlock,
                 cpu_metadata,
             );
-            
+
             let metadata = handle.cpu_metadata().unwrap();
             assert!(metadata.page_aligned);
             assert!(!metadata.locked);
             assert_eq!(metadata.numa_node, Some(0));
-            
+
             // Clean up
             dealloc(ptr, layout);
         }
@@ -496,12 +489,12 @@ mod tests {
     fn test_memory_handle_validation() {
         let device = get_cpu_device();
         let layout = Layout::from_size_align(1024, 16).unwrap();
-        
+
         unsafe {
             let ptr = alloc(layout);
             assert!(!ptr.is_null());
             let non_null_ptr = NonNull::new(ptr).unwrap();
-            
+
             // Valid handle
             let handle = MemoryHandle::new(
                 3,
@@ -512,7 +505,7 @@ mod tests {
                 PoolType::SmallBlock,
             );
             assert!(handle.validate().is_ok());
-            
+
             // Invalid alignment
             let invalid_handle = MemoryHandle::new(
                 4,
@@ -523,7 +516,7 @@ mod tests {
                 PoolType::SmallBlock,
             );
             assert!(invalid_handle.validate().is_err());
-            
+
             // Clean up
             dealloc(ptr, layout);
         }
@@ -533,16 +526,16 @@ mod tests {
     fn test_memory_handle_equality() {
         let device = get_cpu_device();
         let layout = Layout::from_size_align(1024, 16).unwrap();
-        
+
         unsafe {
             let ptr1 = alloc(layout);
             let ptr2 = alloc(layout);
             assert!(!ptr1.is_null());
             assert!(!ptr2.is_null());
-            
+
             let non_null_ptr1 = NonNull::new(ptr1).unwrap();
             let non_null_ptr2 = NonNull::new(ptr2).unwrap();
-            
+
             let handle1 = MemoryHandle::new(
                 5,
                 non_null_ptr1,
@@ -551,7 +544,7 @@ mod tests {
                 device.clone(),
                 PoolType::SmallBlock,
             );
-            
+
             let handle2 = MemoryHandle::new(
                 5, // Same ID
                 non_null_ptr2,
@@ -560,7 +553,7 @@ mod tests {
                 device.clone(),
                 PoolType::SmallBlock,
             );
-            
+
             let handle3 = MemoryHandle::new(
                 6, // Different ID
                 non_null_ptr1,
@@ -569,10 +562,10 @@ mod tests {
                 device,
                 PoolType::SmallBlock,
             );
-            
+
             assert_eq!(handle1, handle2); // Same ID
             assert_ne!(handle1, handle3); // Different ID
-            
+
             // Clean up
             dealloc(ptr1, layout);
             dealloc(ptr2, layout);
@@ -583,33 +576,26 @@ mod tests {
     fn test_memory_handle_slice_access() {
         let device = get_cpu_device();
         let layout = Layout::from_size_align(1024, 16).unwrap();
-        
+
         unsafe {
             let ptr = alloc(layout);
             assert!(!ptr.is_null());
             let non_null_ptr = NonNull::new(ptr).unwrap();
-            
+
             // Initialize memory with test pattern
             for i in 0..1024 {
                 *ptr.add(i) = (i % 256) as u8;
             }
-            
-            let handle = MemoryHandle::new(
-                7,
-                non_null_ptr,
-                1024,
-                16,
-                device,
-                PoolType::SmallBlock,
-            );
-            
+
+            let handle = MemoryHandle::new(7, non_null_ptr, 1024, 16, device, PoolType::SmallBlock);
+
             // Test slice access
             let slice = handle.as_slice().unwrap();
             assert_eq!(slice.len(), 1024);
             assert_eq!(slice[0], 0);
             assert_eq!(slice[255], 255);
             assert_eq!(slice[256], 0);
-            
+
             // Clean up
             dealloc(ptr, layout);
         }

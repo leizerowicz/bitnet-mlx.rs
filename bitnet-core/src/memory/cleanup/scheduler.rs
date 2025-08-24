@@ -3,20 +3,20 @@
 //! This module provides the CleanupScheduler that manages automatic cleanup
 //! operations, scheduling them based on various triggers and priorities.
 
-use std::sync::{Arc, RwLock, Mutex, Weak};
-use std::time::{Duration, Instant, SystemTime};
-use std::collections::{HashMap, BinaryHeap};
-use std::thread;
-use std::cmp::Ordering;
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap};
+use std::sync::{Arc, Mutex, RwLock, Weak};
+use std::thread;
+use std::time::{Duration, Instant, SystemTime};
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, info, warn};
 
-use super::{CleanupError, CleanupResult};
 use super::config::{CleanupStrategyType, SchedulerConfig};
-use super::strategies::CleanupPriority;
 use super::manager::SchedulerCleanupManager;
+use super::strategies::CleanupPriority;
+use super::{CleanupError, CleanupResult};
 
 /// Unique identifier for scheduled cleanup operations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -82,7 +82,7 @@ impl ScheduledCleanup {
         delay: Duration,
     ) -> Self {
         let scheduled_time = SystemTime::now() + delay;
-        
+
         Self {
             id,
             strategy_type,
@@ -325,8 +325,10 @@ impl CleanupScheduler {
         self.add_scheduled_cleanup(scheduled_cleanup)?;
 
         #[cfg(feature = "tracing")]
-        debug!("Scheduled cleanup {:?} with strategy {:?} and delay {:?}", 
-               cleanup_id, strategy_type, delay);
+        debug!(
+            "Scheduled cleanup {:?} with strategy {:?} and delay {:?}",
+            cleanup_id, strategy_type, delay
+        );
 
         Ok(cleanup_id)
     }
@@ -340,15 +342,16 @@ impl CleanupScheduler {
         interval: Duration,
     ) -> CleanupResult<CleanupId> {
         let cleanup_id = self.generate_cleanup_id()?;
-        let scheduled_cleanup = ScheduledCleanup::new_recurring(
-            cleanup_id, strategy_type, priority, delay, interval
-        );
+        let scheduled_cleanup =
+            ScheduledCleanup::new_recurring(cleanup_id, strategy_type, priority, delay, interval);
 
         self.add_scheduled_cleanup(scheduled_cleanup)?;
 
         #[cfg(feature = "tracing")]
-        debug!("Scheduled recurring cleanup {:?} with strategy {:?}, delay {:?}, interval {:?}", 
-               cleanup_id, strategy_type, delay, interval);
+        debug!(
+            "Scheduled recurring cleanup {:?} with strategy {:?}, delay {:?}, interval {:?}",
+            cleanup_id, strategy_type, delay, interval
+        );
 
         Ok(cleanup_id)
     }
@@ -377,7 +380,9 @@ impl CleanupScheduler {
 
     /// Returns current scheduler statistics
     pub fn get_stats(&self) -> SchedulerStats {
-        let mut stats = self.stats.read()
+        let mut stats = self
+            .stats
+            .read()
             .map(|s| s.clone())
             .unwrap_or_else(|_| SchedulerStats::new());
 
@@ -393,14 +398,16 @@ impl CleanupScheduler {
 
     /// Returns whether the scheduler is running
     pub fn is_running(&self) -> bool {
-        self.is_running.read()
+        self.is_running
+            .read()
             .map(|running| *running)
             .unwrap_or(false)
     }
 
     /// Returns the number of active scheduled cleanups
     pub fn active_cleanup_count(&self) -> usize {
-        self.cleanup_lookup.read()
+        self.cleanup_lookup
+            .read()
             .map(|lookup| lookup.len())
             .unwrap_or(0)
     }
@@ -409,11 +416,13 @@ impl CleanupScheduler {
 
     /// Generates a unique cleanup ID
     fn generate_cleanup_id(&self) -> CleanupResult<CleanupId> {
-        let mut counter = self.next_cleanup_id.lock()
-            .map_err(|_| CleanupError::InternalError { 
-                reason: "Failed to acquire cleanup ID counter lock".to_string() 
+        let mut counter = self
+            .next_cleanup_id
+            .lock()
+            .map_err(|_| CleanupError::InternalError {
+                reason: "Failed to acquire cleanup ID counter lock".to_string(),
             })?;
-        
+
         let id = *counter;
         *counter += 1;
         Ok(CleanupId::new(id))
@@ -425,19 +434,23 @@ impl CleanupScheduler {
 
         // Add to priority queue
         {
-            let mut scheduled = self.scheduled_cleanups.lock()
-                .map_err(|_| CleanupError::InternalError { 
-                    reason: "Failed to acquire scheduled cleanups lock".to_string() 
-                })?;
+            let mut scheduled =
+                self.scheduled_cleanups
+                    .lock()
+                    .map_err(|_| CleanupError::InternalError {
+                        reason: "Failed to acquire scheduled cleanups lock".to_string(),
+                    })?;
             scheduled.push(scheduled_cleanup.clone());
         }
 
         // Add to lookup
         {
-            let mut lookup = self.cleanup_lookup.write()
-                .map_err(|_| CleanupError::InternalError { 
-                    reason: "Failed to acquire cleanup lookup lock".to_string() 
-                })?;
+            let mut lookup =
+                self.cleanup_lookup
+                    .write()
+                    .map_err(|_| CleanupError::InternalError {
+                        reason: "Failed to acquire cleanup lookup lock".to_string(),
+                    })?;
             lookup.insert(cleanup_id, scheduled_cleanup);
         }
 
@@ -464,7 +477,7 @@ impl CleanupScheduler {
 
         while *is_running.read().unwrap() {
             let now = Instant::now();
-            
+
             // Check if it's time to process cleanups
             if now.duration_since(last_check) >= config.base_interval {
                 Self::process_ready_cleanups(
@@ -556,8 +569,10 @@ impl CleanupScheduler {
         }
 
         #[cfg(feature = "tracing")]
-        debug!("Executing scheduled cleanup {:?} with strategy {:?}", 
-               cleanup_id, cleanup.strategy_type);
+        debug!(
+            "Executing scheduled cleanup {:?} with strategy {:?}",
+            cleanup_id, cleanup.strategy_type
+        );
 
         // Execute the cleanup
         let success = if let Some(manager) = manager.upgrade() {
@@ -577,7 +592,7 @@ impl CleanupScheduler {
             if let Ok(mut stats) = stats.write() {
                 stats.total_executed += 1;
                 stats.last_execution = Some(SystemTime::now());
-                
+
                 if !success {
                     stats.total_failures += 1;
                 }
@@ -600,7 +615,7 @@ impl CleanupScheduler {
                     let mut lookup = cleanup_lookup.write().unwrap();
                     lookup.remove(&cleanup_id);
                 }
-                
+
                 if let Ok(mut stats) = stats.write() {
                     stats.active_scheduled = stats.active_scheduled.saturating_sub(1);
                 }
@@ -613,7 +628,7 @@ impl CleanupScheduler {
                         stats.total_retries += 1;
                     }
                 }
-                
+
                 // Put back in queue for retry
                 {
                     let mut lookup = cleanup_lookup.write().unwrap();
@@ -626,7 +641,7 @@ impl CleanupScheduler {
                     let mut lookup = cleanup_lookup.write().unwrap();
                     lookup.remove(&cleanup_id);
                 }
-                
+
                 if let Ok(mut stats) = stats.write() {
                     stats.active_scheduled = stats.active_scheduled.saturating_sub(1);
                 }
@@ -640,17 +655,17 @@ impl CleanupScheduler {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::config::SchedulerConfig;
+    use super::*;
 
     #[test]
     fn test_cleanup_id() {
         let id = CleanupId::new(42);
         assert_eq!(id.raw(), 42);
-        
+
         let id_from_u64: CleanupId = 123.into();
         assert_eq!(id_from_u64.raw(), 123);
-        
+
         let u64_from_id: u64 = id.into();
         assert_eq!(u64_from_id, 42);
     }
@@ -664,7 +679,7 @@ mod tests {
             CleanupPriority::Normal,
             Duration::from_millis(100),
         );
-        
+
         assert_eq!(cleanup.id, id);
         assert_eq!(cleanup.strategy_type, CleanupStrategyType::Idle);
         assert_eq!(cleanup.priority, CleanupPriority::Normal);
@@ -681,14 +696,14 @@ mod tests {
             CleanupPriority::Low,
             Duration::from_millis(100),
         );
-        
+
         let cleanup2 = ScheduledCleanup::new(
             CleanupId::new(2),
             CleanupStrategyType::Pressure,
             CleanupPriority::High,
             Duration::from_millis(100),
         );
-        
+
         // Higher priority should come first
         assert!(cleanup2 > cleanup1);
     }
@@ -697,10 +712,10 @@ mod tests {
     fn test_cleanup_scheduler_creation() {
         let config = SchedulerConfig::default();
         let scheduler = CleanupScheduler::new(config).unwrap();
-        
+
         assert!(!scheduler.is_running());
         assert_eq!(scheduler.active_cleanup_count(), 0);
-        
+
         let stats = scheduler.get_stats();
         assert_eq!(stats.total_scheduled, 0);
         assert_eq!(stats.total_executed, 0);
@@ -710,23 +725,25 @@ mod tests {
     fn test_schedule_cleanup() {
         let config = SchedulerConfig::default();
         let scheduler = CleanupScheduler::new(config).unwrap();
-        
-        let cleanup_id = scheduler.schedule_cleanup(
-            CleanupStrategyType::Idle,
-            CleanupPriority::Normal,
-            Duration::from_millis(100),
-        ).unwrap();
-        
+
+        let cleanup_id = scheduler
+            .schedule_cleanup(
+                CleanupStrategyType::Idle,
+                CleanupPriority::Normal,
+                Duration::from_millis(100),
+            )
+            .unwrap();
+
         assert_eq!(scheduler.active_cleanup_count(), 1);
-        
+
         let stats = scheduler.get_stats();
         assert_eq!(stats.total_scheduled, 1);
         assert_eq!(stats.active_scheduled, 1);
-        
+
         // Test cancellation
         assert!(scheduler.cancel_cleanup(cleanup_id));
         assert_eq!(scheduler.active_cleanup_count(), 0);
-        
+
         let stats = scheduler.get_stats();
         assert_eq!(stats.total_cancelled, 1);
         assert_eq!(stats.active_scheduled, 0);
@@ -736,16 +753,18 @@ mod tests {
     fn test_recurring_cleanup() {
         let config = SchedulerConfig::default();
         let scheduler = CleanupScheduler::new(config).unwrap();
-        
-        let _cleanup_id = scheduler.schedule_recurring_cleanup(
-            CleanupStrategyType::Periodic,
-            CleanupPriority::Normal,
-            Duration::from_millis(100),
-            Duration::from_secs(1),
-        ).unwrap();
-        
+
+        let _cleanup_id = scheduler
+            .schedule_recurring_cleanup(
+                CleanupStrategyType::Periodic,
+                CleanupPriority::Normal,
+                Duration::from_millis(100),
+                Duration::from_secs(1),
+            )
+            .unwrap();
+
         assert_eq!(scheduler.active_cleanup_count(), 1);
-        
+
         let stats = scheduler.get_stats();
         assert_eq!(stats.total_scheduled, 1);
     }

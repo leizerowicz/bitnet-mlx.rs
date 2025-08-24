@@ -43,7 +43,7 @@ pub enum TestPattern {
 /// Generate a test tensor with the specified pattern and shape
 pub fn generate_test_tensor(pattern: TestPattern, shape: &[usize], device: &Device) -> QuantizationResult<Tensor> {
     let total_elements: usize = shape.iter().product();
-    
+
     let data = match pattern {
         TestPattern::NormalDistribution => generate_normal_distribution(total_elements),
         TestPattern::UniformDistribution => generate_uniform_distribution(total_elements),
@@ -60,13 +60,13 @@ pub fn generate_test_tensor(pattern: TestPattern, shape: &[usize], device: &Devi
         TestPattern::BimodalDistribution => generate_bimodal_distribution(total_elements),
         TestPattern::ExponentialDistribution => generate_exponential_distribution(total_elements),
     };
-    
+
     let tensor_shape = Shape::from_dims(shape);
     let tensor = Tensor::from_vec(data, tensor_shape, device)
-        .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-            reason: format!("Failed to create test tensor: {}", e) 
+        .map_err(|e| crate::quantization::QuantizationError::TensorError {
+            reason: format!("Failed to create test tensor: {}", e)
         })?;
-    
+
     Ok(tensor)
 }
 
@@ -87,7 +87,7 @@ pub fn generate_test_tensor_set(device: &Device) -> QuantizationResult<TestTenso
     ];
 
     let mut tensor_sets = HashMap::new();
-    
+
     for pattern in [
         TestPattern::NormalDistribution,
         TestPattern::UniformDistribution,
@@ -134,16 +134,16 @@ impl TestTensorSet {
 fn generate_normal_distribution(n: usize) -> Vec<f32> {
     // Approximate normal distribution using Box-Muller transform
     let mut result = Vec::with_capacity(n);
-    
+
     for i in 0..n {
         // Simple deterministic "random" for reproducible tests
         let u1 = ((i * 73 + 17) % 1000) as f32 / 1000.0 + 0.001;
         let u2 = ((i * 137 + 23) % 1000) as f32 / 1000.0 + 0.001;
-        
+
         let z = (-2.0 * u1.ln()).sqrt() * (2.0 * std::f32::consts::PI * u2).cos();
         result.push(z);
     }
-    
+
     result
 }
 
@@ -252,28 +252,28 @@ impl DataStatistics {
     /// Compute statistics for a tensor
     pub fn from_tensor(tensor: &Tensor) -> QuantizationResult<Self> {
         let values = tensor.flatten_all()
-            .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-                reason: format!("Failed to flatten tensor: {}", e) 
+            .map_err(|e| crate::quantization::QuantizationError::TensorError {
+                reason: format!("Failed to flatten tensor: {}", e)
             })?
             .to_vec1::<f32>()
-            .map_err(|e| crate::quantization::QuantizationError::TensorError { 
-                reason: format!("Failed to convert to vec: {}", e) 
+            .map_err(|e| crate::quantization::QuantizationError::TensorError {
+                reason: format!("Failed to convert to vec: {}", e)
             })?;
 
         let n = values.len() as f32;
         let mean = values.iter().sum::<f32>() / n;
-        
+
         let variance = values.iter()
             .map(|&x| (x - mean).powi(2))
             .sum::<f32>() / n;
         let std_dev = variance.sqrt();
-        
+
         let min = values.iter().fold(f32::INFINITY, |a, &b| a.min(b));
         let max = values.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
-        
+
         let zero_count = values.iter().filter(|&&x| x.abs() < 1e-8).count();
         let sparsity = zero_count as f32 / n;
-        
+
         // Compute skewness and kurtosis
         let skewness = if std_dev > 1e-8 {
             values.iter()
@@ -282,7 +282,7 @@ impl DataStatistics {
         } else {
             0.0
         };
-        
+
         let kurtosis = if std_dev > 1e-8 {
             values.iter()
                 .map(|&x| ((x - mean) / std_dev).powi(4))
@@ -311,7 +311,7 @@ mod tests {
     fn test_generate_normal_distribution() {
         let device = create_test_device();
         let tensor = generate_test_tensor(TestPattern::NormalDistribution, &[100], &device).unwrap();
-        
+
         let stats = DataStatistics::from_tensor(&tensor).unwrap();
         // Normal distribution should have mean close to 0 and reasonable std dev
         assert!(stats.mean.abs() < 0.5);
@@ -322,7 +322,7 @@ mod tests {
     fn test_generate_sparse_weights() {
         let device = create_test_device();
         let tensor = generate_test_tensor(TestPattern::SparseWeights, &[100], &device).unwrap();
-        
+
         let stats = DataStatistics::from_tensor(&tensor).unwrap();
         // Sparse weights should have high sparsity
         assert!(stats.sparsity > 0.6);
@@ -332,7 +332,7 @@ mod tests {
     fn test_generate_all_zeros() {
         let device = create_test_device();
         let tensor = generate_test_tensor(TestPattern::AllZeros, &[50], &device).unwrap();
-        
+
         let stats = DataStatistics::from_tensor(&tensor).unwrap();
         assert_eq!(stats.mean, 0.0);
         assert_eq!(stats.std_dev, 0.0);
@@ -343,10 +343,10 @@ mod tests {
     fn test_tensor_set_generation() {
         let device = create_test_device();
         let tensor_set = generate_test_tensor_set(&device).unwrap();
-        
+
         assert!(tensor_set.total_tensors() > 0);
         assert!(tensor_set.get_patterns().len() >= 6);
-        
+
         let normal_tensors = tensor_set.get_pattern_tensors(TestPattern::NormalDistribution);
         assert!(normal_tensors.is_some());
         assert!(normal_tensors.unwrap().len() >= 6); // Different shapes
@@ -356,7 +356,7 @@ mod tests {
     fn test_outlier_heavy_pattern() {
         let device = create_test_device();
         let tensor = generate_test_tensor(TestPattern::OutlierHeavy, &[100], &device).unwrap();
-        
+
         let stats = DataStatistics::from_tensor(&tensor).unwrap();
         // Should have large max/min values (outliers)
         assert!(stats.max > 50.0 || stats.min < -50.0);
@@ -366,9 +366,9 @@ mod tests {
     fn test_ternary_pattern() {
         let device = create_test_device();
         let tensor = generate_test_tensor(TestPattern::RandomTernary, &[100], &device).unwrap();
-        
+
         let values = tensor.flatten_all().unwrap().to_vec1::<f32>().unwrap();
-        
+
         // All values should be in {-1, 0, 1}
         for &val in &values {
             assert!(val == -1.0 || val == 0.0 || val == 1.0);

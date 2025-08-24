@@ -67,10 +67,10 @@ impl SequenceStats {
     pub fn add_sequence_length(&mut self, length: usize) {
         self.count += 1;
         self.total_tokens += length;
-        
+
         // Update distribution
         *self.length_distribution.entry(length).or_insert(0) += 1;
-        
+
         // Update min/max
         if self.count == 1 {
             self.min_length = length;
@@ -79,7 +79,7 @@ impl SequenceStats {
             self.min_length = self.min_length.min(length);
             self.max_length = self.max_length.max(length);
         }
-        
+
         // Recalculate statistics
         self.recalculate_stats();
     }
@@ -181,7 +181,7 @@ impl SequenceStats {
     /// Count outliers in the dataset
     pub fn count_outliers(&self) -> usize {
         let (lower_bound, upper_bound) = self.outlier_bounds();
-        
+
         self.length_distribution
             .iter()
             .filter(|(&length, _)| {
@@ -294,7 +294,7 @@ impl LengthDistribution {
     /// Find the length at a given percentile
     pub fn length_at_percentile(&self, percentile: f64) -> Option<usize> {
         let target = percentile / 100.0;
-        
+
         self.cumulative
             .iter()
             .find(|(_, &prob)| prob >= target)
@@ -311,11 +311,11 @@ impl LengthDistribution {
 /// Comprehensive statistics about the sequence lengths
 pub fn analyze_sequence_lengths(lengths: &[usize]) -> SequenceStats {
     let mut stats = SequenceStats::new();
-    
+
     for &length in lengths {
         stats.add_sequence_length(length);
     }
-    
+
     stats
 }
 
@@ -324,18 +324,18 @@ fn percentile(sorted_data: &[f64], p: f64) -> f64 {
     if sorted_data.is_empty() {
         return 0.0;
     }
-    
+
     if p <= 0.0 {
         return sorted_data[0];
     }
     if p >= 100.0 {
         return sorted_data[sorted_data.len() - 1];
     }
-    
+
     let index = (p / 100.0) * (sorted_data.len() - 1) as f64;
     let lower = index.floor() as usize;
     let upper = index.ceil() as usize;
-    
+
     if lower == upper {
         sorted_data[lower]
     } else {
@@ -410,12 +410,13 @@ impl BatchStats {
 
         let means: Vec<f64> = batch_stats.iter().map(|s| s.mean_length).collect();
         let mean_of_means = means.iter().sum::<f64>() / means.len() as f64;
-        
+
         // Variance in means
         let mean_variance = means
             .iter()
             .map(|&m| (m - mean_of_means).powi(2))
-            .sum::<f64>() / means.len() as f64;
+            .sum::<f64>()
+            / means.len() as f64;
 
         // Range of means
         let min_mean = means.iter().fold(f64::INFINITY, |a, &b| a.min(b));
@@ -438,12 +439,12 @@ impl BatchStats {
         for i in 0..batch_stats.len() {
             for j in (i + 1)..batch_stats.len() {
                 let distance = (batch_stats[i].mean_length - batch_stats[j].mean_length).abs();
-                
+
                 if distance < min_distance {
                     min_distance = distance;
                     most_similar = Some((i, j, distance));
                 }
-                
+
                 if distance > max_distance {
                     max_distance = distance;
                     most_different = Some((i, j, distance));
@@ -480,12 +481,16 @@ impl LengthRecommendations {
     /// Generate recommendations from sequence statistics
     pub fn from_stats(stats: &SequenceStats, target_memory_mb: Option<f64>) -> Self {
         // Use 95th percentile as max length recommendation
-        let recommended_max_length = stats.percentiles.get(&95)
+        let recommended_max_length = stats
+            .percentiles
+            .get(&95)
             .map(|&p| p.ceil() as usize)
             .unwrap_or(stats.max_length);
 
         // Use 5th percentile as min length recommendation
-        let recommended_min_length = stats.percentiles.get(&5)
+        let recommended_min_length = stats
+            .percentiles
+            .get(&5)
             .map(|&p| p.floor() as usize)
             .unwrap_or(stats.min_length);
 
@@ -533,7 +538,7 @@ mod tests {
     fn test_sequence_stats_basic() {
         let lengths = vec![10, 20, 30, 40, 50];
         let stats = analyze_sequence_lengths(&lengths);
-        
+
         assert_eq!(stats.count, 5);
         assert_eq!(stats.total_tokens, 150);
         assert_eq!(stats.min_length, 10);
@@ -545,7 +550,7 @@ mod tests {
     #[test]
     fn test_percentile_calculation() {
         let data = vec![1.0, 2.0, 3.0, 4.0, 5.0];
-        
+
         assert_eq!(percentile(&data, 0.0), 1.0);
         assert_eq!(percentile(&data, 50.0), 3.0);
         assert_eq!(percentile(&data, 100.0), 5.0);
@@ -555,30 +560,30 @@ mod tests {
     fn test_length_distribution() {
         let lengths = vec![5, 5, 10, 10, 10, 15];
         let dist = LengthDistribution::from_lengths(&lengths);
-        
+
         assert_eq!(dist.total_count, 6);
         assert_eq!(dist.histogram[&5], 2);
         assert_eq!(dist.histogram[&10], 3);
         assert_eq!(dist.histogram[&15], 1);
-        
+
         // Check probabilities
-        assert!((dist.probability(5) - 2.0/6.0).abs() < 1e-10);
-        assert!((dist.probability(10) - 3.0/6.0).abs() < 1e-10);
+        assert!((dist.probability(5) - 2.0 / 6.0).abs() < 1e-10);
+        assert!((dist.probability(10) - 3.0 / 6.0).abs() < 1e-10);
     }
 
     #[test]
     fn test_outlier_detection() {
         let mut stats = SequenceStats::new();
-        
+
         // Add normal values
         for _ in 0..10 {
             stats.add_sequence_length(100);
         }
-        
+
         // Add outliers
-        stats.add_sequence_length(1);   // Low outlier
+        stats.add_sequence_length(1); // Low outlier
         stats.add_sequence_length(200); // High outlier
-        
+
         let outlier_count = stats.count_outliers();
         assert!(outlier_count > 0);
     }
@@ -588,12 +593,12 @@ mod tests {
         let batch1 = vec![10, 20, 30];
         let batch2 = vec![15, 25, 35];
         let batch3 = vec![5, 15, 25];
-        
+
         let batch_stats = BatchStats::analyze_batches(&[batch1, batch2, batch3]);
-        
+
         assert_eq!(batch_stats.batch_stats.len(), 3);
         assert_eq!(batch_stats.combined_stats.count, 9);
-        
+
         // Check that comparison metrics are calculated
         assert!(batch_stats.comparison.consistency_score >= 0.0);
         assert!(batch_stats.comparison.consistency_score <= 1.0);
@@ -604,10 +609,10 @@ mod tests {
         let lengths = vec![10; 90]; // 90 sequences of length 10
         let mut lengths_with_outliers = lengths;
         lengths_with_outliers.extend(vec![100; 10]); // 10 outliers of length 100
-        
+
         let stats = analyze_sequence_lengths(&lengths_with_outliers);
         let recommendations = LengthRecommendations::from_stats(&stats, Some(1.0)); // 1MB target
-        
+
         // Should recommend a length that covers most sequences but not outliers
         assert!(recommendations.recommended_max_length > 10);
         assert!(recommendations.recommended_max_length < 100);

@@ -3,11 +3,11 @@
 //! This test suite validates the execution backend selection logic,
 //! fallback mechanisms, and error handling for different scenarios.
 
-use bitnet_core::execution::{
-    choose_execution_backend, fallback_to_candle, get_available_backends,
-    get_preferred_backend, is_backend_available, ExecutionBackend, MlxError,
-};
 use bitnet_core::error::BitNetError;
+use bitnet_core::execution::{
+    choose_execution_backend, fallback_to_candle, get_available_backends, get_preferred_backend,
+    is_backend_available, ExecutionBackend, MlxError,
+};
 
 #[test]
 fn test_execution_backend_selection_for_operations() {
@@ -124,10 +124,16 @@ fn test_fallback_to_candle_scenarios() {
 
     for mlx_error in test_cases {
         let result = fallback_to_candle(mlx_error);
-        assert!(result.is_ok(), "Fallback should succeed for all error types");
+        assert!(
+            result.is_ok(),
+            "Fallback should succeed for all error types"
+        );
 
         let tensor = result.unwrap();
-        assert!(!tensor.dims().is_empty(), "Fallback tensor should have valid dimensions");
+        assert!(
+            !tensor.dims().is_empty(),
+            "Fallback tensor should have valid dimensions"
+        );
         assert!(tensor.device().is_cpu(), "Fallback tensor should be on CPU");
     }
 }
@@ -172,7 +178,10 @@ fn test_preferred_backend() {
     // Should be one of the known backend types
     assert!(matches!(
         backend,
-        ExecutionBackend::Mlx | ExecutionBackend::CandleMetal | ExecutionBackend::CandleCpu | ExecutionBackend::Auto
+        ExecutionBackend::Mlx
+            | ExecutionBackend::CandleMetal
+            | ExecutionBackend::CandleCpu
+            | ExecutionBackend::Auto
     ));
 }
 
@@ -185,7 +194,10 @@ fn test_execution_backend_consistency() {
     for operation in operations {
         let backend1 = choose_execution_backend(operation);
         let backend2 = choose_execution_backend(operation);
-        assert_eq!(backend1, backend2, "Backend selection should be consistent for operation: {operation}");
+        assert_eq!(
+            backend1, backend2,
+            "Backend selection should be consistent for operation: {operation}"
+        );
     }
 }
 
@@ -226,7 +238,7 @@ fn test_execution_backend_display() {
 #[test]
 fn test_mlx_error_error_trait() {
     let error = MlxError::OperationFailed("Test error".to_string());
-    
+
     // Test that MlxError implements std::error::Error
     let error_ref: &dyn std::error::Error = &error;
     assert!(!error_ref.to_string().is_empty());
@@ -239,7 +251,7 @@ fn test_mlx_specific_functionality() {
 
     // Test MLX availability detection
     let mlx_available = is_mlx_available();
-    
+
     if mlx_available {
         // If MLX is available, it should be preferred for certain operations
         let backend = choose_execution_backend("matmul");
@@ -247,7 +259,10 @@ fn test_mlx_specific_functionality() {
     } else {
         // If MLX is not available, should fall back to other backends
         let backend = choose_execution_backend("matmul");
-        assert!(matches!(backend, ExecutionBackend::CandleMetal | ExecutionBackend::CandleCpu));
+        assert!(matches!(
+            backend,
+            ExecutionBackend::CandleMetal | ExecutionBackend::CandleCpu
+        ));
     }
 }
 
@@ -265,13 +280,16 @@ fn test_metal_specific_functionality() {
     }
 
     // Test that Metal backend availability matches actual Metal device availability
-    assert_eq!(is_backend_available(&ExecutionBackend::CandleMetal), metal_available);
+    assert_eq!(
+        is_backend_available(&ExecutionBackend::CandleMetal),
+        metal_available
+    );
 }
 
 #[test]
 fn test_error_handling_robustness() {
     // Test that all functions handle edge cases gracefully
-    
+
     // Test with empty operation string
     let backend = choose_execution_backend("");
     assert!(is_backend_available(&backend));
@@ -301,8 +319,11 @@ fn test_fallback_memory_efficiency() {
 
         let tensor = result.unwrap();
         let element_count: usize = tensor.dims().iter().product();
-        
+
         // Fallback tensors should be small to conserve memory
-        assert!(element_count <= 16, "Fallback tensor should be memory efficient");
+        assert!(
+            element_count <= 16,
+            "Fallback tensor should be memory efficient"
+        );
     }
 }

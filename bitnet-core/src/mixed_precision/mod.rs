@@ -4,11 +4,11 @@
 //! and operations to use different precision levels for optimal performance and memory usage.
 
 pub mod config;
-pub mod layer_precision;
-pub mod precision_manager;
 pub mod conversion;
-pub mod validation;
+pub mod layer_precision;
 pub mod policy;
+pub mod precision_manager;
+pub mod validation;
 
 use crate::memory::tensor::BitNetDType;
 use serde::{Deserialize, Serialize};
@@ -103,26 +103,37 @@ impl LayerType {
         match self {
             LayerType::Linear | LayerType::Convolution => {
                 // Linear and conv layers support all quantized precisions
-                matches!(precision, 
-                    BitNetDType::BitNet158 | BitNetDType::I8 | BitNetDType::I4 | 
-                    BitNetDType::I2 | BitNetDType::I1 | BitNetDType::F16 | BitNetDType::F32
+                matches!(
+                    precision,
+                    BitNetDType::BitNet158
+                        | BitNetDType::I8
+                        | BitNetDType::I4
+                        | BitNetDType::I2
+                        | BitNetDType::I1
+                        | BitNetDType::F16
+                        | BitNetDType::F32
                 )
             }
             LayerType::Attention => {
                 // Attention layers need higher precision for stability
-                matches!(precision, 
+                matches!(
+                    precision,
                     BitNetDType::F32 | BitNetDType::F16 | BitNetDType::BF16 | BitNetDType::I8
                 )
             }
             LayerType::Embedding => {
                 // Embeddings typically use float or high-bit integer
-                matches!(precision, 
+                matches!(
+                    precision,
                     BitNetDType::F32 | BitNetDType::F16 | BitNetDType::BF16 | BitNetDType::I8
                 )
             }
             LayerType::Normalization => {
                 // Normalization layers need float precision
-                matches!(precision, BitNetDType::F32 | BitNetDType::F16 | BitNetDType::BF16)
+                matches!(
+                    precision,
+                    BitNetDType::F32 | BitNetDType::F16 | BitNetDType::BF16
+                )
             }
             LayerType::Activation => {
                 // Activations can use various precisions
@@ -130,7 +141,8 @@ impl LayerType {
             }
             LayerType::Output => {
                 // Output layers typically need higher precision
-                matches!(precision, 
+                matches!(
+                    precision,
                     BitNetDType::F32 | BitNetDType::F16 | BitNetDType::BF16 | BitNetDType::I8
                 )
             }
@@ -153,26 +165,10 @@ impl LayerType {
                 BitNetDType::BF16,
                 BitNetDType::F32,
             ],
-            LayerType::Embedding => vec![
-                BitNetDType::I8,
-                BitNetDType::F16,
-                BitNetDType::BF16,
-            ],
-            LayerType::Normalization => vec![
-                BitNetDType::F16,
-                BitNetDType::BF16,
-                BitNetDType::F32,
-            ],
-            LayerType::Activation => vec![
-                BitNetDType::I8,
-                BitNetDType::I4,
-                BitNetDType::F16,
-            ],
-            LayerType::Output => vec![
-                BitNetDType::F16,
-                BitNetDType::BF16,
-                BitNetDType::I8,
-            ],
+            LayerType::Embedding => vec![BitNetDType::I8, BitNetDType::F16, BitNetDType::BF16],
+            LayerType::Normalization => vec![BitNetDType::F16, BitNetDType::BF16, BitNetDType::F32],
+            LayerType::Activation => vec![BitNetDType::I8, BitNetDType::I4, BitNetDType::F16],
+            LayerType::Output => vec![BitNetDType::F16, BitNetDType::BF16, BitNetDType::I8],
             LayerType::Custom(_) => BitNetDType::all_types().to_vec(),
         }
     }
@@ -220,7 +216,8 @@ impl ComponentType {
             }
             ComponentType::Bias => {
                 // Bias typically needs higher precision
-                matches!(precision, 
+                matches!(
+                    precision,
                     BitNetDType::F32 | BitNetDType::F16 | BitNetDType::BF16 | BitNetDType::I8
                 )
             }
@@ -230,19 +227,24 @@ impl ComponentType {
             }
             ComponentType::Gradients => {
                 // Gradients need sufficient precision for training
-                matches!(precision, 
+                matches!(
+                    precision,
                     BitNetDType::F32 | BitNetDType::F16 | BitNetDType::BF16
                 )
             }
             ComponentType::Intermediate => {
                 // Intermediate computations need reasonable precision
-                matches!(precision, 
+                matches!(
+                    precision,
                     BitNetDType::F32 | BitNetDType::F16 | BitNetDType::BF16 | BitNetDType::I8
                 )
             }
             ComponentType::AttentionScores => {
                 // Attention scores need float precision for stability
-                matches!(precision, BitNetDType::F32 | BitNetDType::F16 | BitNetDType::BF16)
+                matches!(
+                    precision,
+                    BitNetDType::F32 | BitNetDType::F16 | BitNetDType::BF16
+                )
             }
             ComponentType::KVCache => {
                 // KV cache can use lower precision for memory efficiency
@@ -336,12 +338,12 @@ impl MixedPrecisionStrategy {
 }
 
 /// Re-export commonly used types
-pub use config::{MixedPrecisionConfig, LayerPrecisionConfig, ComponentPrecisionConfig};
+pub use config::{ComponentPrecisionConfig, LayerPrecisionConfig, MixedPrecisionConfig};
+pub use conversion::{ConversionStrategy, PrecisionConverter};
 pub use layer_precision::{LayerPrecisionManager, LayerPrecisionSpec};
-pub use precision_manager::{PrecisionManager, PrecisionContext};
-pub use conversion::{PrecisionConverter, ConversionStrategy};
+pub use policy::{PolicyEngine, PolicyRule, PrecisionPolicy};
+pub use precision_manager::{PrecisionContext, PrecisionManager};
 pub use validation::{PrecisionValidator, ValidationRule};
-pub use policy::{PrecisionPolicy, PolicyRule, PolicyEngine};
 
 #[cfg(test)]
 mod tests {
@@ -349,9 +351,15 @@ mod tests {
 
     #[test]
     fn test_layer_type_default_precision() {
-        assert_eq!(LayerType::Linear.default_precision(), BitNetDType::BitNet158);
+        assert_eq!(
+            LayerType::Linear.default_precision(),
+            BitNetDType::BitNet158
+        );
         assert_eq!(LayerType::Attention.default_precision(), BitNetDType::I8);
-        assert_eq!(LayerType::Normalization.default_precision(), BitNetDType::F32);
+        assert_eq!(
+            LayerType::Normalization.default_precision(),
+            BitNetDType::F32
+        );
     }
 
     #[test]
@@ -363,16 +371,28 @@ mod tests {
 
     #[test]
     fn test_component_type_default_precision() {
-        assert_eq!(ComponentType::Weights.default_precision(), BitNetDType::BitNet158);
+        assert_eq!(
+            ComponentType::Weights.default_precision(),
+            BitNetDType::BitNet158
+        );
         assert_eq!(ComponentType::Bias.default_precision(), BitNetDType::F16);
-        assert_eq!(ComponentType::Gradients.default_precision(), BitNetDType::F16);
+        assert_eq!(
+            ComponentType::Gradients.default_precision(),
+            BitNetDType::F16
+        );
     }
 
     #[test]
     fn test_mixed_precision_strategy() {
         let strategy = MixedPrecisionStrategy::Balanced;
-        assert_eq!(strategy.get_layer_precision(LayerType::Linear), BitNetDType::BitNet158);
-        assert_eq!(strategy.get_component_precision(ComponentType::Weights), BitNetDType::BitNet158);
+        assert_eq!(
+            strategy.get_layer_precision(LayerType::Linear),
+            BitNetDType::BitNet158
+        );
+        assert_eq!(
+            strategy.get_component_precision(ComponentType::Weights),
+            BitNetDType::BitNet158
+        );
     }
 
     #[test]

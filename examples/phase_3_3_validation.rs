@@ -1,10 +1,10 @@
 //! Phase 3.3 Integration Validation Example
-//! 
+//!
 //! This example demonstrates the integration and functionality of all Phase 3.3 components
 
 use bitnet_quant::metrics::{
     QuantizationMetrics, ErrorThresholds,
-    mse::MSECalculator, 
+    mse::MSECalculator,
     sqnr::SQNRCalculator,
     cosine_similarity::CosineSimilarityCalculator,
 };
@@ -15,21 +15,21 @@ fn main() -> Result<()> {
     println!("{}",  "=".repeat(60));
 
     let device = &Device::Cpu;
-    
+
     // Create test data
     let original = Tensor::randn(0f32, 1f32, (1000,), device)?;
     let quantized = &original + &Tensor::randn(0f32, 0.1f32, (1000,), device)?;
 
     println!("\n📊 Testing Core Metrics Components");
     println!("{}", "-".repeat(40));
-    
+
     // Test MSE Calculator
     print!("Testing MSE Calculator... ");
     let mse_calc = MSECalculator::new();
     let mse = mse_calc.calculate_mse(&original, &quantized)?;
     println!("✅ MSE: {:.6}", mse);
 
-    // Test SQNR Calculator  
+    // Test SQNR Calculator
     print!("Testing SQNR Calculator... ");
     let sqnr_calc = SQNRCalculator::new();
     let sqnr = sqnr_calc.calculate_sqnr(&original, &quantized)?;
@@ -40,7 +40,7 @@ fn main() -> Result<()> {
     let cos_calc = CosineSimilarityCalculator::new();
     let similarity = cos_calc.calculate_similarity(&original, &quantized)?;
     println!("✅ Similarity: {:.4}", similarity);
-    
+
     // Create comprehensive metrics
     let metrics = QuantizationMetrics {
         mse,
@@ -70,6 +70,6 @@ fn main() -> Result<()> {
     println!("\n🎉 Phase 3.3 Integration Validation Complete!");
     println!("✅ All core metrics components functioning correctly");
     println!("✅ Error analysis and metrics system ready for production");
-    
+
     Ok(())
 }

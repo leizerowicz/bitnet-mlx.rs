@@ -1,5 +1,5 @@
 //! Minimal Test Benchmark
-//! 
+//!
 //! This is a minimal benchmark to diagnose criterion benchmark registration issues.
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
@@ -33,9 +33,9 @@ fn memory_allocation_benchmark(c: &mut Criterion) {
 }
 
 criterion_group!(
-    minimal_benches, 
+    minimal_benches,
     minimal_benchmark,
-    simple_arithmetic_benchmark, 
+    simple_arithmetic_benchmark,
     memory_allocation_benchmark
 );
 criterion_main!(minimal_benches);

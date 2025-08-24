@@ -1,9 +1,9 @@
 //! BitNet-Specific Quantized Operations
 
-use bitnet_core::{BitNetTensor, TensorShape, MemoryResult, BitNetDType};
 use crate::quantization::{QuantizationPrecision, QuantizationStrategy, TernaryMethod};
+use bitnet_core::{BitNetDType, BitNetTensor, MemoryResult, TensorShape};
 
-/// Ternary quantization parameters  
+/// Ternary quantization parameters
 #[derive(Debug, Clone, Copy)]
 pub struct TernaryQuantizationParams {
     pub method: TernaryMethod,
@@ -65,19 +65,19 @@ pub struct TernaryTensorRepresentation {
 /// Trait for quantized arithmetic operations
 pub trait QuantizedArithmetic {
     type Error;
-    
+
     fn quantized_add(&self, other: &Self) -> Result<Self, Self::Error>
     where
         Self: Sized;
-    
+
     fn quantized_mul(&self, other: &Self) -> Result<Self, Self::Error>
     where
         Self: Sized;
-        
+
     fn quantized_matmul(&self, other: &Self) -> Result<Self, Self::Error>
     where
         Self: Sized;
-    
+
     fn quantized_scale(&self, scalar: f32) -> Result<Self, Self::Error>
     where
         Self: Sized;
@@ -86,26 +86,26 @@ pub trait QuantizedArithmetic {
 /// Trait for ternary arithmetic operations
 pub trait TernaryArithmetic {
     type Error;
-    
+
     fn ternary_add(&self, other: &Self) -> Result<Self, Self::Error>
     where
         Self: Sized;
-    
+
     fn ternary_mul(&self, other: &Self) -> Result<Self, Self::Error>
     where
         Self: Sized;
-    
+
     fn ternary_matmul(&self, other: &Self) -> Result<Self, Self::Error>
     where
         Self: Sized;
-        
+
     fn dequantize_compute_requantize<F>(&self, operation: F) -> Result<Self, Self::Error>
-    where 
+    where
         F: FnOnce(&BitNetTensor) -> MemoryResult<BitNetTensor>,
         Self: Sized;
-    
+
     fn sparsity_ratio(&self) -> f32;
-    
+
     fn count_nonzero(&self) -> usize;
 }
 

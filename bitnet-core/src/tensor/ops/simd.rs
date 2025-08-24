@@ -5,7 +5,7 @@
 
 use crate::tensor::core::BitNetTensor;
 use crate::tensor::dtype::BitNetDType;
-use crate::tensor::ops::{TensorOpResult, TensorOpError};
+use crate::tensor::ops::{TensorOpError, TensorOpResult};
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, trace, warn};
@@ -130,22 +130,30 @@ pub fn simd_add_scalar_f32(tensor: &BitNetTensor, scalar: f32) -> TensorOpResult
 // ============================================================================
 
 fn validate_simd_binary_op(
-    lhs: &BitNetTensor, 
-    rhs: &BitNetTensor, 
-    expected_dtype: BitNetDType, 
-    operation: &str
+    lhs: &BitNetTensor,
+    rhs: &BitNetTensor,
+    expected_dtype: BitNetDType,
+    operation: &str,
 ) -> TensorOpResult<()> {
     if lhs.dtype() != expected_dtype {
         return Err(TensorOpError::DTypeMismatch {
             operation: operation.to_string(),
-            reason: format!("LHS tensor has dtype {:?}, expected {:?}", lhs.dtype(), expected_dtype),
+            reason: format!(
+                "LHS tensor has dtype {:?}, expected {:?}",
+                lhs.dtype(),
+                expected_dtype
+            ),
         });
     }
-    
+
     if rhs.dtype() != expected_dtype {
         return Err(TensorOpError::DTypeMismatch {
             operation: operation.to_string(),
-            reason: format!("RHS tensor has dtype {:?}, expected {:?}", rhs.dtype(), expected_dtype),
+            reason: format!(
+                "RHS tensor has dtype {:?}, expected {:?}",
+                rhs.dtype(),
+                expected_dtype
+            ),
         });
     }
 
@@ -161,14 +169,18 @@ fn validate_simd_binary_op(
 }
 
 fn validate_simd_unary_op(
-    tensor: &BitNetTensor, 
-    expected_dtype: BitNetDType, 
-    operation: &str
+    tensor: &BitNetTensor,
+    expected_dtype: BitNetDType,
+    operation: &str,
 ) -> TensorOpResult<()> {
     if tensor.dtype() != expected_dtype {
         return Err(TensorOpError::DTypeMismatch {
             operation: operation.to_string(),
-            reason: format!("Tensor has dtype {:?}, expected {:?}", tensor.dtype(), expected_dtype),
+            reason: format!(
+                "Tensor has dtype {:?}, expected {:?}",
+                tensor.dtype(),
+                expected_dtype
+            ),
         });
     }
     Ok(())

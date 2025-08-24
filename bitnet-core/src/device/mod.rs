@@ -37,9 +37,9 @@ use tracing::{debug, info, warn};
 // Device comparison utilities
 pub mod comparison;
 pub use comparison::{
-    compare_devices, devices_equal, devices_compatible,
-    assert_devices_equal, assert_devices_not_equal, assert_devices_compatible,
-    DeviceComparisonResult, DeviceComparisonDetails, DeviceType, CapabilityMatch
+    assert_devices_compatible, assert_devices_equal, assert_devices_not_equal, compare_devices,
+    devices_compatible, devices_equal, CapabilityMatch, DeviceComparisonDetails,
+    DeviceComparisonResult, DeviceType,
 };
 
 /// Errors that can occur during device operations
@@ -48,11 +48,11 @@ pub enum DeviceError {
     /// Metal device is not available on this platform
     #[error("Metal device is not available on this platform")]
     MetalNotAvailable,
-    
+
     /// Metal device creation failed
     #[error("Failed to create Metal device: {0}")]
     MetalCreationFailed(String),
-    
+
     /// Device operation failed
     #[error("Device operation failed: {0}")]
     OperationFailed(String),
@@ -80,7 +80,7 @@ pub enum DeviceError {
 pub fn get_cpu_device() -> Device {
     #[cfg(feature = "tracing")]
     debug!("Creating CPU device");
-    
+
     Device::Cpu
 }
 
@@ -114,7 +114,7 @@ pub fn get_cpu_device() -> Device {
 pub fn get_metal_device() -> std::result::Result<Device, DeviceError> {
     #[cfg(feature = "tracing")]
     debug!("Attempting to create Metal device");
-    
+
     match Device::new_metal(0) {
         Ok(device) => {
             #[cfg(feature = "tracing")]
@@ -142,7 +142,7 @@ pub fn get_metal_device() -> std::result::Result<Device, DeviceError> {
 pub fn get_metal_device() -> std::result::Result<Device, DeviceError> {
     #[cfg(feature = "tracing")]
     debug!("Metal feature not enabled, Metal device unavailable");
-    
+
     Err(DeviceError::MetalNotAvailable)
 }
 
@@ -172,7 +172,7 @@ pub fn get_metal_device() -> std::result::Result<Device, DeviceError> {
 ///
 /// let device = auto_select_device();
 /// println!("Selected device: {:?}", device);
-/// 
+///
 /// // Use the device for tensor operations
 /// use candle_core::Tensor;
 /// let tensor = Tensor::zeros(&[2, 2], candle_core::DType::F32, &device).unwrap();
@@ -180,7 +180,7 @@ pub fn get_metal_device() -> std::result::Result<Device, DeviceError> {
 pub fn auto_select_device() -> Device {
     #[cfg(feature = "tracing")]
     debug!("Auto-selecting best available device");
-    
+
     // Try Metal first if available
     match get_metal_device() {
         Ok(device) => {
@@ -219,10 +219,13 @@ pub fn auto_select_device() -> Device {
 pub fn get_device_info() -> (bool, bool) {
     let cpu_available = true; // CPU is always available
     let metal_available = get_metal_device().is_ok();
-    
+
     #[cfg(feature = "tracing")]
-    debug!("Device availability - CPU: {}, Metal: {}", cpu_available, metal_available);
-    
+    debug!(
+        "Device availability - CPU: {}, Metal: {}",
+        cpu_available, metal_available
+    );
+
     (cpu_available, metal_available)
 }
 
@@ -257,7 +260,7 @@ pub fn get_device_info() -> (bool, bool) {
 pub fn is_metal_available() -> bool {
     #[cfg(feature = "tracing")]
     debug!("Checking Metal GPU availability");
-    
+
     match Device::new_metal(0) {
         Ok(_) => {
             #[cfg(feature = "tracing")]
@@ -285,7 +288,7 @@ pub fn is_metal_available() -> bool {
 pub fn is_metal_available() -> bool {
     #[cfg(feature = "tracing")]
     debug!("Metal feature not enabled, Metal GPU unavailable");
-    
+
     false
 }
 
@@ -319,15 +322,15 @@ pub fn is_metal_available() -> bool {
 pub fn get_metal_device_name() -> Option<String> {
     #[cfg(feature = "tracing")]
     debug!("Attempting to get Metal device name");
-    
+
     match Device::new_metal(0) {
         Ok(device) => {
             // Extract device information from the Metal device
             let device_name = get_metal_device_name_internal(&device);
-            
+
             #[cfg(feature = "tracing")]
             debug!("Metal device name: {:?}", device_name);
-            
+
             device_name
         }
         Err(_e) => {
@@ -351,7 +354,7 @@ pub fn get_metal_device_name() -> Option<String> {
 pub fn get_metal_device_name() -> Option<String> {
     #[cfg(feature = "tracing")]
     debug!("Metal feature not enabled, no Metal device name available");
-    
+
     None
 }
 
@@ -364,7 +367,7 @@ fn get_metal_device_name_internal(_device: &Device) -> Option<String> {
     #[cfg(target_os = "macos")]
     {
         use std::process::Command;
-        
+
         // Try to get the chip name from system_profiler
         if let Ok(output) = Command::new("system_profiler")
             .args(&["SPHardwareDataType"])
@@ -384,7 +387,7 @@ fn get_metal_device_name_internal(_device: &Device) -> Option<String> {
                 }
             }
         }
-        
+
         // Fallback: try to get processor name
         if let Ok(output) = Command::new("sysctl")
             .args(&["-n", "machdep.cpu.brand_string"])
@@ -402,11 +405,11 @@ fn get_metal_device_name_internal(_device: &Device) -> Option<String> {
                 }
             }
         }
-        
+
         // Final fallback for Apple Silicon
         Some("Apple Silicon GPU".to_string())
     }
-    
+
     #[cfg(not(target_os = "macos"))]
     {
         // On non-macOS platforms, return a generic name
@@ -486,17 +489,26 @@ mod tests {
     fn test_get_metal_device_disabled() {
         let result = get_metal_device();
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), DeviceError::MetalNotAvailable));
+        assert!(matches!(
+            result.unwrap_err(),
+            DeviceError::MetalNotAvailable
+        ));
     }
 
     #[test]
     fn test_device_error_display() {
         let error = DeviceError::MetalNotAvailable;
-        assert_eq!(error.to_string(), "Metal device is not available on this platform");
-        
+        assert_eq!(
+            error.to_string(),
+            "Metal device is not available on this platform"
+        );
+
         let error = DeviceError::MetalCreationFailed("test error".to_string());
-        assert_eq!(error.to_string(), "Failed to create Metal device: test error");
-        
+        assert_eq!(
+            error.to_string(),
+            "Failed to create Metal device: test error"
+        );
+
         let error = DeviceError::OperationFailed("test operation".to_string());
         assert_eq!(error.to_string(), "Device operation failed: test operation");
     }
@@ -566,11 +578,14 @@ mod tests {
         // Test that is_metal_available and get_metal_device_name are consistent
         let is_available = is_metal_available();
         let device_name = get_metal_device_name();
-        
+
         // If Metal is available, we might get a device name (but not guaranteed)
         // If Metal is not available, we should not get a device name
         if !is_available {
-            assert_eq!(device_name, None, "If Metal is not available, device name should be None");
+            assert_eq!(
+                device_name, None,
+                "If Metal is not available, device name should be None"
+            );
         }
         // Note: We don't assert the reverse (is_available => device_name.is_some())
         // because device name extraction might fail even if Metal is available

@@ -34,40 +34,31 @@
 //! let statistics = dataset.collect_statistics()?;
 //! ```
 
+pub mod config;
 pub mod dataset;
-pub mod statistics;
-pub mod streaming;
-pub mod sampling;
+pub mod error;
 pub mod histogram;
 pub mod persistence;
-pub mod config;
-pub mod error;
+pub mod sampling;
+pub mod statistics;
+pub mod streaming;
 
 use std::time::SystemTime;
 
 // Re-export main types
-pub use dataset::{CalibrationDataset, DatasetIterator, BatchProcessor};
-pub use statistics::{
-    LayerStatistics, StatisticsCollector,
-    MinMaxTracker, StatisticsUpdate
-};
-pub use streaming::{StreamingProcessor, ChunkProcessor};
-pub use sampling::{
-    SamplingStrategy, RepresentativeSampler, StratifiedSampler,
-    RandomSampler, ImportanceSampler
-};
-pub use histogram::{
-    HistogramCollector, ActivationHistogram,
-    HistogramBin, QuantizationOptimizer
-};
-pub use persistence::{
-    CalibrationCache, StatisticsPersistence, CacheEntry
-};
 pub use config::{
-    CalibrationConfig, CalibrationConfigBuilder, ValidationError,
-    StreamingConfig, HistogramConfig, PersistenceConfig, StorageFormat
+    CalibrationConfig, CalibrationConfigBuilder, HistogramConfig, PersistenceConfig, StorageFormat,
+    StreamingConfig, ValidationError,
 };
+pub use dataset::{BatchProcessor, CalibrationDataset, DatasetIterator};
 pub use error::{CalibrationError, CalibrationResult};
+pub use histogram::{ActivationHistogram, HistogramBin, HistogramCollector, QuantizationOptimizer};
+pub use persistence::{CacheEntry, CalibrationCache, StatisticsPersistence};
+pub use sampling::{
+    ImportanceSampler, RandomSampler, RepresentativeSampler, SamplingStrategy, StratifiedSampler,
+};
+pub use statistics::{LayerStatistics, MinMaxTracker, StatisticsCollector, StatisticsUpdate};
+pub use streaming::{ChunkProcessor, StreamingProcessor};
 
 /// Core calibration result containing all collected statistics
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -145,7 +136,7 @@ impl CalibrationFactory {
             SamplingStrategy::Stratified => Box::new(StratifiedSampler::new()),
             SamplingStrategy::Importance => Box::new(ImportanceSampler::new()),
             SamplingStrategy::Systematic => Box::new(RandomSampler::new()), // Fallback for now
-            SamplingStrategy::Custom(_) => Box::new(RandomSampler::new()), // Fallback for now
+            SamplingStrategy::Custom(_) => Box::new(RandomSampler::new()),  // Fallback for now
         }
     }
 }

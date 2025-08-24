@@ -4,8 +4,8 @@
 //! functionality to choose optimal backends and handle fallback scenarios.
 
 use bitnet_core::execution::{
-    choose_execution_backend, fallback_to_candle, get_available_backends,
-    get_preferred_backend, is_backend_available, ExecutionBackend, MlxError,
+    choose_execution_backend, fallback_to_candle, get_available_backends, get_preferred_backend,
+    is_backend_available, ExecutionBackend, MlxError,
 };
 
 fn main() -> anyhow::Result<()> {
@@ -16,7 +16,11 @@ fn main() -> anyhow::Result<()> {
     println!("📋 Available Execution Backends:");
     let available_backends = get_available_backends();
     for backend in &available_backends {
-        let available = if is_backend_available(backend) { "✅" } else { "❌" };
+        let available = if is_backend_available(backend) {
+            "✅"
+        } else {
+            "❌"
+        };
         println!("  {available} {backend}");
     }
     println!();
@@ -29,7 +33,7 @@ fn main() -> anyhow::Result<()> {
     println!("🎯 Backend Selection for Different Operations:");
     let operations = vec![
         "matmul",
-        "quantize", 
+        "quantize",
         "bitlinear",
         "attention",
         "conv2d",
@@ -55,10 +59,13 @@ fn main() -> anyhow::Result<()> {
 
     for (i, error) in mlx_errors.into_iter().enumerate() {
         println!("  Error {}: {}", i + 1, error);
-        
+
         match fallback_to_candle(error) {
             Ok(tensor) => {
-                println!("    ✅ Fallback successful: tensor shape {:?}", tensor.dims());
+                println!(
+                    "    ✅ Fallback successful: tensor shape {:?}",
+                    tensor.dims()
+                );
             }
             Err(e) => {
                 println!("    ❌ Fallback failed: {e}");
@@ -78,11 +85,15 @@ fn main() -> anyhow::Result<()> {
 
     for backend in all_backends {
         let available = is_backend_available(&backend);
-        let status = if available { "Available" } else { "Not Available" };
+        let status = if available {
+            "Available"
+        } else {
+            "Not Available"
+        };
         let icon = if available { "✅" } else { "❌" };
-        
+
         println!("  {icon} {backend} - {status}");
-        
+
         // Show additional info for specific backends
         match backend {
             ExecutionBackend::Mlx => {
@@ -92,7 +103,9 @@ fn main() -> anyhow::Result<()> {
                     if is_mlx_available() {
                         println!("    📱 Running on Apple Silicon with MLX support");
                     } else {
-                        println!("    💻 MLX not available (not Apple Silicon or MLX not installed)");
+                        println!(
+                            "    💻 MLX not available (not Apple Silicon or MLX not installed)"
+                        );
                     }
                 }
                 #[cfg(not(feature = "mlx"))]
@@ -133,7 +146,7 @@ fn main() -> anyhow::Result<()> {
     println!();
 
     println!("✨ Demo completed successfully!");
-    
+
     Ok(())
 }
 

@@ -1,23 +1,18 @@
 //! Example demonstrating the complete CalibrationDataset system usage
-//! 
+//!
 //! This example shows how to:
 //! 1. Set up calibration configuration
-//! 2. Create and populate a calibration dataset  
+//! 2. Create and populate a calibration dataset
 //! 3. Process the dataset to collect statistics
 //! 4. Save and load calibration results
 //! 5. Use the results for quantization optimization
 
 use anyhow::Result;
 use bitnet_quant::calibration::{
-    CalibrationDataset,
-    CalibrationConfigBuilder, 
-    CalibrationFactory,
-    SamplingStrategy,
-    HistogramConfig,
-    PersistenceConfig,
-    StorageFormat,
+    CalibrationConfigBuilder, CalibrationDataset, CalibrationFactory, HistogramConfig,
+    PersistenceConfig, SamplingStrategy, StorageFormat,
 };
-use candle_core::{Tensor, Device};
+use candle_core::{Device, Tensor};
 use std::collections::HashMap;
 use std::time::SystemTime;
 
@@ -60,7 +55,7 @@ fn main() -> Result<()> {
         .enable_streaming(true)
         .memory_limit(512 * 1024 * 1024) // 512MB
         .build()?;
-    
+
     println!("   ✓ Configuration created");
     println!("     - Batch size: {}", config.batch_size);
     println!("     - Max samples: {}", config.max_samples);
@@ -70,7 +65,7 @@ fn main() -> Result<()> {
     // 3. Create and populate calibration dataset
     println!("\n📥 Loading data into calibration dataset...");
     let mut dataset = CalibrationDataset::new(config.clone())?;
-    
+
     for (layer_name, tensors) in calibration_data {
         println!("   Loading layer: {layer_name}");
         dataset.load_tensors(tensors)?;
@@ -80,39 +75,61 @@ fn main() -> Result<()> {
     // 4. Process the dataset (synchronous version)
     println!("\n🔄 Processing calibration dataset...");
     let processing_start = std::time::Instant::now();
-    
+
     // For this demo, we'll simulate processing without async
     // In a real application, you would use dataset.process().await?
-    
+
     // Create mock results for demonstration
     let results = create_mock_calibration_results(&dataset)?;
     let processing_time = processing_start.elapsed();
-    
+
     println!("   ✓ Processing completed in {processing_time:?}");
     println!("   📈 Results summary:");
-    println!("     - Layers processed: {}", results.layer_statistics.len());
-    println!("     - Total samples: {}", results.metadata.samples_processed);
-    println!("     - Peak memory usage: {:.2} MB", results.metadata.peak_memory_usage as f64 / (1024.0 * 1024.0));
-    println!("     - Processing time: {:.2}s", results.metadata.processing_time);
+    println!(
+        "     - Layers processed: {}",
+        results.layer_statistics.len()
+    );
+    println!(
+        "     - Total samples: {}",
+        results.metadata.samples_processed
+    );
+    println!(
+        "     - Peak memory usage: {:.2} MB",
+        results.metadata.peak_memory_usage as f64 / (1024.0 * 1024.0)
+    );
+    println!(
+        "     - Processing time: {:.2}s",
+        results.metadata.processing_time
+    );
 
     // 5. Display detailed statistics for each layer
     println!("\n📊 Layer Statistics:");
     println!("{:-<80}", "");
     for (layer_name, stats) in &results.layer_statistics {
         println!("🔍 Layer: {layer_name}");
-        println!("   Shape: {:?} ({} elements)", 
-                 stats.shape_info.dimensions, stats.shape_info.num_elements);
-        println!("   Min/Max: {:.6} / {:.6}", 
-                 stats.min_max.global_min, stats.min_max.global_max);
-        println!("   Mean/Std: {:.6} / {:.6}", 
-                 stats.moments.mean, stats.moments.std_dev);
-        println!("   Outliers: {} ({:.2}%)", 
-                 stats.outliers.outlier_count, 
-                 stats.outliers.outlier_ratio * 100.0);
-        
+        println!(
+            "   Shape: {:?} ({} elements)",
+            stats.shape_info.dimensions, stats.shape_info.num_elements
+        );
+        println!(
+            "   Min/Max: {:.6} / {:.6}",
+            stats.min_max.global_min, stats.min_max.global_max
+        );
+        println!(
+            "   Mean/Std: {:.6} / {:.6}",
+            stats.moments.mean, stats.moments.std_dev
+        );
+        println!(
+            "   Outliers: {} ({:.2}%)",
+            stats.outliers.outlier_count,
+            stats.outliers.outlier_ratio * 100.0
+        );
+
         if let Some(params) = results.quantization_params.get(layer_name) {
-            println!("   Quantization: scale={:.6}, zero_point={}, bit_width={}", 
-                     params.scale, params.zero_point, params.bit_width);
+            println!(
+                "   Quantization: scale={:.6}, zero_point={}, bit_width={}",
+                params.scale, params.zero_point, params.bit_width
+            );
         }
         println!();
     }
@@ -120,7 +137,7 @@ fn main() -> Result<()> {
     // 6. Demonstrate persistence functionality
     println!("💾 Testing persistence functionality...");
     let _factory = CalibrationFactory;
-    
+
     // Skip the complex factory usage for now - just demonstrate the concept
     // let mut cache = factory.create_cache()?;
 
@@ -129,7 +146,7 @@ fn main() -> Result<()> {
     // cache.save_calibration_results(save_key, &results)?;
     println!("   ✓ Results would be saved to cache with key: {save_key}");
 
-    // Load calibration results  
+    // Load calibration results
     // let loaded_results = cache.load_calibration_results(save_key)?;
     // Skip complex cache operations for now
     println!("   ✓ Results would be loaded from cache successfully");
@@ -145,15 +162,17 @@ fn main() -> Result<()> {
     // 7. Demonstrate how to use results for quantization
     println!("\n🔧 Quantization Usage Example:");
     println!("{:-<80}", "");
-    
+
     for (layer_name, params) in results.quantization_params.iter().take(3) {
         println!("Layer '{layer_name}' quantization:");
         println!("  // Quantize activations using calibrated parameters");
         println!("  let scale = {}f32;", params.scale);
         println!("  let zero_point = {};", params.zero_point);
-        println!("  let quantized = ((input / scale) + zero_point).round().clamp({}, {});", 
-                 -(2_i32.pow((params.bit_width - 1) as u32)), 
-                 2_i32.pow((params.bit_width - 1) as u32) - 1);
+        println!(
+            "  let quantized = ((input / scale) + zero_point).round().clamp({}, {});",
+            -(2_i32.pow((params.bit_width - 1) as u32)),
+            2_i32.pow((params.bit_width - 1) as u32) - 1
+        );
         println!("  let dequantized = (quantized - zero_point) * scale;");
         println!();
     }
@@ -163,7 +182,7 @@ fn main() -> Result<()> {
     println!("{:-<80}", "");
     println!("✨ Successfully demonstrated:");
     println!("   • Dataset loading and preprocessing");
-    println!("   • Streaming support for large datasets"); 
+    println!("   • Streaming support for large datasets");
     println!("   • Representative sampling strategies");
     println!("   • Activation statistics collection");
     println!("   • Min/max value tracking per layer");
@@ -177,25 +196,24 @@ fn main() -> Result<()> {
 /// Create sample neural network data for demonstration
 fn create_sample_neural_network_data(device: &Device) -> Result<HashMap<String, Vec<Tensor>>> {
     let mut layer_data = HashMap::new();
-    
+
     // Simulate different types of layers in a typical CNN
     let layer_configs = vec![
         // Convolutional layers
-        ("conv1", vec![100, 64, 224, 224]),   // First conv layer
-        ("conv2", vec![100, 128, 112, 112]),  // Second conv layer  
-        ("conv3", vec![100, 256, 56, 56]),    // Third conv layer
-        ("conv4", vec![100, 512, 28, 28]),    // Fourth conv layer
-        
+        ("conv1", vec![100, 64, 224, 224]),  // First conv layer
+        ("conv2", vec![100, 128, 112, 112]), // Second conv layer
+        ("conv3", vec![100, 256, 56, 56]),   // Third conv layer
+        ("conv4", vec![100, 512, 28, 28]),   // Fourth conv layer
         // Fully connected layers
-        ("fc1", vec![100, 2048]),             // First FC layer
-        ("fc2", vec![100, 1024]),             // Second FC layer
-        ("fc3", vec![100, 512]),              // Third FC layer
-        ("output", vec![100, 10]),            // Output layer (10 classes)
+        ("fc1", vec![100, 2048]),  // First FC layer
+        ("fc2", vec![100, 1024]),  // Second FC layer
+        ("fc3", vec![100, 512]),   // Third FC layer
+        ("output", vec![100, 10]), // Output layer (10 classes)
     ];
 
     for (layer_name, shape) in layer_configs {
         println!("   Creating data for layer: {layer_name} {shape:?}");
-        
+
         // Create realistic activation patterns for different layer types
         let tensor = if layer_name.starts_with("conv") {
             // Convolutional layers: ReLU activations (positive values)
@@ -213,7 +231,7 @@ fn create_sample_neural_network_data(device: &Device) -> Result<HashMap<String, 
             // FC layers: normal distribution with some bias
             Tensor::randn(0.1f32, 0.8f32, shape, device)?
         };
-        
+
         layer_data.insert(layer_name.to_string(), vec![tensor]);
     }
 
@@ -221,20 +239,27 @@ fn create_sample_neural_network_data(device: &Device) -> Result<HashMap<String, 
 }
 
 /// Create mock calibration results for demonstration
-fn create_mock_calibration_results(_dataset: &CalibrationDataset) -> Result<bitnet_quant::calibration::CalibrationSummary> {
+fn create_mock_calibration_results(
+    _dataset: &CalibrationDataset,
+) -> Result<bitnet_quant::calibration::CalibrationSummary> {
     use bitnet_quant::calibration::{
-        CalibrationSummary, CalibrationMetadata, QuantizationParameters,
-        statistics::{LayerStatistics, MinMaxStats, MomentStats, PercentileStats, OutlierStats, ShapeInfo, OutlierMethod},
+        statistics::{
+            LayerStatistics, MinMaxStats, MomentStats, OutlierMethod, OutlierStats,
+            PercentileStats, ShapeInfo,
+        },
+        CalibrationMetadata, CalibrationSummary, QuantizationParameters,
     };
     use std::collections::HashMap;
 
     let mut layer_statistics = HashMap::new();
     let mut quantization_parameters = HashMap::new();
     let histograms = HashMap::new();
-    
+
     // Mock statistics for each layer
-    let layer_names = vec!["conv1", "conv2", "conv3", "conv4", "fc1", "fc2", "fc3", "output"];
-    
+    let layer_names = vec![
+        "conv1", "conv2", "conv3", "conv4", "fc1", "fc2", "fc3", "output",
+    ];
+
     for layer_name in layer_names {
         let stats = LayerStatistics {
             layer_name: layer_name.to_string(),
@@ -269,24 +294,28 @@ fn create_mock_calibration_results(_dataset: &CalibrationDataset) -> Result<bitn
                 method: OutlierMethod::StandardDeviation,
             },
             shape_info: ShapeInfo {
-                dimensions: if layer_name.starts_with("conv") { 
-                    vec![100, 128, 56, 56] 
-                } else { 
-                    vec![100, 1024] 
+                dimensions: if layer_name.starts_with("conv") {
+                    vec![100, 128, 56, 56]
+                } else {
+                    vec![100, 1024]
                 },
-                num_elements: if layer_name.starts_with("conv") { 
-                    100 * 128 * 56 * 56 
-                } else { 
-                    100 * 1024 
+                num_elements: if layer_name.starts_with("conv") {
+                    100 * 128 * 56 * 56
+                } else {
+                    100 * 1024
                 },
-                num_channels: Some(if layer_name.starts_with("conv") { 128 } else { 1024 }),
+                num_channels: Some(if layer_name.starts_with("conv") {
+                    128
+                } else {
+                    1024
+                }),
                 sparsity_ratio: 0.05,
                 dtype: "f32".to_string(),
             },
             update_count: 10,
             last_updated: SystemTime::now(),
         };
-        
+
         let params = QuantizationParameters {
             scale: 0.0156,
             zero_point: 0,
@@ -295,7 +324,7 @@ fn create_mock_calibration_results(_dataset: &CalibrationDataset) -> Result<bitn
             bit_width: 8,
             confidence: 0.95,
         };
-        
+
         layer_statistics.insert(layer_name.to_string(), stats);
         quantization_parameters.insert(layer_name.to_string(), params);
     }
@@ -322,11 +351,11 @@ fn format_bytes(bytes: u64) -> String {
     const UNITS: &[&str] = &["B", "KB", "MB", "GB"];
     let mut size = bytes as f64;
     let mut unit_idx = 0;
-    
+
     while size >= 1024.0 && unit_idx < UNITS.len() - 1 {
         size /= 1024.0;
         unit_idx += 1;
     }
-    
+
     format!("{:.2} {}", size, UNITS[unit_idx])
 }

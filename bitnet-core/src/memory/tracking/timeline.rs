@@ -3,10 +3,10 @@
 //! This module provides timeline tracking for memory allocations and deallocations,
 //! enabling detailed analysis of memory usage patterns over time.
 
+use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
-use std::collections::VecDeque;
-use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, info, warn};
@@ -208,8 +208,10 @@ impl AllocationTimeline {
     /// ```
     pub fn new(max_entries: usize, retention_period: Duration) -> Self {
         #[cfg(feature = "tracing")]
-        info!("Creating allocation timeline with max_entries={}, retention={:?}", 
-              max_entries, retention_period);
+        info!(
+            "Creating allocation timeline with max_entries={}, retention={:?}",
+            max_entries, retention_period
+        );
 
         Self {
             max_entries,
@@ -243,12 +245,12 @@ impl AllocationTimeline {
     /// ```
     pub fn add_event(&self, event: AllocationEvent) {
         let now = SystemTime::now();
-        
+
         // Create timeline entry
         let (sequence, elapsed_time) = {
             let mut stats = self.stats.lock().unwrap();
             stats.total_events += 1;
-            
+
             // Update event type counters
             match &event {
                 AllocationEvent::Allocation { .. } => stats.allocation_events += 1,
@@ -256,15 +258,17 @@ impl AllocationTimeline {
                 AllocationEvent::PressureEvent { .. } => stats.pressure_events += 1,
                 AllocationEvent::PoolExpansion { .. } => stats.pool_expansion_events += 1,
             }
-            
-            let elapsed = now.duration_since(stats.start_time).unwrap_or(Duration::ZERO);
+
+            let elapsed = now
+                .duration_since(stats.start_time)
+                .unwrap_or(Duration::ZERO);
             stats.duration = elapsed;
-            
+
             // Update events per second
             if elapsed.as_secs() > 0 {
                 stats.events_per_second = stats.total_events as f64 / elapsed.as_secs_f64();
             }
-            
+
             (stats.total_events, elapsed)
         };
 
@@ -293,7 +297,7 @@ impl AllocationTimeline {
                     AllocationEvent::PressureEvent { timestamp, .. } => *timestamp,
                     AllocationEvent::PoolExpansion { timestamp, .. } => *timestamp,
                 };
-                
+
                 if event_time < cutoff_time {
                     events.pop_front();
                 } else {
@@ -340,7 +344,7 @@ impl AllocationTimeline {
 
         // Filter events based on query parameters
         let mut matching_entries = Vec::new();
-        
+
         for entry in events.iter() {
             if self.matches_query(entry, &query) {
                 matching_entries.push(entry.clone());
@@ -397,11 +401,7 @@ impl AllocationTimeline {
     /// Vector of recent timeline entries
     pub fn get_recent_events(&self, count: usize) -> Vec<TimelineEntry> {
         let events = self.events.lock().unwrap();
-        events.iter()
-            .rev()
-            .take(count)
-            .cloned()
-            .collect()
+        events.iter().rev().take(count).cloned().collect()
     }
 
     /// Estimates memory usage of the timeline
@@ -420,7 +420,7 @@ impl AllocationTimeline {
             let mut events = self.events.lock().unwrap();
             events.clear();
         }
-        
+
         {
             let mut stats = self.stats.lock().unwrap();
             *stats = TimelineStatistics::new();
@@ -466,10 +466,16 @@ impl AllocationTimeline {
         // Check device type
         if let Some(ref device_type) = query.device_type {
             let entry_device = match &entry.event {
-                AllocationEvent::Allocation { device_type: dt, .. } => dt,
-                AllocationEvent::Deallocation { device_type: dt, .. } => dt,
+                AllocationEvent::Allocation {
+                    device_type: dt, ..
+                } => dt,
+                AllocationEvent::Deallocation {
+                    device_type: dt, ..
+                } => dt,
                 AllocationEvent::PressureEvent { .. } => return true, // No device filter for pressure events
-                AllocationEvent::PoolExpansion { device_type: dt, .. } => dt,
+                AllocationEvent::PoolExpansion {
+                    device_type: dt, ..
+                } => dt,
             };
             if entry_device != device_type {
                 return false;
@@ -502,13 +508,13 @@ impl AllocationTimeline {
 
     fn calculate_summary_stats(&self, entries: &[TimelineEntry]) -> TimelineStatistics {
         let mut stats = TimelineStatistics::new();
-        
+
         if entries.is_empty() {
             return stats;
         }
 
         stats.total_events = entries.len() as u64;
-        
+
         for entry in entries {
             match &entry.event {
                 AllocationEvent::Allocation { .. } => stats.allocation_events += 1,
@@ -526,7 +532,7 @@ impl AllocationTimeline {
                 AllocationEvent::PressureEvent { timestamp, .. } => *timestamp,
                 AllocationEvent::PoolExpansion { timestamp, .. } => *timestamp,
             };
-            
+
             let last_time = match &last.event {
                 AllocationEvent::Allocation { timestamp, .. } => *timestamp,
                 AllocationEvent::Deallocation { timestamp, .. } => *timestamp,
@@ -535,8 +541,10 @@ impl AllocationTimeline {
             };
 
             stats.start_time = first_time;
-            stats.duration = last_time.duration_since(first_time).unwrap_or(Duration::ZERO);
-            
+            stats.duration = last_time
+                .duration_since(first_time)
+                .unwrap_or(Duration::ZERO);
+
             if stats.duration.as_secs() > 0 {
                 stats.events_per_second = stats.total_events as f64 / stats.duration.as_secs_f64();
             }
@@ -556,10 +564,12 @@ impl AllocationTimeline {
         }
 
         // Simple pattern analysis based on allocation/deallocation balance
-        let allocations = entries.iter()
+        let allocations = entries
+            .iter()
             .filter(|e| matches!(e.event, AllocationEvent::Allocation { .. }))
             .count();
-        let deallocations = entries.iter()
+        let deallocations = entries
+            .iter()
             .filter(|e| matches!(e.event, AllocationEvent::Deallocation { .. }))
             .count();
 
@@ -606,7 +616,8 @@ impl AllocationTimeline {
         let mut anomalies = Vec::new();
 
         // Detect allocation spikes
-        let allocation_sizes: Vec<usize> = entries.iter()
+        let allocation_sizes: Vec<usize> = entries
+            .iter()
             .filter_map(|e| match &e.event {
                 AllocationEvent::Allocation { size, .. } => Some(*size),
                 _ => None,
@@ -614,17 +625,24 @@ impl AllocationTimeline {
             .collect();
 
         if !allocation_sizes.is_empty() {
-            let avg_size = allocation_sizes.iter().sum::<usize>() as f64 / allocation_sizes.len() as f64;
+            let avg_size =
+                allocation_sizes.iter().sum::<usize>() as f64 / allocation_sizes.len() as f64;
             let threshold = avg_size * 10.0; // 10x average is considered anomalous
 
             for entry in entries {
-                if let AllocationEvent::Allocation { size, timestamp, .. } = &entry.event {
+                if let AllocationEvent::Allocation {
+                    size, timestamp, ..
+                } = &entry.event
+                {
                     if *size as f64 > threshold {
                         anomalies.push(TimelineAnomaly {
                             anomaly_type: "large_allocation".to_string(),
                             severity: (*size as f64 / threshold).min(1.0),
-                            description: format!("Unusually large allocation: {} bytes ({}x average)", 
-                                               size, *size as f64 / avg_size),
+                            description: format!(
+                                "Unusually large allocation: {} bytes ({}x average)",
+                                size,
+                                *size as f64 / avg_size
+                            ),
                             timestamp: *timestamp,
                             related_entries: vec![entry.sequence],
                         });
@@ -694,16 +712,16 @@ mod tests {
     #[test]
     fn test_add_events() {
         let timeline = AllocationTimeline::new(1000, Duration::from_secs(3600));
-        
+
         let event = AllocationEvent::Allocation {
             id: AllocationId::new(1),
             size: 1024,
             device_type: "CPU".to_string(),
             timestamp: SystemTime::now(),
         };
-        
+
         timeline.add_event(event);
-        
+
         let stats = timeline.get_statistics();
         assert_eq!(stats.total_events, 1);
         assert_eq!(stats.allocation_events, 1);
@@ -712,7 +730,7 @@ mod tests {
     #[test]
     fn test_timeline_query() {
         let timeline = AllocationTimeline::new(1000, Duration::from_secs(3600));
-        
+
         // Add some events
         for i in 0..5 {
             let event = AllocationEvent::Allocation {
@@ -723,12 +741,12 @@ mod tests {
             };
             timeline.add_event(event);
         }
-        
+
         let query = TimelineQuery {
             min_size: Some(2048),
             ..Default::default()
         };
-        
+
         let analysis = timeline.query(query);
         assert!(analysis.entries.len() < 5); // Should filter out smaller allocations
     }
@@ -736,19 +754,19 @@ mod tests {
     #[test]
     fn test_retention_period() {
         let timeline = AllocationTimeline::new(1000, Duration::from_millis(10));
-        
+
         let event = AllocationEvent::Allocation {
             id: AllocationId::new(1),
             size: 1024,
             device_type: "CPU".to_string(),
             timestamp: SystemTime::now() - Duration::from_secs(1), // Old event
         };
-        
+
         timeline.add_event(event);
-        
+
         // Wait for retention period to pass
         std::thread::sleep(Duration::from_millis(20));
-        
+
         // Add a new event to trigger cleanup
         let new_event = AllocationEvent::Allocation {
             id: AllocationId::new(2),
@@ -756,9 +774,9 @@ mod tests {
             device_type: "CPU".to_string(),
             timestamp: SystemTime::now(),
         };
-        
+
         timeline.add_event(new_event);
-        
+
         let recent_events = timeline.get_recent_events(10);
         assert_eq!(recent_events.len(), 1); // Old event should be cleaned up
     }
@@ -766,7 +784,7 @@ mod tests {
     #[test]
     fn test_usage_pattern_analysis() {
         let timeline = AllocationTimeline::new(1000, Duration::from_secs(3600));
-        
+
         // Add more allocations than deallocations
         for i in 0..10 {
             let alloc_event = AllocationEvent::Allocation {
@@ -777,7 +795,7 @@ mod tests {
             };
             timeline.add_event(alloc_event);
         }
-        
+
         for i in 0..5 {
             let dealloc_event = AllocationEvent::Deallocation {
                 id: AllocationId::new(i),
@@ -787,10 +805,10 @@ mod tests {
             };
             timeline.add_event(dealloc_event);
         }
-        
+
         let query = TimelineQuery::default();
         let analysis = timeline.query(query);
-        
+
         assert_eq!(analysis.usage_pattern.pattern_type, "growing");
     }
 }

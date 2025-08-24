@@ -1,7 +1,7 @@
 // QAT Regularization - Quantization-specific regularization terms for training
 // Implements various regularization techniques to improve quantized model training
 
-use candle_core::{Result, Tensor, Device, DType};
+use candle_core::{DType, Device, Result, Tensor};
 use std::collections::HashMap;
 
 use super::straight_through::STEStatistics;
@@ -100,31 +100,35 @@ impl QuantizationRegularizer {
         }
 
         let mut total_l2 = Tensor::zeros((), DType::F32, &self.device)?;
-        
+
         for (_name, param) in parameters {
             let l2_norm = param.sqr()?.sum_all()?.to_dtype(DType::F32)?;
             total_l2 = (&total_l2 + &l2_norm)?;
         }
-        
+
         let weight_scalar = Tensor::new(&[self.config.weight_decay], &self.device)?.squeeze(0)?;
         total_l2.mul(&weight_scalar)
     }
 
     /// Compute quantization penalty - penalizes weights far from quantization levels
-    pub fn compute_quantization_penalty(&self, parameters: &HashMap<String, Tensor>) -> Result<Tensor> {
+    pub fn compute_quantization_penalty(
+        &self,
+        parameters: &HashMap<String, Tensor>,
+    ) -> Result<Tensor> {
         if parameters.is_empty() || self.config.quantization_penalty == 0.0 {
             return Tensor::zeros((), DType::F32, &self.device);
         }
 
         let mut total_penalty = Tensor::zeros((), DType::F32, &self.device)?;
-        
+
         for (_name, param) in parameters {
             // For BitNet, quantization levels are typically [-1, 0, 1]
             let penalty = self.compute_distance_to_quantization_levels(param)?;
             total_penalty = (&total_penalty + &penalty)?;
         }
-        
-        let weight_scalar = Tensor::new(&[self.config.quantization_penalty], &self.device)?.squeeze(0)?;
+
+        let weight_scalar =
+            Tensor::new(&[self.config.quantization_penalty], &self.device)?.squeeze(0)?;
         total_penalty.mul(&weight_scalar)
     }
 
@@ -133,16 +137,16 @@ impl QuantizationRegularizer {
         // BitNet quantization levels: -1, 0, 1
         let abs_weights = weights.abs()?.to_dtype(DType::F32)?;
         let ones = Tensor::ones(weights.shape(), DType::F32, weights.device())?;
-        
+
         // Distance to 0
         let dist_to_zero = abs_weights.clone();
-        
+
         // Distance to 1 or -1 (minimum distance)
         let dist_to_one = (abs_weights - &ones)?.abs()?;
-        
+
         // Use minimum distance
         let min_distance = dist_to_zero.minimum(&dist_to_one)?;
-        
+
         // Square the distances and sum
         min_distance.sqr()?.mean_all()
     }
@@ -184,7 +188,9 @@ impl QATRegularization for QuantizationRegularizer {
 
     fn get_weight(&self) -> f32 {
         // Return the maximum weight as representative
-        self.config.weight_decay.max(self.config.quantization_penalty)
+        self.config
+            .weight_decay
+            .max(self.config.quantization_penalty)
     }
 
     fn set_weight(&mut self, weight: f32) {

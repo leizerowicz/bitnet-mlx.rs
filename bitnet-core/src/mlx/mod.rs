@@ -1,5 +1,5 @@
 //! MLX integration for BitNet on Apple Silicon
-//! 
+//!
 //! This module provides MLX-specific implementations for BitNet operations,
 //! leveraging Apple's MLX framework for high-performance machine learning
 //! on Apple Silicon devices.
@@ -14,36 +14,36 @@ use anyhow::Result;
 use candle_core::Tensor;
 
 pub mod device;
-pub mod tensor;
+pub mod graph;
 pub mod operations;
 pub mod optimization;
-pub mod graph;
+pub mod tensor;
 
 // Performance comparison tools
-pub mod performance;
+pub mod device_comparison;
 pub mod memory_tracker;
 pub mod metrics;
-pub mod reports;
+pub mod performance;
 pub mod profiler;
-pub mod device_comparison;
 pub mod regression_testing;
+pub mod reports;
 
 // Re-export performance comparison types
-pub use performance::{
-    MlxPerformanceBenchmarker, BenchmarkConfig, PerformanceMetrics, MemoryUsage, ComparisonResult
-};
+pub use device_comparison::{DeviceComparisonConfig, MlxDeviceComparison};
 pub use memory_tracker::{
-    MlxMemoryTracker, track_allocation, track_deallocation, MemoryEvent, MemoryEventType,
-    MemoryOptimization, OptimizationType, OptimizationPriority, ImplementationEffort
+    track_allocation, track_deallocation, ImplementationEffort, MemoryEvent, MemoryEventType,
+    MemoryOptimization, MlxMemoryTracker, OptimizationPriority, OptimizationType,
 };
 pub use metrics::{
-    MlxMetricsCollector, MetricsConfig, OperationContext, ExportFormat, MlxMetrics,
-    MemoryMetrics, SystemMetrics
+    ExportFormat, MemoryMetrics, MetricsConfig, MlxMetrics, MlxMetricsCollector, OperationContext,
+    SystemMetrics,
 };
-pub use reports::PerformanceReportGenerator;
-pub use profiler::{MlxAdvancedProfiler, ProfilerConfig, ProfileOutputFormat};
-pub use device_comparison::{MlxDeviceComparison, DeviceComparisonConfig};
+pub use performance::{
+    BenchmarkConfig, ComparisonResult, MemoryUsage, MlxPerformanceBenchmarker, PerformanceMetrics,
+};
+pub use profiler::{MlxAdvancedProfiler, ProfileOutputFormat, ProfilerConfig};
 pub use regression_testing::{MlxRegressionTester, RegressionTestConfig};
+pub use reports::PerformanceReportGenerator;
 
 // Re-export key MLX types
 pub use device::BitNetMlxDevice;
@@ -53,29 +53,37 @@ pub use tensor::MlxTensor;
 #[cfg(feature = "mlx")]
 pub fn mlx_quantize(array: &Array, scale: Option<f32>) -> Result<Array> {
     use crate::mlx::operations::BitNetMlxOps;
-    
+
     // Convert Array to MlxTensor for processing
     let device = BitNetMlxDevice::cpu()?;
-    let tensor = MlxTensor::new(array.clone(), device, crate::tensor::dtype::BitNetDType::F32);
-    
+    let tensor = MlxTensor::new(
+        array.clone(),
+        device,
+        crate::tensor::dtype::BitNetDType::F32,
+    );
+
     // Perform quantization
     let quantized = BitNetMlxOps::quantize_1_58_bit(&tensor, scale)?;
-    
+
     Ok(quantized.array().clone())
 }
 
-/// Convenience wrapper for MLX dequantization - matches test expectations  
+/// Convenience wrapper for MLX dequantization - matches test expectations
 #[cfg(feature = "mlx")]
 pub fn mlx_dequantize(array: &Array, scale: Option<f32>) -> Result<Array> {
     use crate::mlx::operations::BitNetMlxOps;
-    
+
     // Convert Array to MlxTensor for processing
     let device = BitNetMlxDevice::cpu()?;
-    let tensor = MlxTensor::new(array.clone(), device, crate::tensor::dtype::BitNetDType::F32);
-    
+    let tensor = MlxTensor::new(
+        array.clone(),
+        device,
+        crate::tensor::dtype::BitNetDType::F32,
+    );
+
     // Perform dequantization
     let dequantized = BitNetMlxOps::dequantize_1_58_bit(&tensor, scale)?;
-    
+
     Ok(dequantized.array().clone())
 }
 pub use operations::BitNetMlxOps;
@@ -110,11 +118,7 @@ impl BitNetMlxTensor {
     }
 
     /// Create a new MLX tensor with memory tracking
-    pub fn with_memory_handle(
-        array: Array, 
-        device: BitNetMlxDevice, 
-        handle: MemoryHandle
-    ) -> Self {
+    pub fn with_memory_handle(array: Array, device: BitNetMlxDevice, handle: MemoryHandle) -> Self {
         Self {
             array,
             device,
@@ -181,10 +185,7 @@ impl MlxOperations {
     }
 
     /// Perform matrix multiplication using MLX
-    pub fn matmul(
-        a: &BitNetMlxTensor,
-        b: &BitNetMlxTensor,
-    ) -> Result<BitNetMlxTensor> {
+    pub fn matmul(a: &BitNetMlxTensor, b: &BitNetMlxTensor) -> Result<BitNetMlxTensor> {
         let result = mlx_rs::ops::matmul(a.array(), b.array())?;
         Ok(BitNetMlxTensor::new(result, a.device().clone()))
     }
@@ -269,14 +270,14 @@ pub fn create_mlx_array(shape: &[i32], data: Vec<f32>) -> Result<Array> {
 pub fn mlx_to_candle_tensor(array: &Array) -> Result<Tensor> {
     // Get the array data as a slice
     let data = array.as_slice::<f32>();
-    
+
     // Convert MLX shape (i32) to Candle shape (usize)
     let shape: Vec<usize> = array.shape().iter().map(|&x| x as usize).collect();
-    
+
     // Create Candle tensor from the data
     let device = candle_core::Device::Cpu;
     let tensor = Tensor::from_vec(data.to_vec(), shape, &device)?;
-    
+
     Ok(tensor)
 }
 
@@ -301,19 +302,19 @@ pub fn mlx_to_candle_tensor(array: &Array) -> Result<Tensor> {
 pub fn candle_to_mlx_array(tensor: &Tensor) -> Result<Array> {
     // First, ensure the tensor is on CPU and get its data
     let cpu_tensor = tensor.to_device(&candle_core::Device::Cpu)?;
-    
+
     // Convert tensor to f32 if it's not already
     let f32_tensor = match cpu_tensor.dtype() {
         candle_core::DType::F32 => cpu_tensor,
         _ => cpu_tensor.to_dtype(candle_core::DType::F32)?,
     };
-    
+
     // Get the tensor data as Vec<f32>
     let data = f32_tensor.flatten_all()?.to_vec1::<f32>()?;
-    
+
     // Convert Candle shape (usize) to MLX shape (i32)
     let shape: Vec<i32> = tensor.shape().dims().iter().map(|&x| x as i32).collect();
-    
+
     // Create and return MLX array
     create_mlx_array(&shape, data)
 }

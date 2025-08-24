@@ -4,13 +4,13 @@
 //! automatic reference counting and lifecycle management.
 
 use crate::memory::tensor::{BitNetDType, TensorMetadata};
-use crate::memory::{MemoryHandle, MemoryError};
+use crate::memory::{MemoryError, MemoryHandle};
 use candle_core::Device;
-use std::sync::{Arc, Weak, RwLock, Mutex};
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::fmt;
+use std::sync::{Arc, Mutex, RwLock, Weak};
 use thiserror::Error;
-use once_cell::sync::Lazy;
 
 /// Errors that can occur during tensor handle operations
 #[derive(Error, Debug)]
@@ -33,11 +33,17 @@ pub enum TensorHandleError {
 
     /// Shape mismatch error
     #[error("Shape mismatch: expected {expected:?}, got {actual:?}")]
-    ShapeMismatch { expected: Vec<usize>, actual: Vec<usize> },
+    ShapeMismatch {
+        expected: Vec<usize>,
+        actual: Vec<usize>,
+    },
 
     /// Data type mismatch error
     #[error("Data type mismatch: expected {expected}, got {actual}")]
-    DTypeMismatch { expected: BitNetDType, actual: BitNetDType },
+    DTypeMismatch {
+        expected: BitNetDType,
+        actual: BitNetDType,
+    },
 
     /// Concurrent access error
     #[error("Concurrent access error: {reason}")]
@@ -63,14 +69,13 @@ pub struct TensorHandle {
 }
 
 /// Global registry for tracking memory handles that need cleanup
-pub static MEMORY_CLEANUP_REGISTRY: Lazy<Mutex<HashMap<u64, MemoryHandle>>> = Lazy::new(|| {
-    Mutex::new(HashMap::new())
-});
+pub static MEMORY_CLEANUP_REGISTRY: Lazy<Mutex<HashMap<u64, MemoryHandle>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
 
 /// Global reference to the memory pool for automatic cleanup
-pub static GLOBAL_MEMORY_POOL: Lazy<Mutex<Option<std::sync::Weak<crate::memory::HybridMemoryPool>>>> = Lazy::new(|| {
-    Mutex::new(None)
-});
+pub static GLOBAL_MEMORY_POOL: Lazy<
+    Mutex<Option<std::sync::Weak<crate::memory::HybridMemoryPool>>>,
+> = Lazy::new(|| Mutex::new(None));
 
 /// Sets the global memory pool reference for automatic cleanup
 pub fn set_global_memory_pool(pool: std::sync::Weak<crate::memory::HybridMemoryPool>) {
@@ -90,27 +95,40 @@ pub fn register_memory_handle(tensor_id: u64, handle: MemoryHandle) {
 pub fn unregister_memory_handle(tensor_id: u64) -> Option<MemoryHandle> {
     #[cfg(feature = "tracing")]
     tracing::debug!("Unregistering memory handle for tensor {}", tensor_id);
-    
+
     let handle = if let Ok(mut registry) = MEMORY_CLEANUP_REGISTRY.lock() {
         let handle = registry.remove(&tensor_id);
         #[cfg(feature = "tracing")]
         if handle.is_some() {
-            tracing::debug!("Found and removed handle for tensor {} from cleanup registry", tensor_id);
+            tracing::debug!(
+                "Found and removed handle for tensor {} from cleanup registry",
+                tensor_id
+            );
         } else {
-            tracing::warn!("No handle found in cleanup registry for tensor {}", tensor_id);
+            tracing::warn!(
+                "No handle found in cleanup registry for tensor {}",
+                tensor_id
+            );
         }
         handle
     } else {
         #[cfg(feature = "tracing")]
-        tracing::error!("Failed to acquire cleanup registry lock for tensor {}", tensor_id);
+        tracing::error!(
+            "Failed to acquire cleanup registry lock for tensor {}",
+            tensor_id
+        );
         None
     };
 
     // If we have a handle, try to deallocate it immediately
     if let Some(ref handle) = handle {
         #[cfg(feature = "tracing")]
-        tracing::debug!("Attempting immediate deallocation of handle {} for tensor {}", handle.id(), tensor_id);
-        
+        tracing::debug!(
+            "Attempting immediate deallocation of handle {} for tensor {}",
+            handle.id(),
+            tensor_id
+        );
+
         if let Ok(global_pool) = GLOBAL_MEMORY_POOL.lock() {
             if let Some(ref pool_weak) = *global_pool {
                 if let Some(pool) = pool_weak.upgrade() {
@@ -118,34 +136,53 @@ pub fn unregister_memory_handle(tensor_id: u64) -> Option<MemoryHandle> {
                     match pool.deallocate(handle.clone()) {
                         Ok(()) => {
                             #[cfg(feature = "tracing")]
-                            tracing::debug!("Successfully deallocated handle {} for tensor {} immediately", handle.id(), tensor_id);
+                            tracing::debug!(
+                                "Successfully deallocated handle {} for tensor {} immediately",
+                                handle.id(),
+                                tensor_id
+                            );
                         }
                         Err(e) => {
                             #[cfg(feature = "tracing")]
                             tracing::warn!("Immediate deallocation failed for handle {} (tensor {}): {}. Triggering cleanup.", handle.id(), tensor_id, e);
-                            
+
                             // If immediate deallocation fails, trigger cleanup
                             let cleaned_up = pool.cleanup_orphaned_handles();
                             if cleaned_up > 0 {
                                 #[cfg(feature = "tracing")]
-                                tracing::debug!("Automatically cleaned up {} orphaned memory handles", cleaned_up);
+                                tracing::debug!(
+                                    "Automatically cleaned up {} orphaned memory handles",
+                                    cleaned_up
+                                );
                             } else {
                                 #[cfg(feature = "tracing")]
-                                tracing::warn!("No orphaned handles found during cleanup for tensor {}", tensor_id);
+                                tracing::warn!(
+                                    "No orphaned handles found during cleanup for tensor {}",
+                                    tensor_id
+                                );
                             }
                         }
                     }
                 } else {
                     #[cfg(feature = "tracing")]
-                    tracing::warn!("Global memory pool weak reference could not be upgraded for tensor {}", tensor_id);
+                    tracing::warn!(
+                        "Global memory pool weak reference could not be upgraded for tensor {}",
+                        tensor_id
+                    );
                 }
             } else {
                 #[cfg(feature = "tracing")]
-                tracing::warn!("No global memory pool reference set for tensor {}", tensor_id);
+                tracing::warn!(
+                    "No global memory pool reference set for tensor {}",
+                    tensor_id
+                );
             }
         } else {
             #[cfg(feature = "tracing")]
-            tracing::error!("Failed to acquire global memory pool lock for tensor {}", tensor_id);
+            tracing::error!(
+                "Failed to acquire global memory pool lock for tensor {}",
+                tensor_id
+            );
         }
     }
 
@@ -161,7 +198,7 @@ pub fn clear_global_state() {
         #[cfg(feature = "tracing")]
         tracing::debug!("Cleared {} handles from global cleanup registry", count);
     }
-    
+
     // Clear the global memory pool reference
     if let Ok(mut global_pool) = GLOBAL_MEMORY_POOL.lock() {
         *global_pool = None;
@@ -186,25 +223,37 @@ pub struct TensorData {
 impl Drop for TensorData {
     fn drop(&mut self) {
         #[cfg(feature = "tracing")]
-        tracing::debug!("TensorData {} being dropped - memory handle {} will be cleaned up by pool",
-                self.tensor_id, self.memory_handle.id());
-        
+        tracing::debug!(
+            "TensorData {} being dropped - memory handle {} will be cleaned up by pool",
+            self.tensor_id,
+            self.memory_handle.id()
+        );
+
         // Remove from cleanup registry and trigger automatic cleanup
         if let Some(handle) = unregister_memory_handle(self.tensor_id) {
             #[cfg(feature = "tracing")]
-            tracing::debug!("TensorData {} dropped and memory handle {} unregistered from cleanup registry",
-                    self.tensor_id, handle.id());
+            tracing::debug!(
+                "TensorData {} dropped and memory handle {} unregistered from cleanup registry",
+                self.tensor_id,
+                handle.id()
+            );
         } else {
             #[cfg(feature = "tracing")]
-            tracing::warn!("TensorData {} dropped but no handle found in cleanup registry (handle {})",
-                    self.tensor_id, self.memory_handle.id());
+            tracing::warn!(
+                "TensorData {} dropped but no handle found in cleanup registry (handle {})",
+                self.tensor_id,
+                self.memory_handle.id()
+            );
         }
-        
+
         // Try to use the pool reference for automatic cleanup
         if let Some(pool) = self.pool_ref.upgrade() {
             #[cfg(feature = "tracing")]
-            tracing::debug!("TensorData {} attempting additional cleanup via pool_ref", self.tensor_id);
-            
+            tracing::debug!(
+                "TensorData {} attempting additional cleanup via pool_ref",
+                self.tensor_id
+            );
+
             let cleaned_up = pool.cleanup_orphaned_handles();
             if cleaned_up > 0 {
                 #[cfg(feature = "tracing")]
@@ -212,11 +261,17 @@ impl Drop for TensorData {
                         cleaned_up, self.tensor_id);
             } else {
                 #[cfg(feature = "tracing")]
-                tracing::debug!("No additional orphaned handles found via pool_ref for tensor {}", self.tensor_id);
+                tracing::debug!(
+                    "No additional orphaned handles found via pool_ref for tensor {}",
+                    self.tensor_id
+                );
             }
         } else {
             #[cfg(feature = "tracing")]
-            tracing::warn!("TensorData {} could not upgrade pool_ref for additional cleanup", self.tensor_id);
+            tracing::warn!(
+                "TensorData {} could not upgrade pool_ref for additional cleanup",
+                self.tensor_id
+            );
         }
     }
 }
@@ -238,7 +293,9 @@ impl TensorHandle {
 
     /// Returns the tensor ID if the handle is valid
     pub fn tensor_id(&self) -> TensorHandleResult<u64> {
-        let tensor_data = self.tensor_ref.upgrade()
+        let tensor_data = self
+            .tensor_ref
+            .upgrade()
             .ok_or(TensorHandleError::InvalidHandle)?;
         Ok(tensor_data.tensor_id)
     }
@@ -250,14 +307,19 @@ impl TensorHandle {
 
     /// Gets a copy of the tensor metadata
     pub fn metadata(&self) -> TensorHandleResult<TensorMetadata> {
-        let tensor_data = self.tensor_ref.upgrade()
+        let tensor_data = self
+            .tensor_ref
+            .upgrade()
             .ok_or(TensorHandleError::InvalidHandle)?;
-        
-        let metadata = tensor_data.metadata.read()
-            .map_err(|_| TensorHandleError::ConcurrentAccess {
-                reason: "Failed to acquire metadata read lock".to_string()
-            })?;
-        
+
+        let metadata =
+            tensor_data
+                .metadata
+                .read()
+                .map_err(|_| TensorHandleError::ConcurrentAccess {
+                    reason: "Failed to acquire metadata read lock".to_string(),
+                })?;
+
         Ok(metadata.clone())
     }
 
@@ -275,7 +337,9 @@ impl TensorHandle {
 
     /// Gets the device where the tensor is stored
     pub fn device(&self) -> TensorHandleResult<Device> {
-        let tensor_data = self.tensor_ref.upgrade()
+        let tensor_data = self
+            .tensor_ref
+            .upgrade()
             .ok_or(TensorHandleError::InvalidHandle)?;
         Ok(tensor_data.memory_handle.device())
     }
@@ -318,42 +382,57 @@ impl TensorHandle {
 
     /// Updates the last accessed timestamp
     pub fn touch(&self) -> TensorHandleResult<()> {
-        let tensor_data = self.tensor_ref.upgrade()
+        let tensor_data = self
+            .tensor_ref
+            .upgrade()
             .ok_or(TensorHandleError::InvalidHandle)?;
-        
-        let mut metadata = tensor_data.metadata.write()
-            .map_err(|_| TensorHandleError::ConcurrentAccess {
-                reason: "Failed to acquire metadata write lock".to_string()
-            })?;
-        
+
+        let mut metadata =
+            tensor_data
+                .metadata
+                .write()
+                .map_err(|_| TensorHandleError::ConcurrentAccess {
+                    reason: "Failed to acquire metadata write lock".to_string(),
+                })?;
+
         metadata.touch();
         Ok(())
     }
 
     /// Adds a tag to the tensor
     pub fn add_tag(&self, tag: String) -> TensorHandleResult<()> {
-        let tensor_data = self.tensor_ref.upgrade()
+        let tensor_data = self
+            .tensor_ref
+            .upgrade()
             .ok_or(TensorHandleError::InvalidHandle)?;
-        
-        let mut metadata = tensor_data.metadata.write()
-            .map_err(|_| TensorHandleError::ConcurrentAccess {
-                reason: "Failed to acquire metadata write lock".to_string()
-            })?;
-        
+
+        let mut metadata =
+            tensor_data
+                .metadata
+                .write()
+                .map_err(|_| TensorHandleError::ConcurrentAccess {
+                    reason: "Failed to acquire metadata write lock".to_string(),
+                })?;
+
         metadata.add_tag(tag);
         Ok(())
     }
 
     /// Removes a tag from the tensor
     pub fn remove_tag(&self, tag: &str) -> TensorHandleResult<()> {
-        let tensor_data = self.tensor_ref.upgrade()
+        let tensor_data = self
+            .tensor_ref
+            .upgrade()
             .ok_or(TensorHandleError::InvalidHandle)?;
-        
-        let mut metadata = tensor_data.metadata.write()
-            .map_err(|_| TensorHandleError::ConcurrentAccess {
-                reason: "Failed to acquire metadata write lock".to_string()
-            })?;
-        
+
+        let mut metadata =
+            tensor_data
+                .metadata
+                .write()
+                .map_err(|_| TensorHandleError::ConcurrentAccess {
+                    reason: "Failed to acquire metadata write lock".to_string(),
+                })?;
+
         metadata.remove_tag(tag);
         Ok(())
     }
@@ -388,14 +467,18 @@ impl TensorHandle {
     }
 
     /// Validates that the tensor matches expected properties
-    pub fn validate(&self, expected_shape: Option<&[usize]>, expected_dtype: Option<BitNetDType>) -> TensorHandleResult<()> {
+    pub fn validate(
+        &self,
+        expected_shape: Option<&[usize]>,
+        expected_dtype: Option<BitNetDType>,
+    ) -> TensorHandleResult<()> {
         let metadata = self.metadata()?;
-        
+
         // Check if tensor is being migrated
         if metadata.is_migrating {
             return Err(TensorHandleError::TensorMigrating);
         }
-        
+
         // Validate shape if provided
         if let Some(expected) = expected_shape {
             if metadata.shape != expected {
@@ -405,7 +488,7 @@ impl TensorHandle {
                 });
             }
         }
-        
+
         // Validate data type if provided
         if let Some(expected) = expected_dtype {
             if metadata.dtype != expected {
@@ -415,20 +498,23 @@ impl TensorHandle {
                 });
             }
         }
-        
+
         Ok(())
     }
 
     /// Gets access to the underlying memory handle
     pub(crate) fn memory_handle(&self) -> TensorHandleResult<MemoryHandle> {
-        let tensor_data = self.tensor_ref.upgrade()
+        let tensor_data = self
+            .tensor_ref
+            .upgrade()
             .ok_or(TensorHandleError::InvalidHandle)?;
         Ok(tensor_data.memory_handle.clone())
     }
 
     /// Gets access to the tensor data for internal operations
     pub(crate) fn tensor_data(&self) -> TensorHandleResult<Arc<TensorData>> {
-        self.tensor_ref.upgrade()
+        self.tensor_ref
+            .upgrade()
             .ok_or(TensorHandleError::InvalidHandle)
     }
 
@@ -549,7 +635,9 @@ mod tests {
         let handle = TensorHandle::new(weak_ref, 100);
 
         // Valid validation
-        assert!(handle.validate(Some(&[4, 4]), Some(BitNetDType::F32)).is_ok());
+        assert!(handle
+            .validate(Some(&[4, 4]), Some(BitNetDType::F32))
+            .is_ok());
 
         // Invalid shape
         assert!(handle.validate(Some(&[2, 2]), None).is_err());
@@ -565,10 +653,10 @@ mod tests {
         let handle = TensorHandle::new(weak_ref, 100);
 
         assert!(!handle.has_tag("new_tag").unwrap());
-        
+
         handle.add_tag("new_tag".to_string()).unwrap();
         assert!(handle.has_tag("new_tag").unwrap());
-        
+
         handle.remove_tag("new_tag").unwrap();
         assert!(!handle.has_tag("new_tag").unwrap());
     }
@@ -580,10 +668,10 @@ mod tests {
         let handle = TensorHandle::new(weak_ref, 100);
 
         assert!(handle.is_valid());
-        
+
         // Drop the tensor data
         drop(tensor_data);
-        
+
         assert!(!handle.is_valid());
         assert!(handle.metadata().is_err());
     }
@@ -593,18 +681,18 @@ mod tests {
         let tensor_data = create_test_tensor_data();
         let weak_ref = Arc::downgrade(&tensor_data);
         let handle = TensorHandle::new(weak_ref, 100);
-        
+
         let weak_handle = handle.downgrade();
         assert!(weak_handle.is_valid());
         assert_eq!(weak_handle.id(), 100);
-        
+
         let upgraded = weak_handle.upgrade().unwrap();
         assert_eq!(upgraded.id(), 100);
-        
+
         // Drop original data
         drop(tensor_data);
         drop(handle);
-        
+
         assert!(!weak_handle.is_valid());
         assert!(weak_handle.upgrade().is_none());
     }
@@ -618,7 +706,7 @@ mod tests {
 
         assert_eq!(handle1.id(), handle2.id());
         assert_eq!(handle1.tensor_id().unwrap(), handle2.tensor_id().unwrap());
-        
+
         // Both handles should be valid
         assert!(handle1.is_valid());
         assert!(handle2.is_valid());

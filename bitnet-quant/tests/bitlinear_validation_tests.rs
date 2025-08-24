@@ -1,13 +1,11 @@
 //! Simple validation test for BitLinear Layer Tensor Operations
 
-use candle_core::Device;
-use bitnet_core::{BitNetTensor, BitNetDType};
-use bitnet_quant::tensor_integration::{
-    bitlinear_tensor::BitLinearConfig,
-    qat_tensor::QATConfig,
-    bitnet_ops::BitNetQuantizationConfig
-};
+use bitnet_core::{BitNetDType, BitNetTensor};
 use bitnet_quant::quantization::QuantizationPrecision;
+use bitnet_quant::tensor_integration::{
+    bitlinear_tensor::BitLinearConfig, bitnet_ops::BitNetQuantizationConfig, qat_tensor::QATConfig,
+};
+use candle_core::Device;
 
 #[cfg(test)]
 mod validation_tests {
@@ -25,20 +23,23 @@ mod validation_tests {
     fn test_quantization_precision_hash() {
         let mut precision_map = std::collections::HashMap::new();
         precision_map.insert(QuantizationPrecision::OneBit, "1-bit".to_string());
-        precision_map.insert(QuantizationPrecision::OneFiveFiveBit, "1.58-bit".to_string());
+        precision_map.insert(
+            QuantizationPrecision::OneFiveFiveBit,
+            "1.58-bit".to_string(),
+        );
         precision_map.insert(QuantizationPrecision::TwoBit, "2-bit".to_string());
-        
+
         assert_eq!(precision_map.len(), 3);
         assert!(precision_map.contains_key(&QuantizationPrecision::OneBit));
     }
 
-    #[test] 
+    #[test]
     fn test_bitnet_quantization_config_creation() {
         let config = BitNetQuantizationConfig {
             precision: QuantizationPrecision::OneFiveFiveBit,
             ..Default::default()
         };
-        
+
         assert_eq!(config.precision, QuantizationPrecision::OneFiveFiveBit);
     }
 
@@ -63,18 +64,18 @@ mod validation_tests {
         let result = BitNetTensor::random(&[4, 4], BitNetDType::F32, Some(device));
         assert!(result.is_ok());
     }
-    
+
     #[test]
     fn test_mixed_precision_support() {
         // Test multiple precision levels
         let precisions = vec![
             QuantizationPrecision::OneBit,
-            QuantizationPrecision::OneFiveFiveBit, 
+            QuantizationPrecision::OneFiveFiveBit,
             QuantizationPrecision::TwoBit,
             QuantizationPrecision::FourBit,
             QuantizationPrecision::EightBit,
         ];
-        
+
         for precision in precisions {
             let config = BitNetQuantizationConfig {
                 precision,

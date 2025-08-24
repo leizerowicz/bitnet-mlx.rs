@@ -210,7 +210,7 @@ pub fn is_metal_supported() -> bool {
         // Try to create a Metal device
         crate::metal::create_metal_device().is_ok()
     }
-    
+
     #[cfg(not(all(target_os = "macos", feature = "metal")))]
     {
         false
@@ -220,15 +220,15 @@ pub fn is_metal_supported() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[cfg(all(target_os = "macos", feature = "metal"))]
     use crate::metal::{
-        initialize_metal_context, create_command_buffer_manager,
-        create_buffer_pool, create_buffer, read_buffer, CommandBufferPriority,
+        create_buffer, create_buffer_pool, create_command_buffer_manager, initialize_metal_context,
+        read_buffer, CommandBufferPriority,
     };
-    
+
     #[cfg(all(target_os = "macos", feature = "metal"))]
-    use crate::metal::shader_utils::{BitNetShaders, BitNetShaderFunction};
+    use crate::metal::shader_utils::{BitNetShaderFunction, BitNetShaders};
 
     #[test]
     fn test_version_constants() {
@@ -236,18 +236,18 @@ mod tests {
         assert_eq!(MIN_MACOS_VERSION, "12.0");
     }
 
-    #[test] 
+    #[test]
     fn test_metal_support_detection() {
         // This should not panic on any platform
         let supported = is_metal_supported();
-        
+
         // On macOS with Metal feature, it should try to detect support
         #[cfg(all(target_os = "macos", feature = "metal"))]
         {
             // May be true or false depending on hardware, but should not panic
-            println!("Metal supported: {}", supported);
+            println!("Metal supported: {supported}");
         }
-        
+
         // On non-macOS or without Metal feature, should be false
         #[cfg(not(all(target_os = "macos", feature = "metal")))]
         {
@@ -263,10 +263,17 @@ mod tests {
         match initialize_metal_context() {
             Ok((device, _command_queue, _library)) => {
                 println!("Successfully initialized Metal on: {}", device.name());
-                println!("Device type: {}", if device.is_low_power() { "Low Power" } else { "Discrete" });
+                println!(
+                    "Device type: {}",
+                    if device.is_low_power() {
+                        "Low Power"
+                    } else {
+                        "Discrete"
+                    }
+                );
             }
             Err(e) => {
-                println!("Metal initialization failed (expected on some systems): {}", e);
+                println!("Metal initialization failed (expected on some systems): {e}");
             }
         }
     }
@@ -276,23 +283,23 @@ mod tests {
     fn test_command_buffer_manager() {
         if let Ok((device, command_queue, _)) = initialize_metal_context() {
             let manager = create_command_buffer_manager(&device, &command_queue);
-            
+
             // Test creating a command buffer
             match manager.create_command_buffer(CommandBufferPriority::Normal) {
                 Ok(cb_id) => {
-                    println!("Created command buffer with ID: {}", cb_id);
-                    
+                    println!("Created command buffer with ID: {cb_id}");
+
                     // Test returning the command buffer
                     let _ = manager.return_command_buffer(cb_id);
                 }
                 Err(e) => {
-                    println!("Failed to create command buffer: {}", e);
+                    println!("Failed to create command buffer: {e}");
                 }
             }
-            
+
             // Test getting statistics
             let stats = manager.get_stats();
-            println!("Command buffer pool stats: {:?}", stats);
+            println!("Command buffer pool stats: {stats:?}");
         }
     }
 
@@ -301,23 +308,23 @@ mod tests {
     fn test_buffer_pool() {
         if let Ok((device, _, _)) = initialize_metal_context() {
             let buffer_pool = create_buffer_pool(&device);
-            
+
             // Test buffer allocation - using fully qualified metal crate path to avoid namespace conflict
             match buffer_pool.get_buffer(1024, ::metal::MTLResourceOptions::StorageModeShared) {
                 Ok(buffer) => {
                     println!("Allocated buffer of size: {} bytes", buffer.length());
-                    
+
                     // Test returning buffer to pool
                     let _ = buffer_pool.return_buffer(buffer);
                 }
                 Err(e) => {
-                    println!("Failed to allocate buffer: {}", e);
+                    println!("Failed to allocate buffer: {e}");
                 }
             }
-            
+
             // Test pool statistics
             let stats = buffer_pool.get_stats();
-            println!("Buffer pool stats: {:?}", stats);
+            println!("Buffer pool stats: {stats:?}");
         }
     }
 
@@ -328,27 +335,29 @@ mod tests {
             match BitNetShaders::new(device.clone()) {
                 Ok(shaders) => {
                     println!("Successfully created BitNet shaders collection");
-                    
+
                     // Test compute pipeline creation for BitNet functions
                     let functions = [
                         BitNetShaderFunction::BitLinearForward,
                         BitNetShaderFunction::QuantizeActivations,
                         BitNetShaderFunction::BinarizeWeights,
                     ];
-                    
+
                     for function in &functions {
                         match shaders.get_pipeline(*function) {
-                            Ok(_pipeline) => println!("Successfully created pipeline for {:?}", function),
-                            Err(e) => println!("Failed to create pipeline for {:?}: {}", function, e),
+                            Ok(_pipeline) => {
+                                println!("Successfully created pipeline for {function:?}")
+                            }
+                            Err(e) => println!("Failed to create pipeline for {function:?}: {e}"),
                         }
                     }
-                    
+
                     // Test getting available shaders
                     let available = shaders.get_available_shaders();
-                    println!("Available shaders: {:?}", available);
+                    println!("Available shaders: {available:?}");
                 }
                 Err(e) => {
-                    println!("Failed to create BitNet shaders: {}", e);
+                    println!("Failed to create BitNet shaders: {e}");
                 }
             }
         }
@@ -359,22 +368,22 @@ mod tests {
     fn test_metal_buffer_operations() {
         if let Ok((device, _, _)) = initialize_metal_context() {
             let test_data = vec![1.0f32, 2.0, 3.0, 4.0, 5.0];
-            
+
             // Test buffer creation
             match create_buffer(&device, &test_data) {
                 Ok(buffer) => {
                     println!("Created buffer with {} bytes", buffer.length());
-                    
+
                     // Test reading data back
                     match read_buffer::<f32>(&buffer) {
                         Ok(read_data) => {
-                            println!("Read data: {:?}", read_data);
+                            println!("Read data: {read_data:?}");
                             assert_eq!(test_data, read_data);
                         }
-                        Err(e) => println!("Failed to read buffer: {}", e),
+                        Err(e) => println!("Failed to read buffer: {e}"),
                     }
                 }
-                Err(e) => println!("Failed to create buffer: {}", e),
+                Err(e) => println!("Failed to create buffer: {e}"),
             }
         }
     }

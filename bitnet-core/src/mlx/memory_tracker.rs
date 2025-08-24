@@ -1,17 +1,17 @@
 //! MLX Memory Tracking and Analysis
-//! 
+//!
 //! This module provides detailed memory tracking capabilities for MLX operations,
 //! including allocation tracking, memory pressure monitoring, and optimization suggestions.
 
 #[cfg(feature = "mlx")]
 use mlx_rs::Array;
 
-use crate::mlx::{MlxTensor, BitNetMlxDevice};
+use crate::mlx::{BitNetMlxDevice, MlxTensor};
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime};
-use serde::{Serialize, Deserialize};
 
 /// Memory allocation event
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -217,7 +217,9 @@ impl MlxMemoryTracker {
             let mut stats = self.device_stats.lock().unwrap();
             let device_stats = stats.entry(device.device_type().to_string()).or_default();
             device_stats.total_allocated += size_bytes;
-            device_stats.peak_allocated = device_stats.peak_allocated.max(device_stats.total_allocated);
+            device_stats.peak_allocated = device_stats
+                .peak_allocated
+                .max(device_stats.total_allocated);
             device_stats.allocation_count += 1;
             device_stats.last_allocation_time = SystemTime::now();
         }
@@ -353,7 +355,8 @@ impl MlxMemoryTracker {
             MemoryPressure::Medium => {
                 optimizations.push(MemoryOptimization {
                     suggestion_type: OptimizationType::TensorReuse,
-                    description: "Implement tensor reuse patterns to reduce allocations".to_string(),
+                    description: "Implement tensor reuse patterns to reduce allocations"
+                        .to_string(),
                     potential_savings: self.estimate_tensor_reuse_savings(device),
                     priority: OptimizationPriority::Medium,
                     implementation_effort: ImplementationEffort::Medium,
@@ -370,7 +373,8 @@ impl MlxMemoryTracker {
             MemoryPressure::Low => {
                 optimizations.push(MemoryOptimization {
                     suggestion_type: OptimizationType::MemoryPooling,
-                    description: "Implement memory pooling for better allocation efficiency".to_string(),
+                    description: "Implement memory pooling for better allocation efficiency"
+                        .to_string(),
                     potential_savings: self.estimate_pooling_savings(device),
                     priority: OptimizationPriority::Low,
                     implementation_effort: ImplementationEffort::High,
@@ -427,17 +431,32 @@ impl MlxMemoryTracker {
         let stats = self.device_stats.lock().unwrap();
         for (device, device_stats) in stats.iter() {
             report.push_str(&format!("## Device: {}\n", device));
-            report.push_str(&format!("- Total allocated: {} bytes\n", device_stats.total_allocated));
-            report.push_str(&format!("- Peak allocated: {} bytes\n", device_stats.peak_allocated));
-            report.push_str(&format!("- Allocation count: {}\n", device_stats.allocation_count));
-            report.push_str(&format!("- Deallocation count: {}\n", device_stats.deallocation_count));
-            
+            report.push_str(&format!(
+                "- Total allocated: {} bytes\n",
+                device_stats.total_allocated
+            ));
+            report.push_str(&format!(
+                "- Peak allocated: {} bytes\n",
+                device_stats.peak_allocated
+            ));
+            report.push_str(&format!(
+                "- Allocation count: {}\n",
+                device_stats.allocation_count
+            ));
+            report.push_str(&format!(
+                "- Deallocation count: {}\n",
+                device_stats.deallocation_count
+            ));
+
             let efficiency = if device_stats.allocation_count > 0 {
                 device_stats.deallocation_count as f64 / device_stats.allocation_count as f64
             } else {
                 0.0
             };
-            report.push_str(&format!("- Memory efficiency: {:.2}%\n\n", efficiency * 100.0));
+            report.push_str(&format!(
+                "- Memory efficiency: {:.2}%\n\n",
+                efficiency * 100.0
+            ));
         }
 
         report
@@ -458,7 +477,8 @@ impl MlxMemoryTracker {
 
         for (device_type, device_stats) in stats.iter() {
             let active_allocations = self.active_allocations.lock().unwrap();
-            let active_tensors = active_allocations.values()
+            let active_tensors = active_allocations
+                .values()
                 .filter(|event| event.device_type == *device_type)
                 .count();
 
@@ -567,11 +587,14 @@ impl Default for MlxMemoryTracker {
 }
 
 /// Global memory tracker instance
-static GLOBAL_TRACKER: std::sync::OnceLock<Arc<Mutex<MlxMemoryTracker>>> = std::sync::OnceLock::new();
+static GLOBAL_TRACKER: std::sync::OnceLock<Arc<Mutex<MlxMemoryTracker>>> =
+    std::sync::OnceLock::new();
 
 /// Get the global memory tracker
 pub fn get_global_memory_tracker() -> Arc<Mutex<MlxMemoryTracker>> {
-    GLOBAL_TRACKER.get_or_init(|| Arc::new(Mutex::new(MlxMemoryTracker::new()))).clone()
+    GLOBAL_TRACKER
+        .get_or_init(|| Arc::new(Mutex::new(MlxMemoryTracker::new())))
+        .clone()
 }
 
 /// Convenience function to track allocation globally

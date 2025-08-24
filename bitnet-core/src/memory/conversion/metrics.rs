@@ -3,7 +3,7 @@
 //! This module provides comprehensive metrics collection and monitoring
 //! for the data conversion system, enabling performance analysis and optimization.
 
-use crate::memory::conversion::{ConversionStrategy, ConversionQuality};
+use crate::memory::conversion::{ConversionQuality, ConversionStrategy};
 use crate::memory::tensor::BitNetDType;
 use candle_core::Device;
 use serde::{Deserialize, Serialize};
@@ -100,7 +100,9 @@ impl ConversionMetrics {
             .iter()
             .filter(|(_, metrics)| metrics.usage_count > 0)
             .min_by(|(_, a), (_, b)| {
-                a.average_time_ms().partial_cmp(&b.average_time_ms()).unwrap()
+                a.average_time_ms()
+                    .partial_cmp(&b.average_time_ms())
+                    .unwrap()
             })
             .map(|(strategy, _)| *strategy)
     }
@@ -246,12 +248,16 @@ impl DTypeMetrics {
     pub fn merge(&mut self, other: &DTypeMetrics) {
         let total_conversions = self.conversion_count + other.conversion_count;
         if total_conversions > 0 {
-            self.memory_efficiency_gain = (self.memory_efficiency_gain * self.conversion_count as f64 +
-                other.memory_efficiency_gain * other.conversion_count as f64) / total_conversions as f64;
-            self.average_compression_ratio = (self.average_compression_ratio * self.conversion_count as f64 +
-                other.average_compression_ratio * other.conversion_count as f64) / total_conversions as f64;
+            self.memory_efficiency_gain = (self.memory_efficiency_gain
+                * self.conversion_count as f64
+                + other.memory_efficiency_gain * other.conversion_count as f64)
+                / total_conversions as f64;
+            self.average_compression_ratio = (self.average_compression_ratio
+                * self.conversion_count as f64
+                + other.average_compression_ratio * other.conversion_count as f64)
+                / total_conversions as f64;
         }
-        
+
         self.conversion_count += other.conversion_count;
         self.total_time_ms += other.total_time_ms;
         self.total_elements += other.total_elements;
@@ -282,12 +288,15 @@ impl DeviceMetrics {
     pub fn merge(&mut self, other: &DeviceMetrics) {
         let total_conversions = self.conversions_count + other.conversions_count;
         if total_conversions > 0 {
-            self.device_utilization = (self.device_utilization * self.conversions_count as f64 +
-                other.device_utilization * other.conversions_count as f64) / total_conversions as f64;
-            self.memory_bandwidth_gbps = (self.memory_bandwidth_gbps * self.conversions_count as f64 +
-                other.memory_bandwidth_gbps * other.conversions_count as f64) / total_conversions as f64;
+            self.device_utilization = (self.device_utilization * self.conversions_count as f64
+                + other.device_utilization * other.conversions_count as f64)
+                / total_conversions as f64;
+            self.memory_bandwidth_gbps = (self.memory_bandwidth_gbps
+                * self.conversions_count as f64
+                + other.memory_bandwidth_gbps * other.conversions_count as f64)
+                / total_conversions as f64;
         }
-        
+
         self.conversions_count += other.conversions_count;
         self.total_time_ms += other.total_time_ms;
         self.total_bytes += other.total_bytes;
@@ -321,9 +330,10 @@ impl MemoryStats {
         self.peak_memory_usage = self.peak_memory_usage.max(other.peak_memory_usage);
         self.total_memory_allocated += other.total_memory_allocated;
         self.total_memory_freed += other.total_memory_freed;
-        
+
         // Average the ratios and percentages
-        self.memory_efficiency_ratio = (self.memory_efficiency_ratio + other.memory_efficiency_ratio) / 2.0;
+        self.memory_efficiency_ratio =
+            (self.memory_efficiency_ratio + other.memory_efficiency_ratio) / 2.0;
         self.zero_copy_percentage = (self.zero_copy_percentage + other.zero_copy_percentage) / 2.0;
         self.in_place_percentage = (self.in_place_percentage + other.in_place_percentage) / 2.0;
     }
@@ -355,14 +365,22 @@ impl PerformanceStats {
     }
 
     pub fn merge(&mut self, other: &PerformanceStats) {
-        self.min_conversion_time_ms = self.min_conversion_time_ms.min(other.min_conversion_time_ms);
-        self.max_conversion_time_ms = self.max_conversion_time_ms.max(other.max_conversion_time_ms);
-        
+        self.min_conversion_time_ms = self
+            .min_conversion_time_ms
+            .min(other.min_conversion_time_ms);
+        self.max_conversion_time_ms = self
+            .max_conversion_time_ms
+            .max(other.max_conversion_time_ms);
+
         // For percentiles and ratios, take the average (simplified approach)
-        self.p50_conversion_time_ms = (self.p50_conversion_time_ms + other.p50_conversion_time_ms) / 2;
-        self.p95_conversion_time_ms = (self.p95_conversion_time_ms + other.p95_conversion_time_ms) / 2;
-        self.p99_conversion_time_ms = (self.p99_conversion_time_ms + other.p99_conversion_time_ms) / 2;
-        self.throughput_elements_per_sec = (self.throughput_elements_per_sec + other.throughput_elements_per_sec) / 2.0;
+        self.p50_conversion_time_ms =
+            (self.p50_conversion_time_ms + other.p50_conversion_time_ms) / 2;
+        self.p95_conversion_time_ms =
+            (self.p95_conversion_time_ms + other.p95_conversion_time_ms) / 2;
+        self.p99_conversion_time_ms =
+            (self.p99_conversion_time_ms + other.p99_conversion_time_ms) / 2;
+        self.throughput_elements_per_sec =
+            (self.throughput_elements_per_sec + other.throughput_elements_per_sec) / 2.0;
         self.cache_hit_ratio = (self.cache_hit_ratio + other.cache_hit_ratio) / 2.0;
     }
 }
@@ -464,7 +482,12 @@ impl ConversionEvent {
     }
 
     /// Marks the event as completed successfully
-    pub fn complete_success(mut self, duration: Duration, memory_allocated: usize, memory_peak: usize) -> Self {
+    pub fn complete_success(
+        mut self,
+        duration: Duration,
+        memory_allocated: usize,
+        memory_peak: usize,
+    ) -> Self {
         self.duration_ms = duration.as_millis() as u64;
         self.success = true;
         self.memory_allocated = memory_allocated;
@@ -519,7 +542,7 @@ impl ConversionStats {
     pub fn record_event(&self, event: ConversionEvent) {
         if let Ok(mut events) = self.events.write() {
             events.push(event);
-            
+
             // Keep only the most recent events
             let max_events = self.max_events;
             if events.len() > max_events {
@@ -537,12 +560,12 @@ impl ConversionStats {
         };
 
         let mut metrics = ConversionMetrics::new();
-        
+
         for event in &events {
             metrics.total_conversions += 1;
             metrics.total_bytes_processed += event.input_size_bytes as u64;
             metrics.total_time_ms += event.duration_ms;
-            
+
             if event.success {
                 metrics.successful_conversions += 1;
             } else {
@@ -550,44 +573,50 @@ impl ConversionStats {
             }
 
             // Update strategy metrics
-            let strategy_metrics = metrics.strategy_metrics
+            let strategy_metrics = metrics
+                .strategy_metrics
                 .entry(event.strategy)
                 .or_insert_with(StrategyMetrics::new);
-            
+
             strategy_metrics.usage_count += 1;
             strategy_metrics.total_time_ms += event.duration_ms;
             strategy_metrics.total_bytes += event.input_size_bytes as u64;
-            
+
             if event.success {
                 strategy_metrics.success_count += 1;
             } else {
                 strategy_metrics.failure_count += 1;
             }
-            
+
             strategy_metrics.min_time_ms = strategy_metrics.min_time_ms.min(event.duration_ms);
             strategy_metrics.max_time_ms = strategy_metrics.max_time_ms.max(event.duration_ms);
 
             // Update dtype metrics
             let dtype_conversion = DTypeConversion::new(event.source_dtype, event.target_dtype);
-            let dtype_metrics = metrics.dtype_metrics
+            let dtype_metrics = metrics
+                .dtype_metrics
                 .entry(dtype_conversion)
                 .or_insert_with(DTypeMetrics::new);
-            
+
             dtype_metrics.conversion_count += 1;
             dtype_metrics.total_time_ms += event.duration_ms;
             dtype_metrics.total_elements += event.element_count as u64;
-            
+
             // Update device metrics
-            let device_metrics = metrics.device_metrics
+            let device_metrics = metrics
+                .device_metrics
                 .entry(event.device.clone())
                 .or_insert_with(DeviceMetrics::new);
-            
+
             device_metrics.conversions_count += 1;
             device_metrics.total_time_ms += event.duration_ms;
             device_metrics.total_bytes += event.input_size_bytes as u64;
 
             // Update memory stats
-            metrics.memory_stats.peak_memory_usage = metrics.memory_stats.peak_memory_usage.max(event.memory_peak as u64);
+            metrics.memory_stats.peak_memory_usage = metrics
+                .memory_stats
+                .peak_memory_usage
+                .max(event.memory_peak as u64);
             metrics.memory_stats.total_memory_allocated += event.memory_allocated as u64;
         }
 
@@ -599,7 +628,11 @@ impl ConversionStats {
     }
 
     /// Calculates performance statistics from events
-    fn calculate_performance_stats(&self, events: &[ConversionEvent], metrics: &mut ConversionMetrics) {
+    fn calculate_performance_stats(
+        &self,
+        events: &[ConversionEvent],
+        metrics: &mut ConversionMetrics,
+    ) {
         if events.is_empty() {
             return;
         }
@@ -609,7 +642,7 @@ impl ConversionStats {
 
         metrics.performance_stats.min_conversion_time_ms = durations[0];
         metrics.performance_stats.max_conversion_time_ms = durations[durations.len() - 1];
-        
+
         let len = durations.len();
         metrics.performance_stats.p50_conversion_time_ms = durations[len / 2];
         metrics.performance_stats.p95_conversion_time_ms = durations[(len * 95) / 100];
@@ -618,7 +651,8 @@ impl ConversionStats {
         let total_elements: u64 = events.iter().map(|e| e.element_count as u64).sum();
         let total_time_sec = metrics.total_time_ms as f64 / 1000.0;
         if total_time_sec > 0.0 {
-            metrics.performance_stats.throughput_elements_per_sec = total_elements as f64 / total_time_sec;
+            metrics.performance_stats.throughput_elements_per_sec =
+                total_elements as f64 / total_time_sec;
         }
     }
 
@@ -627,11 +661,12 @@ impl ConversionStats {
         for event in events {
             if !event.success {
                 metrics.error_stats.total_errors += 1;
-                
+
                 if let Some(ref error_msg) = event.error_message {
                     if error_msg.contains("memory") || error_msg.contains("Memory") {
                         metrics.error_stats.memory_errors += 1;
-                    } else if error_msg.contains("unsupported") || error_msg.contains("Unsupported") {
+                    } else if error_msg.contains("unsupported") || error_msg.contains("Unsupported")
+                    {
                         metrics.error_stats.unsupported_conversion_errors += 1;
                     } else if error_msg.contains("device") || error_msg.contains("Device") {
                         metrics.error_stats.device_errors += 1;
@@ -645,7 +680,9 @@ impl ConversionStats {
         }
 
         if metrics.total_conversions > 0 {
-            metrics.error_stats.error_rate = (metrics.error_stats.total_errors as f64 / metrics.total_conversions as f64) * 100.0;
+            metrics.error_stats.error_rate = (metrics.error_stats.total_errors as f64
+                / metrics.total_conversions as f64)
+                * 100.0;
         }
     }
 
@@ -653,7 +690,11 @@ impl ConversionStats {
     pub fn get_recent_events(&self, count: usize) -> Vec<ConversionEvent> {
         match self.events.read() {
             Ok(events) => {
-                let start = if events.len() > count { events.len() - count } else { 0 };
+                let start = if events.len() > count {
+                    events.len() - count
+                } else {
+                    0
+                };
                 events[start..].to_vec()
             }
             Err(_) => Vec::new(),
@@ -700,7 +741,7 @@ mod tests {
         metrics.usage_count = 10;
         metrics.total_time_ms = 1000;
         metrics.success_count = 8;
-        
+
         assert_eq!(metrics.average_time_ms(), 100.0);
         assert_eq!(metrics.success_rate(), 80.0);
     }
@@ -752,7 +793,8 @@ mod tests {
             1024,
             512,
             256,
-        ).complete_success(Duration::from_millis(50), 1024, 1024);
+        )
+        .complete_success(Duration::from_millis(50), 1024, 1024);
 
         stats.record_event(event);
         assert_eq!(stats.event_count(), 1);
@@ -776,7 +818,7 @@ mod tests {
         metrics2.total_time_ms = 500;
 
         metrics1.merge(&metrics2);
-        
+
         assert_eq!(metrics1.total_conversions, 15);
         assert_eq!(metrics1.successful_conversions, 12);
         assert_eq!(metrics1.total_time_ms, 1500);
@@ -799,14 +841,15 @@ mod tests {
                 1024,
                 512,
                 256,
-            ).complete_success(Duration::from_millis(50), 1024, 1024);
+            )
+            .complete_success(Duration::from_millis(50), 1024, 1024);
 
             stats.record_event(event);
         }
 
         // Should only keep the last 2 events
         assert_eq!(stats.event_count(), 2);
-        
+
         let recent_events = stats.get_recent_events(5);
         assert_eq!(recent_events.len(), 2);
     }

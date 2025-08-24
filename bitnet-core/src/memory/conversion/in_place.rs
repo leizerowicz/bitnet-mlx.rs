@@ -3,10 +3,8 @@
 //! This module implements in-place conversions that modify tensor data directly
 //! in existing memory buffers, minimizing memory allocation overhead.
 
-use crate::memory::conversion::{
-    ConversionResult, ConversionError, ConversionContext, Converter
-};
-use crate::memory::tensor::{BitNetTensor, BitNetDType};
+use crate::memory::conversion::{ConversionContext, ConversionError, ConversionResult, Converter};
+use crate::memory::tensor::{BitNetDType, BitNetTensor};
 use crate::memory::HybridMemoryPool;
 use std::sync::Arc;
 
@@ -53,9 +51,12 @@ impl InPlaceConverter {
         target_dtype: BitNetDType,
     ) -> ConversionResult<()> {
         let source_dtype = tensor.dtype();
-        
+
         #[cfg(feature = "tracing")]
-        info!("Starting in-place conversion from {} to {}", source_dtype, target_dtype);
+        info!(
+            "Starting in-place conversion from {} to {}",
+            source_dtype, target_dtype
+        );
 
         // Check if conversion is possible
         if !self.is_in_place_compatible(source_dtype, target_dtype) {
@@ -74,7 +75,7 @@ impl InPlaceConverter {
         }
 
         let element_count = tensor.element_count();
-        
+
         // Perform the in-place conversion
         unsafe {
             let ptr = tensor.data.memory_handle.as_ptr() as *mut u8;
@@ -83,11 +84,15 @@ impl InPlaceConverter {
 
         // Update tensor metadata
         {
-            let mut metadata = tensor.data.metadata.write()
-                .map_err(|_| ConversionError::InternalError {
-                    reason: "Failed to acquire metadata write lock".to_string()
-                })?;
-            
+            let mut metadata =
+                tensor
+                    .data
+                    .metadata
+                    .write()
+                    .map_err(|_| ConversionError::InternalError {
+                        reason: "Failed to acquire metadata write lock".to_string(),
+                    })?;
+
             metadata.dtype = target_dtype;
             metadata.size_bytes = target_dtype.bytes_for_elements(element_count);
             metadata.touch();
@@ -125,36 +130,36 @@ impl InPlaceConverter {
             (BitNetDType::F32, BitNetDType::F16) => true,
             (BitNetDType::F32, BitNetDType::BF16) => true,
             (BitNetDType::F32, BitNetDType::I8) => true,
-            
+
             // F16 can be converted to smaller types
             (BitNetDType::F16, BitNetDType::I8) => true,
             (BitNetDType::F16, BitNetDType::I4) => true,
             (BitNetDType::F16, BitNetDType::I2) => true,
             (BitNetDType::F16, BitNetDType::I1) => true,
             (BitNetDType::F16, BitNetDType::BitNet158) => true,
-            
+
             // BF16 can be converted to smaller types
             (BitNetDType::BF16, BitNetDType::I8) => true,
             (BitNetDType::BF16, BitNetDType::I4) => true,
             (BitNetDType::BF16, BitNetDType::I2) => true,
             (BitNetDType::BF16, BitNetDType::I1) => true,
             (BitNetDType::BF16, BitNetDType::BitNet158) => true,
-            
+
             // I8 can be converted to smaller integer types
             (BitNetDType::I8, BitNetDType::I4) => true,
             (BitNetDType::I8, BitNetDType::I2) => true,
             (BitNetDType::I8, BitNetDType::I1) => true,
             (BitNetDType::I8, BitNetDType::BitNet158) => true,
-            
+
             // I4 can be converted to smaller types
             (BitNetDType::I4, BitNetDType::I2) => true,
             (BitNetDType::I4, BitNetDType::I1) => true,
             (BitNetDType::I4, BitNetDType::BitNet158) => true,
-            
+
             // I2 can be converted to smaller types
             (BitNetDType::I2, BitNetDType::I1) => true,
             (BitNetDType::I2, BitNetDType::BitNet158) => true,
-            
+
             // All other combinations are not supported for in-place conversion
             _ => false,
         }
@@ -177,11 +182,11 @@ impl InPlaceConverter {
             (BitNetDType::BF16, BitNetDType::I4) => true,
             (BitNetDType::BF16, BitNetDType::I2) => true,
             (BitNetDType::BF16, BitNetDType::I1) => true,
-            
+
             // Precision reduction in floating point
             (BitNetDType::F32, BitNetDType::F16) => true,
             (BitNetDType::F32, BitNetDType::BF16) => true,
-            
+
             // Integer quantization
             (BitNetDType::I8, BitNetDType::I4) => true,
             (BitNetDType::I8, BitNetDType::I2) => true,
@@ -189,10 +194,10 @@ impl InPlaceConverter {
             (BitNetDType::I4, BitNetDType::I2) => true,
             (BitNetDType::I4, BitNetDType::I1) => true,
             (BitNetDType::I2, BitNetDType::I1) => true,
-            
+
             // BitNet conversions
             (_, BitNetDType::BitNet158) => true,
-            
+
             _ => false,
         }
     }
@@ -208,47 +213,47 @@ impl InPlaceConverter {
         match (source_dtype, target_dtype) {
             // Same type - no conversion needed
             (a, b) if a == b => Ok(()),
-            
+
             // F32 to F16 conversion
             (BitNetDType::F32, BitNetDType::F16) => {
                 self.convert_f32_to_f16_in_place(ptr, element_count)
             }
-            
+
             // F32 to BF16 conversion
             (BitNetDType::F32, BitNetDType::BF16) => {
                 self.convert_f32_to_bf16_in_place(ptr, element_count)
             }
-            
+
             // F32 to I8 quantization
             (BitNetDType::F32, BitNetDType::I8) => {
                 self.convert_f32_to_i8_in_place(ptr, element_count)
             }
-            
+
             // F16 to I8 quantization
             (BitNetDType::F16, BitNetDType::I8) => {
                 self.convert_f16_to_i8_in_place(ptr, element_count)
             }
-            
+
             // I8 to I4 quantization
             (BitNetDType::I8, BitNetDType::I4) => {
                 self.convert_i8_to_i4_in_place(ptr, element_count)
             }
-            
+
             // I8 to I2 quantization
             (BitNetDType::I8, BitNetDType::I2) => {
                 self.convert_i8_to_i2_in_place(ptr, element_count)
             }
-            
+
             // I8 to I1 quantization
             (BitNetDType::I8, BitNetDType::I1) => {
                 self.convert_i8_to_i1_in_place(ptr, element_count)
             }
-            
+
             // Any type to BitNet 1.58b
             (_, BitNetDType::BitNet158) => {
                 self.convert_to_bitnet158_in_place(ptr, element_count, source_dtype)
             }
-            
+
             _ => Err(ConversionError::UnsupportedConversion {
                 from: source_dtype,
                 to: target_dtype,
@@ -347,7 +352,7 @@ impl InPlaceConverter {
         for i in 0..element_count {
             let i8_val = i8_slice[i];
             let i4_val = (i8_val.clamp(-8, 7) & 0x0F) as u8;
-            
+
             let byte_idx = i / 2;
             if i % 2 == 0 {
                 byte_slice[byte_idx] = i4_val;
@@ -371,10 +376,10 @@ impl InPlaceConverter {
         for i in 0..element_count {
             let i8_val = i8_slice[i];
             let i2_val = (i8_val.clamp(-2, 1) & 0x03) as u8;
-            
+
             let byte_idx = i / 4;
             let bit_offset = (i % 4) * 2;
-            
+
             if bit_offset == 0 {
                 byte_slice[byte_idx] = i2_val;
             } else {
@@ -397,10 +402,10 @@ impl InPlaceConverter {
         for i in 0..element_count {
             let i8_val = i8_slice[i];
             let i1_val = if i8_val >= 0 { 1u8 } else { 0u8 };
-            
+
             let byte_idx = i / 8;
             let bit_offset = i % 8;
-            
+
             if bit_offset == 0 {
                 byte_slice[byte_idx] = i1_val;
             } else {
@@ -448,7 +453,7 @@ impl InPlaceConverter {
 
             let byte_idx = i / 4;
             let bit_offset = (i % 4) * 2;
-            
+
             if bit_offset == 0 {
                 byte_slice[byte_idx] = quantized;
             } else {
@@ -466,7 +471,11 @@ impl InPlaceConverter {
             return 0x7E00u16; // NaN
         }
         if f32_val.is_infinite() {
-            return if f32_val.is_sign_positive() { 0x7C00u16 } else { 0xFC00u16 };
+            return if f32_val.is_sign_positive() {
+                0x7C00u16
+            } else {
+                0xFC00u16
+            };
         }
 
         let bits = f32_val.to_bits();
@@ -524,21 +533,24 @@ impl InPlaceConverter {
         target_dtype: BitNetDType,
     ) -> ConversionResult<()> {
         // Basic validation - check that tensor metadata is consistent
-        let metadata = tensor.data.metadata.read()
+        let metadata = tensor
+            .data
+            .metadata
+            .read()
             .map_err(|_| ConversionError::InternalError {
-                reason: "Failed to acquire metadata read lock".to_string()
+                reason: "Failed to acquire metadata read lock".to_string(),
             })?;
 
         if metadata.dtype != target_dtype {
             return Err(ConversionError::InternalError {
-                reason: "Tensor metadata not updated correctly".to_string()
+                reason: "Tensor metadata not updated correctly".to_string(),
             });
         }
 
         let expected_size = target_dtype.bytes_for_elements(metadata.element_count);
         if metadata.size_bytes != expected_size {
             return Err(ConversionError::InternalError {
-                reason: "Tensor size not updated correctly".to_string()
+                reason: "Tensor size not updated correctly".to_string(),
             });
         }
 
@@ -560,10 +572,12 @@ impl Converter for InPlaceConverter {
         _pool: &Arc<HybridMemoryPool>,
     ) -> ConversionResult<BitNetTensor> {
         // For the Converter trait, we need to create a copy since we can't modify the source
-        let mut target = source.clone_tensor(_pool)
-            .map_err(|e| ConversionError::InternalError {
-                reason: format!("Failed to clone tensor: {}", e)
-            })?;
+        let mut target =
+            source
+                .clone_tensor(_pool)
+                .map_err(|e| ConversionError::InternalError {
+                    reason: format!("Failed to clone tensor: {}", e),
+                })?;
 
         self.convert_in_place(&mut target, context.target_dtype)?;
         Ok(target)
@@ -571,13 +585,14 @@ impl Converter for InPlaceConverter {
 
     fn supports(&self, context: &ConversionContext) -> bool {
         // Check if this is an in-place compatible conversion
-        context.is_in_place_compatible() && 
-        std::mem::discriminant(&context.source_device) == std::mem::discriminant(&context.target_device)
+        context.is_in_place_compatible()
+            && std::mem::discriminant(&context.source_device)
+                == std::mem::discriminant(&context.target_device)
     }
 
     fn estimate_time_ms(&self, context: &ConversionContext) -> u64 {
         let element_count: usize = context.shape.iter().product();
-        
+
         // In-place conversions are very fast since they don't allocate memory
         // Estimate based on element processing speed
         let elements_per_ms = 1_000_000; // ~1M elements per millisecond
@@ -633,7 +648,9 @@ mod tests {
         let mut tensor = BitNetTensor::ones(&[4, 4], BitNetDType::F32, &device, &pool).unwrap();
         let original_size = tensor.size_bytes();
 
-        converter.convert_in_place(&mut tensor, BitNetDType::F16).unwrap();
+        converter
+            .convert_in_place(&mut tensor, BitNetDType::F16)
+            .unwrap();
 
         assert_eq!(tensor.dtype(), BitNetDType::F16);
         assert_eq!(tensor.shape(), vec![4, 4]);
@@ -650,7 +667,10 @@ mod tests {
         let result = converter.convert_in_place(&mut tensor, BitNetDType::F32);
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), ConversionError::UnsupportedConversion { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            ConversionError::UnsupportedConversion { .. }
+        ));
     }
 
     #[test]
@@ -663,7 +683,10 @@ mod tests {
         let result = converter.convert_in_place(&mut tensor, BitNetDType::I8);
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), ConversionError::DataLossError { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            ConversionError::DataLossError { .. }
+        ));
     }
 
     #[test]
@@ -681,7 +704,7 @@ mod tests {
         );
 
         assert!(converter.supports(&context));
-        
+
         let source = BitNetTensor::ones(&[2, 2], BitNetDType::F32, &device, &pool).unwrap();
         let result = converter.convert(&source, &context, &pool).unwrap();
 

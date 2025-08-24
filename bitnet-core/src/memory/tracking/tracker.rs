@@ -3,24 +3,23 @@
 //! This module provides the main MemoryTracker interface for real-time memory
 //! monitoring with detailed metrics collection and minimal performance overhead.
 
-use std::sync::{Arc, RwLock, Mutex};
-use std::time::{Duration, Instant, SystemTime};
-use std::collections::HashMap;
 use candle_core::Device;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, RwLock};
+use std::time::{Duration, Instant, SystemTime};
 
 #[cfg(feature = "tracing")]
-use tracing::{debug, info, error};
+use tracing::{debug, error, info};
 
-use crate::memory::MemoryHandle;
 use super::{
-    TrackingError, TrackingResult, AllocationId, AllocationInfo,
-    GlobalTrackingStats,
     config::TrackingConfig,
+    patterns::{AllocationPattern, PatternAnalyzer},
     pressure::{MemoryPressureDetector, MemoryPressureLevel, PressureCallback},
-    timeline::{AllocationTimeline, AllocationEvent},
-    patterns::{PatternAnalyzer, AllocationPattern},
+    timeline::{AllocationEvent, AllocationTimeline},
+    AllocationId, AllocationInfo, GlobalTrackingStats, TrackingError, TrackingResult,
 };
+use crate::memory::MemoryHandle;
 
 /// Main memory tracker that provides real-time monitoring and detailed metrics
 #[derive(Debug)]
@@ -133,7 +132,9 @@ impl MemoryTracker {
     /// ```
     pub fn new(config: TrackingConfig) -> TrackingResult<Self> {
         // Validate configuration
-        config.validate().map_err(|e| TrackingError::InvalidConfiguration { reason: e })?;
+        config
+            .validate()
+            .map_err(|e| TrackingError::InvalidConfiguration { reason: e })?;
 
         #[cfg(feature = "tracing")]
         info!("Creating memory tracker with config: {:?}", config.level);
@@ -142,7 +143,9 @@ impl MemoryTracker {
 
         // Initialize pressure detector if enabled
         let pressure_detector = if config.enable_pressure_monitoring {
-            Some(Arc::new(MemoryPressureDetector::new(config.pressure_thresholds.clone())?))
+            Some(Arc::new(MemoryPressureDetector::new(
+                config.pressure_thresholds.clone(),
+            )?))
         } else {
             None
         };
@@ -159,7 +162,9 @@ impl MemoryTracker {
 
         // Initialize pattern analyzer if enabled
         let pattern_analyzer = if config.enable_pattern_analysis {
-            Some(Arc::new(Mutex::new(PatternAnalyzer::new(Default::default()))))
+            Some(Arc::new(Mutex::new(PatternAnalyzer::new(
+                Default::default(),
+            ))))
         } else {
             None
         };
@@ -214,7 +219,12 @@ impl MemoryTracker {
         }
 
         #[cfg(feature = "tracing")]
-        debug!("Tracking allocation {} of {} bytes on {:?}", allocation_id.raw(), size, device);
+        debug!(
+            "Tracking allocation {} of {} bytes on {:?}",
+            allocation_id.raw(),
+            size,
+            device
+        );
 
         // Create allocation info
         let pool_type = match handle.pool_type() {
@@ -307,12 +317,13 @@ impl MemoryTracker {
         // Find and remove the allocation
         let allocation_info = if let Ok(mut active) = self.active_allocations.write() {
             // Find allocation by handle ID (we need to search since we don't have AllocationId)
-            let allocation_id = active.iter()
+            let allocation_id = active
+                .iter()
                 .find(|(_, info)| {
                     // We need a way to match handle to allocation
                     // For now, we'll use a simple approach based on size and device
-                    info.size == handle.size() && 
-                    info.device_type == format!("{:?}", handle.device())
+                    info.size == handle.size()
+                        && info.device_type == format!("{:?}", handle.device())
                 })
                 .map(|(id, _)| *id);
 
@@ -390,32 +401,41 @@ impl MemoryTracker {
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn get_detailed_metrics(&self) -> DetailedMemoryMetrics {
-        let global_stats = self.stats.read()
+        let global_stats = self
+            .stats
+            .read()
             .map(|stats| stats.clone())
             .unwrap_or_default();
 
         let pressure_level = self.get_pressure_level();
 
-        let active_allocations = self.active_allocations.read()
+        let active_allocations = self
+            .active_allocations
+            .read()
             .map(|active| active.len())
             .unwrap_or(0);
 
         let current_memory_usage = self.get_current_memory_usage();
         let peak_memory_usage = global_stats.peak_bytes_allocated();
 
-        let device_usage = global_stats.device_stats.iter()
+        let device_usage = global_stats
+            .device_stats
+            .iter()
             .map(|(device, stats)| (device.clone(), stats.current_bytes_allocated))
             .collect();
 
         let recent_patterns = if let Some(analyzer) = &self.pattern_analyzer {
-            analyzer.lock()
+            analyzer
+                .lock()
                 .map(|analyzer| analyzer.get_recent_patterns())
                 .unwrap_or_default()
         } else {
             Vec::new()
         };
 
-        let performance = self.performance_tracker.lock()
+        let performance = self
+            .performance_tracker
+            .lock()
             .map(|perf| perf.get_metrics())
             .unwrap_or_default();
 
@@ -489,7 +509,9 @@ impl MemoryTracker {
     // Private helper methods
 
     fn generate_allocation_id(&self) -> AllocationId {
-        let id = self.next_allocation_id.lock()
+        let id = self
+            .next_allocation_id
+            .lock()
             .map(|mut counter| {
                 let id = *counter;
                 *counter += 1;
@@ -500,7 +522,8 @@ impl MemoryTracker {
     }
 
     fn get_current_memory_usage(&self) -> u64 {
-        self.stats.read()
+        self.stats
+            .read()
             .map(|stats| stats.total_bytes_allocated())
             .unwrap_or(0)
     }
@@ -520,12 +543,15 @@ impl MemoryTracker {
     }
 
     fn calculate_tracking_overhead(&self) -> TrackingOverhead {
-        let active_allocations_size = self.active_allocations.read()
+        let active_allocations_size = self
+            .active_allocations
+            .read()
             .map(|active| active.len() * std::mem::size_of::<AllocationInfo>())
             .unwrap_or(0);
 
         let timeline_size = if let Some(timeline) = &self.timeline {
-            timeline.lock()
+            timeline
+                .lock()
                 .map(|timeline| timeline.estimated_memory_usage())
                 .unwrap_or(0)
         } else {
@@ -533,7 +559,8 @@ impl MemoryTracker {
         };
 
         let pattern_analyzer_size = if let Some(analyzer) = &self.pattern_analyzer {
-            analyzer.lock()
+            analyzer
+                .lock()
                 .map(|analyzer| analyzer.estimated_memory_usage())
                 .unwrap_or(0)
         } else {
@@ -542,7 +569,9 @@ impl MemoryTracker {
 
         let total_overhead = active_allocations_size + timeline_size + pattern_analyzer_size;
 
-        let cpu_overhead = self.performance_tracker.lock()
+        let cpu_overhead = self
+            .performance_tracker
+            .lock()
             .map(|perf| perf.calculate_cpu_overhead_percentage(self.start_time.elapsed()))
             .unwrap_or(0.0);
 
@@ -550,8 +579,15 @@ impl MemoryTracker {
             memory_overhead_bytes: total_overhead as u64,
             cpu_overhead_percentage: cpu_overhead,
             tracking_structures_count: 3, // active_allocations, timeline, pattern_analyzer
-            largest_structure_size_bytes: [active_allocations_size, timeline_size, pattern_analyzer_size]
-                .iter().max().copied().unwrap_or(0) as u64,
+            largest_structure_size_bytes: [
+                active_allocations_size,
+                timeline_size,
+                pattern_analyzer_size,
+            ]
+            .iter()
+            .max()
+            .copied()
+            .unwrap_or(0) as u64,
         }
     }
 }
@@ -592,23 +628,29 @@ impl PerformanceTracker {
 
     fn get_metrics(&self) -> PerformanceMetrics {
         let avg_allocation_time = if !self.allocation_times.is_empty() {
-            self.allocation_times.iter().sum::<Duration>().as_nanos() as u64 / self.allocation_times.len() as u64
+            self.allocation_times.iter().sum::<Duration>().as_nanos() as u64
+                / self.allocation_times.len() as u64
         } else {
             0
         };
 
         let avg_deallocation_time = if !self.deallocation_times.is_empty() {
-            self.deallocation_times.iter().sum::<Duration>().as_nanos() as u64 / self.deallocation_times.len() as u64
+            self.deallocation_times.iter().sum::<Duration>().as_nanos() as u64
+                / self.deallocation_times.len() as u64
         } else {
             0
         };
 
-        let max_allocation_time = self.allocation_times.iter()
+        let max_allocation_time = self
+            .allocation_times
+            .iter()
             .max()
             .map(|d| d.as_nanos() as u64)
             .unwrap_or(0);
 
-        let max_deallocation_time = self.deallocation_times.iter()
+        let max_deallocation_time = self
+            .deallocation_times
+            .iter()
             .max()
             .map(|d| d.as_nanos() as u64)
             .unwrap_or(0);
@@ -627,8 +669,9 @@ impl PerformanceTracker {
         if total_elapsed.as_nanos() == 0 {
             return 0.0;
         }
-        
-        let tracking_percentage = (self.total_tracking_time.as_nanos() as f64 / total_elapsed.as_nanos() as f64) * 100.0;
+
+        let tracking_percentage =
+            (self.total_tracking_time.as_nanos() as f64 / total_elapsed.as_nanos() as f64) * 100.0;
         tracking_percentage.min(100.0) // Cap at 100%
     }
 }
@@ -654,14 +697,14 @@ unsafe impl Sync for MemoryTracker {}
 mod tests {
     use super::*;
     use crate::device::get_cpu_device;
-    use crate::memory::handle::{MemoryHandle, PoolType, CpuMemoryMetadata};
+    use crate::memory::handle::{CpuMemoryMetadata, MemoryHandle, PoolType};
     use std::ptr::NonNull;
 
     #[test]
     fn test_memory_tracker_creation() {
         let config = TrackingConfig::standard();
         let tracker = MemoryTracker::new(config).unwrap();
-        
+
         let metrics = tracker.get_detailed_metrics();
         assert_eq!(metrics.active_allocations, 0);
         assert_eq!(metrics.current_memory_usage, 0);
@@ -672,7 +715,7 @@ mod tests {
         let config = TrackingConfig::standard();
         let tracker = MemoryTracker::new(config).unwrap();
         let device = get_cpu_device();
-        
+
         // Create a mock memory handle
         let ptr = NonNull::new(0x1000 as *mut u8).unwrap();
         let handle = unsafe {
@@ -690,9 +733,9 @@ mod tests {
                 },
             )
         };
-        
+
         tracker.track_allocation(&handle, 1024, &device);
-        
+
         let metrics = tracker.get_detailed_metrics();
         assert_eq!(metrics.active_allocations, 1);
         assert_eq!(metrics.current_memory_usage, 1024);
@@ -703,7 +746,7 @@ mod tests {
         let config = TrackingConfig::standard();
         let tracker = MemoryTracker::new(config).unwrap();
         let device = get_cpu_device();
-        
+
         // Create a mock memory handle
         let ptr = NonNull::new(0x1000 as *mut u8).unwrap();
         let handle = unsafe {
@@ -721,10 +764,10 @@ mod tests {
                 },
             )
         };
-        
+
         tracker.track_allocation(&handle, 1024, &device);
         tracker.track_deallocation(&handle);
-        
+
         let metrics = tracker.get_detailed_metrics();
         assert_eq!(metrics.active_allocations, 0);
     }
@@ -732,11 +775,11 @@ mod tests {
     #[test]
     fn test_performance_tracking() {
         let mut perf_tracker = PerformanceTracker::new();
-        
+
         perf_tracker.record_allocation_time(Duration::from_nanos(1000));
         perf_tracker.record_allocation_time(Duration::from_nanos(2000));
         perf_tracker.record_deallocation_time(Duration::from_nanos(500));
-        
+
         let metrics = perf_tracker.get_metrics();
         assert_eq!(metrics.avg_track_allocation_time_ns, 1500);
         assert_eq!(metrics.avg_track_deallocation_time_ns, 500);

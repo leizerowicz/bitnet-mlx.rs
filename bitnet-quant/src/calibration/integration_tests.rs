@@ -22,7 +22,7 @@ use tempfile::tempdir;
 #[tokio::test]
 async fn test_complete_calibration_workflow() -> Result<(), Box<dyn std::error::Error>> {
     let temp_dir = tempdir()?;
-    
+
     // Create comprehensive calibration configuration
     let config = CalibrationConfigBuilder::new()
         .batch_size(16)
@@ -53,7 +53,7 @@ async fn test_complete_calibration_workflow() -> Result<(), Box<dyn std::error::
 
     // Initialize calibration dataset
     let mut dataset = CalibrationDataset::new(config.clone())?;
-    
+
     // Load data into dataset
     for (layer_name, tensor_batch) in mock_data {
         dataset.add_layer_data(&layer_name, tensor_batch)?;
@@ -77,7 +77,7 @@ async fn test_complete_calibration_workflow() -> Result<(), Box<dyn std::error::
     // Load results from cache
     let loaded_results = cache.load_calibration_results("test_model_v1")?;
     assert!(loaded_results.is_some());
-    
+
     let loaded_results = loaded_results.unwrap();
     assert_eq!(loaded_results.layer_statistics.len(), results.layer_statistics.len());
 
@@ -104,7 +104,7 @@ async fn test_complete_calibration_workflow() -> Result<(), Box<dyn std::error::
 #[tokio::test]
 async fn test_streaming_calibration() -> Result<(), Box<dyn std::error::Error>> {
     let temp_dir = tempdir()?;
-    
+
     let config = CalibrationConfigBuilder::new()
         .batch_size(8)
         .max_samples(200)
@@ -117,14 +117,14 @@ async fn test_streaming_calibration() -> Result<(), Box<dyn std::error::Error>> 
     let large_mock_data = create_large_mock_calibration_data(&device, 500)?;
 
     let mut dataset = CalibrationDataset::new(config)?;
-    
+
     // Add data in chunks to simulate streaming
     for (layer_name, tensor_batch) in large_mock_data {
         dataset.add_layer_data(&layer_name, tensor_batch)?;
     }
 
     let results = dataset.process().await?;
-    
+
     // Verify streaming worked correctly
     assert!(!results.layer_statistics.is_empty());
     assert!(results.metadata.total_samples_processed > 0);
@@ -139,7 +139,7 @@ async fn test_streaming_calibration() -> Result<(), Box<dyn std::error::Error>> 
 async fn test_sampling_strategies() -> Result<(), Box<dyn std::error::Error>> {
     let device = Device::Cpu;
     let mock_data = create_mock_calibration_data(&device, 200)?;
-    
+
     let strategies = vec![
         SamplingStrategy::Random,
         SamplingStrategy::Stratified,
@@ -149,7 +149,7 @@ async fn test_sampling_strategies() -> Result<(), Box<dyn std::error::Error>> {
 
     for strategy in strategies {
         println!("Testing sampling strategy: {:?}", strategy);
-        
+
         let config = CalibrationConfigBuilder::new()
             .batch_size(16)
             .max_samples(100)
@@ -157,7 +157,7 @@ async fn test_sampling_strategies() -> Result<(), Box<dyn std::error::Error>> {
             .build()?;
 
         let mut dataset = CalibrationDataset::new(config)?;
-        
+
         // Add mock data
         for (layer_name, tensor_batch) in mock_data.clone() {
             dataset.add_layer_data(&layer_name, tensor_batch)?;
@@ -165,7 +165,7 @@ async fn test_sampling_strategies() -> Result<(), Box<dyn std::error::Error>> {
 
         let results = dataset.process().await?;
         assert!(!results.layer_statistics.is_empty());
-        
+
         println!("  Successfully processed {} layers", results.layer_statistics.len());
     }
 
@@ -177,7 +177,7 @@ async fn test_sampling_strategies() -> Result<(), Box<dyn std::error::Error>> {
 #[tokio::test]
 async fn test_histogram_optimization() -> Result<(), Box<dyn std::error::Error>> {
     let device = Device::Cpu;
-    
+
     // Create data with specific distribution for testing
     let test_tensor = Tensor::randn(0.0f32, 1.0f32, (1000, 128), &device)?;
     let mut layer_data = HashMap::new();
@@ -192,7 +192,7 @@ async fn test_histogram_optimization() -> Result<(), Box<dyn std::error::Error>>
 
     for objective in objectives {
         println!("Testing optimization objective: {:?}", objective);
-        
+
         let config = CalibrationConfigBuilder::new()
             .batch_size(32)
             .max_samples(500)
@@ -207,17 +207,17 @@ async fn test_histogram_optimization() -> Result<(), Box<dyn std::error::Error>>
             .build()?;
 
         let mut dataset = CalibrationDataset::new(config)?;
-        
+
         for (layer_name, tensor_batch) in layer_data.clone() {
             dataset.add_layer_data(&layer_name, tensor_batch)?;
         }
 
         let results = dataset.process().await?;
-        
+
         // Verify quantization parameters were generated
         assert!(results.quantization_parameters.contains_key("test_layer"));
         let params = &results.quantization_parameters["test_layer"];
-        
+
         println!("  Scale: {:.6}, Zero point: {}", params.scale, params.zero_point);
         assert!(params.scale > 0.0);
     }
@@ -230,7 +230,7 @@ async fn test_histogram_optimization() -> Result<(), Box<dyn std::error::Error>>
 #[tokio::test]
 async fn test_error_handling() -> Result<(), Box<dyn std::error::Error>> {
     let device = Device::Cpu;
-    
+
     // Test with invalid configuration
     let result = CalibrationConfigBuilder::new()
         .batch_size(0) // Invalid batch size
@@ -244,13 +244,13 @@ async fn test_error_handling() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     let mut dataset = CalibrationDataset::new(config)?;
-    
+
     // Add tensors with different shapes to the same layer
     let tensor1 = Tensor::randn(0.0f32, 1.0f32, (64, 128), &device)?;
     let tensor2 = Tensor::randn(0.0f32, 1.0f32, (32, 256), &device)?; // Different shape
-    
+
     dataset.add_layer_data("test_layer", vec![tensor1])?;
-    
+
     // This should succeed but log a warning about shape mismatch
     let result = dataset.add_layer_data("test_layer", vec![tensor2]);
     match result {
@@ -269,7 +269,7 @@ async fn test_error_handling() -> Result<(), Box<dyn std::error::Error>> {
 #[tokio::test]
 async fn test_cache_performance() -> Result<(), Box<dyn std::error::Error>> {
     let temp_dir = tempdir()?;
-    
+
     let config = CalibrationConfigBuilder::new()
         .persistence_config(PersistenceConfig {
             auto_save: true,
@@ -288,40 +288,40 @@ async fn test_cache_performance() -> Result<(), Box<dyn std::error::Error>> {
     // Create test data
     let device = Device::Cpu;
     let mock_data = create_mock_calibration_data(&device, 50)?;
-    
+
     let mut dataset = CalibrationDataset::new(factory.get_config().clone())?;
     for (layer_name, tensor_batch) in mock_data {
         dataset.add_layer_data(&layer_name, tensor_batch)?;
     }
-    
+
     let results = dataset.process().await?;
 
     // Measure cache performance
     let start_time = std::time::Instant::now();
-    
+
     // Save multiple entries
     for i in 0..5 {
         let key = format!("test_entry_{}", i);
         cache.save_calibration_results(&key, &results)?;
     }
-    
+
     let save_time = start_time.elapsed();
-    
+
     let start_time = std::time::Instant::now();
-    
+
     // Load entries (should hit cache)
     for i in 0..5 {
         let key = format!("test_entry_{}", i);
         let loaded = cache.load_calibration_results(&key)?;
         assert!(loaded.is_some());
     }
-    
+
     let load_time = start_time.elapsed();
-    
+
     // Check cache metrics
     let metrics = cache.get_metrics();
     let hit_ratio = cache.get_hit_ratio();
-    
+
     println!("Cache Performance Metrics:");
     println!("  Save time: {:?}", save_time);
     println!("  Load time: {:?}", load_time);
@@ -338,11 +338,11 @@ async fn test_cache_performance() -> Result<(), Box<dyn std::error::Error>> {
 
 /// Helper function to create mock calibration data
 fn create_mock_calibration_data(
-    device: &Device, 
+    device: &Device,
     num_samples: usize
 ) -> CalibrationResult<HashMap<String, Vec<Tensor>>> {
     let mut layer_data = HashMap::new();
-    
+
     // Create data for different layer types
     let layer_configs = vec![
         ("conv1", vec![num_samples, 64, 224, 224]),
@@ -355,7 +355,7 @@ fn create_mock_calibration_data(
     for (layer_name, shape) in layer_configs {
         let tensor = Tensor::randn(0.0f32, 1.0f32, shape, device)
             .map_err(|e| CalibrationError::tensor_operation(format!("Failed to create mock tensor: {}", e)))?;
-        
+
         layer_data.insert(layer_name.to_string(), vec![tensor]);
     }
 
@@ -368,7 +368,7 @@ fn create_large_mock_calibration_data(
     num_samples: usize
 ) -> CalibrationResult<HashMap<String, Vec<Tensor>>> {
     let mut layer_data = HashMap::new();
-    
+
     // Create larger tensors to test streaming
     let layer_configs = vec![
         ("large_conv1", vec![num_samples, 256, 56, 56]),
@@ -381,18 +381,18 @@ fn create_large_mock_calibration_data(
         // Create multiple tensor chunks
         let mut tensors = Vec::new();
         let chunk_size = num_samples.min(50); // Process in smaller chunks
-        
+
         for i in (0..num_samples).step_by(chunk_size) {
             let actual_chunk_size = (num_samples - i).min(chunk_size);
             let mut chunk_shape = shape.clone();
             chunk_shape[0] = actual_chunk_size;
-            
+
             let tensor = Tensor::randn(0.0f32, 1.0f32, chunk_shape, device)
                 .map_err(|e| CalibrationError::tensor_operation(format!("Failed to create large mock tensor: {}", e)))?;
-            
+
             tensors.push(tensor);
         }
-        
+
         layer_data.insert(layer_name.to_string(), tensors);
     }
 
@@ -400,15 +400,15 @@ fn create_large_mock_calibration_data(
 }
 
 /// Benchmark calibration performance
-#[tokio::test] 
+#[tokio::test]
 #[ignore] // Use `cargo test -- --ignored` to run benchmarks
 async fn benchmark_calibration_performance() -> Result<(), Box<dyn std::error::Error>> {
     let device = Device::Cpu;
     let sizes = vec![100, 500, 1000, 2000];
-    
+
     for size in sizes {
         println!("Benchmarking with {} samples...", size);
-        
+
         let config = CalibrationConfigBuilder::new()
             .batch_size(32)
             .max_samples(size)
@@ -416,19 +416,19 @@ async fn benchmark_calibration_performance() -> Result<(), Box<dyn std::error::E
             .build()?;
 
         let mock_data = create_mock_calibration_data(&device, size)?;
-        
+
         let start_time = std::time::Instant::now();
-        
+
         let mut dataset = CalibrationDataset::new(config)?;
         for (layer_name, tensor_batch) in mock_data {
             dataset.add_layer_data(&layer_name, tensor_batch)?;
         }
-        
+
         let results = dataset.process().await?;
-        
+
         let processing_time = start_time.elapsed();
         let throughput = size as f64 / processing_time.as_secs_f64();
-        
+
         println!("  Processing time: {:?}", processing_time);
         println!("  Throughput: {:.2} samples/second", throughput);
         println!("  Layers processed: {}", results.layer_statistics.len());

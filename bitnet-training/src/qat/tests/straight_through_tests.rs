@@ -25,7 +25,7 @@ fn test_ste_variants_quantization() -> Result<()> {
     let mut standard_ste = StraightThroughEstimator::new(standard_config, device.clone())?;
     let standard_output = standard_ste.forward(&input)?;
     let standard_values: Vec<f32> = standard_output.to_vec1()?;
-    
+
     // Binary quantization should give only +1 and -1
     for val in &standard_values {
         assert!(*val == 1.0 || *val == -1.0, "Standard STE should output binary values");
@@ -41,12 +41,12 @@ fn test_ste_variants_quantization() -> Result<()> {
     let mut clipped_ste = StraightThroughEstimator::new(clipped_config, device.clone())?;
     let clipped_output = clipped_ste.forward(&input)?;
     let clipped_values: Vec<f32> = clipped_output.to_vec1()?;
-    
+
     // Should clip and then quantize
     for val in &clipped_values {
         assert!(*val == 1.0 || *val == -1.0, "Clipped STE should output binary values");
     }
-    
+
     // Should have recorded some clipping
     assert!(clipped_ste.get_clipping_rate() > 0.0, "Should have clipped some values");
 
@@ -61,7 +61,7 @@ fn test_ste_variants_quantization() -> Result<()> {
     let mut soft_ste = StraightThroughEstimator::new(soft_config, device.clone())?;
     let soft_output = soft_ste.forward(&input)?;
     let soft_values: Vec<f32> = soft_output.to_vec1()?;
-    
+
     // Soft quantization should give smooth values
     for val in &soft_values {
         assert!(val.abs() <= 1.0, "Soft STE should output values within range");
@@ -85,7 +85,7 @@ fn test_multi_bit_quantization() -> Result<()> {
     let mut ternary_ste = StraightThroughEstimator::new(ternary_config, device.clone())?;
     let ternary_output = ternary_ste.forward(&input)?;
     let ternary_values: Vec<f32> = ternary_output.to_vec1()?;
-    
+
     // Ternary should give -1, 0, or 1
     for val in &ternary_values {
         assert!(
@@ -105,7 +105,7 @@ fn test_multi_bit_quantization() -> Result<()> {
     let mut multi_ste = StraightThroughEstimator::new(multi_config, device)?;
     let multi_output = multi_ste.forward(&input)?;
     let multi_values: Vec<f32> = multi_output.to_vec1()?;
-    
+
     // Should quantize to discrete levels within range
     for val in &multi_values {
         assert!(val.abs() <= 1.0, "Multi-bit quantization should stay within range");
@@ -166,7 +166,7 @@ fn test_ste_autograd_integration() -> Result<()> {
     };
 
     let input = Tensor::from_slice(&[0.7, -0.3, 0.0], (3,), &device)?;
-    
+
     // Test autograd quantization
     let quantized = quantize_with_ste_autograd(&input, &config)?;
     let quantized_values: Vec<f32> = quantized.to_vec1()?;
@@ -183,7 +183,7 @@ fn test_ste_autograd_integration() -> Result<()> {
 fn test_qat_layer_functionality() -> Result<()> {
     let device = Device::Cpu;
     let config = STEConfig::default();
-    
+
     let layer = QATLayer::new(
         config,
         device,
@@ -244,13 +244,13 @@ fn test_qat_model_layer_configs() -> Result<()> {
 
     // Test model parameter quantization
     let mut parameters = HashMap::new();
-    parameters.insert("layer1.weight".to_string(), 
+    parameters.insert("layer1.weight".to_string(),
                      Tensor::from_slice(&[0.5, -0.3], (2,), &device)?);
-    parameters.insert("layer2.weight".to_string(), 
+    parameters.insert("layer2.weight".to_string(),
                      Tensor::from_slice(&[0.8, -0.9], (2,), &device)?);
 
     let quantized_params = model.quantize_model_parameters(parameters)?;
-    
+
     assert_eq!(quantized_params.len(), 2);
     assert!(quantized_params.contains_key("layer1.weight"));
     assert!(quantized_params.contains_key("layer2.weight"));
@@ -267,7 +267,7 @@ fn test_qat_model_layer_configs() -> Result<()> {
 #[test]
 fn test_qat_loss_computation() -> Result<()> {
     let device = Device::Cpu;
-    
+
     // Create QAT loss
     let loss = QATLossFactory::create_qat_loss(
         BaseLossType::MeanSquaredError,
@@ -292,18 +292,18 @@ fn test_qat_loss_computation() -> Result<()> {
 #[test]
 fn test_qat_optimizer_integration() -> Result<()> {
     let device = Device::Cpu;
-    
+
     // Create parameters and gradients
     let mut parameters = HashMap::new();
-    parameters.insert("weight1".to_string(), 
+    parameters.insert("weight1".to_string(),
                      Tensor::from_slice(&[1.0, 2.0], (2,), &device)?);
-    parameters.insert("weight2".to_string(), 
+    parameters.insert("weight2".to_string(),
                      Tensor::from_slice(&[3.0, 4.0], (2,), &device)?);
 
     let gradients = HashMap::new();
-    parameters.insert("weight1".to_string(), 
+    parameters.insert("weight1".to_string(),
                      Tensor::from_slice(&[0.1, 0.2], (2,), &device)?);
-    parameters.insert("weight2".to_string(), 
+    parameters.insert("weight2".to_string(),
                      Tensor::from_slice(&[0.3, 0.4], (2,), &device)?);
 
     // Create QAT optimizer
@@ -355,7 +355,7 @@ fn test_ste_statistics_tracking() -> Result<()> {
 
     // Input with values outside range to trigger clipping
     let input = Tensor::from_slice(&[2.0, -3.0, 0.5, -0.5], (4,), &Device::Cpu)?;
-    
+
     let _output = ste.forward(&input)?;
 
     // Check statistics
@@ -377,13 +377,13 @@ fn test_ste_statistics_tracking() -> Result<()> {
 fn test_convenience_functions() -> Result<()> {
     let device = Device::Cpu;
     let config = STEConfig::default();
-    
+
     let input = Tensor::from_slice(&[0.5, -0.3, 0.8], (3,), &device)?;
-    
+
     // Test convenience function
     let quantized = quantize_with_ste(&input, &config, &device)?;
     let values: Vec<f32> = quantized.to_vec1()?;
-    
+
     for val in &values {
         assert!(*val == 1.0 || *val == -1.0, "Should be quantized to binary");
     }

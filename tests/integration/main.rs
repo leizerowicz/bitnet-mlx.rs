@@ -13,10 +13,10 @@ pub use tensor_integration_tests::*;
 fn main() {
     println!("🧪 BitNet Tensor Integration Test Runner");
     println!("========================================");
-    
+
     // In a real test runner, we would use a test framework
     // For now, we'll just indicate that tests should be run with `cargo test`
-    
+
     println!("To run integration tests:");
     println!("  cargo test --test integration --features tensor-complete,integration-tests");
     println!();
@@ -27,6 +27,6 @@ fn main() {
     println!();
     println!("To run all integration tests:");
     println!("  cargo test --test integration run_all_integration_tests");
-    
+
     process::exit(0);
 }

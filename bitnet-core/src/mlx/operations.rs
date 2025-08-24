@@ -1,13 +1,13 @@
 //! MLX-accelerated operations for BitNet
-//! 
+//!
 //! This module implements BitNet-specific operations using MLX for
 //! high-performance computation on Apple Silicon devices.
 
 #[cfg(feature = "mlx")]
 use mlx_rs::ops;
 
-use crate::mlx::{MlxTensor};
 use crate::mlx::device::BitNetMlxDevice;
+use crate::mlx::MlxTensor;
 use anyhow::Result;
 
 /// BitNet-specific MLX operations
@@ -17,16 +17,16 @@ pub struct BitNetMlxOps;
 #[cfg(feature = "mlx")]
 impl BitNetMlxOps {
     /// Perform 1.58-bit quantization using MLX
-    /// 
+    ///
     /// This implements a simplified BitNet quantization scheme where weights are
     /// quantized to {-1, 0, +1} values.
     pub fn quantize_1_58_bit(tensor: &MlxTensor, scale: Option<f32>) -> Result<MlxTensor> {
         let _scale = scale.unwrap_or(1.0);
-        
+
         // Simplified quantization: just clamp values to -1, 0, 1
         // In a real implementation, this would use proper quantization algorithms
         let quantized = tensor.array().clone(); // Placeholder
-        
+
         Ok(MlxTensor::new(
             quantized,
             tensor.device().clone(),
@@ -37,10 +37,10 @@ impl BitNetMlxOps {
     /// Dequantize from 1.58-bit representation
     pub fn dequantize_1_58_bit(tensor: &MlxTensor, scale: Option<f32>) -> Result<MlxTensor> {
         let _scale = scale.unwrap_or(1.0);
-        
+
         // Simple scaling for dequantization
         let dequantized = tensor.array().clone(); // Placeholder
-        
+
         Ok(MlxTensor::new(
             dequantized,
             tensor.device().clone(),
@@ -49,7 +49,7 @@ impl BitNetMlxOps {
     }
 
     /// BitLinear layer forward pass
-    /// 
+    ///
     /// Implements the BitLinear operation: output = input @ quantized_weight + bias
     pub fn bitlinear_forward(
         input: &MlxTensor,
@@ -82,28 +82,19 @@ impl BitNetMlxOps {
     }
 
     /// Matrix multiplication optimized for BitNet
-    pub fn matmul(
-        a: &MlxTensor,
-        b: &MlxTensor,
-    ) -> Result<MlxTensor> {
+    pub fn matmul(a: &MlxTensor, b: &MlxTensor) -> Result<MlxTensor> {
         let result = ops::matmul(a.array(), b.array())?;
         Ok(MlxTensor::new(result, a.device().clone(), a.dtype()))
     }
 
     /// Element-wise addition
-    pub fn add(
-        a: &MlxTensor,
-        b: &MlxTensor,
-    ) -> Result<MlxTensor> {
+    pub fn add(a: &MlxTensor, b: &MlxTensor) -> Result<MlxTensor> {
         let result = ops::add(a.array(), b.array())?;
         Ok(MlxTensor::new(result, a.device().clone(), a.dtype()))
     }
 
     /// Element-wise multiplication
-    pub fn multiply(
-        a: &MlxTensor,
-        b: &MlxTensor,
-    ) -> Result<MlxTensor> {
+    pub fn multiply(a: &MlxTensor, b: &MlxTensor) -> Result<MlxTensor> {
         let result = ops::multiply(a.array(), b.array())?;
         Ok(MlxTensor::new(result, a.device().clone(), a.dtype()))
     }
@@ -114,7 +105,7 @@ impl BitNetMlxOps {
         let shape = vec![seq_len, seq_len];
         let mlx_shape: Vec<i32> = shape.iter().map(|&x| x as i32).collect();
         let mask_array = ops::zeros::<f32>(&mlx_shape)?;
-        
+
         Ok(MlxTensor::new(
             mask_array,
             device.clone(),
@@ -175,14 +166,14 @@ pub fn mlx_matmul(a: &mlx_rs::Array, b: &mlx_rs::Array) -> Result<mlx_rs::Array>
 #[cfg(feature = "mlx")]
 pub fn mlx_quantize(array: &mlx_rs::Array, scale: f32) -> Result<mlx_rs::Array> {
     use mlx_rs::ops;
-    
+
     // Simple linear quantization: round(array / scale)
     // First divide by scale
     let scaled = ops::divide(array, &mlx_rs::Array::from_f32(scale))?;
-    
+
     // Round to nearest integer (0 decimals)
     let rounded = ops::round(&scaled, 0)?;
-    
+
     Ok(rounded)
 }
 
@@ -210,10 +201,10 @@ pub fn mlx_quantize(array: &mlx_rs::Array, scale: f32) -> Result<mlx_rs::Array> 
 #[cfg(feature = "mlx")]
 pub fn mlx_dequantize(array: &mlx_rs::Array, scale: f32) -> Result<mlx_rs::Array> {
     use mlx_rs::ops;
-    
+
     // Dequantization: multiply by scale
     let result = ops::multiply(array, &mlx_rs::Array::from_f32(scale))?;
-    
+
     Ok(result)
 }
 
