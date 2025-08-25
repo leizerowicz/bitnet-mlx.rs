@@ -724,10 +724,36 @@ fn validate_linear_system_inputs(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::memory::{HybridMemoryPool, MemoryPoolConfig, TrackingConfig};
+    use crate::tensor::memory_integration::set_global_memory_pool;
     use crate::tensor::dtype::BitNetDType;
+    use std::sync::{Arc, Once};
+
+    /// Ensures the global memory pool is initialized once for all tests
+    fn setup_global_memory_pool() {
+        use std::sync::OnceLock;
+        static INIT: Once = Once::new();
+        static MEMORY_POOL_HOLDER: OnceLock<Arc<HybridMemoryPool>> = OnceLock::new();
+        
+        INIT.call_once(|| {
+            let mut config = MemoryPoolConfig::default();
+            config.tracking_config = Some(TrackingConfig::detailed());
+
+            let pool = Arc::new(
+                HybridMemoryPool::with_config(config).expect("Failed to create test memory pool"),
+            );
+
+            // Store the Arc to keep it alive
+            let _ = MEMORY_POOL_HOLDER.set(pool.clone());
+
+            // Set as global pool
+            set_global_memory_pool(Arc::downgrade(&pool));
+        });
+    }
 
     #[test]
     fn test_condition_number_estimate() {
+        setup_global_memory_pool();
         let matrix = BitNetTensor::eye(3, BitNetDType::F32, None).unwrap();
         let condition_number = condition_number_estimate(&matrix).unwrap();
 
@@ -737,6 +763,7 @@ mod tests {
 
     #[test]
     fn test_matrix_rank_estimation() {
+        setup_global_memory_pool();
         let matrix = BitNetTensor::eye(4, BitNetDType::F32, None).unwrap();
         let rank = estimate_matrix_rank(&matrix, None).unwrap();
 
@@ -746,6 +773,7 @@ mod tests {
 
     #[test]
     fn test_error_analysis() {
+        setup_global_memory_pool();
         let result = BitNetTensor::ones(&[3, 3], BitNetDType::F32, None).unwrap();
         let report = error_analysis(&result, "test_operation").unwrap();
 
@@ -755,6 +783,7 @@ mod tests {
 
     #[test]
     fn test_equilibration() {
+        setup_global_memory_pool();
         let matrix = BitNetTensor::ones(&[3, 3], BitNetDType::F32, None).unwrap();
         let result = equilibrate_matrix(&matrix);
         assert!(result.is_ok());

@@ -5,6 +5,7 @@
 //! automated documentation generation.
 
 pub mod categorization;
+pub mod error;
 pub mod monitoring;
 pub mod performance;
 pub mod timeout;

@@ -30,6 +30,8 @@ backtrace = ["dep:backtrace"]
 tokenizers = ["dep:tokenizers"]
 # Enable integration tests
 integration-tests = []
+# Enable test utilities for integration tests
+test-utils = []
 
 [dependencies]
 # Bitnet crate dependencies
@@ -73,6 +75,7 @@ objc = { workspace = true }
 cocoa = { workspace = true }
 core-foundation = { workspace = true }
 core-graphics = { workspace = true }
+mach2 = "0.4"
 
 [dev-dependencies]
 criterion.workspace = true

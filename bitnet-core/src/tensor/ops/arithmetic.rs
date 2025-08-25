@@ -594,27 +594,25 @@ mod tests {
     use crate::tensor::dtype::BitNetDType;
     use std::sync::Arc;
 
-    fn setup_memory_pool() -> Result<(), Box<dyn std::error::Error>> {
-        let tracking_config = TrackingConfig::detailed();
-        let mut config = MemoryPoolConfig::default();
-        config.enable_advanced_tracking = true;
-        config.tracking_config = Some(tracking_config);
+    fn setup_global_memory_pool() {
+        use std::sync::OnceLock;
+        static GLOBAL_POOL: OnceLock<Arc<HybridMemoryPool>> = OnceLock::new();
 
-        let memory_pool = Arc::new(HybridMemoryPool::with_config(config)?);
-        crate::tensor::memory_integration::set_global_memory_pool(Arc::downgrade(&memory_pool));
+        GLOBAL_POOL.get_or_init(|| {
+            let tracking_config = TrackingConfig::detailed();
+            let mut config = MemoryPoolConfig::default();
+            config.enable_advanced_tracking = true;
+            config.tracking_config = Some(tracking_config);
 
-        // Verify that the global pool is set
-        let retrieved_pool = crate::tensor::memory_integration::get_global_memory_pool();
-        if retrieved_pool.is_none() {
-            return Err("Failed to set global memory pool".into());
-        }
-
-        Ok(())
+            let memory_pool = Arc::new(HybridMemoryPool::with_config(config).unwrap());
+            crate::tensor::memory_integration::set_global_memory_pool(Arc::downgrade(&memory_pool));
+            memory_pool
+        });
     }
 
     #[test]
     fn test_basic_addition() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        setup_global_memory_pool();
 
         // Create tensors using direct memory pool instead of global one
         let tracking_config = TrackingConfig::detailed();
@@ -635,7 +633,7 @@ mod tests {
 
     #[test]
     fn test_scalar_multiplication() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        setup_global_memory_pool();
 
         let tracking_config = TrackingConfig::detailed();
         let mut config = MemoryPoolConfig::default();
@@ -654,7 +652,7 @@ mod tests {
 
     #[test]
     fn test_division_by_zero() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        setup_global_memory_pool();
 
         let tracking_config = TrackingConfig::detailed();
         let mut config = MemoryPoolConfig::default();

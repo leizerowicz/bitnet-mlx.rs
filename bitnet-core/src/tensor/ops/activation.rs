@@ -501,14 +501,7 @@ pub fn gelu(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
         })?;
 
     let cubic_term = x_cubed
-        .mul(
-            &CandleTensor::from_vec(vec![0.044715_f32], &[], tensor.device()).map_err(|e| {
-                TensorOpError::CandleError {
-                    operation: "gelu_cubic_coefficient".to_string(),
-                    error: e.to_string(),
-                }
-            })?,
-        )
+        .affine(0.044715_f64, 0.0)
         .map_err(|e| TensorOpError::CandleError {
             operation: "gelu_cubic_term".to_string(),
             error: e.to_string(),
@@ -520,14 +513,7 @@ pub fn gelu(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
             operation: "gelu_inner_sum".to_string(),
             error: e.to_string(),
         })?
-        .mul(
-            &CandleTensor::from_vec(vec![sqrt_2_over_pi], &[], tensor.device()).map_err(|e| {
-                TensorOpError::CandleError {
-                    operation: "gelu_sqrt_coefficient".to_string(),
-                    error: e.to_string(),
-                }
-            })?,
-        )
+        .affine(sqrt_2_over_pi as f64, 0.0)
         .map_err(|e| TensorOpError::CandleError {
             operation: "gelu_inner_scale".to_string(),
             error: e.to_string(),
@@ -550,20 +536,13 @@ pub fn gelu(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
             error: e.to_string(),
         })?;
 
-    let half = CandleTensor::from_vec(vec![0.5_f32], &[], tensor.device()).map_err(|e| {
-        TensorOpError::CandleError {
-            operation: "gelu_half".to_string(),
-            error: e.to_string(),
-        }
-    })?;
-
     let result = candle_tensor
         .mul(&one_plus_tanh)
         .map_err(|e| TensorOpError::CandleError {
             operation: "gelu_x_mul_tanh".to_string(),
             error: e.to_string(),
         })?
-        .mul(&half)
+        .affine(0.5_f64, 0.0)
         .map_err(|e| TensorOpError::CandleError {
             operation: "gelu_final_mul".to_string(),
             error: e.to_string(),
@@ -924,21 +903,14 @@ pub fn leaky_relu(tensor: &BitNetTensor, negative_slope: f32) -> TensorOpResult<
             error: e.to_string(),
         })?;
 
-    let slope_tensor =
-        CandleTensor::from_vec(vec![negative_slope], &[], tensor.device()).map_err(|e| {
-            TensorOpError::CandleError {
-                operation: "leaky_relu_slope_tensor".to_string(),
-                error: e.to_string(),
-            }
-        })?;
-
+    // Create negative part: negative_slope * x * (1 - positive_mask)
     let negative_part = candle_tensor
         .mul(&negative_mask_float)
         .map_err(|e| TensorOpError::CandleError {
             operation: "leaky_relu_negative_mul_mask".to_string(),
             error: e.to_string(),
         })?
-        .mul(&slope_tensor)
+        .affine(negative_slope as f64, 0.0)
         .map_err(|e| TensorOpError::CandleError {
             operation: "leaky_relu_negative_mul_slope".to_string(),
             error: e.to_string(),
@@ -967,13 +939,39 @@ pub fn leaky_relu(tensor: &BitNetTensor, negative_slope: f32) -> TensorOpResult<
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::memory::{HybridMemoryPool, MemoryPoolConfig, TrackingConfig};
+    use crate::tensor::memory_integration::set_global_memory_pool;
     use crate::tensor::{BitNetDType, BitNetTensor};
     use candle_core::Device;
+    use std::sync::{Arc, Once};
+
+    /// Ensures the global memory pool is initialized once for all tests
+    fn setup_global_memory_pool() {
+        use std::sync::OnceLock;
+        static INIT: Once = Once::new();
+        static MEMORY_POOL_HOLDER: OnceLock<Arc<HybridMemoryPool>> = OnceLock::new();
+        
+        INIT.call_once(|| {
+            let mut config = MemoryPoolConfig::default();
+            config.tracking_config = Some(TrackingConfig::detailed());
+
+            let pool = Arc::new(
+                HybridMemoryPool::with_config(config).expect("Failed to create test memory pool"),
+            );
+
+            // Store the Arc to keep it alive
+            let _ = MEMORY_POOL_HOLDER.set(pool.clone());
+
+            // Set as global pool
+            set_global_memory_pool(Arc::downgrade(&pool));
+        });
+    }
 
     #[test]
     fn test_relu_activation() {
+        setup_global_memory_pool();
         let tensor = BitNetTensor::from_vec(
-            vec![-2.0, -1.0, 0.0, 1.0, 2.0],
+            vec![-2.0f32, -1.0f32, 0.0f32, 1.0f32, 2.0f32],
             &[5],
             BitNetDType::F32,
             Some(Device::Cpu),
@@ -995,8 +993,9 @@ mod tests {
 
     #[test]
     fn test_sigmoid_activation() {
+        setup_global_memory_pool();
         let tensor = BitNetTensor::from_vec(
-            vec![-10.0, 0.0, 10.0],
+            vec![-10.0f32, 0.0f32, 10.0f32],
             &[3],
             BitNetDType::F32,
             Some(Device::Cpu),
@@ -1016,8 +1015,9 @@ mod tests {
 
     #[test]
     fn test_tanh_activation() {
+        setup_global_memory_pool();
         let tensor = BitNetTensor::from_vec(
-            vec![-1.0, 0.0, 1.0],
+            vec![-1.0f32, 0.0f32, 1.0f32],
             &[3],
             BitNetDType::F32,
             Some(Device::Cpu),
@@ -1037,8 +1037,9 @@ mod tests {
 
     #[test]
     fn test_gelu_activation() {
+        setup_global_memory_pool();
         let tensor = BitNetTensor::from_vec(
-            vec![-1.0, 0.0, 1.0],
+            vec![-1.0f32, 0.0f32, 1.0f32],
             &[3],
             BitNetDType::F32,
             Some(Device::Cpu),
@@ -1056,8 +1057,9 @@ mod tests {
 
     #[test]
     fn test_softmax_activation() {
+        setup_global_memory_pool();
         let tensor = BitNetTensor::from_vec(
-            vec![1.0, 2.0, 3.0, 4.0],
+            vec![1.0f32, 2.0f32, 3.0f32, 4.0f32],
             &[2, 2],
             BitNetDType::F32,
             Some(Device::Cpu),
@@ -1078,8 +1080,9 @@ mod tests {
 
     #[test]
     fn test_leaky_relu_activation() {
+        setup_global_memory_pool();
         let tensor = BitNetTensor::from_vec(
-            vec![-2.0, -1.0, 0.0, 1.0, 2.0],
+            vec![-2.0f32, -1.0f32, 0.0f32, 1.0f32, 2.0f32],
             &[5],
             BitNetDType::F32,
             Some(Device::Cpu),
@@ -1101,8 +1104,9 @@ mod tests {
 
     #[test]
     fn test_activation_backward_passes() {
+        setup_global_memory_pool();
         let input = BitNetTensor::from_vec(
-            vec![1.0, -1.0, 0.5],
+            vec![1.0f32, -1.0f32, 0.5f32],
             &[3],
             BitNetDType::F32,
             Some(Device::Cpu),
@@ -1110,7 +1114,7 @@ mod tests {
         .unwrap();
 
         let grad_output = BitNetTensor::from_vec(
-            vec![1.0, 1.0, 1.0],
+            vec![1.0f32, 1.0f32, 1.0f32],
             &[3],
             BitNetDType::F32,
             Some(Device::Cpu),

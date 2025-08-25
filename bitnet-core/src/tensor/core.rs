@@ -551,7 +551,10 @@ mod tests {
 
     /// Ensures the global memory pool is initialized once for all tests
     fn setup_global_memory_pool() {
+        use std::sync::OnceLock;
         static INIT: Once = Once::new();
+        static MEMORY_POOL_HOLDER: OnceLock<Arc<HybridMemoryPool>> = OnceLock::new();
+        
         INIT.call_once(|| {
             let mut config = MemoryPoolConfig::default();
             config.tracking_config = Some(TrackingConfig::detailed());
@@ -559,6 +562,9 @@ mod tests {
             let pool = Arc::new(
                 HybridMemoryPool::with_config(config).expect("Failed to create test memory pool"),
             );
+
+            // Store the Arc to keep it alive
+            let _ = MEMORY_POOL_HOLDER.set(pool.clone());
 
             // Set as global pool
             set_global_memory_pool(Arc::downgrade(&pool));

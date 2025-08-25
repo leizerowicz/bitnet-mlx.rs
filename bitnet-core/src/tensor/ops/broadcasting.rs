@@ -409,10 +409,36 @@ impl Iterator for BroadcastIterator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::memory::{HybridMemoryPool, MemoryPoolConfig, TrackingConfig};
+    use crate::tensor::memory_integration::set_global_memory_pool;
     use crate::tensor::{BitNetDType, BitNetTensor};
+    use std::sync::{Arc, Once};
+
+    /// Ensures the global memory pool is initialized once for all tests
+    fn setup_global_memory_pool() {
+        use std::sync::OnceLock;
+        static INIT: Once = Once::new();
+        static MEMORY_POOL_HOLDER: OnceLock<Arc<HybridMemoryPool>> = OnceLock::new();
+        
+        INIT.call_once(|| {
+            let mut config = MemoryPoolConfig::default();
+            config.tracking_config = Some(TrackingConfig::detailed());
+
+            let pool = Arc::new(
+                HybridMemoryPool::with_config(config).expect("Failed to create test memory pool"),
+            );
+
+            // Store the Arc to keep it alive
+            let _ = MEMORY_POOL_HOLDER.set(pool.clone());
+
+            // Set as global pool
+            set_global_memory_pool(Arc::downgrade(&pool));
+        });
+    }
 
     #[test]
     fn test_can_broadcast() -> TensorOpResult<()> {
+        setup_global_memory_pool();
         let a = BitNetTensor::ones(&[3, 1, 4], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[2, 1], BitNetDType::F32, None)?;
 
@@ -428,6 +454,7 @@ mod tests {
 
     #[test]
     fn test_compute_broadcast_shape() -> TensorOpResult<()> {
+        setup_global_memory_pool();
         let a = BitNetTensor::ones(&[3, 1, 4], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[2, 1], BitNetDType::F32, None)?;
 
@@ -439,6 +466,7 @@ mod tests {
 
     #[test]
     fn test_analyze_broadcast() -> TensorOpResult<()> {
+        setup_global_memory_pool();
         let a = BitNetTensor::ones(&[3, 1], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[3, 4], BitNetDType::F32, None)?;
 
@@ -454,7 +482,7 @@ mod tests {
     #[test]
     fn test_broadcast_strides() {
         let strides = calculate_broadcast_strides(&[3, 1], &[3, 4]);
-        assert_eq!(strides, vec![4, 0]);
+        assert_eq!(strides, vec![1, 0]);
 
         let strides2 = calculate_broadcast_strides(&[1, 4], &[3, 4]);
         assert_eq!(strides2, vec![0, 1]);
@@ -462,6 +490,7 @@ mod tests {
 
     #[test]
     fn test_broadcast_iterator() -> TensorOpResult<()> {
+        setup_global_memory_pool();
         let a = BitNetTensor::ones(&[2, 1], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[1, 3], BitNetDType::F32, None)?;
 

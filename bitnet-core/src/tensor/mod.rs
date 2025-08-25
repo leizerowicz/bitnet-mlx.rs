@@ -133,9 +133,35 @@ pub fn bitnet_158(shape: &[usize]) -> MemoryResult<BitNetTensor> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::memory::{HybridMemoryPool, MemoryPoolConfig, TrackingConfig};
+    use crate::tensor::memory_integration::set_global_memory_pool;
+    use std::sync::{Arc, Once};
+
+    /// Ensures the global memory pool is initialized once for all tests
+    fn setup_global_memory_pool() {
+        use std::sync::OnceLock;
+        static INIT: Once = Once::new();
+        static MEMORY_POOL_HOLDER: OnceLock<Arc<HybridMemoryPool>> = OnceLock::new();
+        
+        INIT.call_once(|| {
+            let mut config = MemoryPoolConfig::default();
+            config.tracking_config = Some(TrackingConfig::detailed());
+
+            let pool = Arc::new(
+                HybridMemoryPool::with_config(config).expect("Failed to create test memory pool"),
+            );
+
+            // Store the Arc to keep it alive
+            let _ = MEMORY_POOL_HOLDER.set(pool.clone());
+
+            // Set as global pool
+            set_global_memory_pool(Arc::downgrade(&pool));
+        });
+    }
 
     #[test]
     fn test_tensor_module_integration() {
+        setup_global_memory_pool();
         // Test that we can create tensors using the convenience functions
         let tensor = zeros_bitnet(&[2, 3], BitNetDType::F32).unwrap();
         assert_eq!(tensor.shape().dims(), &[2, 3]);
@@ -144,6 +170,7 @@ mod tests {
 
     #[test]
     fn test_tensor_from_data() {
+        setup_global_memory_pool();
         let data = vec![1.0f32, 2.0, 3.0, 4.0];
         let tensor = from_f32_data(data, &[2, 2]).unwrap();
         assert_eq!(tensor.shape().dims(), &[2, 2]);
@@ -152,6 +179,7 @@ mod tests {
 
     #[test]
     fn test_bitnet_158_tensor() {
+        setup_global_memory_pool();
         let tensor = bitnet_158(&[10, 10]).unwrap();
         assert_eq!(tensor.dtype(), BitNetDType::BitNet158);
         assert_eq!(tensor.shape().dims(), &[10, 10]);

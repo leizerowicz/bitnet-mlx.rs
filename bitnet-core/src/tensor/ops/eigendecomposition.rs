@@ -665,10 +665,36 @@ fn validate_symmetric_matrix(tensor: &BitNetTensor) -> TensorOpResult<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::memory::{HybridMemoryPool, MemoryPoolConfig, TrackingConfig};
+    use crate::tensor::memory_integration::set_global_memory_pool;
     use crate::tensor::dtype::BitNetDType;
+    use std::sync::{Arc, Once};
+
+    /// Ensures the global memory pool is initialized once for all tests
+    fn setup_global_memory_pool() {
+        use std::sync::OnceLock;
+        static INIT: Once = Once::new();
+        static MEMORY_POOL_HOLDER: OnceLock<Arc<HybridMemoryPool>> = OnceLock::new();
+        
+        INIT.call_once(|| {
+            let mut config = MemoryPoolConfig::default();
+            config.tracking_config = Some(TrackingConfig::detailed());
+
+            let pool = Arc::new(
+                HybridMemoryPool::with_config(config).expect("Failed to create test memory pool"),
+            );
+
+            // Store the Arc to keep it alive
+            let _ = MEMORY_POOL_HOLDER.set(pool.clone());
+
+            // Set as global pool
+            set_global_memory_pool(Arc::downgrade(&pool));
+        });
+    }
 
     #[test]
     fn test_power_iteration() {
+        setup_global_memory_pool();
         let matrix = BitNetTensor::eye(3, BitNetDType::F32, None).unwrap();
         let result = power_iteration(&matrix, 100, 1e-6);
         assert!(result.is_ok());
@@ -679,6 +705,7 @@ mod tests {
 
     #[test]
     fn test_qr_eigendecomposition() {
+        setup_global_memory_pool();
         let matrix = BitNetTensor::eye(3, BitNetDType::F32, None).unwrap();
         let result = qr_eigendecomposition(&matrix, 100);
         assert!(result.is_ok());
@@ -689,6 +716,7 @@ mod tests {
 
     #[test]
     fn test_validation() {
+        setup_global_memory_pool();
         let non_square = BitNetTensor::ones(&[2, 3], BitNetDType::F32, None).unwrap();
         assert!(validate_square_matrix(&non_square).is_err());
 

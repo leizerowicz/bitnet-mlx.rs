@@ -617,7 +617,7 @@ pub fn var(
 
     // Apply degrees of freedom correction
     let corrected_n = (n_elements - ddof as f64).max(1.0);
-    let correction_scalar = CandleTensor::from_vec(vec![1.0 / corrected_n], &[], tensor.device())
+    let correction_scalar = CandleTensor::from_vec(vec![1.0f32 / corrected_n as f32], &[], tensor.device())
         .map_err(|e| TensorOpError::CandleError {
         operation: "var_correction_scalar".to_string(),
         error: e.to_string(),
@@ -970,13 +970,39 @@ pub fn count_nonzero(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::memory::{HybridMemoryPool, MemoryPoolConfig, TrackingConfig};
+    use crate::tensor::memory_integration::set_global_memory_pool;
     use crate::tensor::{BitNetDType, BitNetTensor};
     use candle_core::Device;
+    use std::sync::{Arc, Once};
+
+    /// Ensures the global memory pool is initialized once for all tests
+    fn setup_global_memory_pool() {
+        use std::sync::OnceLock;
+        static INIT: Once = Once::new();
+        static MEMORY_POOL_HOLDER: OnceLock<Arc<HybridMemoryPool>> = OnceLock::new();
+        
+        INIT.call_once(|| {
+            let mut config = MemoryPoolConfig::default();
+            config.tracking_config = Some(TrackingConfig::detailed());
+
+            let pool = Arc::new(
+                HybridMemoryPool::with_config(config).expect("Failed to create test memory pool"),
+            );
+
+            // Store the Arc to keep it alive
+            let _ = MEMORY_POOL_HOLDER.set(pool.clone());
+
+            // Set as global pool
+            set_global_memory_pool(Arc::downgrade(&pool));
+        });
+    }
 
     #[test]
     fn test_sum_reduction() {
+        setup_global_memory_pool();
         let tensor = BitNetTensor::from_vec(
-            vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+            vec![1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 6.0f32],
             &[2, 3],
             BitNetDType::F32,
             Some(Device::Cpu),
@@ -998,8 +1024,9 @@ mod tests {
 
     #[test]
     fn test_mean_reduction() {
+        setup_global_memory_pool();
         let tensor = BitNetTensor::from_vec(
-            vec![2.0, 4.0, 6.0, 8.0],
+            vec![2.0f32, 4.0f32, 6.0f32, 8.0f32],
             &[2, 2],
             BitNetDType::F32,
             Some(Device::Cpu),
@@ -1012,8 +1039,9 @@ mod tests {
 
     #[test]
     fn test_var_std_reduction() {
+        setup_global_memory_pool();
         let tensor = BitNetTensor::from_vec(
-            vec![1.0, 2.0, 3.0, 4.0],
+            vec![1.0f32, 2.0f32, 3.0f32, 4.0f32],
             &[2, 2],
             BitNetDType::F32,
             Some(Device::Cpu),
@@ -1029,8 +1057,9 @@ mod tests {
 
     #[test]
     fn test_min_max_reduction() {
+        setup_global_memory_pool();
         let tensor = BitNetTensor::from_vec(
-            vec![3.0, 1.0, 4.0, 2.0],
+            vec![3.0f32, 1.0f32, 4.0f32, 2.0f32],
             &[2, 2],
             BitNetDType::F32,
             Some(Device::Cpu),
@@ -1046,8 +1075,9 @@ mod tests {
 
     #[test]
     fn test_reduction_axis_validation() {
+        setup_global_memory_pool();
         let tensor = BitNetTensor::from_vec(
-            vec![1.0, 2.0, 3.0, 4.0],
+            vec![1.0f32, 2.0f32, 3.0f32, 4.0f32],
             &[2, 2],
             BitNetDType::F32,
             Some(Device::Cpu),

@@ -14,8 +14,12 @@ pub mod tensor;
 pub mod tokenizer;
 
 // Test utilities for error handling and performance monitoring
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 pub mod test_utils;
+
+// Re-export test utilities when available
+#[cfg(any(test, feature = "test-utils"))]
+pub use test_utils::*;
 
 // MLX support (Apple Silicon only)
 #[cfg(feature = "mlx")]
