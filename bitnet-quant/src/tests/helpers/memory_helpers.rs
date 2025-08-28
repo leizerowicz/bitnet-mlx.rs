@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 /// Test harness for memory pool integration with quantization
+#[allow(dead_code)]
 pub struct MemoryTestHarness {
     memory_pool: Arc<HybridMemoryPool>,
     device: Device,
@@ -20,6 +21,7 @@ pub struct MemoryTestHarness {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct AllocationRecord {
     pub timestamp: Instant,
     pub size: usize,
@@ -75,7 +77,7 @@ impl MemoryTestHarness {
 
     /// Allocate memory and track the allocation
     pub fn allocate(&mut self, size: usize, alignment: usize, operation: &str) -> QuantizationResult<MemoryHandle> {
-        let handle = self.memory_pool.allocate(size, alignment, &self.device)
+        let _handle = self.memory_pool.allocate(size, alignment, &self.device)
             .map_err(|e| QuantizationError::InternalError {
                 reason: format!("Memory allocation failed: {:?}", e)
             })?;
@@ -189,6 +191,7 @@ impl MemoryTestHarness {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MemoryLeakReport {
     pub total_allocated: usize,
     pub peak_allocated: usize,
@@ -208,6 +211,7 @@ impl MemoryLeakReport {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MemoryTestStatistics {
     pub total_allocations: usize,
     pub total_bytes_requested: usize,
@@ -218,6 +222,7 @@ pub struct MemoryTestStatistics {
 }
 
 /// Test memory pool specifically configured for quantization testing
+#[allow(dead_code)]
 pub struct TestMemoryPool {
     pool: HybridMemoryPool,
     config: MemoryPoolConfig,
@@ -277,6 +282,7 @@ impl TestMemoryPool {
 }
 
 /// Concurrent memory test harness for thread-safety testing
+#[allow(dead_code)]
 pub struct ConcurrentMemoryTestHarness {
     memory_pool: Arc<HybridMemoryPool>,
     device: Device,
@@ -321,7 +327,7 @@ impl ConcurrentMemoryTestHarness {
             let tx = tx.clone();
             let test_fn = test_fn.clone();
 
-            let handle = thread::spawn(move || {
+            let _handle = thread::spawn(move || {
                 let result = test_fn(pool, device, thread_id);
                 tx.send((thread_id, result)).unwrap();
             });
@@ -385,6 +391,7 @@ impl ConcurrentMemoryTestHarness {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct ConcurrentTestResults {
     pub num_threads: usize,
     pub operations_per_thread: usize,
@@ -432,7 +439,7 @@ mod tests {
     fn test_allocation_and_tracking() {
         let mut harness = MemoryTestHarness::new().unwrap();
 
-        let handle = harness.allocate(1024, 16, "test_allocation").unwrap();
+        let _handle = harness.allocate(1024, 16, "test_allocation").unwrap();
         assert_eq!(harness.allocated_handles.len(), 1);
         assert_eq!(harness.allocation_history.len(), 1);
 
@@ -469,7 +476,7 @@ mod tests {
 
             for _ in 0..10 {
                 let start = Instant::now();
-                let handle = pool.allocate(1024, 16, &device)
+                let _handle = pool.allocate(1024, 16, &device)
                     .map_err(|e| QuantizationError::InternalError {
                         reason: format!("Allocation failed: {:?}", e)
                     })?;

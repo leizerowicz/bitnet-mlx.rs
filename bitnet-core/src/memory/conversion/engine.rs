@@ -19,6 +19,7 @@ use std::time::Instant;
 use tracing::{debug, info, warn};
 
 /// Main conversion engine that orchestrates all conversion operations
+#[allow(dead_code)]
 pub struct ConversionEngine {
     /// Engine configuration
     config: ConversionConfig,
@@ -62,21 +63,21 @@ impl ConversionEngine {
     pub fn convert(
         &self,
         source: &BitNetTensor,
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
     ) -> ConversionResult<BitNetTensor> {
-        self.convert_with_quality(source, target_dtype, self.config.default_quality)
+        self.convert_with_quality(source, targetdtype, self.config.default_quality)
     }
 
     /// Converts a tensor with specified quality settings
     pub fn convert_with_quality(
         &self,
         source: &BitNetTensor,
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
         quality: ConversionQuality,
     ) -> ConversionResult<BitNetTensor> {
         let start_time = Instant::now();
-        let source_dtype = source.dtype();
-        let device = source.device();
+        let sourcedtype = source.dtype();
+        let device = source.device(); // Fixed - get device from source tensor
         let shape = source.shape();
         let element_count = source.element_count();
         let input_size = source.size_bytes();
@@ -84,13 +85,13 @@ impl ConversionEngine {
         #[cfg(feature = "tracing")]
         info!(
             "Converting tensor from {} to {} with quality {:?}",
-            source_dtype, target_dtype, quality
+            sourcedtype, targetdtype, quality
         );
 
         // Create conversion event for tracking
         let mut event = ConversionEvent::new(
-            source_dtype,
-            target_dtype,
+            sourcedtype,
+            targetdtype,
             self.config.default_strategy,
             quality,
             &device,
@@ -100,7 +101,7 @@ impl ConversionEngine {
         );
 
         // Skip conversion if already the target type
-        if source_dtype == target_dtype {
+        if sourcedtype == targetdtype {
             let duration = start_time.elapsed();
             event.output_size_bytes = input_size;
             let completed_event = event.complete_success(duration, 0, input_size);
@@ -110,8 +111,8 @@ impl ConversionEngine {
 
         // Create conversion context
         let context = ConversionContext::new(
-            source_dtype,
-            target_dtype,
+            sourcedtype,
+            targetdtype,
             device.clone(),
             device.clone(),
             shape,
@@ -159,7 +160,7 @@ impl ConversionEngine {
     pub fn batch_convert(
         &self,
         sources: &[BitNetTensor],
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
     ) -> ConversionResult<Vec<BitNetTensor>> {
         if sources.is_empty() {
             return Ok(Vec::new());
@@ -169,13 +170,13 @@ impl ConversionEngine {
         info!(
             "Batch converting {} tensors to {}",
             sources.len(),
-            target_dtype
+            targetdtype
         );
 
         let start_time = Instant::now();
         let result = self
             .batch_converter
-            .batch_convert(sources, target_dtype, &self.pool);
+            .batch_convert(sources, targetdtype, &self.pool);
 
         match result {
             Ok(tensors) => {
@@ -187,7 +188,7 @@ impl ConversionEngine {
                 for (source, target) in sources.iter().zip(tensors.iter()) {
                     let event = ConversionEvent::new(
                         source.dtype(),
-                        target_dtype,
+                        targetdtype,
                         ConversionStrategy::Auto, // Batch converter selects strategy
                         self.config.default_quality,
                         &source.device(),
@@ -215,7 +216,7 @@ impl ConversionEngine {
                 for source in sources {
                     let event = ConversionEvent::new(
                         source.dtype(),
-                        target_dtype,
+                        targetdtype,
                         ConversionStrategy::Auto,
                         self.config.default_quality,
                         &source.device(),
@@ -260,10 +261,10 @@ impl ConversionEngine {
                 );
 
                 // Record events for each conversion
-                for ((source, target_dtype), target) in conversions.iter().zip(tensors.iter()) {
+                for ((source, targetdtype), target) in conversions.iter().zip(tensors.iter()) {
                     let event = ConversionEvent::new(
                         source.dtype(),
-                        *target_dtype,
+                        *targetdtype,
                         ConversionStrategy::Auto,
                         self.config.default_quality,
                         &source.device(),
@@ -288,10 +289,10 @@ impl ConversionEngine {
                 warn!("Mixed batch conversion failed after {:?}: {}", duration, e);
 
                 // Record failure events
-                for (source, target_dtype) in conversions {
+                for (source, targetdtype) in conversions {
                     let event = ConversionEvent::new(
                         source.dtype(),
-                        *target_dtype,
+                        *targetdtype,
                         ConversionStrategy::Auto,
                         self.config.default_quality,
                         &source.device(),
@@ -318,11 +319,11 @@ impl ConversionEngine {
     pub fn zero_copy_convert(
         &self,
         source: &BitNetTensor,
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
     ) -> ConversionResult<BitNetTensor> {
         let context = ConversionContext::new(
             source.dtype(),
-            target_dtype,
+            targetdtype,
             source.device(),
             source.device(),
             source.shape(),
@@ -332,7 +333,7 @@ impl ConversionEngine {
         if !self.zero_copy_converter.supports(&context) {
             return Err(ConversionError::UnsupportedConversion {
                 from: source.dtype(),
-                to: target_dtype,
+                to: targetdtype,
             });
         }
 
@@ -344,7 +345,7 @@ impl ConversionEngine {
     pub fn streaming_convert(
         &self,
         source: &BitNetTensor,
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
         chunk_size: usize,
     ) -> ConversionResult<BitNetTensor> {
         let mut config = self.config.streaming.clone();
@@ -353,7 +354,7 @@ impl ConversionEngine {
         let streaming_converter = StreamingConverter::new(config)?;
         let context = ConversionContext::new(
             source.dtype(),
-            target_dtype,
+            targetdtype,
             source.device(),
             source.device(),
             source.shape(),
@@ -367,20 +368,20 @@ impl ConversionEngine {
     pub fn in_place_convert(
         &self,
         tensor: &mut BitNetTensor,
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
     ) -> ConversionResult<()> {
         if !self
             .in_place_converter
-            .is_in_place_compatible(tensor.dtype(), target_dtype)
+            .is_in_place_compatible(tensor.dtype(), targetdtype)
         {
             return Err(ConversionError::UnsupportedConversion {
                 from: tensor.dtype(),
-                to: target_dtype,
+                to: targetdtype,
             });
         }
 
         self.in_place_converter
-            .convert_in_place(tensor, target_dtype)
+            .convert_in_place(tensor, targetdtype)
     }
 
     /// Selects the optimal converter and strategy for the given context
@@ -457,14 +458,14 @@ impl ConversionEngine {
     /// Estimates the time required for a conversion
     pub fn estimate_conversion_time(
         &self,
-        source_dtype: BitNetDType,
-        target_dtype: BitNetDType,
+        sourcedtype: BitNetDType,
+        targetdtype: BitNetDType,
         shape: &[usize],
         device: &Device,
     ) -> u64 {
         let context = ConversionContext::new(
-            source_dtype,
-            target_dtype,
+            sourcedtype,
+            targetdtype,
             device.clone(),
             device.clone(),
             shape.to_vec(),
@@ -479,13 +480,13 @@ impl ConversionEngine {
     /// Checks if a conversion is supported
     pub fn is_conversion_supported(
         &self,
-        source_dtype: BitNetDType,
-        target_dtype: BitNetDType,
+        sourcedtype: BitNetDType,
+        targetdtype: BitNetDType,
         device: &Device,
     ) -> bool {
         let context = ConversionContext::new(
-            source_dtype,
-            target_dtype,
+            sourcedtype,
+            targetdtype,
             device.clone(),
             device.clone(),
             vec![1], // Dummy shape for checking support
@@ -499,14 +500,14 @@ impl ConversionEngine {
     /// Returns information about the optimal strategy for a conversion
     pub fn get_optimal_strategy_info(
         &self,
-        source_dtype: BitNetDType,
-        target_dtype: BitNetDType,
+        sourcedtype: BitNetDType,
+        targetdtype: BitNetDType,
         shape: &[usize],
         device: &Device,
     ) -> ConversionStrategyInfo {
         let context = ConversionContext::new(
-            source_dtype,
-            target_dtype,
+            sourcedtype,
+            targetdtype,
             device.clone(),
             device.clone(),
             shape.to_vec(),
@@ -515,8 +516,8 @@ impl ConversionEngine {
         let optimal_strategy = context.optimal_strategy();
         let memory_overhead = context.memory_overhead_bytes();
         let estimated_time =
-            self.estimate_conversion_time(source_dtype, target_dtype, shape, device);
-        let is_supported = self.is_conversion_supported(source_dtype, target_dtype, device);
+            self.estimate_conversion_time(sourcedtype, targetdtype, shape, device);
+        let is_supported = self.is_conversion_supported(sourcedtype, targetdtype, device);
 
         ConversionStrategyInfo {
             strategy: optimal_strategy,
@@ -525,14 +526,14 @@ impl ConversionEngine {
             is_supported,
             is_zero_copy: optimal_strategy == ConversionStrategy::ZeroCopy,
             is_in_place: optimal_strategy == ConversionStrategy::InPlace,
-            compression_ratio: Self::calculate_compression_ratio(source_dtype, target_dtype),
+            compression_ratio: Self::calculate_compression_ratio(sourcedtype, targetdtype),
         }
     }
 
     /// Calculates the compression ratio for a data type conversion
-    fn calculate_compression_ratio(source_dtype: BitNetDType, target_dtype: BitNetDType) -> f64 {
-        let source_bits = source_dtype.bits_per_element() as f64;
-        let target_bits = target_dtype.bits_per_element() as f64;
+    fn calculate_compression_ratio(sourcedtype: BitNetDType, targetdtype: BitNetDType) -> f64 {
+        let source_bits = sourcedtype.bits_per_element() as f64;
+        let target_bits = targetdtype.bits_per_element() as f64;
 
         if target_bits == 0.0 {
             1.0
@@ -552,6 +553,7 @@ impl Clone for StreamingConverter {
 
 /// Information about the optimal conversion strategy
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ConversionStrategyInfo {
     pub strategy: ConversionStrategy,
     pub estimated_time_ms: u64,

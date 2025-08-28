@@ -267,7 +267,7 @@ pub fn is_metal_available() -> bool {
             debug!("Metal GPU is available and functional");
             true
         }
-        Err(_e) => {
+        Err(e) => {
             #[cfg(feature = "tracing")]
             debug!("Metal GPU is not available: {}", _e);
             false
@@ -333,7 +333,7 @@ pub fn get_metal_device_name() -> Option<String> {
 
             device_name
         }
-        Err(_e) => {
+        Err(e) => {
             #[cfg(feature = "tracing")]
             debug!("Failed to get Metal device name: {}", _e);
             None

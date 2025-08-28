@@ -13,6 +13,7 @@ use std::collections::HashMap;
 
 /// Results of edge case testing
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct EdgeCaseResults {
     pub total_tests: usize,
     pub passed_tests: usize,

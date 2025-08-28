@@ -115,7 +115,7 @@ impl BitLinearForward for BitLinear {
 
         // Add bias if enabled
         let final_output = if let Some(ref bias) = self.bias() {
-            let bias_guard = bias.read().map_err(|_| {
+            let bias_guard = bias.read().map_err(|__| {
                 BitLinearError::MemoryError("Failed to acquire bias read lock".to_string())
             })?;
 

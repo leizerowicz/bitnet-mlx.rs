@@ -117,6 +117,7 @@ pub trait Quantizer: Debug + Send + Sync {
 
 /// Statistics collected during quantization
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct QuantizationStats {
     /// Number of elements quantized
     pub elements_count: usize,
@@ -150,6 +151,7 @@ impl Default for QuantizationStats {
 
 /// Configuration for quantization operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct QuantizationConfig {
     /// Quantization precision
     pub precision: QuantizationPrecision,

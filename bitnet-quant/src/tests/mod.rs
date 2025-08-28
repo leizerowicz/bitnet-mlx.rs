@@ -68,6 +68,7 @@ use candle_core::{Device, Tensor};
 
 /// Test configuration for quantization validation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QuantizationTestConfig {
     /// Target MSE threshold for round-trip accuracy
     pub target_mse_threshold: f64,
@@ -106,6 +107,7 @@ impl Default for QuantizationTestConfig {
 }
 
 /// Main test orchestrator for comprehensive quantization validation
+#[allow(dead_code)]
 pub struct QuantizationTestSuite {
     pub config: QuantizationTestConfig,
     pub device: Device,
@@ -205,6 +207,7 @@ impl QuantizationTestSuite {
 
 /// Comprehensive test suite results
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct TestSuiteResults {
     pub ternary_validation: TernaryValidationResults,
     pub round_trip_accuracy: RoundTripResults,

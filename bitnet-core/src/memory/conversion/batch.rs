@@ -19,6 +19,7 @@ use std::thread;
 use tracing::{debug, info, warn};
 
 /// Batch converter for processing multiple tensors efficiently
+#[allow(dead_code)]
 pub struct BatchConverter {
     config: BatchConfig,
     zero_copy_converter: ZeroCopyConverter,
@@ -50,7 +51,7 @@ impl BatchConverter {
     pub fn batch_convert(
         &self,
         tensors: &[BitNetTensor],
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
         pool: &Arc<HybridMemoryPool>,
     ) -> ConversionResult<Vec<BitNetTensor>> {
         if tensors.is_empty() {
@@ -61,11 +62,11 @@ impl BatchConverter {
         info!(
             "Starting batch conversion of {} tensors to {}",
             tensors.len(),
-            target_dtype
+            targetdtype
         );
 
         // Group tensors for efficient processing
-        let groups = self.group_tensors(tensors, target_dtype)?;
+        let groups = self.group_tensors(tensors, targetdtype)?;
 
         #[cfg(feature = "tracing")]
         debug!(
@@ -75,10 +76,7 @@ impl BatchConverter {
         );
 
         // Process each group
-        let mut results = Vec::with_capacity(tensors.len());
-
-        // Check if parallel processing is enabled and possible
-        if self.config.enable_parallel_processing && groups.len() > 1 {
+        let results = if self.config.enable_parallel_processing && groups.len() > 1 {
             #[cfg(feature = "tracing")]
             debug!(
                 "DIAGNOSTIC: Attempting parallel processing with {} groups",
@@ -90,15 +88,15 @@ impl BatchConverter {
                 Ok(parallel_results) => {
                     #[cfg(feature = "tracing")]
                     info!("DIAGNOSTIC: Parallel processing succeeded");
-                    results = parallel_results;
+                    parallel_results
                 }
-                Err(e) => {
+                Err(_e) => {
                     #[cfg(feature = "tracing")]
                     warn!(
                         "DIAGNOSTIC: Parallel processing failed, falling back to sequential: {}",
-                        e
+                        _e
                     );
-                    results = self.process_groups_sequential(&groups, pool)?;
+                    self.process_groups_sequential(&groups, pool)?
                 }
             }
         } else {
@@ -108,8 +106,8 @@ impl BatchConverter {
                 !self.config.enable_parallel_processing,
                 groups.len()
             );
-            results = self.process_groups_sequential(&groups, pool)?;
-        }
+            self.process_groups_sequential(&groups, pool)?
+        };
 
         // Restore original order
         let ordered_results = self.restore_original_order(results, tensors)?;
@@ -139,10 +137,7 @@ impl BatchConverter {
         // Group by target data type and device for efficiency
         let groups = self.group_mixed_conversions(conversions)?;
 
-        let mut results = Vec::with_capacity(conversions.len());
-
-        // Check if parallel processing is enabled and possible
-        if self.config.enable_parallel_processing && groups.len() > 1 {
+        let results = if self.config.enable_parallel_processing && groups.len() > 1 {
             #[cfg(feature = "tracing")]
             debug!(
                 "DIAGNOSTIC: Attempting mixed parallel processing with {} groups",
@@ -154,12 +149,12 @@ impl BatchConverter {
                 Ok(parallel_results) => {
                     #[cfg(feature = "tracing")]
                     info!("DIAGNOSTIC: Mixed parallel processing succeeded");
-                    results = parallel_results;
+                    parallel_results
                 }
-                Err(e) => {
+                Err(_e) => {
                     #[cfg(feature = "tracing")]
-                    warn!("DIAGNOSTIC: Mixed parallel processing failed, falling back to sequential: {}", e);
-                    results = self.process_mixed_groups_sequential(&groups, pool)?;
+                    warn!("DIAGNOSTIC: Mixed parallel processing failed, falling back to sequential: {}", _e);
+                    self.process_mixed_groups_sequential(&groups, pool)?
                 }
             }
         } else {
@@ -169,8 +164,8 @@ impl BatchConverter {
                 !self.config.enable_parallel_processing,
                 groups.len()
             );
-            results = self.process_mixed_groups_sequential(&groups, pool)?;
-        }
+            self.process_mixed_groups_sequential(&groups, pool)?
+        };
 
         // Restore original order
         let ordered_results = self.restore_mixed_order(results, conversions)?;
@@ -185,19 +180,19 @@ impl BatchConverter {
     fn group_tensors(
         &self,
         tensors: &[BitNetTensor],
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
     ) -> ConversionResult<Vec<TensorGroup>> {
         let mut groups: HashMap<GroupKey, Vec<TensorWithIndex>> = HashMap::new();
 
         for (index, tensor) in tensors.iter().enumerate() {
-            let source_dtype = tensor.dtype();
-            let device = tensor.device();
+            let sourcedtype = tensor.dtype();
+            let device = tensor.device(); // Fixed - get device from tensor
             let size_bytes = tensor.size_bytes();
 
             // Determine optimal conversion strategy
             let context = ConversionContext::new(
-                source_dtype,
-                target_dtype,
+                sourcedtype,
+                targetdtype,
                 device.clone(),
                 device.clone(),
                 tensor.shape(),
@@ -206,8 +201,8 @@ impl BatchConverter {
             let strategy = context.optimal_strategy();
 
             let key = GroupKey {
-                source_dtype,
-                target_dtype,
+                sourcedtype: sourcedtype,
+                targetdtype,
                 device_type: self.device_type_key(&device),
                 strategy,
                 size_category: self.size_category(size_bytes),
@@ -244,14 +239,14 @@ impl BatchConverter {
     ) -> ConversionResult<Vec<MixedGroup>> {
         let mut groups: HashMap<MixedGroupKey, Vec<ConversionWithIndex>> = HashMap::new();
 
-        for (index, (tensor, target_dtype)) in conversions.iter().enumerate() {
-            let source_dtype = tensor.dtype();
-            let device = tensor.device();
-            let size_bytes = tensor.size_bytes();
+        for (index, (tensor, targetdtype)) in conversions.iter().enumerate() {
+            let sourcedtype = tensor.dtype();
+            let device = tensor.device(); // Fixed - get device from tensor
+            let _size_bytes = tensor.size_bytes();
 
             let context = ConversionContext::new(
-                source_dtype,
-                *target_dtype,
+                sourcedtype,
+                *targetdtype,
                 device.clone(),
                 device.clone(),
                 tensor.shape(),
@@ -260,8 +255,8 @@ impl BatchConverter {
             let strategy = context.optimal_strategy();
 
             let key = MixedGroupKey {
-                source_dtype,
-                target_dtype: *target_dtype,
+                sourcedtype: sourcedtype,
+                targetdtype: *targetdtype,
                 device_type: self.device_type_key(&device),
                 strategy,
             };
@@ -271,7 +266,7 @@ impl BatchConverter {
                 .or_insert_with(Vec::new)
                 .push(ConversionWithIndex {
                     tensor: tensor.clone(),
-                    target_dtype: *target_dtype,
+                    targetdtype: *targetdtype,
                     original_index: index,
                 });
         }
@@ -319,7 +314,7 @@ impl BatchConverter {
 
         // Spawn worker threads
         let mut workers = Vec::new();
-        for worker_id in 0..num_workers {
+        for _worker_id in 0..num_workers {
             let task_rx = task_receiver.clone();
             let result_tx = result_sender.clone();
             let converter = self.clone_for_worker();
@@ -440,7 +435,7 @@ impl BatchConverter {
 
         // Spawn worker threads
         let mut workers = Vec::new();
-        for worker_id in 0..num_workers {
+        for _worker_id in 0..num_workers {
             let task_rx = task_receiver.clone();
             let result_tx = result_sender.clone();
             let converter = self.clone_for_worker();
@@ -531,8 +526,8 @@ impl BatchConverter {
 
         for tensor_with_index in &group.tensors {
             let context = ConversionContext::new(
-                group.key.source_dtype,
-                group.key.target_dtype,
+                group.key.sourcedtype,
+                group.key.targetdtype,
                 tensor_with_index.tensor.device(),
                 tensor_with_index.tensor.device(),
                 tensor_with_index.tensor.shape(),
@@ -561,8 +556,8 @@ impl BatchConverter {
 
         for conversion in &group.conversions {
             let context = ConversionContext::new(
-                group.key.source_dtype,
-                conversion.target_dtype,
+                group.key.sourcedtype,
+                conversion.targetdtype,
                 conversion.tensor.device(),
                 conversion.tensor.device(),
                 conversion.tensor.shape(),
@@ -717,8 +712,8 @@ impl BatchConverter {
 
         for tensor_with_index in &group.tensors {
             let context = ConversionContext::new(
-                group.key.source_dtype,
-                group.key.target_dtype,
+                group.key.sourcedtype,
+                group.key.targetdtype,
                 tensor_with_index.tensor.device(),
                 tensor_with_index.tensor.device(),
                 tensor_with_index.tensor.shape(),
@@ -754,8 +749,8 @@ impl BatchConverter {
 
         for conversion in &group.conversions {
             let context = ConversionContext::new(
-                group.key.source_dtype,
-                conversion.target_dtype,
+                group.key.sourcedtype,
+                conversion.targetdtype,
                 conversion.tensor.device(),
                 conversion.tensor.device(),
                 conversion.tensor.shape(),
@@ -778,8 +773,8 @@ impl BatchConverter {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct GroupKey {
-    source_dtype: BitNetDType,
-    target_dtype: BitNetDType,
+    sourcedtype: BitNetDType,
+    targetdtype: BitNetDType,
     device_type: String,
     strategy: crate::memory::conversion::ConversionStrategy,
     size_category: SizeCategory,
@@ -787,8 +782,8 @@ struct GroupKey {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct MixedGroupKey {
-    source_dtype: BitNetDType,
-    target_dtype: BitNetDType,
+    sourcedtype: BitNetDType,
+    targetdtype: BitNetDType,
     device_type: String,
     strategy: crate::memory::conversion::ConversionStrategy,
 }
@@ -809,7 +804,7 @@ struct TensorWithIndex {
 #[derive(Debug, Clone)]
 struct ConversionWithIndex {
     tensor: BitNetTensor,
-    target_dtype: BitNetDType,
+    targetdtype: BitNetDType,
     original_index: usize,
 }
 

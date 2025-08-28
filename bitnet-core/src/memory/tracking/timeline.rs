@@ -15,6 +15,7 @@ use super::AllocationId;
 
 /// Timeline tracker for allocation and deallocation events
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct AllocationTimeline {
     /// Maximum number of events to keep in timeline
     max_entries: usize,
@@ -28,6 +29,7 @@ pub struct AllocationTimeline {
 
 /// Entry in the allocation timeline
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct TimelineEntry {
     /// The allocation event
     pub event: AllocationEvent,
@@ -86,6 +88,7 @@ pub enum AllocationEvent {
 
 /// Statistics about the allocation timeline
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct TimelineStatistics {
     /// Total number of events recorded
     pub total_events: u64,
@@ -111,6 +114,7 @@ pub struct TimelineStatistics {
 
 /// Memory usage trend analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct MemoryTrend {
     /// Overall trend direction (positive = growing, negative = shrinking)
     pub trend_direction: f64,
@@ -128,6 +132,7 @@ pub struct MemoryTrend {
 
 /// Query parameters for timeline analysis
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TimelineQuery {
     /// Start time for query range
     pub start_time: Option<SystemTime>,
@@ -147,6 +152,7 @@ pub struct TimelineQuery {
 
 /// Result of timeline analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct TimelineAnalysis {
     /// Matching timeline entries
     pub entries: Vec<TimelineEntry>,
@@ -160,6 +166,7 @@ pub struct TimelineAnalysis {
 
 /// Memory usage pattern over time
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct UsagePattern {
     /// Pattern type (e.g., "steady", "growing", "oscillating")
     pub pattern_type: String,
@@ -173,6 +180,7 @@ pub struct UsagePattern {
 
 /// Detected anomaly in the timeline
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct TimelineAnomaly {
     /// Type of anomaly
     pub anomaly_type: String,

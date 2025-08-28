@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 /// Knowledge distillation configuration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct DistillationConfig {
     /// Temperature for softmax softening
     pub temperature: f32,
@@ -36,6 +37,7 @@ impl Default for DistillationConfig {
 
 /// Teacher-Student pair for training
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct TeacherStudentPair {
     pub teacher_name: String,
     pub student_name: String,
@@ -58,6 +60,7 @@ impl TeacherStudentPair {
 
 /// Metrics for tracking distillation progress
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct DistillationMetrics {
     pub kl_divergence_loss: f32,
     pub student_loss: f32,
@@ -87,6 +90,7 @@ impl DistillationMetrics {
 }
 
 /// Knowledge distillation loss computation
+#[allow(dead_code)]
 pub struct KnowledgeDistillation {
     config: DistillationConfig,
     device: Device,

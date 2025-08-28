@@ -11,6 +11,7 @@ use std::collections::HashMap;
 
 /// Performance benchmark results
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct PerformanceRegressionResults {
     pub benchmarks_run: usize,
     pub benchmarks_passed: usize,
@@ -21,6 +22,7 @@ pub struct PerformanceRegressionResults {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct BenchmarkResult {
     pub benchmark_name: String,
     pub iterations: usize,
@@ -31,6 +33,7 @@ pub struct BenchmarkResult {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PerformanceStatistics {
     pub mean_duration: Duration,
     pub median_duration: Duration,
@@ -42,6 +45,7 @@ pub struct PerformanceStatistics {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct BaselineComparison {
     pub baseline_mean: Duration,
     pub current_mean: Duration,
@@ -215,7 +219,7 @@ fn benchmark_batch_quantization(device: &Device, iterations: usize) -> Quantizat
     // Warm up
     for _ in 0..3 {
         let tensors: Result<Vec<_>, _> = (0..batch_size)
-            .map(|_| generate_test_tensor(TestPattern::SparseWeights, &tensor_size, device))
+            .map(|__| generate_test_tensor(TestPattern::SparseWeights, &tensor_size, device))
             .collect();
         let tensors = tensors?;
         let quantizer = create_ternary_quantizer(TernaryMethod::AdaptiveThreshold, Some(0.7))?;
@@ -228,7 +232,7 @@ fn benchmark_batch_quantization(device: &Device, iterations: usize) -> Quantizat
     // Actual measurements
     for _ in 0..iterations {
         let tensors: Result<Vec<_>, _> = (0..batch_size)
-            .map(|_| generate_test_tensor(TestPattern::SparseWeights, &tensor_size, device))
+            .map(|__| generate_test_tensor(TestPattern::SparseWeights, &tensor_size, device))
             .collect();
         let tensors = tensors?;
         let quantizer = create_ternary_quantizer(TernaryMethod::AdaptiveThreshold, Some(0.7))?;
@@ -451,7 +455,7 @@ fn calculate_performance_statistics(measurements: &[Duration], num_elements: usi
     let mut sorted_measurements = measurements.to_vec();
     sorted_measurements.sort();
 
-    let mean_nanos = measurements.iter().map(|d| d.as_nanos()).sum::<u128>() / measurements.len() as u128;
+    let mean_nanos = measurements.iter().map(|_d| d.as_nanos()).sum::<u128>() / measurements.len() as u128;
     let mean_duration = Duration::from_nanos(mean_nanos as u64);
 
     let median_duration = sorted_measurements[sorted_measurements.len() / 2];
@@ -460,7 +464,7 @@ fn calculate_performance_statistics(measurements: &[Duration], num_elements: usi
 
     // Calculate standard deviation
     let variance = measurements.iter()
-        .map(|d| {
+        .map(|_d| {
             let diff = d.as_nanos() as i128 - mean_nanos as i128;
             (diff * diff) as u128
         })
@@ -547,7 +551,7 @@ fn calculate_performance_score(results: &PerformanceRegressionResults) -> f64 {
     }
 
     let total_score: f64 = results.benchmark_results.values()
-        .map(|benchmark| {
+        .map(|_benchmark| {
             // Base score from performance category
             let category_score = match benchmark.performance_category {
                 PerformanceCategory::Fast => 1.0,

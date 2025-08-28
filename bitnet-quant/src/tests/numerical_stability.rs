@@ -13,6 +13,7 @@ use std::collections::HashMap;
 
 /// Results of numerical stability testing
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct NumericalStabilityResults {
     pub stability_tests_run: usize,
     pub stability_tests_passed: usize,
@@ -23,6 +24,7 @@ pub struct NumericalStabilityResults {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ConditionResult {
     pub condition_name: String,
     pub test_iterations: usize,
@@ -33,6 +35,7 @@ pub struct ConditionResult {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct StabilityMetrics {
     pub max_relative_error: f64,
     pub mean_relative_error: f64,
@@ -183,7 +186,7 @@ fn test_near_zero_stability(device: &Device, iterations: usize) -> QuantizationR
 
         // Create tensor with values near zero
         let values: Vec<f32> = (0..64)
-            .map(|j| epsilon * (j as f32 % 2.0 * 2.0 - 1.0)) // Alternating signs
+            .map(|_j| epsilon * (j as f32 % 2.0 * 2.0 - 1.0)) // Alternating signs
             .collect();
 
         let tensor = Tensor::new(values, device)
@@ -303,7 +306,7 @@ fn test_precision_boundary_stability(device: &Device, iterations: usize) -> Quan
 
         // Create tensor with precision boundary values
         let values: Vec<f32> = (0..64)
-            .map(|j| base_value * (1.0 + f32::EPSILON * j as f32))
+            .map(|_j| base_value * (1.0 + f32::EPSILON * j as f32))
             .collect();
 
         let tensor = Tensor::new(values, device)
@@ -356,7 +359,7 @@ fn test_gradient_explosion_stability(device: &Device, iterations: usize) -> Quan
         // Simulate gradient explosion scenario with exponentially growing values
         let growth_factor = 1.1_f32.powi(i as i32);
         let values: Vec<f32> = (0..64)
-            .map(|j| growth_factor * (j as f32 - 32.0))
+            .map(|_j| growth_factor * (j as f32 - 32.0))
             .collect();
 
         let tensor = Tensor::new(values, device)
@@ -410,7 +413,7 @@ fn test_catastrophic_cancellation_stability(device: &Device, iterations: usize) 
         let base_value = 1e7 * (i as f32 + 1.0);
         let small_diff = 1e-5 * (i as f32 + 1.0);
 
-        let values: Vec<f32> = (0..32).flat_map(|j| {
+        let values: Vec<f32> = (0..32).flat_map(|_j| {
             vec![
                 base_value + small_diff * j as f32,
                 -base_value + small_diff * j as f32,
@@ -687,7 +690,7 @@ fn calculate_overall_stability_score(results: &NumericalStabilityResults) -> f64
     }
 
     let total_score: f64 = results.condition_results.values()
-        .map(|condition| {
+        .map(|_condition| {
             let success_rate = condition.successful_iterations as f64 / condition.test_iterations as f64;
             let stability_penalty = match condition.severity_level {
                 SeverityLevel::Low => 1.0,

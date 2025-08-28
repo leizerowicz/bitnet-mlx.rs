@@ -11,6 +11,7 @@ use std::time::{Duration, Instant};
 
 /// Comprehensive precision control configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PrecisionControlConfig {
     /// Target precision for quantization
     pub target_precision: QuantizationPrecision,
@@ -41,6 +42,7 @@ impl Default for PrecisionControlConfig {
 
 /// Precision bounds and constraints
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PrecisionBounds {
     /// Minimum allowed precision
     pub min_precision: QuantizationPrecision,
@@ -77,6 +79,7 @@ impl Default for PrecisionBounds {
 
 /// Dynamic precision adjustment configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DynamicAdjustmentConfig {
     /// Enable dynamic precision adjustment
     pub enabled: bool,
@@ -125,6 +128,7 @@ pub enum AdjustmentStrategy {
 
 /// Precision monitoring configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PrecisionMonitoringConfig {
     /// Enable precision monitoring
     pub enabled: bool,
@@ -181,6 +185,7 @@ pub enum PrecisionMetric {
 
 /// Alert thresholds for monitoring
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct AlertThresholds {
     /// Maximum acceptable quantization error
     pub max_quantization_error: f32,
@@ -208,6 +213,7 @@ impl Default for AlertThresholds {
 
 /// Precision validation configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PrecisionValidationConfig {
     /// Enable strict validation
     pub strict_validation: bool,
@@ -238,6 +244,7 @@ impl Default for PrecisionValidationConfig {
 
 /// Performance thresholds for precision control
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PerformanceThresholds {
     /// Minimum accuracy threshold
     pub min_accuracy: f32,
@@ -265,6 +272,7 @@ impl Default for PerformanceThresholds {
 
 /// Precision control manager
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct PrecisionController {
     /// Configuration
     config: PrecisionControlConfig,
@@ -282,6 +290,7 @@ pub struct PrecisionController {
 
 /// Current precision state
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PrecisionState {
     /// Current precision level
     pub precision: QuantizationPrecision,
@@ -299,6 +308,7 @@ pub struct PrecisionState {
 
 /// Metrics history tracking
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct MetricsHistory {
     /// Quantization error history
     pub quantization_errors: Vec<(Instant, f32)>,
@@ -314,6 +324,7 @@ pub struct MetricsHistory {
 
 /// Precision adjustment record
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PrecisionAdjustment {
     /// Timestamp of adjustment
     pub timestamp: Instant,
@@ -350,6 +361,7 @@ pub enum AdjustmentReason {
 
 /// Performance impact of adjustments
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PerformanceImpact {
     /// Change in quantization error
     pub error_delta: f32,
@@ -365,6 +377,7 @@ pub struct PerformanceImpact {
 
 /// Performance monitoring system
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct PerformanceMonitor {
     /// Start time for current session
     session_start: Instant,
@@ -779,6 +792,7 @@ struct PerformanceAnalysis {
 
 /// Performance summary
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PerformanceSummary {
     pub operations_count: u64,
     pub average_error: f32,

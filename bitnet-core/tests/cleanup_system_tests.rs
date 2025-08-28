@@ -141,7 +141,7 @@ fn test_cleanup_metrics() {
     let stats = manager.get_cleanup_stats();
 
     // Check that metrics are being collected
-    assert!(stats.total_operations >= 0);
+    assert!(stats.total_operations < u64::MAX); // Sanity check
     assert!(stats.success_rate() >= 0.0 && stats.success_rate() <= 1.0);
 
     // Check operation history
@@ -297,7 +297,7 @@ fn test_concurrent_cleanup_operations() {
     // Spawn multiple threads performing cleanup operations
     let mut handles = Vec::new();
 
-    for i in 0..5 {
+    for _ in 0..5 {
         let manager_clone = manager.clone();
         let device_clone = device.clone();
 
@@ -309,7 +309,7 @@ fn test_concurrent_cleanup_operations() {
 
             // Check that operations complete without panicking
             let stats = manager_clone.get_cleanup_stats();
-            assert!(stats.total_operations >= 0);
+            assert!(stats.total_operations < u64::MAX); // Sanity check
         });
 
         handles.push(handle);
@@ -325,7 +325,7 @@ fn test_concurrent_cleanup_operations() {
 
     // Verify final state
     let stats = manager.get_cleanup_stats();
-    assert!(stats.total_operations >= 0);
+    assert!(stats.total_operations < u64::MAX); // Sanity check
 }
 
 /// Test cleanup system performance and efficiency
@@ -335,7 +335,7 @@ fn test_cleanup_performance() {
     let config = CleanupConfig::default();
     let manager = CleanupManager::new(config, pool.clone()).unwrap();
 
-    let device = get_cpu_device();
+    let _device = get_cpu_device();
 
     // Measure cleanup performance
     let start_time = std::time::Instant::now();

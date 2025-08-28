@@ -12,6 +12,7 @@ use anyhow::Result;
 
 /// BitNet MLX Device wrapper
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct BitNetMlxDevice {
     #[cfg(feature = "mlx")]
     inner: MlxDevice,
@@ -243,6 +244,7 @@ impl Default for BitNetMlxDevice {
 /// MLX device information
 #[cfg(feature = "mlx")]
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MlxDeviceInfo {
     pub device_type: MlxDeviceType,
     pub device_id: i32,
@@ -292,6 +294,7 @@ impl MlxDeviceInfo {
 /// MLX device manager for BitNet integration
 #[cfg(feature = "mlx")]
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct MlxDeviceManager {
     available_devices: Vec<MlxDeviceInfo>,
     default_device: Option<MlxDeviceInfo>,
@@ -365,7 +368,7 @@ impl MlxDeviceManager {
 #[cfg(feature = "mlx")]
 impl Default for MlxDeviceManager {
     fn default() -> Self {
-        Self::new().unwrap_or_else(|_| Self {
+        Self::new().unwrap_or_else(|| Self {
             available_devices: vec![MlxDeviceInfo::cpu()],
             default_device: Some(MlxDeviceInfo::cpu()),
         })

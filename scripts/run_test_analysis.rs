@@ -316,7 +316,7 @@ fn wait_with_timeout(child: &mut std::process::Child, timeout: Duration) -> Resu
                 Err(_) => child.wait_with_output(),
             }
         }
-        Err(e) => Err(e),
+        Err(_e) => Err(e),
     }
 }
 
@@ -583,7 +583,7 @@ fn generate_enhanced_fixes_documentation(analysis: &TestAnalysisReport) -> Resul
 
     // Recommendations Section
     content.push_str("## 💡 Recommendations\n\n");
-    for (i, recommendation) in analysis.recommendations.iter().enumerate() {
+    for (_i, recommendation) in analysis.recommendations.iter().enumerate() {
         content.push_str(&format!("{}. {}\n", i + 1, recommendation));
     }
     content.push_str("\n");

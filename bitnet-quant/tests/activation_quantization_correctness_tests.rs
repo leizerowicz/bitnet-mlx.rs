@@ -65,7 +65,7 @@ fn create_activation_tensor(device: &Device, pattern: &str, shape: &[usize]) -> 
         _ => (0..total_elements).map(|i| i as f32 * 0.1).collect(),
     };
 
-    let shape = Shape::from_dims(shape);
+    let _shape = Shape::from_dims(shape);
     Tensor::from_vec(data, shape, device).unwrap()
 }
 
@@ -154,7 +154,7 @@ fn test_absmax_quantize_activations_8bit() {
             .unwrap();
 
     // Verify 8-bit quantization
-    assert_eq!(quantized.quantized_dtype, DType::U8);
+    assert_eq!(quantized.quantizeddtype, DType::U8);
     assert_eq!(quantized.effective_bit_width(), 8.0);
 
     // Verify values are in valid range
@@ -682,7 +682,7 @@ fn test_activation_quantization_precision_comparison() {
             }
             QuantizationPrecision::EightBit => {
                 assert_eq!(quantized.effective_bit_width(), 8.0);
-                assert_eq!(quantized.quantized_dtype, DType::U8);
+                assert_eq!(quantized.quantizeddtype, DType::U8);
             }
             _ => {}
         }

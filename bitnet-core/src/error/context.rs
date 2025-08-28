@@ -9,6 +9,7 @@ use std::fmt;
 
 /// Rich context information for errors
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ErrorContext {
     /// Key-value pairs of context information
     pub data: HashMap<String, String>,
@@ -24,6 +25,7 @@ pub struct ErrorContext {
 
 /// Source code location information
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SourceLocation {
     /// File name
     pub file: String,
@@ -161,6 +163,7 @@ impl fmt::Display for ErrorContext {
 }
 
 /// Builder for creating error contexts
+#[allow(dead_code)]
 pub struct ErrorContextBuilder {
     context: ErrorContext,
 }

@@ -135,14 +135,14 @@ fn run_graph_demo() -> Result<(), Box<dyn std::error::Error>> {
             if let Some(node) = graph.get_node(tensor_id) {
                 let elements: usize = node.shape.iter().map(|&x| x as usize).product();
                 let bytes = elements * 4; // Assuming f32
-                println!("    Tensor {}: {} bytes", tensor_id, bytes);
+                println!("    Tensor {}: {} bytes", _tensor_id, bytes);
             }
         }
     }
 
     println!("\nTensor lifetimes:");
-    for (&tensor_id, &(start, end)) in &memory_plan.tensor_lifetimes {
-        println!("  Tensor {}: steps {} to {}", tensor_id, start, end);
+    for (&_tensor_id, &(start, end)) in &memory_plan.tensor_lifetimes {
+        println!("  Tensor {}: steps {} to {}", _tensor_id, start, end);
     }
 
     // Generate complete execution plan

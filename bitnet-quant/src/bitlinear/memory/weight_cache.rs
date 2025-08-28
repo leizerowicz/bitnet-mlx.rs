@@ -12,6 +12,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Configuration for weight cache management
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CacheConfig {
     /// Maximum number of cached weight entries
     pub max_entries: usize,
@@ -54,6 +55,7 @@ impl Default for CacheConfig {
 
 /// Cache entry containing quantized weights and metadata
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CacheEntry {
     /// Quantized weights tensor
     quantized_weights: Tensor,
@@ -64,7 +66,7 @@ pub struct CacheEntry {
     /// Original weight shape for validation
     original_shape: Shape,
     /// Original weight dtype for validation
-    original_dtype: DType,
+    originaldtype: DType,
     /// Layer name
     layer_name: String,
     /// Creation timestamp
@@ -89,7 +91,7 @@ impl CacheEntry {
     ) -> BitLinearResult<Self> {
         let original_hash = compute_tensor_hash(&original_weights)?;
         let original_shape = original_weights.shape().clone();
-        let original_dtype = original_weights.dtype();
+        let originaldtype = original_weights.dtype();
         let current_time = current_timestamp();
 
         let memory_usage =
@@ -100,7 +102,7 @@ impl CacheEntry {
             scales,
             original_hash,
             original_shape,
-            original_dtype,
+            originaldtype,
             layer_name,
             created_at: current_time,
             last_accessed: current_time,
@@ -130,7 +132,7 @@ impl CacheEntry {
     /// Check if this entry is valid for the given tensor
     pub fn is_valid_for_tensor(&self, tensor: &Tensor) -> BitLinearResult<bool> {
         // Check basic properties
-        if tensor.shape() != &self.original_shape || tensor.dtype() != self.original_dtype {
+        if tensor.shape() != &self.original_shape || tensor.dtype() != self.originaldtype {
             return Ok(false);
         }
 
@@ -175,6 +177,7 @@ impl CacheEntry {
 
 /// Cache statistics for monitoring and optimization
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct CacheStats {
     /// Total cache hits
     pub hits: u64,
@@ -222,6 +225,7 @@ impl CacheStats {
 }
 
 /// Weight cache manager implementation
+#[allow(dead_code)]
 pub struct WeightCacheManager {
     /// Configuration
     config: CacheConfig,
@@ -307,7 +311,7 @@ impl WeightCacheManager {
 
         let memory_usage = entry.memory_usage();
         let is_new_entry = {
-            let cache = self.cache.read().map_err(|_| {
+            let cache = self.cache.read().map_err(|__| {
                 BitLinearError::cache_lock_error("Failed to acquire cache read lock")
             })?;
             !cache.contains_key(&key)
@@ -315,7 +319,7 @@ impl WeightCacheManager {
 
         // Insert the entry
         {
-            let mut cache = self.cache.write().map_err(|_| {
+            let mut cache = self.cache.write().map_err(|__| {
                 BitLinearError::cache_lock_error("Failed to acquire cache write lock")
             })?;
 
@@ -504,7 +508,7 @@ impl WeightCacheManager {
             let lru_order = self
                 .lru_order
                 .lock()
-                .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire LRU lock"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire LRU lock"))?;
 
             lru_order.iter().take(count).cloned().collect::<Vec<_>>()
         };
@@ -516,7 +520,7 @@ impl WeightCacheManager {
             let mut cache = self
                 .cache
                 .write()
-                .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
 
             for key in &keys_to_evict {
                 if let Some(entry) = cache.remove(key) {
@@ -529,7 +533,7 @@ impl WeightCacheManager {
             let mut lru_order = self
                 .lru_order
                 .lock()
-                .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire LRU lock"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire LRU lock"))?;
 
             for key in &keys_to_evict {
                 if let Some(pos) = lru_order.iter().position(|k| k == key) {
@@ -561,7 +565,7 @@ impl WeightCacheManager {
             let cache = self
                 .cache
                 .read()
-                .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
 
             cache
                 .iter()
@@ -580,7 +584,7 @@ impl WeightCacheManager {
 
         if !expired_keys.is_empty() {
             {
-                let mut cache = self.cache.write().map_err(|_| {
+                let mut cache = self.cache.write().map_err(|__| {
                     BitLinearError::cache_lock_error("Failed to acquire cache lock")
                 })?;
 
@@ -595,7 +599,7 @@ impl WeightCacheManager {
                 let mut lru_order = self
                     .lru_order
                     .lock()
-                    .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire LRU lock"))?;
+                    .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire LRU lock"))?;
 
                 for key in &expired_keys {
                     if let Some(pos) = lru_order.iter().position(|k| k == key) {

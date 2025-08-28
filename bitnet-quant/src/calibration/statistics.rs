@@ -12,6 +12,7 @@ use std::time::SystemTime;
 
 /// Complete statistics for a layer's activations
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct LayerStatistics {
     /// Layer name or identifier
     pub layer_name: String,
@@ -33,6 +34,7 @@ pub struct LayerStatistics {
 
 /// Min/max tracking for activations
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct MinMaxStats {
     /// Global minimum value
     pub global_min: f32,
@@ -52,6 +54,7 @@ pub struct MinMaxStats {
 
 /// Moment statistics (mean, variance, skewness, kurtosis)
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct MomentStats {
     /// Running mean
     pub mean: f32,
@@ -71,6 +74,7 @@ pub struct MomentStats {
 
 /// Percentile statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PercentileStats {
     /// Requested percentile values
     pub percentiles: Vec<f32>,
@@ -84,6 +88,7 @@ pub struct PercentileStats {
 
 /// Outlier detection statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct OutlierStats {
     /// Number of outliers detected
     pub outlier_count: usize,
@@ -110,6 +115,7 @@ pub enum OutlierMethod {
 
 /// Shape and structure information
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ShapeInfo {
     /// Tensor dimensions
     pub dimensions: Vec<usize>,
@@ -125,6 +131,7 @@ pub struct ShapeInfo {
 
 /// Main statistics collector
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct StatisticsCollector {
     /// Statistics per layer
     layer_stats: HashMap<String, LayerStatistics>,
@@ -136,6 +143,7 @@ pub struct StatisticsCollector {
 
 /// Configuration for statistics collection
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct StatisticsConfig {
     /// Track min/max values
     pub track_min_max: bool,
@@ -178,6 +186,7 @@ impl Default for StatisticsConfig {
 
 /// Min/Max value tracker with streaming updates
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MinMaxTracker {
     /// Current minimum
     pub min: f32,

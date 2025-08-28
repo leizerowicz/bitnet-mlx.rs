@@ -5,6 +5,7 @@ use bitnet_core::{BitNetDType, BitNetTensor, MemoryResult, TensorShape};
 
 /// Ternary quantization parameters
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 pub struct TernaryQuantizationParams {
     pub method: TernaryMethod,
     pub threshold: f32,
@@ -29,6 +30,7 @@ impl Default for TernaryQuantizationParams {
 
 /// BitNet-specific quantization configuration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct BitNetQuantizationConfig {
     pub precision: QuantizationPrecision,
     pub strategy: QuantizationStrategy,
@@ -53,13 +55,14 @@ impl Default for BitNetQuantizationConfig {
 
 /// Ternary tensor representation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TernaryTensorRepresentation {
     pub values: BitNetTensor,
     pub scales: BitNetTensor,
     pub original_shape: TensorShape,
     pub quantization_params: TernaryQuantizationParams,
     pub device: candle_core::Device,
-    pub original_dtype: BitNetDType,
+    pub originaldtype: BitNetDType,
 }
 
 /// Trait for quantized arithmetic operations

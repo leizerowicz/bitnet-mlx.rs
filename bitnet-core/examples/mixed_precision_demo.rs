@@ -112,8 +112,8 @@ fn demo_basic_configuration() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn demo_layer_precision_management(
-    device: &candle_core::Device,
-    memory_pool: &HybridMemoryPool,
+    _device: &candle_core::Device,
+    _memory_pool: &HybridMemoryPool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("🏗️  Demo 2: Layer-Specific Precision Management");
     println!("----------------------------------------------");

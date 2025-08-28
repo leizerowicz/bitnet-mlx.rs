@@ -136,6 +136,7 @@ pub fn calculate_segmental_sqnr(
 
 /// SQNR Calculator with advanced analysis features
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct SQNRCalculator {
     device: Device,
     streaming_threshold: usize,
@@ -376,6 +377,7 @@ impl SQNRCalculator {
 
 /// Comprehensive SQNR analysis results
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SQNRAnalysis {
     pub global_sqnr: f32,
     pub segmental_sqnr: Vec<f32>,
@@ -386,6 +388,7 @@ pub struct SQNRAnalysis {
 
 /// Statistical analysis of SQNR values
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SQNRStatistics {
     pub mean: f32,
     pub std_dev: f32,
@@ -458,6 +461,7 @@ impl SQNRQuality {
 
 /// SQNR evolution tracking over time
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SQNREvolution {
     pub sqnr_values: Vec<f32>,
     pub trend: Trend,

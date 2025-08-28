@@ -43,6 +43,7 @@ pub enum AccessPattern {
 }
 
 /// Cache-friendly tensor wrapper
+#[allow(dead_code)]
 pub struct CacheFriendlyTensor {
     /// The underlying tensor data
     tensor: Tensor,
@@ -347,6 +348,7 @@ fn optimize_tensor_layout(
 }
 
 /// Memory access pattern analyzer
+#[allow(dead_code)]
 pub struct AccessPatternAnalyzer {
     /// Historical access patterns
     access_history: Vec<(usize, usize)>, // (offset, size) pairs
@@ -479,6 +481,7 @@ impl CacheFriendlyOps {
 
 /// Memory layout information for debugging and optimization
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct LayoutInfo {
     /// Current layout strategy
     pub layout: MemoryLayout,

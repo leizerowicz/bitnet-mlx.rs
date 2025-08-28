@@ -54,6 +54,7 @@ pub fn hint_vectorize() {
 }
 
 /// SIMD-aligned memory allocator
+#[allow(dead_code)]
 pub struct SimdAllocator {
     alignment: usize,
 }
@@ -81,7 +82,7 @@ impl SimdAllocator {
     pub fn allocate<T>(&self, count: usize) -> SimdResult<*mut T> {
         let size = count * std::mem::size_of::<T>();
         let layout = Layout::from_size_align(size, self.alignment)
-            .map_err(|_| QuantizationError::ConfigError("Invalid SIMD alignment".into()))?;
+            .map_err(|__| QuantizationError::ConfigError("Invalid SIMD alignment".into()))?;
 
         let ptr = unsafe { alloc(layout) };
         if ptr.is_null() {
@@ -103,6 +104,7 @@ impl SimdAllocator {
 
 /// SIMD-aligned vector for optimal performance
 #[repr(align(64))]
+#[allow(dead_code)]
 pub struct AlignedVec<T> {
     data: Vec<T>,
     alignment: usize,
@@ -188,6 +190,7 @@ impl<T> std::ops::DerefMut for AlignedVec<T> {
 
 /// Configuration for SIMD operations
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SimdConfig {
     /// Enable SSE optimizations (x86/x86_64)
     pub enable_sse: bool,

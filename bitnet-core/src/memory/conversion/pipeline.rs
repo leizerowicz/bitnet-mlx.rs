@@ -16,6 +16,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use tracing::{debug, info, warn};
 
 /// A conversion pipeline that chains multiple operations with memory optimization
+#[allow(dead_code)]
 pub struct ConversionPipeline {
     /// Pipeline configuration
     config: ConversionConfig,
@@ -46,9 +47,9 @@ impl ConversionPipeline {
     }
 
     /// Adds a conversion stage to the pipeline
-    pub fn add_stage(mut self, target_dtype: BitNetDType) -> Self {
+    pub fn add_stage(mut self, targetdtype: BitNetDType) -> Self {
         let stage = PipelineStage {
-            target_dtype,
+            targetdtype,
             strategy: ConversionStrategy::Auto,
             cache_intermediate: true,
         };
@@ -59,11 +60,11 @@ impl ConversionPipeline {
     /// Adds a conversion stage with specific strategy
     pub fn add_stage_with_strategy(
         mut self,
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
         strategy: ConversionStrategy,
     ) -> Self {
         let stage = PipelineStage {
-            target_dtype,
+            targetdtype,
             strategy,
             cache_intermediate: true,
         };
@@ -72,9 +73,9 @@ impl ConversionPipeline {
     }
 
     /// Adds a conversion stage without caching intermediate results
-    pub fn add_stage_no_cache(mut self, target_dtype: BitNetDType) -> Self {
+    pub fn add_stage_no_cache(mut self, targetdtype: BitNetDType) -> Self {
         let stage = PipelineStage {
-            target_dtype,
+            targetdtype,
             strategy: ConversionStrategy::Auto,
             cache_intermediate: false,
         };
@@ -113,13 +114,13 @@ impl ConversionPipeline {
             #[cfg(feature = "tracing")]
             debug!(
                 "Executing pipeline stage {} -> {}",
-                stage_idx, stage.target_dtype
+                stage_idx, stage.targetdtype
             );
 
             // Check cache first
             if stage.cache_intermediate {
                 if let Some(cached_result) =
-                    self.check_cache(&current_tensor, stage.target_dtype)?
+                    self.check_cache(&current_tensor, stage.targetdtype)?
                 {
                     #[cfg(feature = "tracing")]
                     debug!("Using cached result for stage {}", stage_idx);
@@ -203,18 +204,18 @@ impl ConversionPipeline {
         stage: &PipelineStage,
         stage_idx: usize,
     ) -> ConversionResult<BitNetTensor> {
-        let source_dtype = input.dtype();
-        let device = input.device();
+        let sourcedtype = input.dtype();
+        let device = input.device(); // Fixed - get device from input tensor
 
         // Skip if already the target type
-        if source_dtype == stage.target_dtype {
+        if sourcedtype == stage.targetdtype {
             return Ok(input.clone());
         }
 
         // Create conversion context
         let context = ConversionContext::new(
-            source_dtype,
-            stage.target_dtype,
+            sourcedtype,
+            stage.targetdtype,
             device.clone(),
             device.clone(),
             input.shape(),
@@ -271,7 +272,7 @@ impl ConversionPipeline {
     fn check_cache(
         &self,
         input: &BitNetTensor,
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
     ) -> ConversionResult<Option<BitNetTensor>> {
         let mut cache = self
             .cache
@@ -282,7 +283,7 @@ impl ConversionPipeline {
 
         let key = CacheKey {
             source_id: input.id(),
-            target_dtype,
+            targetdtype,
         };
 
         Ok(cache.get(&key).cloned())
@@ -299,7 +300,7 @@ impl ConversionPipeline {
 
         let key = CacheKey {
             source_id: input.id(),
-            target_dtype: output.dtype(),
+            targetdtype: output.dtype(),
         };
 
         cache.insert(key, output.clone());
@@ -379,7 +380,7 @@ impl ConversionPipeline {
         // 1. Zero-copy conversions first
         // 2. In-place conversions next
         // 3. Other conversions last
-        self.stages.sort_by_key(|stage| match stage.strategy {
+        self.stages.sort_by_key(|tage| match tage.strategy {
             ConversionStrategy::ZeroCopy => 0,
             ConversionStrategy::InPlace => 1,
             ConversionStrategy::Auto => 2,
@@ -394,7 +395,7 @@ impl ConversionPipeline {
 /// A single stage in the conversion pipeline
 #[derive(Debug, Clone)]
 struct PipelineStage {
-    target_dtype: BitNetDType,
+    targetdtype: BitNetDType,
     strategy: ConversionStrategy,
     cache_intermediate: bool,
 }
@@ -403,7 +404,7 @@ struct PipelineStage {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct CacheKey {
     source_id: u64,
-    target_dtype: BitNetDType,
+    targetdtype: BitNetDType,
 }
 
 /// Cache for storing intermediate conversion results
@@ -480,6 +481,7 @@ impl TensorCache {
 
 /// Tracks memory usage and performance metrics for the pipeline
 #[derive(Debug)]
+#[allow(dead_code)]
 struct MemoryTracker {
     total_executions: u64,
     total_stages_executed: u64,
@@ -537,6 +539,7 @@ impl MemoryTracker {
 
 /// Result of executing a pipeline stage
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct StageResult {
     stage_index: usize,
     input_size: usize,
@@ -546,6 +549,7 @@ struct StageResult {
 
 /// Statistics about pipeline execution
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PipelineStats {
     pub total_executions: u64,
     pub total_stages_executed: u64,
@@ -601,8 +605,8 @@ mod tests {
             .add_stage(BitNetDType::I8);
 
         assert_eq!(pipeline.stages.len(), 2);
-        assert_eq!(pipeline.stages[0].target_dtype, BitNetDType::F16);
-        assert_eq!(pipeline.stages[1].target_dtype, BitNetDType::I8);
+        assert_eq!(pipeline.stages[0].targetdtype, BitNetDType::F16);
+        assert_eq!(pipeline.stages[1].targetdtype, BitNetDType::I8);
     }
 
     #[test]
@@ -699,7 +703,7 @@ mod tests {
 
         let key = CacheKey {
             source_id: 1,
-            target_dtype: BitNetDType::F16,
+            targetdtype: BitNetDType::F16,
         };
 
         let tensor = BitNetTensor::ones(&[2, 2], BitNetDType::F16, &device, &pool).unwrap();

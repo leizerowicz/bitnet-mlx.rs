@@ -258,7 +258,7 @@ async fn test_error_handling() -> Result<(), Box<dyn std::error::Error>> {
         Err(CalibrationError::TensorShapeMismatch { .. }) => {
             println!("Shape mismatch detected correctly");
         },
-        Err(e) => return Err(Box::new(e)),
+        Err(_e) => return Err(Box::new(e)),
     }
 
     println!("Error handling test passed!");

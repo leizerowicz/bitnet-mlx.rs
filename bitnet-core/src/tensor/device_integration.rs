@@ -19,6 +19,7 @@ use tracing::{debug, error, info, warn};
 /// This manager provides device-aware operations for tensors,
 /// including device selection, migration, and optimization.
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct TensorDeviceManager {
     /// Current device
     device: Device,
@@ -32,6 +33,7 @@ pub struct TensorDeviceManager {
 
 /// Device capabilities for tensor operations
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct DeviceCapabilities {
     /// Supported data types on this device
     pub supported_dtypes: Vec<BitNetDType>,
@@ -53,6 +55,7 @@ pub struct DeviceCapabilities {
 
 /// Metal-specific GPU features
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MetalFeatures {
     /// Maximum threadgroup memory
     pub max_threadgroup_memory: usize,
@@ -87,6 +90,7 @@ pub enum TensorOperation {
 
 /// Performance profile for device operations
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct DevicePerformanceProfile {
     /// Memory transfer latency (ms)
     pub memory_latency_ms: f32,
@@ -102,6 +106,7 @@ pub struct DevicePerformanceProfile {
 
 /// Tensor size recommendations for optimal performance
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TensorSizeRecommendation {
     /// Small tensor threshold (elements)
     pub small_threshold: usize,
@@ -113,6 +118,7 @@ pub struct TensorSizeRecommendation {
 
 /// Device migration result
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct DeviceMigrationResult {
     /// Source device
     pub from_device: Device,
@@ -139,12 +145,13 @@ pub enum DeviceSelectionStrategy {
     Custom {
         min_memory_gb: Option<f32>,
         required_operations: Vec<TensorOperation>,
-        preferred_dtype: Option<BitNetDType>,
+        preferreddtype: Option<BitNetDType>,
     },
 }
 
 /// Memory allocation strategy recommendation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct AllocationStrategy {
     /// Recommended device
     pub device: Device,
@@ -366,7 +373,7 @@ impl TensorDeviceManager {
             DeviceSelectionStrategy::Custom {
                 min_memory_gb,
                 required_operations,
-                preferred_dtype,
+                preferreddtype,
             } => {
                 if let Ok(device) = get_metal_device() {
                     let caps = Self::detect_capabilities(&device)?;
@@ -378,7 +385,7 @@ impl TensorDeviceManager {
                     });
 
                     let ops_ok = caps.supports_operations(&required_operations);
-                    let dtype_ok = preferred_dtype.map_or(true, |dt| caps.supports_dtype(dt));
+                    let dtype_ok = preferreddtype.map_or(true, |dt| caps.supports_dtype(dt));
 
                     if memory_ok && ops_ok && dtype_ok {
                         return Ok(device);

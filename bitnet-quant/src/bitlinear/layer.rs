@@ -12,11 +12,12 @@ use crate::quantization::{
     TernaryMethod, WeightQuantizationConfig, WeightQuantizer,
 };
 use bitnet_core::memory::{HybridMemoryPool, MemoryResult};
-use candle_core::{Device, Shape, Tensor};
+use candle_core::{DType, Device, Shape, Tensor};
 use std::sync::{Arc, Mutex, RwLock};
 
 /// Configuration for BitLinear layer with memory optimization support
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct BitLinearConfig {
     /// Input features dimension
     pub in_features: usize,
@@ -79,6 +80,7 @@ impl Default for BitLinearConfig {
 /// This struct maintains both full-precision weights for training and cached
 /// quantized weights for inference. It integrates with the existing device
 /// abstraction layer and memory pool system.
+#[allow(dead_code)]
 pub struct BitLinear {
     /// Layer configuration
     config: BitLinearConfig,
@@ -120,7 +122,7 @@ impl BitLinear {
 
         // Initialize full-precision weights
         let weight_shape: Shape = (config.out_features, config.in_features).into();
-        let weights = Tensor::randn(0.0, 0.02, weight_shape, &device)?;
+        let weights = Tensor::randn(0.0, 0.02, weight_shape, &device)?.to_dtype(DType::F32)?;
         let weights = Arc::new(RwLock::new(weights));
 
         // Initialize bias if enabled
@@ -238,12 +240,12 @@ impl BitLinear {
         if let Some(ref cache) = self.cache {
             let mut cache_guard = cache
                 .lock()
-                .map_err(|_| BitLinearError::cache_lock_error("cache"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("cache"))?;
 
             // Check if we have a valid cached entry
             if let Some(entry) = cache_guard.get(&self.layer_name) {
                 // Verify the entry is still valid (weights haven't changed)
-                let weights_guard = self.weights.read().map_err(|_| {
+                let weights_guard = self.weights.read().map_err(|__| {
                     BitLinearError::MemoryError("Failed to acquire weights read lock".to_string())
                 })?;
 
@@ -259,12 +261,12 @@ impl BitLinear {
 
     /// Quantize the current weights and update cache
     fn quantize_and_cache_weights(&self) -> BitLinearResult<QuantizedWeight> {
-        let weights_guard = self.weights.read().map_err(|_| {
+        let weights_guard = self.weights.read().map_err(|__| {
             BitLinearError::MemoryError("Failed to acquire weights read lock".to_string())
         })?;
 
         // Perform quantization
-        let quantizer_guard = self.quantizer.lock().map_err(|_| {
+        let quantizer_guard = self.quantizer.lock().map_err(|__| {
             BitLinearError::QuantizationError("Failed to acquire quantizer lock".to_string())
         })?;
 
@@ -276,7 +278,7 @@ impl BitLinear {
         if let Some(ref cache) = self.cache {
             let mut cache_guard = cache
                 .lock()
-                .map_err(|_| BitLinearError::cache_lock_error("cache"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("cache"))?;
 
             let cache_entry =
                 CacheEntry::new(quantized.clone(), &weights_guard, self.layer_name.clone())
@@ -308,7 +310,7 @@ impl BitLinear {
 
         // Update weights
         {
-            let mut weights_guard = self.weights.write().map_err(|_| {
+            let mut weights_guard = self.weights.write().map_err(|__| {
                 BitLinearError::MemoryError("Failed to acquire weights write lock".to_string())
             })?;
             *weights_guard = new_weights;
@@ -318,7 +320,7 @@ impl BitLinear {
         if let Some(ref cache) = self.cache {
             let mut cache_guard = cache
                 .lock()
-                .map_err(|_| BitLinearError::cache_lock_error("cache"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("cache"))?;
             cache_guard.invalidate(&self.layer_name);
         }
 
@@ -336,7 +338,7 @@ impl BitLinear {
                 ));
             }
 
-            let mut bias_guard = bias.write().map_err(|_| {
+            let mut bias_guard = bias.write().map_err(|__| {
                 BitLinearError::MemoryError("Failed to acquire bias write lock".to_string())
             })?;
             *bias_guard = new_bias;
@@ -354,7 +356,7 @@ impl BitLinear {
         if let Some(ref cache) = self.cache {
             let mut cache_guard = cache
                 .lock()
-                .map_err(|_| BitLinearError::cache_lock_error("cache"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("cache"))?;
             cache_guard.clear();
         }
         Ok(())
@@ -381,7 +383,7 @@ impl BitLinear {
 
         // Move weights to new device
         {
-            let mut weights_guard = self.weights.write().map_err(|_| {
+            let mut weights_guard = self.weights.write().map_err(|__| {
                 BitLinearError::MemoryError("Failed to acquire weights write lock".to_string())
             })?;
             let new_weights = weights_guard.to_device(&device).map_err(|e| {
@@ -392,7 +394,7 @@ impl BitLinear {
 
         // Move bias to new device if enabled
         if let Some(ref bias) = self.bias {
-            let mut bias_guard = bias.write().map_err(|_| {
+            let mut bias_guard = bias.write().map_err(|__| {
                 BitLinearError::MemoryError("Failed to acquire bias write lock".to_string())
             })?;
             let new_bias = bias_guard.to_device(&device).map_err(|e| {

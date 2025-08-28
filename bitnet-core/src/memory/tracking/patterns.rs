@@ -15,6 +15,7 @@ use super::AllocationInfo;
 
 /// Pattern analyzer for memory allocations
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct PatternAnalyzer {
     /// Detected allocation patterns
     patterns: Arc<Mutex<HashMap<String, AllocationPattern>>>,
@@ -28,6 +29,7 @@ pub struct PatternAnalyzer {
 
 /// Configuration for pattern analysis
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PatternAnalysisConfig {
     /// Maximum number of recent allocations to analyze
     pub max_recent_allocations: usize,
@@ -47,6 +49,7 @@ pub struct PatternAnalysisConfig {
 
 /// Detected allocation pattern
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct AllocationPattern {
     /// Unique pattern identifier
     pub pattern_id: String,
@@ -121,6 +124,7 @@ pub enum PatternType {
 
 /// Characteristics of an allocation pattern
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PatternCharacteristics {
     /// Size range of allocations in this pattern
     pub size_range: (usize, usize),
@@ -138,6 +142,7 @@ pub struct PatternCharacteristics {
 
 /// Statistics about pattern analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct AnalysisStatistics {
     /// Total patterns detected
     pub total_patterns: usize,
@@ -157,6 +162,7 @@ pub struct AnalysisStatistics {
 
 /// Performance metrics for pattern analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct AnalysisPerformanceMetrics {
     /// Average time to analyze an allocation
     pub avg_analysis_time_ns: u64,
@@ -170,6 +176,7 @@ pub struct AnalysisPerformanceMetrics {
 
 /// Report of detected patterns
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PatternReport {
     /// All detected patterns
     pub patterns: Vec<AllocationPattern>,
@@ -183,6 +190,7 @@ pub struct PatternReport {
 
 /// Summary of pattern analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PatternSummary {
     /// Total patterns detected
     pub total_patterns: usize,
@@ -198,6 +206,7 @@ pub struct PatternSummary {
 
 /// Optimization recommendation
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct OptimizationRecommendation {
     /// Recommendation type
     pub recommendation_type: String,

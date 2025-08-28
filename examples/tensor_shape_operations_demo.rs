@@ -228,7 +228,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Show each step
     println!("Step-by-step:");
     let mut current = base_shape.clone();
-    for (i, op) in operations.iter().enumerate() {
+    for (_i, op) in operations.iter().enumerate() {
         match op {
             ShapeOperation::Transpose(axes) => {
                 current = current.transpose(axes)?;

@@ -37,6 +37,7 @@ use tracing::{debug, trace, warn};
 
 /// SIMD instruction set capabilities
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 pub struct SimdCapabilities {
     pub sse2: bool,
     pub sse4_1: bool,
@@ -563,12 +564,12 @@ fn simd_add_scalar_f32_sse41(tensor: &BitNetTensor, scalar: f32) -> TensorOpResu
 fn validate_simd_binary_op(
     lhs: &BitNetTensor,
     rhs: &BitNetTensor,
-    expected_dtype: BitNetDType,
+    expecteddtype: BitNetDType,
     operation: &str,
 ) -> TensorOpResult<()> {
-    if lhs.dtype() != expected_dtype || rhs.dtype() != expected_dtype {
+    if lhs.dtype() != expecteddtype || rhs.dtype() != expecteddtype {
         return Err(TensorOpError::DTypeMismatch {
-            expected: expected_dtype,
+            expected: expecteddtype,
             actual_lhs: lhs.dtype(),
             actual_rhs: Some(rhs.dtype()),
             operation: operation.to_string(),
@@ -588,12 +589,12 @@ fn validate_simd_binary_op(
 
 fn validate_simd_unary_op(
     tensor: &BitNetTensor,
-    expected_dtype: BitNetDType,
+    expecteddtype: BitNetDType,
     operation: &str,
 ) -> TensorOpResult<()> {
-    if tensor.dtype() != expected_dtype {
+    if tensor.dtype() != expecteddtype {
         return Err(TensorOpError::DTypeMismatch {
-            expected: expected_dtype,
+            expected: expecteddtype,
             actual_lhs: tensor.dtype(),
             actual_rhs: None,
             operation: operation.to_string(),
@@ -647,11 +648,13 @@ where
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct SimdBenchmarkResults {
     pub results: Vec<SimdBenchmarkResult>,
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct SimdBenchmarkResult {
     pub size: usize,
     pub scalar_time: std::time::Duration,

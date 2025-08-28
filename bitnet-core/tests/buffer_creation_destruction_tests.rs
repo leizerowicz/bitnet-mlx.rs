@@ -265,7 +265,7 @@ fn test_small_block_pool_buffer_lifecycle() {
     }
 
     // Verify pool statistics
-    let stats = pool.get_stats();
+    let _stats = pool.get_stats();
     assert!(pool.current_usage() > 0);
 
     // Deallocate all buffers
@@ -274,7 +274,7 @@ fn test_small_block_pool_buffer_lifecycle() {
             .expect("Failed to deallocate small buffer");
     }
 
-    let final_stats = pool.get_stats();
+    let _final_stats = pool.get_stats();
     // Note: We can't directly access private fields, but we can verify the pool still works
     assert!(pool.current_usage() > 0); // Pool retains chunks
 }
@@ -435,7 +435,7 @@ fn test_buffer_handle_validation_success() {
 
     // Test CPU metadata access
     if let Some(cpu_metadata) = handle.cpu_metadata() {
-        assert!(cpu_metadata.page_aligned); // 64-byte alignment >= 4096
+        assert!(!cpu_metadata.page_aligned); // 64-byte alignment < 4096, so not page-aligned
         assert!(!cpu_metadata.locked);
     } else {
         panic!("CPU buffer should have CPU metadata");
@@ -463,13 +463,9 @@ fn test_buffer_handle_validation_failures() {
     let result = pool.allocate(1024, 0, &device);
     assert!(result.is_err());
 
-    // Test zero size (should succeed but create minimal buffer)
-    let handle = pool
-        .allocate(0, 16, &device)
-        .expect("Zero-size allocation should succeed");
-    assert_eq!(handle.size(), 0);
-    pool.deallocate(handle)
-        .expect("Failed to deallocate zero-size buffer");
+    // Test zero size (should now fail)
+    let result = pool.allocate(0, 16, &device);
+    assert!(result.is_err(), "Zero-size allocation should now fail");
 }
 
 #[test]
@@ -537,7 +533,7 @@ fn test_concurrent_buffer_creation() {
         let pool_clone = pool.clone();
         let device_clone = device.clone();
 
-        let handle = thread::spawn(move || {
+        let thread_handle = thread::spawn(move || {
             let mut thread_handles = Vec::new();
 
             for i in 0..buffers_per_thread {
@@ -551,7 +547,7 @@ fn test_concurrent_buffer_creation() {
             thread_handles
         });
 
-        handles.push(handle);
+        handles.push(thread_handle);
     }
 
     // Collect all handles
@@ -1279,8 +1275,11 @@ fn test_buffer_extreme_sizes() {
     let pool = create_test_pool();
     let device = get_cpu_device();
 
-    // Test very small sizes
-    let small_sizes = vec![0, 1, 2, 3, 4, 5, 7, 8, 15, 16];
+    // Test very small sizes (excluding zero which should fail)
+    let small_sizes = vec![1, 2, 3, 4, 5, 7, 8, 15, 16];
+
+    // Test zero-size allocation should fail
+    assert!(pool.allocate(0, 1, &device).is_err(), "Zero-size allocation should fail");
 
     for &size in &small_sizes {
         let handle = pool

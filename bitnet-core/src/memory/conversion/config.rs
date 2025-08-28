@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 /// Main configuration for the conversion engine
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ConversionConfig {
     /// Default conversion strategy
     pub default_strategy: ConversionStrategy,
@@ -104,6 +105,7 @@ impl ConversionConfig {
 
 /// Configuration for streaming conversions
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct StreamingConfig {
     /// Size of each chunk in bytes
     pub chunk_size: usize,
@@ -191,13 +193,14 @@ impl StreamingConfig {
 
 /// Configuration for batch conversions
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct BatchConfig {
     /// Maximum number of tensors to process in a single batch
     pub max_batch_size: usize,
     /// Whether to sort tensors by size before batching
     pub sort_by_size: bool,
     /// Whether to group tensors by data type
-    pub group_by_dtype: bool,
+    pub group_bydtype: bool,
     /// Whether to group tensors by device
     pub group_by_device: bool,
     /// Maximum memory usage per batch (in bytes)
@@ -213,7 +216,7 @@ impl Default for BatchConfig {
         Self {
             max_batch_size: 32,
             sort_by_size: true,
-            group_by_dtype: true,
+            group_bydtype: true,
             group_by_device: true,
             max_batch_memory: 256 * 1024 * 1024, // 256MB
             enable_parallel_processing: true,
@@ -276,6 +279,7 @@ impl BatchConfig {
 
 /// Performance tuning configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PerformanceConfig {
     /// Whether to use SIMD instructions when available
     pub use_simd: bool,

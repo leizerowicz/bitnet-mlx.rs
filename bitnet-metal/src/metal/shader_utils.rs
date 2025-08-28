@@ -17,6 +17,7 @@ use super::shader_compiler::ShaderCompilerConfig;
 use super::MetalError;
 
 /// BitNet shader collection with pre-loaded compute pipelines
+#[allow(dead_code)]
 pub struct BitNetShaders {
     #[cfg(target_os = "macos")]
     device: metal::Device,

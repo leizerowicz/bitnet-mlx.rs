@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 /// Options for sequence padding
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PaddingOptions {
     /// Token ID to use for padding
     pub pad_token: u32,
@@ -265,6 +266,7 @@ pub fn remove_left_padding(sequence: Vec<u32>, pad_token: u32) -> Vec<u32> {
 
 /// Calculate padding statistics for a batch of sequences
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PaddingStats {
     pub total_sequences: usize,
     pub total_original_tokens: usize,

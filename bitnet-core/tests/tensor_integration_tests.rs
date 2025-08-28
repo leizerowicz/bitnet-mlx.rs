@@ -23,6 +23,7 @@ use candle_core::Device;
 
 /// Comprehensive test configuration for integration tests
 #[derive(Clone)]
+#[allow(dead_code)]
 struct IntegrationTestConfig {
     enable_tracking: bool,
     enable_cleanup: bool,
@@ -46,6 +47,7 @@ impl Default for IntegrationTestConfig {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct TestMetrics {
     timestamp: Instant,
     active_tensors: usize,
@@ -160,6 +162,7 @@ impl TensorTestEnvironment {
 }
 
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 struct MetricsSummary {
     max_concurrent_tensors: usize,
     peak_memory_usage: u64,
@@ -233,7 +236,7 @@ fn test_end_to_end_tensor_lifecycle_workflow() {
     env.record_metrics();
 
     // Phase 4: Memory Pressure and Cleanup
-    let initial_metrics = env.pool.get_metrics();
+    let _initial_metrics = env.pool.get_metrics();
 
     // Create additional tensors to build pressure
     let pressure_tensors =

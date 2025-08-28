@@ -86,7 +86,7 @@ pub fn add(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTenso
         })?;
 
     // Convert back to BitNetTensor
-    BitNetTensor::from_candle(result_candle, lhs.device()).map_err(|e| {
+    BitNetTensor::from_candle(result_candle, &lhs.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create result tensor: {}", e),
         }
@@ -126,7 +126,7 @@ pub fn sub(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTenso
             error: e.to_string(),
         })?;
 
-    BitNetTensor::from_candle(result_candle, lhs.device()).map_err(|e| {
+    BitNetTensor::from_candle(result_candle, &lhs.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create result tensor: {}", e),
         }
@@ -166,7 +166,7 @@ pub fn mul(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTenso
             error: e.to_string(),
         })?;
 
-    BitNetTensor::from_candle(result_candle, lhs.device()).map_err(|e| {
+    BitNetTensor::from_candle(result_candle, &lhs.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create result tensor: {}", e),
         }
@@ -206,7 +206,7 @@ pub fn div(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTenso
             error: e.to_string(),
         })?;
 
-    BitNetTensor::from_candle(result_candle, lhs.device()).map_err(|e| {
+    BitNetTensor::from_candle(result_candle, &lhs.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create result tensor: {}", e),
         }
@@ -266,7 +266,7 @@ pub fn rem(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTenso
             error: e.to_string(),
         })?;
 
-    BitNetTensor::from_candle(result_candle, lhs.device()).map_err(|e| {
+    BitNetTensor::from_candle(result_candle, &lhs.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create result tensor: {}", e),
         }
@@ -307,7 +307,7 @@ pub fn pow(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTenso
             error: e.to_string(),
         })?;
 
-    BitNetTensor::from_candle(result_candle, lhs.device()).map_err(|e| {
+    BitNetTensor::from_candle(result_candle, &lhs.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create result tensor: {}", e),
         }
@@ -335,7 +335,7 @@ pub fn add_scalar(tensor: &BitNetTensor, scalar: f64) -> TensorOpResult<BitNetTe
         error: e.to_string(),
     })?;
 
-    BitNetTensor::from_candle(result_candle, tensor.device()).map_err(|e| {
+    BitNetTensor::from_candle(result_candle, &tensor.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create result tensor: {}", e),
         }
@@ -359,7 +359,7 @@ pub fn sub_scalar(tensor: &BitNetTensor, scalar: f64) -> TensorOpResult<BitNetTe
         error: e.to_string(),
     })?;
 
-    BitNetTensor::from_candle(result_candle, tensor.device()).map_err(|e| {
+    BitNetTensor::from_candle(result_candle, &tensor.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create result tensor: {}", e),
         }
@@ -383,7 +383,7 @@ pub fn mul_scalar(tensor: &BitNetTensor, scalar: f64) -> TensorOpResult<BitNetTe
         error: e.to_string(),
     })?;
 
-    BitNetTensor::from_candle(result_candle, tensor.device()).map_err(|e| {
+    BitNetTensor::from_candle(result_candle, &tensor.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create result tensor: {}", e),
         }
@@ -414,7 +414,7 @@ pub fn div_scalar(tensor: &BitNetTensor, scalar: f64) -> TensorOpResult<BitNetTe
         error: e.to_string(),
     })?;
 
-    BitNetTensor::from_candle(result_candle, tensor.device()).map_err(|e| {
+    BitNetTensor::from_candle(result_candle, &tensor.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create result tensor: {}", e),
         }
@@ -594,33 +594,21 @@ mod tests {
     use crate::tensor::dtype::BitNetDType;
     use std::sync::Arc;
 
-    fn setup_global_memory_pool() {
-        use std::sync::OnceLock;
-        static GLOBAL_POOL: OnceLock<Arc<HybridMemoryPool>> = OnceLock::new();
-
-        GLOBAL_POOL.get_or_init(|| {
-            let tracking_config = TrackingConfig::detailed();
-            let mut config = MemoryPoolConfig::default();
-            config.enable_advanced_tracking = true;
-            config.tracking_config = Some(tracking_config);
-
-            let memory_pool = Arc::new(HybridMemoryPool::with_config(config).unwrap());
-            crate::tensor::memory_integration::set_global_memory_pool(Arc::downgrade(&memory_pool));
-            memory_pool
-        });
-    }
-
-    #[test]
-    fn test_basic_addition() -> Result<(), Box<dyn std::error::Error>> {
-        setup_global_memory_pool();
-
-        // Create tensors using direct memory pool instead of global one
+    fn setup_global_memory_pool() -> Arc<HybridMemoryPool> {
+        use crate::tensor::memory_integration::set_global_memory_pool;
         let tracking_config = TrackingConfig::detailed();
         let mut config = MemoryPoolConfig::default();
         config.enable_advanced_tracking = true;
         config.tracking_config = Some(tracking_config);
 
-        let memory_pool = Arc::new(HybridMemoryPool::with_config(config)?);
+        let memory_pool = Arc::new(HybridMemoryPool::with_config(config).unwrap());
+        set_global_memory_pool(Arc::downgrade(&memory_pool));
+        memory_pool
+    }
+
+    #[test]
+    fn test_basic_addition() -> Result<(), Box<dyn std::error::Error>> {
+        let _pool = setup_global_memory_pool();
         let device = crate::device::get_cpu_device();
 
         let a = BitNetTensor::zeros(&[2, 3], BitNetDType::F32, Some(device.clone()))?;
@@ -633,14 +621,7 @@ mod tests {
 
     #[test]
     fn test_scalar_multiplication() -> Result<(), Box<dyn std::error::Error>> {
-        setup_global_memory_pool();
-
-        let tracking_config = TrackingConfig::detailed();
-        let mut config = MemoryPoolConfig::default();
-        config.enable_advanced_tracking = true;
-        config.tracking_config = Some(tracking_config);
-
-        let memory_pool = Arc::new(HybridMemoryPool::with_config(config)?);
+        let _pool = setup_global_memory_pool();
         let device = crate::device::get_cpu_device();
 
         let a = BitNetTensor::ones(&[2, 3], BitNetDType::F32, Some(device))?;
@@ -652,14 +633,7 @@ mod tests {
 
     #[test]
     fn test_division_by_zero() -> Result<(), Box<dyn std::error::Error>> {
-        setup_global_memory_pool();
-
-        let tracking_config = TrackingConfig::detailed();
-        let mut config = MemoryPoolConfig::default();
-        config.enable_advanced_tracking = true;
-        config.tracking_config = Some(tracking_config);
-
-        let memory_pool = Arc::new(HybridMemoryPool::with_config(config)?);
+        let _pool = setup_global_memory_pool();
         let device = crate::device::get_cpu_device();
 
         let a = BitNetTensor::ones(&[2, 3], BitNetDType::F32, Some(device))?;

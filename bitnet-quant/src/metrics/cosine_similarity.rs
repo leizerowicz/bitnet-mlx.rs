@@ -109,6 +109,7 @@ pub fn cosine_to_angular_distance_degrees(cosine_similarity: f32) -> f32 {
 
 /// Cosine Similarity Calculator with advanced features
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct CosineSimilarityCalculator {
     device: Device,
     streaming_threshold: usize,
@@ -367,6 +368,7 @@ impl CosineSimilarityCalculator {
 
 /// Comprehensive cosine similarity analysis results
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CosineSimilarityAnalysis {
     pub cosine_similarity: f32,
     pub angular_distance_rad: f32,
@@ -394,11 +396,11 @@ impl CosineSimilarityAnalysis {
 /// Similarity quality assessment levels
 #[derive(Debug, Clone, PartialEq)]
 pub enum SimilarityQuality {
-    Excellent,    // |cos| >= 0.99
-    Good,         // |cos| >= 0.95
-    Fair,         // |cos| >= 0.90
-    Poor,         // |cos| >= 0.70
-    Unacceptable, // |cos| < 0.70
+    Excellent,    // |_cos| >= 0.99
+    Good,         // |_cos| >= 0.95
+    Fair,         // |_cos| >= 0.90
+    Poor,         // |_cos| >= 0.70
+    Unacceptable, // |_cos| < 0.70
 }
 
 impl SimilarityQuality {
@@ -423,6 +425,7 @@ pub enum ZeroVectorHandling {
 
 /// Similarity evolution tracking
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SimilarityEvolution {
     pub similarity_values: Vec<f32>,
     pub angular_distances: Vec<f32>,
@@ -441,6 +444,7 @@ pub enum SimilarityTrend {
 
 /// Statistical analysis of similarity values
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SimilarityStatistics {
     pub mean: f32,
     pub median: f32,
@@ -466,6 +470,7 @@ impl Default for SimilarityStatistics {
 }
 
 /// Batch cosine similarity calculator for efficient processing
+#[allow(dead_code)]
 pub struct BatchCosineSimilarityCalculator {
     calculator: CosineSimilarityCalculator,
 }
@@ -518,7 +523,8 @@ mod tests {
         let device = Device::Cpu;
         let original = Tensor::ones((4, 4), DType::F32, &device)?;
         let identical = original.clone();
-        let scaled = original.mul(&Tensor::new(&[2.0f32], &device)?)?; // Same direction, different magnitude
+        let scaled_value = Tensor::full(2.0f32, (4, 4), &device)?;
+        let scaled = original.mul(&scaled_value)?; // Same direction, different magnitude
         let orthogonal = Tensor::new(
             &[
                 -1.0f32, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0,
@@ -598,7 +604,8 @@ mod tests {
     fn test_streaming_similarity() -> Result<()> {
         let device = Device::Cpu;
         let large_tensor_a = Tensor::ones((1000, 1000), DType::F32, &device)?;
-        let large_tensor_b = large_tensor_a.mul(&Tensor::new(&[0.5f32], &device)?)?;
+        let scalar_tensor = Tensor::full(0.5f32, (1000, 1000), &device)?; // Create tensor with same shape
+        let large_tensor_b = large_tensor_a.mul(&scalar_tensor)?;
 
         let similarity =
             calculate_cosine_similarity_streaming(&large_tensor_a, &large_tensor_b, 10000)?;

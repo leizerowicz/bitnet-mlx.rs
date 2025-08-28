@@ -21,6 +21,7 @@ use tracing::{debug, error, warn};
 /// with efficient memory management, device awareness, and support for
 /// different data layouts.
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct TensorStorage {
     /// Unique identifier for this storage
     storage_id: u64,
@@ -452,11 +453,11 @@ impl Drop for TensorStorage {
         // Try to clean up through memory manager if available
         if let Some(manager_weak) = &self.memory_manager {
             if let Some(manager) = manager_weak.upgrade() {
-                if let Err(e) = manager.deallocate_tensor_memory(self.storage_id) {
+                if let Err(_e) = manager.deallocate_tensor_memory(self.storage_id) {
                     #[cfg(feature = "tracing")]
                     warn!(
                         "Failed to deallocate tensor storage {}: {}",
-                        self.storage_id, e
+                        self.storage_id, _e
                     );
                 }
             } else {

@@ -134,6 +134,7 @@ impl fmt::Display for CorruptionType {
 
 /// Detailed corruption report
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CorruptionReport {
     /// Type of corruption detected
     pub corruption_type: CorruptionType,
@@ -184,6 +185,7 @@ pub enum RecoveryAction {
 }
 
 /// Comprehensive corruption detector for packed ternary data
+#[allow(dead_code)]
 pub struct CorruptionDetector {
     /// Enable checksum validation
     pub enable_checksums: bool,
@@ -1207,6 +1209,7 @@ impl CorruptionDetector {
 
 /// Recovery plan for corrupted data
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct RecoveryPlan {
     pub auto_repairable: Vec<CorruptionReport>,
     pub requires_fallback: Vec<CorruptionReport>,

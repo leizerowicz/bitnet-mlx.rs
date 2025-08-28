@@ -112,7 +112,7 @@ pub fn relu(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
             error: e.to_string(),
         })?;
 
-    let output_tensor = BitNetTensor::from_candle(result, tensor.device()).map_err(|e| {
+    let output_tensor = BitNetTensor::from_candle(result, &tensor.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create output tensor from ReLU result: {}", e),
         }
@@ -183,7 +183,7 @@ pub fn relu_backward(
                 error: e.to_string(),
             })?;
 
-    let output_tensor = BitNetTensor::from_candle(result, grad_output.device()).map_err(|e| {
+    let output_tensor = BitNetTensor::from_candle(result, &input.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!(
                 "Failed to create output tensor from ReLU backward result: {}",
@@ -256,7 +256,7 @@ pub fn sigmoid(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
             error: e.to_string(),
         })?;
 
-    let output_tensor = BitNetTensor::from_candle(result, tensor.device()).map_err(|e| {
+    let output_tensor = BitNetTensor::from_candle(result, &tensor.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create output tensor from sigmoid result: {}", e),
         }
@@ -325,7 +325,7 @@ pub fn sigmoid_backward(
             error: e.to_string(),
         })?;
 
-    let output_tensor = BitNetTensor::from_candle(result, grad_output.device()).map_err(|e| {
+    let output_tensor = BitNetTensor::from_candle(result, &output.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!(
                 "Failed to create output tensor from sigmoid backward result: {}",
@@ -373,7 +373,7 @@ pub fn tanh(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
             error: e.to_string(),
         })?;
 
-    let output_tensor = BitNetTensor::from_candle(result, tensor.device()).map_err(|e| {
+    let output_tensor = BitNetTensor::from_candle(result, &tensor.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create output tensor from tanh result: {}", e),
         }
@@ -442,7 +442,7 @@ pub fn tanh_backward(
                 error: e.to_string(),
             })?;
 
-    let output_tensor = BitNetTensor::from_candle(result, grad_output.device()).map_err(|e| {
+    let output_tensor = BitNetTensor::from_candle(result, &output.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!(
                 "Failed to create output tensor from tanh backward result: {}",
@@ -548,7 +548,7 @@ pub fn gelu(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
             error: e.to_string(),
         })?;
 
-    let output_tensor = BitNetTensor::from_candle(result, tensor.device()).map_err(|e| {
+    let output_tensor = BitNetTensor::from_candle(result, &tensor.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create output tensor from GELU result: {}", e),
         }
@@ -602,7 +602,7 @@ pub fn swish(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
             error: e.to_string(),
         })?;
 
-    let output_tensor = BitNetTensor::from_candle(result, tensor.device()).map_err(|e| {
+    let output_tensor = BitNetTensor::from_candle(result, &tensor.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create output tensor from Swish result: {}", e),
         }
@@ -713,7 +713,7 @@ pub fn softmax(tensor: &BitNetTensor, dim: Option<usize>) -> TensorOpResult<BitN
                 error: e.to_string(),
             })?;
 
-    let output_tensor = BitNetTensor::from_candle(result, tensor.device()).map_err(|e| {
+    let output_tensor = BitNetTensor::from_candle(result, &tensor.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create output tensor from softmax result: {}", e),
         }
@@ -817,7 +817,7 @@ pub fn log_softmax(tensor: &BitNetTensor, dim: Option<usize>) -> TensorOpResult<
                 error: e.to_string(),
             })?;
 
-    let output_tensor = BitNetTensor::from_candle(result, tensor.device()).map_err(|e| {
+    let output_tensor = BitNetTensor::from_candle(result, &tensor.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!(
                 "Failed to create output tensor from log softmax result: {}",
@@ -923,7 +923,7 @@ pub fn leaky_relu(tensor: &BitNetTensor, negative_slope: f32) -> TensorOpResult<
             error: e.to_string(),
         })?;
 
-    let output_tensor = BitNetTensor::from_candle(result, tensor.device()).map_err(|e| {
+    let output_tensor = BitNetTensor::from_candle(result, &tensor.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!(
                 "Failed to create output tensor from Leaky ReLU result: {}",

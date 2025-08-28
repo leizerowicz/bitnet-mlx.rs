@@ -35,6 +35,7 @@ impl Default for TernaryPackingStrategy {
 
 /// Configuration for ternary weight packing
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct TernaryPackingConfig {
     /// Primary packing strategy
     pub strategy: TernaryPackingStrategy,
@@ -65,6 +66,7 @@ impl Default for TernaryPackingConfig {
 
 /// Packed ternary weight representation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PackedTernaryWeights {
     /// Packed weight data
     pub data: Vec<u8>,
@@ -84,6 +86,7 @@ pub struct PackedTernaryWeights {
 
 /// Metadata required for unpacking
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[allow(dead_code)]
 pub struct PackingMetadata {
     /// Number of elements in original tensor
     pub element_count: usize,
@@ -277,6 +280,7 @@ pub trait TernaryPacker: Send + Sync {
 
 /// Memory savings estimation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PackingSavingsEstimate {
     pub original_size_bytes: usize,
     pub packed_size_bytes: usize,
@@ -1262,6 +1266,7 @@ pub mod packing_utils {
 
 /// Sparsity analysis results
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SparsityAnalysis {
     pub total_elements: usize,
     pub zero_count: usize,

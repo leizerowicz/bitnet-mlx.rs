@@ -56,7 +56,7 @@ fn create_weight_tensor(device: &Device, pattern: &str, shape: &[usize]) -> Tens
         _ => (0..total_elements).map(|i| i as f32 * 0.1).collect(),
     };
 
-    let shape = Shape::from_dims(shape);
+    let _shape = Shape::from_dims(shape);
     Tensor::from_vec(data, shape, device).unwrap()
 }
 

@@ -29,10 +29,10 @@ mod memory_conversion_batch_tests {
     #[test]
     fn test_batch_converter_creation() {
         let config = BatchConfig::default();
-        let converter = BatchConverter::new(config).unwrap();
+        let _converter = BatchConverter::new(config).unwrap();
 
         // Test default configuration
-        let default_converter = BatchConverter::default().unwrap();
+        let _default_converter = BatchConverter::default().unwrap();
 
         // Test that converter supports basic conversions
         let context = ConversionContext::new(
@@ -42,7 +42,7 @@ mod memory_conversion_batch_tests {
             get_cpu_device(),
             vec![2, 2],
         );
-        assert!(default_converter.supports(&context));
+        assert!(_default_converter.supports(&context));
     }
 
     #[test]
@@ -402,8 +402,8 @@ mod edge_cases_and_error_tests {
             vec![2, 3],
         );
 
-        assert_eq!(context.source_dtype, BitNetDType::F32);
-        assert_eq!(context.target_dtype, BitNetDType::F16);
+        assert_eq!(context.sourcedtype, BitNetDType::F32);
+        assert_eq!(context.targetdtype, BitNetDType::F16);
         assert_eq!(context.shape, vec![2, 3]);
         assert_eq!(context.strategy, ConversionStrategy::Auto);
         assert_eq!(context.quality, ConversionQuality::Balanced);

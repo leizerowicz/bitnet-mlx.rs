@@ -285,7 +285,7 @@ fn test_memory_efficiency() {
 /// Test configuration options
 #[test]
 fn test_configuration_options() {
-    let pool = Arc::new(HybridMemoryPool::new().unwrap());
+    let _pool = Arc::new(HybridMemoryPool::new().unwrap());
 
     // Test low memory configuration
     let low_mem_config = ConversionConfig::low_memory();
@@ -368,8 +368,8 @@ fn test_conversion_event_tracking() {
         256,
     );
 
-    assert_eq!(event.source_dtype, BitNetDType::F32);
-    assert_eq!(event.target_dtype, BitNetDType::F16);
+    assert_eq!(event.sourcedtype, BitNetDType::F32);
+    assert_eq!(event.targetdtype, BitNetDType::F16);
     assert_eq!(event.compression_ratio(), 2.0);
     assert!(!event.success);
 
@@ -424,7 +424,7 @@ fn test_performance_under_load() {
 
     // Create many tensors for batch processing
     let tensors: Vec<_> = (0..50)
-        .map(|i| BitNetTensor::ones(&[8, 8], BitNetDType::F32, &device, &pool).unwrap())
+        .map(|_| BitNetTensor::ones(&[8, 8], BitNetDType::F32, &device, &pool).unwrap())
         .collect();
 
     let start = std::time::Instant::now();

@@ -68,7 +68,7 @@ async fn test_quantization_gpu_vs_cpu_consistency() {
     assert_eq!(gpu_data.len(), cpu_data.len(), "Result lengths don't match");
 
     // Allow small numerical differences due to GPU precision
-    for (i, (gpu_val, cpu_val)) in gpu_data.iter().zip(cpu_data.iter()).enumerate() {
+    for (_i, (gpu_val, cpu_val)) in gpu_data.iter().zip(cpu_data.iter()).enumerate() {
         let diff = (gpu_val - cpu_val).abs();
         assert!(diff < 1e-5, "Values differ at index {}: GPU={}, CPU={}, diff={}", i, gpu_val, cpu_val, diff);
     }
@@ -97,7 +97,7 @@ async fn test_bitlinear_gpu_vs_cpu_consistency() {
     assert_eq!(gpu_data.len(), cpu_data.len(), "Result lengths don't match");
 
     // Allow for numerical precision differences
-    for (i, (gpu_val, cpu_val)) in gpu_data.iter().zip(cpu_data.iter()).enumerate() {
+    for (_i, (gpu_val, cpu_val)) in gpu_data.iter().zip(cpu_data.iter()).enumerate() {
         let diff = (gpu_val - cpu_val).abs();
         assert!(diff < 1e-3, "Values differ at index {}: GPU={}, CPU={}, diff={}", i, gpu_val, cpu_val, diff);
     }
@@ -124,7 +124,7 @@ async fn test_matrix_multiplication_gpu_vs_cpu_consistency() {
     assert_eq!(gpu_data.len(), cpu_data.len(), "Result lengths don't match");
 
     // Allow for numerical precision differences in matrix multiplication
-    for (i, (gpu_val, cpu_val)) in gpu_data.iter().zip(cpu_data.iter()).enumerate() {
+    for (_i, (gpu_val, cpu_val)) in gpu_data.iter().zip(cpu_data.iter()).enumerate() {
         let diff = (gpu_val - cpu_val).abs();
         let relative_error = if cpu_val.abs() > 1e-10 { diff / cpu_val.abs() } else { diff };
         assert!(relative_error < 1e-2, "Values differ at index {}: GPU={}, CPU={}, relative_error={}", i, gpu_val, cpu_val, relative_error);
@@ -196,7 +196,7 @@ async fn test_error_handling_and_fallback() {
     // Should either succeed with proper handling or provide meaningful error
     match result {
         Ok(_) => println!("Empty tensor handled successfully"),
-        Err(e) => println!("Empty tensor error handled: {:?}", e),
+        Err(_e) => println!("Empty tensor error handled: {:?}", e),
     }
 
     // Test mismatched dimensions
@@ -210,7 +210,7 @@ async fn test_error_handling_and_fallback() {
             // Broadcasting might have succeeded
             println!("Broadcasting handled successfully");
         }
-        Err(e) => {
+        Err(_e) => {
             println!("Dimension mismatch handled: {:?}", e);
         }
     }
@@ -287,7 +287,7 @@ async fn test_concurrent_gpu_operations() {
     let results = futures::future::join_all(handles).await;
 
     // All should succeed
-    for (i, result) in results.into_iter().enumerate() {
+    for (_i, result) in results.into_iter().enumerate() {
         assert!(result.is_ok(), "Concurrent task {} failed: {:?}", i, result.err());
     }
 }

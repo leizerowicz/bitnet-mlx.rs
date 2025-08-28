@@ -20,6 +20,7 @@ pub trait QATAutograd {
 /// Quantization Function for autograd integration
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QuantizationFunction {
     config: STEConfig,
     device: Device,
@@ -84,9 +85,12 @@ impl QuantizationFunction {
         let positive_mask = input.gt(&zeros)?;
         let negative_mask = input.lt(&zeros)?;
 
-        // Apply quantization levels
-        let positive_result = ones.where_cond(&positive_mask, &zeros)?;
-        let result = neg_ones.where_cond(&negative_mask, &positive_result)?;
+        // Apply quantization levels - convert masks to same dtype as input
+        let positive_result = positive_mask.to_dtype(input.dtype())?.mul(&ones)?;
+        let negative_result = negative_mask.to_dtype(input.dtype())?.mul(&neg_ones)?;
+        
+        // Combine results
+        let result = positive_result.add(&negative_result)?;
 
         Ok(result)
     }
@@ -106,7 +110,7 @@ impl QATAutograd for QuantizationFunction {
 
         // Apply gradient scaling
         if self.gradient_scale != 1.0 {
-            let scale_tensor = Tensor::new(self.gradient_scale, grad_output.device())?;
+            let scale_tensor = Tensor::new(&[self.gradient_scale], grad_output.device())?;
             modified_grad = modified_grad.broadcast_mul(&scale_tensor)?;
         }
 

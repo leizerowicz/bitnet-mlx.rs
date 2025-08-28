@@ -65,6 +65,7 @@ pub enum QuantizationError {
 
 /// Scaling factor for quantization operations
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ScalingFactor {
     /// The scaling value
     pub value: f32,
@@ -331,15 +332,15 @@ impl QuantizationUtils {
     /// Estimate memory savings from quantization
     pub fn estimate_memory_savings(
         original_shape: &Shape,
-        original_dtype: DType,
-        quantized_dtype: DType,
+        originaldtype: DType,
+        quantizeddtype: DType,
         has_scales: bool,
         has_zero_points: bool,
     ) -> MemorySavingsEstimate {
         let num_elements = original_shape.elem_count();
-        let original_size = num_elements * original_dtype.size_in_bytes();
+        let original_size = num_elements * originaldtype.size_in_bytes();
 
-        let mut quantized_size = num_elements * quantized_dtype.size_in_bytes();
+        let mut quantized_size = num_elements * quantizeddtype.size_in_bytes();
 
         // Add overhead for scales and zero points
         if has_scales {
@@ -418,6 +419,7 @@ impl QuantizationUtils {
 
 /// Memory savings estimation results
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct MemorySavingsEstimate {
     pub original_size_bytes: usize,
     pub quantized_size_bytes: usize,
@@ -542,6 +544,7 @@ impl CalibrationUtils {
 
 /// Calibration statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CalibrationStatistics {
     pub global_min: f32,
     pub global_max: f32,

@@ -16,6 +16,7 @@ use tracing::{debug, info, warn};
 
 /// Comprehensive metrics for conversion operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ConversionMetrics {
     /// Total number of conversions performed
     pub total_conversions: u64,
@@ -153,6 +154,7 @@ impl Default for ConversionMetrics {
 
 /// Metrics for a specific conversion strategy
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct StrategyMetrics {
     pub usage_count: u64,
     pub total_time_ms: u64,
@@ -205,6 +207,7 @@ impl StrategyMetrics {
 
 /// Data type conversion pair
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DTypeConversion {
     pub from: BitNetDType,
     pub to: BitNetDType,
@@ -218,6 +221,7 @@ impl DTypeConversion {
 
 /// Metrics for a specific data type conversion
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DTypeMetrics {
     pub conversion_count: u64,
     pub total_time_ms: u64,
@@ -266,6 +270,7 @@ impl DTypeMetrics {
 
 /// Device-specific metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DeviceMetrics {
     pub conversions_count: u64,
     pub total_time_ms: u64,
@@ -305,6 +310,7 @@ impl DeviceMetrics {
 
 /// Memory usage statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct MemoryStats {
     pub peak_memory_usage: u64,
     pub total_memory_allocated: u64,
@@ -341,6 +347,7 @@ impl MemoryStats {
 
 /// Performance statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PerformanceStats {
     pub min_conversion_time_ms: u64,
     pub max_conversion_time_ms: u64,
@@ -387,6 +394,7 @@ impl PerformanceStats {
 
 /// Error statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ErrorStats {
     pub total_errors: u64,
     pub memory_errors: u64,
@@ -423,10 +431,11 @@ impl ErrorStats {
 
 /// Represents a single conversion event for detailed tracking
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ConversionEvent {
     pub timestamp: u64,
-    pub source_dtype: BitNetDType,
-    pub target_dtype: BitNetDType,
+    pub sourcedtype: BitNetDType,
+    pub targetdtype: BitNetDType,
     pub strategy: ConversionStrategy,
     pub quality: ConversionQuality,
     pub device: String,
@@ -443,8 +452,8 @@ pub struct ConversionEvent {
 impl ConversionEvent {
     /// Creates a new conversion event
     pub fn new(
-        source_dtype: BitNetDType,
-        target_dtype: BitNetDType,
+        sourcedtype: BitNetDType,
+        targetdtype: BitNetDType,
         strategy: ConversionStrategy,
         quality: ConversionQuality,
         device: &Device,
@@ -465,8 +474,8 @@ impl ConversionEvent {
 
         Self {
             timestamp,
-            source_dtype,
-            target_dtype,
+            sourcedtype: sourcedtype,
+            targetdtype: targetdtype,
             strategy,
             quality,
             device: device_str,
@@ -524,6 +533,7 @@ impl ConversionEvent {
 
 /// Statistics aggregator for conversion events
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct ConversionStats {
     events: Arc<RwLock<Vec<ConversionEvent>>>,
     max_events: usize,
@@ -592,7 +602,7 @@ impl ConversionStats {
             strategy_metrics.max_time_ms = strategy_metrics.max_time_ms.max(event.duration_ms);
 
             // Update dtype metrics
-            let dtype_conversion = DTypeConversion::new(event.source_dtype, event.target_dtype);
+            let dtype_conversion = DTypeConversion::new(event.sourcedtype, event.targetdtype);
             let dtype_metrics = metrics
                 .dtype_metrics
                 .entry(dtype_conversion)
@@ -767,8 +777,8 @@ mod tests {
             256,
         );
 
-        assert_eq!(event.source_dtype, BitNetDType::F32);
-        assert_eq!(event.target_dtype, BitNetDType::F16);
+        assert_eq!(event.sourcedtype, BitNetDType::F32);
+        assert_eq!(event.targetdtype, BitNetDType::F16);
         assert_eq!(event.compression_ratio(), 2.0);
         assert!(!event.success);
 
@@ -831,7 +841,7 @@ mod tests {
         let device = get_cpu_device();
 
         // Add 3 events
-        for i in 0..3 {
+        for _i in 0..3 {
             let event = ConversionEvent::new(
                 BitNetDType::F32,
                 BitNetDType::F16,

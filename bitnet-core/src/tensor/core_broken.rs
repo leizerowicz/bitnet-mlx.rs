@@ -60,6 +60,7 @@ use tracing::{debug, info, warn, error};
 /// # }
 /// ```
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct BitNetTensor {
     /// Tensor storage backend
     storage: Arc<TensorStorage>,
@@ -531,17 +532,17 @@ impl BitNetTensor {
     /// # Arguments
     ///
     /// * `candle_tensor` - Source Candle tensor
-    /// * `target_dtype` - Target BitNet data type
+    /// * `targetdtype` - Target BitNet data type
     ///
     /// # Returns
     ///
     /// Result containing new BitNetTensor
     pub fn from_candle(
         candle_tensor: &CandleTensor,
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
     ) -> MemoryResult<Self> {
         let shape = candle_tensor.dims();
-        let device = candle_tensor.device().clone();
+        let device = .clone();
 
         // Extract data from Candle tensor
         match candle_tensor.dtype() {
@@ -550,7 +551,7 @@ impl BitNetTensor {
                     .map_err(|e| MemoryError::InternalError {
                         reason: format!("Failed to extract F32 data from Candle tensor: {}", e),
                     })?;
-                Self::from_vec(data, shape, target_dtype, Some(device))
+                Self::from_vec(data, shape, targetdtype, Some(device))
             }
             _ => Err(MemoryError::InternalError {
                 reason: format!(
@@ -608,6 +609,7 @@ impl BitNetTensor {
 
 /// Memory statistics for a tensor
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TensorMemoryStats {
     pub tensor_id: u64,
     pub storage_id: u64,

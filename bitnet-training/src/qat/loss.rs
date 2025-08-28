@@ -13,6 +13,7 @@ pub trait QATLoss {
 }
 
 /// Quantization-aware loss that includes quantization regularization
+#[allow(dead_code)]
 pub struct QuantizationAwareLoss {
     base_loss: BaseLossType,
     regularization_weight: f32,
@@ -81,7 +82,7 @@ impl QuantizationAwareLoss {
         let diff = (predictions - targets)?;
         let abs_diff = diff.abs()?;
 
-        // Smooth L1: 0.5 * x^2 if |x| < 1, |x| - 0.5 otherwise
+        // Smooth L1: 0.5 * x^2 if |_x| < 1, |_x| - 0.5 otherwise
         let threshold = Tensor::ones_like(&abs_diff)?;
         let mask = abs_diff.lt(&threshold)?;
 
@@ -109,8 +110,8 @@ impl QuantizationAwareLoss {
             reg_loss = (reg_loss + param_l2)?;
         }
 
-        let weight_tensor = Tensor::new(self.regularization_weight, reg_loss.device())?;
-        Ok(reg_loss.broadcast_mul(&weight_tensor)?)
+        let weight_tensor = Tensor::new(self.regularization_weight, &self.device)?;
+        Ok(reg_loss.mul(&weight_tensor)?)
     }
 
     /// Compute quantization penalty based on quantization error
@@ -141,6 +142,7 @@ impl QATLoss for QuantizationAwareLoss {
 }
 
 /// Knowledge Distillation Loss for QAT
+#[allow(dead_code)]
 pub struct DistillationLoss {
     temperature: f32,
     alpha: f32, // Weight for distillation loss
@@ -260,6 +262,7 @@ impl QATLoss for DistillationLoss {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct DistillationLossComponents {
     pub distillation_loss: f32,
     pub regularization_loss: f32,
@@ -268,6 +271,7 @@ pub struct DistillationLossComponents {
 }
 
 /// Progressive Quantization Loss - adjusts loss based on training phase
+#[allow(dead_code)]
 pub struct ProgressiveQuantizationLoss {
     base_loss: QuantizationAwareLoss,
     current_phase: usize,
@@ -276,6 +280,7 @@ pub struct ProgressiveQuantizationLoss {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PhaseConfig {
     pub quantization_weight: f32,
     pub regularization_weight: f32,
@@ -375,6 +380,7 @@ impl QATLoss for ProgressiveQuantizationLoss {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ProgressiveLossComponents {
     pub base_loss: f32,
     pub regularization_loss: f32,

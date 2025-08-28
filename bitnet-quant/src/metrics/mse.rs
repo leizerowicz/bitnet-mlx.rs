@@ -109,6 +109,7 @@ pub fn calculate_psnr(original: &Tensor, quantized: &Tensor, max_value: f32) -> 
 
 /// MSE Calculator with advanced features
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct MSECalculator {
     device: Device,
     streaming_threshold: usize,
@@ -155,7 +156,7 @@ impl MSECalculator {
         let nmse = self.calculate_nmse_internal(original, quantized, mse)?;
 
         // Calculate max value for PSNR
-        let max_value = original.abs()?.max(1)?.to_scalar::<f32>()?;
+        let max_value = original.abs()?.max_all()?.to_scalar::<f32>()?;
         let psnr = if mse < f32::EPSILON {
             f32::INFINITY
         } else {
@@ -255,6 +256,7 @@ impl MSECalculator {
 
 /// Comprehensive MSE metrics structure
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MSEMetrics {
     pub mse: f32,
     pub rmse: f32,
@@ -301,6 +303,7 @@ pub enum MSEQuality {
 }
 
 /// Batch MSE calculator for efficient multiple tensor processing
+#[allow(dead_code)]
 pub struct BatchMSECalculator {
     calculator: MSECalculator,
     batch_size: usize,

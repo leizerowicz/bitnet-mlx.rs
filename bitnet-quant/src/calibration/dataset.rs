@@ -16,6 +16,7 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 /// Main calibration dataset for quantization parameter optimization
+#[allow(dead_code)]
 pub struct CalibrationDataset {
     /// Configuration
     config: CalibrationConfig,
@@ -39,6 +40,7 @@ pub struct CalibrationDataset {
 
 /// Metadata for individual samples
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SampleMetadata {
     /// Sample identifier
     pub id: String,
@@ -75,6 +77,7 @@ pub enum DatasetState {
 
 /// Performance and processing metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ProcessingMetrics {
     /// Total samples loaded
     pub total_samples: usize,
@@ -95,6 +98,7 @@ pub struct ProcessingMetrics {
 }
 
 /// Iterator for processing dataset batches
+#[allow(dead_code)]
 pub struct DatasetIterator<'a> {
     dataset: &'a CalibrationDataset,
     current_index: usize,
@@ -103,6 +107,7 @@ pub struct DatasetIterator<'a> {
 }
 
 /// Batch processor for handling dataset batches
+#[allow(dead_code)]
 pub struct BatchProcessor {
     /// Batch size
     batch_size: usize,
@@ -332,12 +337,12 @@ impl CalibrationDataset {
             match config.device.preferred_device {
                 crate::calibration::config::PreferredDevice::Cpu => Ok(Device::Cpu),
                 crate::calibration::config::PreferredDevice::Gpu => {
-                    Device::cuda_if_available(0).or_else(|_| Ok(Device::Cpu))
+                    Device::cuda_if_available(0).or_else(|__| Ok(Device::Cpu))
                 }
                 crate::calibration::config::PreferredDevice::Metal => {
                     #[cfg(target_os = "macos")]
                     {
-                        Device::new_metal(0).or_else(|_| Ok(Device::Cpu))
+                        Device::new_metal(0).or_else(|__| Ok(Device::Cpu))
                     }
                     #[cfg(not(target_os = "macos"))]
                     Ok(Device::Cpu)

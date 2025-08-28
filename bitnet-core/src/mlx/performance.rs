@@ -15,6 +15,7 @@ use std::time::{Duration, Instant};
 
 /// Performance metrics for MLX operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PerformanceMetrics {
     pub operation_name: String,
     pub device_type: String,
@@ -28,6 +29,7 @@ pub struct PerformanceMetrics {
 
 /// Memory usage statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct MemoryUsage {
     pub peak_memory_mb: f64,
     pub allocated_memory_mb: f64,
@@ -37,6 +39,7 @@ pub struct MemoryUsage {
 
 /// Benchmark configuration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct BenchmarkConfig {
     pub warmup_iterations: usize,
     pub measurement_iterations: usize,
@@ -66,6 +69,7 @@ impl Default for BenchmarkConfig {
 
 /// Performance comparison result
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ComparisonResult {
     pub baseline_metrics: PerformanceMetrics,
     pub comparison_metrics: PerformanceMetrics,
@@ -77,6 +81,7 @@ pub struct ComparisonResult {
 
 /// MLX Performance Benchmarker
 #[cfg(feature = "mlx")]
+#[allow(dead_code)]
 pub struct MlxPerformanceBenchmarker {
     config: BenchmarkConfig,
     profiler: MlxProfiler,
@@ -480,6 +485,7 @@ impl PerformanceReportGenerator {
 }
 
 /// Performance regression detector
+#[allow(dead_code)]
 pub struct RegressionDetector {
     threshold: f64, // Performance degradation threshold (e.g., 0.1 for 10%)
     baseline_metrics: HashMap<String, PerformanceMetrics>,

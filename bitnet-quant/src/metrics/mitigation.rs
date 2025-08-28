@@ -13,6 +13,7 @@ use std::collections::HashMap;
 
 /// Comprehensive error mitigation engine
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct ErrorMitigationEngine {
     device: Device,
     error_analyzer: ErrorAnalyzer,
@@ -992,6 +993,7 @@ impl ErrorMitigationEngine {
 /// Data structures for mitigation results and configuration
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MitigationResult {
     pub mitigation_actions: Vec<MitigationAction>,
     pub improved_configurations: HashMap<String, ImprovedConfiguration>,
@@ -1003,6 +1005,7 @@ pub struct MitigationResult {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MitigationAction {
     pub action_type: MitigationActionType,
     pub layer_name: String,
@@ -1078,6 +1081,7 @@ pub enum ActionPriority {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ImpactEstimate {
     pub quality_improvement: f32,
     pub performance_cost: f32,
@@ -1093,6 +1097,7 @@ pub enum ComplexityLevel {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ImprovedConfiguration {
     pub layer_name: String,
     pub action_type: MitigationActionType,
@@ -1102,6 +1107,7 @@ pub struct ImprovedConfiguration {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PerformanceImpact {
     pub throughput_change: f32,        // Negative means slower
     pub memory_usage_change: f32,      // Positive means more memory
@@ -1110,6 +1116,7 @@ pub struct PerformanceImpact {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QualityGain {
     pub expected_mse_reduction: f32,
     pub expected_sqnr_gain: f32,
@@ -1118,6 +1125,7 @@ pub struct QualityGain {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ImplementationPlan {
     pub phases: Vec<ImplementationPhase>,
     pub total_estimated_duration_hours: u32,
@@ -1127,6 +1135,7 @@ pub struct ImplementationPlan {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ImplementationPhase {
     pub phase_number: u8,
     pub description: String,
@@ -1137,6 +1146,7 @@ pub struct ImplementationPhase {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ResourceRequirements {
     pub compute_hours: f32,
     pub memory_gb: f32,
@@ -1146,6 +1156,7 @@ pub struct ResourceRequirements {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct RiskAssessment {
     pub overall_risk_level: RiskLevel,
     pub technical_risks: Vec<String>,
@@ -1163,6 +1174,7 @@ pub enum RiskLevel {
 
 /// Adaptive mitigation result structures
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct AdaptiveMitigationResult {
     pub initial_metrics: QuantizationMetrics,
     pub final_metrics: QuantizationMetrics,
@@ -1173,6 +1185,7 @@ pub struct AdaptiveMitigationResult {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct AdaptiveMitigationIteration {
     pub iteration: usize,
     pub metrics_before: QuantizationMetrics,
@@ -1182,6 +1195,7 @@ pub struct AdaptiveMitigationIteration {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ImprovementDelta {
     pub mse_improvement: f32,
     pub sqnr_improvement: f32,

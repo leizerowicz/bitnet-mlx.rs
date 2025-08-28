@@ -144,6 +144,7 @@ impl From<AllocationId> for u64 {
 
 /// Information about a tracked memory allocation
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct AllocationInfo {
     /// Unique identifier for this allocation
     pub id: AllocationId,
@@ -206,6 +207,7 @@ impl AllocationInfo {
 
 /// Statistics for device-specific memory tracking
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DeviceTrackingStats {
     /// Device type identifier
     pub device_type: String,
@@ -290,6 +292,7 @@ impl DeviceTrackingStats {
 
 /// Global tracking statistics across all devices and pools
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct GlobalTrackingStats {
     /// Statistics per device type
     pub device_stats: HashMap<String, DeviceTrackingStats>,

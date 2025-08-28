@@ -15,6 +15,7 @@ use crate::candle_ops::CandleOps;
 
 /// Configuration for performance comparison tests
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ComparisonConfig {
     /// Tensor sizes to test (rows, cols)
     pub tensor_sizes: Vec<(usize, usize)>,
@@ -61,6 +62,7 @@ impl Default for ComparisonConfig {
 
 /// Performance measurement result
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PerformanceMeasurement {
     pub operation: String,
     pub backend: String,
@@ -77,6 +79,7 @@ pub struct PerformanceMeasurement {
 
 /// Comparison result between two backends
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ComparisonResult {
     pub operation: String,
     pub tensor_size: (usize, usize),
@@ -91,6 +94,7 @@ pub struct ComparisonResult {
 }
 
 /// Performance comparison framework
+#[allow(dead_code)]
 pub struct PerformanceComparator {
     config: ComparisonConfig,
     measurements: Vec<PerformanceMeasurement>,

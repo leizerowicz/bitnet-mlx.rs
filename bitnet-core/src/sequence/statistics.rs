@@ -8,6 +8,7 @@ use std::collections::HashMap;
 
 /// Comprehensive sequence statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SequenceStats {
     /// Total number of sequences analyzed
     pub count: usize,
@@ -230,6 +231,7 @@ impl Default for SequenceStats {
 
 /// Length distribution analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct LengthDistribution {
     /// Histogram of length frequencies
     pub histogram: HashMap<usize, usize>,
@@ -346,6 +348,7 @@ fn percentile(sorted_data: &[f64], p: f64) -> f64 {
 
 /// Batch statistics for comparing multiple datasets
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct BatchStats {
     /// Individual statistics for each batch
     pub batch_stats: Vec<SequenceStats>,
@@ -357,6 +360,7 @@ pub struct BatchStats {
 
 /// Comparison metrics between batches
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct BatchComparison {
     /// Variance in mean lengths across batches
     pub mean_variance: f64,
@@ -464,6 +468,7 @@ impl BatchStats {
 
 /// Sequence length recommendations based on statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct LengthRecommendations {
     /// Recommended maximum length (covers 95% of sequences)
     pub recommended_max_length: usize,
@@ -606,14 +611,15 @@ mod tests {
 
     #[test]
     fn test_length_recommendations() {
-        let lengths = vec![10; 90]; // 90 sequences of length 10
+        let lengths = vec![10; 95]; // 95 sequences of length 10
         let mut lengths_with_outliers = lengths;
-        lengths_with_outliers.extend(vec![100; 10]); // 10 outliers of length 100
+        lengths_with_outliers.extend(vec![100; 5]); // 5 outliers of length 100 (5% outliers)
 
         let stats = analyze_sequence_lengths(&lengths_with_outliers);
         let recommendations = LengthRecommendations::from_stats(&stats, Some(1.0)); // 1MB target
 
         // Should recommend a length that covers most sequences but not outliers
+        // With 95% at length 10 and 5% at length 100, the 95th percentile should be close to 10
         assert!(recommendations.recommended_max_length > 10);
         assert!(recommendations.recommended_max_length < 100);
         assert!(recommendations.memory_efficiency > 0.0);

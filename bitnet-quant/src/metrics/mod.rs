@@ -20,6 +20,7 @@ use std::collections::HashMap;
 
 /// Core quantization metrics structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct QuantizationMetrics {
     pub mse: f32,
     pub sqnr: f32,
@@ -53,6 +54,7 @@ impl Default for QuantizationMetrics {
 
 /// Layer-wise error analysis results
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct LayerErrorAnalysis {
     pub layer_metrics: HashMap<String, QuantizationMetrics>,
     pub global_metrics: QuantizationMetrics,
@@ -63,6 +65,7 @@ pub struct LayerErrorAnalysis {
 
 /// Error threshold configuration for automated mitigation
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ErrorThresholds {
     pub max_mse: f32,
     pub min_sqnr: f32,
@@ -96,6 +99,7 @@ pub enum MitigationStrategy {
 
 /// Metrics collection configuration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MetricsConfig {
     pub collect_histograms: bool,
     pub enable_visualization: bool,

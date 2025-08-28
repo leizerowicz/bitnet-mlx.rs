@@ -9,6 +9,7 @@ use std::time::Duration;
 
 /// Configuration for the memory tracking system
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct TrackingConfig {
     /// Tracking level determines the amount of detail collected
     pub level: TrackingLevel,
@@ -53,6 +54,7 @@ pub enum TrackingLevel {
 
 /// Memory pressure detection thresholds
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PressureThresholds {
     /// Low pressure threshold (percentage of available memory)
     pub low_pressure_threshold: f64,

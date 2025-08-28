@@ -14,6 +14,7 @@ use std::time::{Duration, Instant};
 
 /// MLX memory optimization utilities
 #[cfg(feature = "mlx")]
+#[allow(dead_code)]
 pub struct MlxMemoryOptimizer {
     memory_pool: HashMap<String, Vec<Array>>,
     allocation_stats: MemoryStats,
@@ -22,6 +23,7 @@ pub struct MlxMemoryOptimizer {
 
 #[cfg(feature = "mlx")]
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct MemoryStats {
     pub total_allocations: usize,
     pub total_deallocations: usize,
@@ -125,6 +127,7 @@ impl MlxMemoryOptimizer {
 
 /// MLX performance profiler
 #[cfg(feature = "mlx")]
+#[allow(dead_code)]
 pub struct MlxProfiler {
     operation_times: HashMap<String, Vec<Duration>>,
     current_operation: Option<(String, Instant)>,
@@ -193,12 +196,14 @@ impl MlxProfiler {
 
 /// MLX kernel fusion optimizer
 #[cfg(feature = "mlx")]
+#[allow(dead_code)]
 pub struct MlxKernelFusion {
     fusion_patterns: Vec<FusionPattern>,
 }
 
 #[cfg(feature = "mlx")]
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct FusionPattern {
     pub name: String,
     pub operations: Vec<String>,
@@ -288,6 +293,7 @@ impl MlxKernelFusion {
 
 /// MLX tensor cache for frequently used tensors
 #[cfg(feature = "mlx")]
+#[allow(dead_code)]
 pub struct MlxTensorCache {
     cache: HashMap<String, (Array, Instant)>,
     max_size: usize,
@@ -360,6 +366,7 @@ impl MlxTensorCache {
 
 /// MLX auto-tuning utilities
 #[cfg(feature = "mlx")]
+#[allow(dead_code)]
 pub struct MlxAutoTuner {
     benchmark_results: HashMap<String, Vec<(String, Duration)>>,
     optimal_configs: HashMap<String, String>,
@@ -428,6 +435,7 @@ impl MlxAutoTuner {
 
 /// MLX batch processing optimizer
 #[cfg(feature = "mlx")]
+#[allow(dead_code)]
 pub struct MlxBatchOptimizer {
     optimal_batch_sizes: HashMap<String, usize>,
     memory_threshold: usize,

@@ -471,7 +471,7 @@ mod cross_crate_integration_tests {
             let training_target = env.create_test_tensor(&[32, 64])?;
             
             let mut qat_losses = Vec::new();
-            for iteration in 0..10 {
+            for _iteration in 0..10 {
                 // Forward pass with quantized operations
                 let qat_output = qat_layer.forward(&training_input)?;
                 
@@ -626,7 +626,7 @@ mod cross_crate_integration_tests {
                 Ok(tensors) => {
                     println!("✅ Successfully allocated {} pressure test tensors", tensors.len());
                 }
-                Err(e) => {
+                Err(_e) => {
                     println!("📊 Memory pressure correctly triggered: {}", e);
                 }
             }

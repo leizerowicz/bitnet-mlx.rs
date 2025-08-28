@@ -160,7 +160,7 @@ fn demo_memory_tracking() -> Result<(), Box<dyn std::error::Error>> {
 
         track_allocation(tensor_id.clone(), size, &device, "matmul".to_string())?;
 
-        println!("  Allocated {}: {} bytes", tensor_id, size);
+        println!("  Allocated {}: {} bytes", _tensor_id, size);
     }
 
     // Check memory pressure
@@ -179,7 +179,7 @@ fn demo_memory_tracking() -> Result<(), Box<dyn std::error::Error>> {
     // Simulate some deallocations
     for i in 0..3 {
         let tensor_id = format!("tensor_{}", i);
-        track_deallocation(tensor_id, &device, "cleanup".to_string())?;
+        track_deallocation(_tensor_id, &device, "cleanup".to_string())?;
     }
 
     // Generate memory report

@@ -14,6 +14,7 @@ use tracing::{debug, info};
 use super::{AllocationId, AllocationInfo, TrackingResult};
 
 /// Memory profiler for debugging and leak detection
+#[allow(dead_code)]
 pub struct MemoryProfiler {
     /// Whether profiling is currently active
     is_profiling: Arc<RwLock<bool>>,
@@ -35,6 +36,7 @@ pub struct MemoryProfiler {
 
 /// Configuration for memory profiling
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ProfilingConfig {
     /// Maximum number of allocations to track
     pub max_tracked_allocations: usize,
@@ -52,6 +54,7 @@ pub struct ProfilingConfig {
 
 /// Information about an allocation's lifetime
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct AllocationLifetime {
     /// Allocation information
     pub allocation: AllocationInfo,
@@ -67,6 +70,7 @@ pub struct AllocationLifetime {
 
 /// Candidate for a memory leak
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct LeakCandidate {
     /// Allocation information
     pub allocation: AllocationInfo,
@@ -82,6 +86,7 @@ pub struct LeakCandidate {
 
 /// Pattern of memory allocations
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct AllocationPattern {
     /// Pattern identifier
     pub pattern_id: String,
@@ -101,6 +106,7 @@ pub struct AllocationPattern {
 
 /// Memory snapshot for comparison
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct MemorySnapshot {
     /// Snapshot identifier
     pub id: String,
@@ -120,6 +126,7 @@ pub struct MemorySnapshot {
 
 /// Comprehensive profiling report
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ProfilingReport {
     /// Profiling session duration
     pub session_duration: Duration,
@@ -145,6 +152,7 @@ pub struct ProfilingReport {
 
 /// Memory leak detection report
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct LeakReport {
     /// Number of potential leaks detected
     pub leak_count: usize,
@@ -162,6 +170,7 @@ pub struct LeakReport {
 
 /// Statistics about allocation lifetimes
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct LifetimeStatistics {
     /// Average allocation lifetime
     pub average_lifetime: Duration,
@@ -179,6 +188,7 @@ pub struct LifetimeStatistics {
 
 /// Memory usage trends over time
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct UsageTrends {
     /// Memory usage growth rate (bytes per second)
     pub growth_rate: f64,
@@ -194,6 +204,7 @@ pub struct UsageTrends {
 
 /// Profiling overhead information
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ProfilingOverhead {
     /// Memory overhead in bytes
     pub memory_overhead_bytes: u64,
@@ -272,29 +283,39 @@ impl MemoryProfiler {
         #[cfg(feature = "tracing")]
         info!("Starting memory profiling session");
 
-        {
-            let mut is_profiling = self.is_profiling.write().unwrap();
-            *is_profiling = true;
+        // Set profiling state with timeout-based lock
+        match self.is_profiling.try_write() {
+            Ok(mut is_profiling) => {
+                *is_profiling = true;
+            },
+            Err(_) => {
+                #[cfg(feature = "tracing")]
+                warn!("Could not acquire profiling state lock during start");
+                return;
+            }
         }
 
-        {
-            let mut start_time = self.start_time.write().unwrap();
-            *start_time = Some(Instant::now());
+        // Set start time with timeout-based lock
+        match self.start_time.try_write() {
+            Ok(mut start_time) => {
+                *start_time = Some(Instant::now());
+            },
+            Err(_) => {
+                #[cfg(feature = "tracing")]
+                warn!("Could not acquire start time lock");
+            }
         }
 
-        // Clear previous data
-        {
-            let mut tracked = self.tracked_allocations.write().unwrap();
+        // Clear previous data (non-blocking, skip if locks unavailable)
+        if let Ok(mut tracked) = self.tracked_allocations.try_write() {
             tracked.clear();
         }
 
-        {
-            let mut history = self.lifetime_history.lock().unwrap();
+        if let Ok(mut history) = self.lifetime_history.try_lock() {
             history.clear();
         }
 
-        {
-            let mut leaks = self.potential_leaks.lock().unwrap();
+        if let Ok(mut leaks) = self.potential_leaks.try_lock() {
             leaks.clear();
         }
     }
@@ -321,20 +342,34 @@ impl MemoryProfiler {
         #[cfg(feature = "tracing")]
         info!("Stopping memory profiling session");
 
-        {
-            let mut is_profiling = self.is_profiling.write().unwrap();
-            *is_profiling = false;
+        // Set profiling to false with timeout-based lock
+        match self.is_profiling.try_write() {
+            Ok(mut is_profiling) => {
+                *is_profiling = false;
+            },
+            Err(_) => {
+                #[cfg(feature = "tracing")]
+                warn!("Could not acquire profiling state lock during stop, continuing with report generation");
+            }
         }
 
         let session_duration = {
-            let start_time = self.start_time.read().unwrap();
-            start_time
-                .map(|start| start.elapsed())
-                .unwrap_or(Duration::ZERO)
+            match self.start_time.try_read() {
+                Ok(start_time) => {
+                    start_time
+                        .map(|start| start.elapsed())
+                        .unwrap_or(Duration::ZERO)
+                },
+                Err(_) => {
+                    #[cfg(feature = "tracing")]
+                    warn!("Could not acquire start time lock, using zero duration");
+                    Duration::ZERO
+                }
+            }
         };
 
-        // Perform final leak detection
-        self.detect_leaks();
+        // Perform final leak detection (now non-blocking)
+        let _leak_report = self.detect_leaks();
 
         // Generate comprehensive report
         self.generate_profiling_report(session_duration)
@@ -347,8 +382,14 @@ impl MemoryProfiler {
     /// * `allocation` - Allocation information to record
     pub fn record_allocation(&self, allocation: AllocationInfo) {
         let is_profiling = {
-            let profiling = self.is_profiling.read().unwrap();
-            *profiling
+            match self.is_profiling.try_read() {
+                Ok(profiling) => *profiling,
+                Err(_) => {
+                    #[cfg(feature = "tracing")]
+                    warn!("Could not acquire profiling state lock, skipping allocation record");
+                    return;
+                }
+            }
         };
 
         if !is_profiling {
@@ -358,20 +399,32 @@ impl MemoryProfiler {
         #[cfg(feature = "tracing")]
         debug!("Recording allocation {} for profiling", allocation.id.raw());
 
-        // Check if we're at capacity
+        // Check if we're at capacity with timeout-based lock
         let should_record = {
-            let tracked = self.tracked_allocations.read().unwrap();
-            tracked.len() < self.config.max_tracked_allocations
+            match self.tracked_allocations.try_read() {
+                Ok(tracked) => tracked.len() < self.config.max_tracked_allocations,
+                Err(_) => {
+                    #[cfg(feature = "tracing")]
+                    warn!("Could not acquire tracked allocations lock for capacity check, skipping");
+                    false
+                }
+            }
         };
 
         if should_record {
-            // Record the allocation
-            {
-                let mut tracked = self.tracked_allocations.write().unwrap();
-                tracked.insert(allocation.id, allocation.clone());
+            // Record the allocation with timeout-based lock
+            match self.tracked_allocations.try_write() {
+                Ok(mut tracked) => {
+                    tracked.insert(allocation.id, allocation.clone());
+                },
+                Err(_) => {
+                    #[cfg(feature = "tracing")]
+                    warn!("Could not acquire tracked allocations write lock, skipping allocation record");
+                    return;
+                }
             }
 
-            // Update allocation patterns if enabled
+            // Update allocation patterns if enabled (non-blocking)
             if self.config.track_allocation_patterns {
                 self.update_allocation_patterns(&allocation);
             }
@@ -385,8 +438,14 @@ impl MemoryProfiler {
     /// * `allocation` - Allocation information for the deallocated memory
     pub fn record_deallocation(&self, mut allocation: AllocationInfo) {
         let is_profiling = {
-            let profiling = self.is_profiling.read().unwrap();
-            *profiling
+            match self.is_profiling.try_read() {
+                Ok(profiling) => *profiling,
+                Err(_) => {
+                    #[cfg(feature = "tracing")]
+                    warn!("Could not acquire profiling state lock, skipping deallocation record");
+                    return;
+                }
+            }
         };
 
         if !is_profiling {
@@ -399,10 +458,16 @@ impl MemoryProfiler {
             allocation.id.raw()
         );
 
-        // Remove from tracked allocations
+        // Remove from tracked allocations with timeout-based lock
         let was_tracked = {
-            let mut tracked = self.tracked_allocations.write().unwrap();
-            tracked.remove(&allocation.id).is_some()
+            match self.tracked_allocations.try_write() {
+                Ok(mut tracked) => tracked.remove(&allocation.id).is_some(),
+                Err(_) => {
+                    #[cfg(feature = "tracing")]
+                    warn!("Could not acquire tracked allocations write lock, skipping deallocation record");
+                    return;
+                }
+            }
         };
 
         if was_tracked {
@@ -419,14 +484,19 @@ impl MemoryProfiler {
                 was_leak: false,
             };
 
-            // Add to lifetime history
-            {
-                let mut history = self.lifetime_history.lock().unwrap();
-                history.push(lifetime);
+            // Add to lifetime history with timeout-based lock
+            match self.lifetime_history.try_lock() {
+                Ok(mut history) => {
+                    history.push(lifetime);
 
-                // Keep history bounded
-                if history.len() > self.config.max_tracked_allocations {
-                    history.drain(0..1000); // Remove oldest 1000 entries
+                    // Keep history bounded
+                    if history.len() > self.config.max_tracked_allocations {
+                        history.drain(0..1000); // Remove oldest 1000 entries
+                    }
+                },
+                Err(_) => {
+                    #[cfg(feature = "tracing")]
+                    warn!("Could not acquire lifetime history lock, skipping history update");
                 }
             }
         }
@@ -459,43 +529,61 @@ impl MemoryProfiler {
         let mut leak_candidates = Vec::new();
         let now = SystemTime::now();
 
-        // Check tracked allocations for potential leaks
-        {
-            let tracked = self.tracked_allocations.read().unwrap();
-            for allocation in tracked.values() {
-                let age = allocation.age();
-
-                if age >= self.config.leak_detection_threshold {
-                    let confidence = self.calculate_leak_confidence(allocation, age);
-                    let reason = self.determine_leak_reason(allocation, age);
-
-                    let candidate = LeakCandidate {
-                        allocation: allocation.clone(),
-                        age,
-                        confidence,
-                        reason,
-                        detected_at: now,
-                    };
-
-                    leak_candidates.push(candidate);
+        // Check tracked allocations for potential leaks with timeout
+        let tracked_allocations_snapshot = {
+            // Try to acquire read lock with timeout-like behavior
+            match self.tracked_allocations.try_read() {
+                Ok(tracked) => {
+                    // Create a snapshot to avoid holding the lock too long
+                    tracked.clone()
+                },
+                Err(_) => {
+                    #[cfg(feature = "tracing")]
+                    warn!("Failed to acquire tracked_allocations lock for leak detection, using empty snapshot");
+                    HashMap::new()
                 }
+            }
+        };
+
+        // Process allocations without holding locks
+        for allocation in tracked_allocations_snapshot.values() {
+            let age = allocation.age();
+
+            if age >= self.config.leak_detection_threshold {
+                let confidence = self.calculate_leak_confidence_safe(allocation, age);
+                let reason = self.determine_leak_reason(allocation, age);
+
+                let candidate = LeakCandidate {
+                    allocation: allocation.clone(),
+                    age,
+                    confidence,
+                    reason,
+                    detected_at: now,
+                };
+
+                leak_candidates.push(candidate);
             }
         }
 
         // Sort by confidence (highest first)
         leak_candidates.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap());
 
-        // Update potential leaks
-        {
-            let mut leaks = self.potential_leaks.lock().unwrap();
-            leaks.extend(leak_candidates.iter().cloned());
+        // Update potential leaks with timeout
+        match self.potential_leaks.try_lock() {
+            Ok(mut leaks) => {
+                leaks.extend(leak_candidates.iter().cloned());
 
-            // Keep only recent leaks
-            leaks.retain(|leak| {
-                now.duration_since(leak.detected_at)
-                    .unwrap_or(Duration::MAX)
-                    < Duration::from_secs(3600)
-            });
+                // Keep only recent leaks
+                leaks.retain(|leak| {
+                    now.duration_since(leak.detected_at)
+                        .unwrap_or(Duration::MAX)
+                        < Duration::from_secs(3600)
+                });
+            },
+            Err(_) => {
+                #[cfg(feature = "tracing")]
+                warn!("Failed to acquire potential_leaks lock for updating, skipping leak update");
+            }
         }
 
         // Generate leak report
@@ -622,26 +710,35 @@ impl MemoryProfiler {
             self.categorize_allocation_size(allocation.size)
         );
 
-        let mut patterns = self.allocation_patterns.lock().unwrap();
-        let pattern = patterns
-            .entry(pattern_id.clone())
-            .or_insert_with(|| AllocationPattern {
-                pattern_id: pattern_id.clone(),
-                size_range: self.get_size_range(allocation.size),
-                device_type: allocation.device_type.clone(),
-                allocation_count: 0,
-                average_lifetime: Duration::ZERO,
-                is_problematic: false,
-                description: format!(
-                    "Allocations on {} in size range {:?}",
-                    allocation.device_type,
-                    self.get_size_range(allocation.size)
-                ),
-            });
+        // Use try_lock to prevent deadlocks - if we can't get the lock, skip pattern update
+        match self.allocation_patterns.try_lock() {
+            Ok(mut patterns) => {
+                let pattern = patterns
+                    .entry(pattern_id.clone())
+                    .or_insert_with(|| AllocationPattern {
+                        pattern_id: pattern_id.clone(),
+                        size_range: self.get_size_range(allocation.size),
+                        device_type: allocation.device_type.clone(),
+                        allocation_count: 0,
+                        average_lifetime: Duration::ZERO,
+                        is_problematic: false,
+                        description: format!(
+                            "Allocations on {} in size range {:?}",
+                            allocation.device_type,
+                            self.get_size_range(allocation.size)
+                        ),
+                    });
 
-        pattern.allocation_count += 1;
+                pattern.allocation_count += 1;
+            },
+            Err(_) => {
+                #[cfg(feature = "tracing")]
+                debug!("Could not acquire allocation patterns lock, skipping pattern update for {}", allocation.id.raw());
+            }
+        }
     }
 
+    #[allow(dead_code)] // Keep for reference and potential future use
     fn calculate_leak_confidence(&self, allocation: &AllocationInfo, age: Duration) -> f64 {
         let mut confidence = 0.0;
 
@@ -669,6 +766,46 @@ impl MemoryProfiler {
         );
 
         if let Ok(patterns) = self.allocation_patterns.lock() {
+            if let Some(pattern) = patterns.get(&pattern_id) {
+                if pattern.average_lifetime < Duration::from_secs(60)
+                    && age > Duration::from_secs(300)
+                {
+                    confidence += 0.2; // This type usually has short lifetime but this one is old
+                }
+            }
+        }
+
+        confidence.min(1.0)
+    }
+
+    fn calculate_leak_confidence_safe(&self, allocation: &AllocationInfo, age: Duration) -> f64 {
+        let mut confidence = 0.0;
+
+        // Age factor (older = more likely to be a leak)
+        let age_seconds = age.as_secs_f64();
+        confidence += (age_seconds / 3600.0).min(0.5); // Max 0.5 for age
+
+        // Size factor (larger allocations are more concerning)
+        if allocation.size > 1024 * 1024 * 10 {
+            // > 10MB
+            confidence += 0.3;
+        } else if allocation.size > 1024 * 1024 {
+            // > 1MB
+            confidence += 0.2;
+        } else if allocation.size > 1024 * 100 {
+            // > 100KB
+            confidence += 0.1;
+        }
+
+        // Pattern factor (check if this allocation type typically has short lifetimes)
+        // Use try_lock to avoid potential deadlocks
+        let pattern_id = format!(
+            "{}_{}",
+            allocation.device_type,
+            self.categorize_allocation_size(allocation.size)
+        );
+
+        if let Ok(patterns) = self.allocation_patterns.try_lock() {
             if let Some(pattern) = patterns.get(&pattern_id) {
                 if pattern.average_lifetime < Duration::from_secs(60)
                     && age > Duration::from_secs(300)
@@ -764,18 +901,50 @@ impl MemoryProfiler {
     }
 
     fn generate_profiling_report(&self, session_duration: Duration) -> ProfilingReport {
-        let tracked = self.tracked_allocations.read().unwrap();
-        let history = self.lifetime_history.lock().unwrap();
-        let leaks = self.potential_leaks.lock().unwrap();
-        let patterns = self.allocation_patterns.lock().unwrap();
+        // Use non-blocking locks with fallback data
+        let tracked_snapshot = match self.tracked_allocations.try_read() {
+            Ok(tracked) => tracked.clone(),
+            Err(_) => {
+                #[cfg(feature = "tracing")]
+                warn!("Could not acquire tracked allocations lock for report, using empty data");
+                HashMap::new()
+            }
+        };
+        
+        let history_snapshot = match self.lifetime_history.try_lock() {
+            Ok(history) => history.clone(),
+            Err(_) => {
+                #[cfg(feature = "tracing")]
+                warn!("Could not acquire lifetime history lock for report, using empty data");
+                Vec::new()
+            }
+        };
+        
+        let leaks_snapshot = match self.potential_leaks.try_lock() {
+            Ok(leaks) => leaks.clone(),
+            Err(_) => {
+                #[cfg(feature = "tracing")]
+                warn!("Could not acquire potential leaks lock for report, using empty data");
+                Vec::new()
+            }
+        };
+        
+        let patterns_snapshot = match self.allocation_patterns.try_lock() {
+            Ok(patterns) => patterns.values().cloned().collect(),
+            Err(_) => {
+                #[cfg(feature = "tracing")]
+                warn!("Could not acquire allocation patterns lock for report, using empty data");
+                Vec::new()
+            }
+        };
 
-        let total_allocations = history.len() + tracked.len();
-        let total_deallocations = history.len();
-        let active_allocations = tracked.len();
+        let total_allocations = history_snapshot.len() + tracked_snapshot.len();
+        let total_deallocations = history_snapshot.len();
+        let active_allocations = tracked_snapshot.len();
 
-        let detected_leaks = leaks.clone();
-        let lifetime_stats = self.calculate_lifetime_statistics(&history);
-        let allocation_patterns: Vec<AllocationPattern> = patterns.values().cloned().collect();
+        let detected_leaks = leaks_snapshot;
+        let lifetime_stats = self.calculate_lifetime_statistics(&history_snapshot);
+        let allocation_patterns: Vec<AllocationPattern> = patterns_snapshot;
         let usage_trends = self.calculate_usage_trends(session_duration);
         let profiling_overhead = self.calculate_profiling_overhead(session_duration);
         let recommendations = self.generate_recommendations(&detected_leaks, &allocation_patterns);

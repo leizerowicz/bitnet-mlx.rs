@@ -16,6 +16,7 @@ use std::thread;
 use tracing::{debug, info, warn};
 
 /// Streaming converter for processing large tensors in chunks
+#[allow(dead_code)]
 pub struct StreamingConverter {
     pub(crate) config: StreamingConfig,
 }
@@ -39,17 +40,17 @@ impl StreamingConverter {
     pub fn stream_convert(
         &self,
         source: &BitNetTensor,
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
         pool: &Arc<HybridMemoryPool>,
     ) -> ConversionResult<BitNetTensor> {
-        let source_dtype = source.dtype();
+        let sourcedtype = source.dtype();
         let shape = source.shape();
-        let device = source.device();
+        let device = source.device(); // Fixed - get device from source tensor
 
         #[cfg(feature = "tracing")]
         info!(
             "Starting streaming conversion from {} to {} for tensor shape {:?}",
-            source_dtype, target_dtype, shape
+            sourcedtype, targetdtype, shape
         );
 
         // Check if streaming is actually needed
@@ -60,12 +61,12 @@ impl StreamingConverter {
                 "Tensor size {} bytes is below streaming threshold, using standard conversion",
                 total_size
             );
-            return self.standard_convert(source, target_dtype, pool);
+            return self.standard_convert(source, targetdtype, pool);
         }
 
         // Calculate chunk parameters
-        let element_count: usize = shape.iter().product();
-        let chunk_info = self.calculate_chunk_parameters(&shape, source_dtype, target_dtype)?;
+        let _element_count: usize = shape.iter().product();
+        let chunk_info = self.calculate_chunk_parameters(&shape, sourcedtype, targetdtype)?;
 
         #[cfg(feature = "tracing")]
         debug!(
@@ -75,7 +76,7 @@ impl StreamingConverter {
 
         // Create target tensor
         let target_tensor =
-            BitNetTensor::zeros(&shape, target_dtype, &device, pool).map_err(|e| {
+            BitNetTensor::zeros(&shape, targetdtype, &device, pool).map_err(|e| {
                 ConversionError::InternalError {
                     reason: e.to_string(),
                 }
@@ -98,14 +99,14 @@ impl StreamingConverter {
     fn standard_convert(
         &self,
         source: &BitNetTensor,
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
         pool: &Arc<HybridMemoryPool>,
     ) -> ConversionResult<BitNetTensor> {
         let shape = source.shape();
-        let device = source.device();
+        let device = source.device(); // Fixed - get device from source tensor
 
         let target_tensor =
-            BitNetTensor::zeros(&shape, target_dtype, &device, pool).map_err(|e| {
+            BitNetTensor::zeros(&shape, targetdtype, &device, pool).map_err(|e| {
                 ConversionError::InternalError {
                     reason: e.to_string(),
                 }
@@ -117,7 +118,7 @@ impl StreamingConverter {
             &target_tensor,
             0,
             shape.iter().product(),
-            &ConversionParams::new(source.dtype(), target_dtype),
+            &ConversionParams::new(source.dtype(), targetdtype),
         )?;
 
         Ok(target_tensor)
@@ -129,7 +130,7 @@ impl StreamingConverter {
         source: &BitNetTensor,
         target: &BitNetTensor,
         chunk_info: &ChunkInfo,
-        pool: &Arc<HybridMemoryPool>,
+        _pool: &Arc<HybridMemoryPool>,
     ) -> ConversionResult<()> {
         let conversion_params = ConversionParams::new(source.dtype(), target.dtype());
 
@@ -169,7 +170,7 @@ impl StreamingConverter {
         source: &BitNetTensor,
         target: &BitNetTensor,
         chunk_info: &ChunkInfo,
-        pool: &Arc<HybridMemoryPool>,
+        _pool: &Arc<HybridMemoryPool>,
     ) -> ConversionResult<()> {
         let num_workers = std::cmp::min(self.config.parallel_chunks, chunk_info.num_chunks);
         let (task_sender, task_receiver) = bounded::<ChunkTask>(num_workers * 2);
@@ -181,7 +182,7 @@ impl StreamingConverter {
 
         // Spawn worker threads
         let mut workers = Vec::new();
-        for worker_id in 0..num_workers {
+        for _worker_id in 0..num_workers {
             let task_rx = task_receiver.clone();
             let result_tx = result_sender.clone();
             let source_clone = source.clone();
@@ -282,8 +283,8 @@ impl StreamingConverter {
         end_element: usize,
         params: &ConversionParams,
     ) -> ConversionResult<()> {
-        let source_bytes_per_element = params.source_dtype.bits_per_element() / 8;
-        let target_bytes_per_element = params.target_dtype.bits_per_element() / 8;
+        let source_bytes_per_element = params.sourcedtype.bits_per_element() / 8;
+        let target_bytes_per_element = params.targetdtype.bits_per_element() / 8;
 
         let start_byte_offset = start_element * source_bytes_per_element;
         let target_start_byte_offset = start_element * target_bytes_per_element;
@@ -297,7 +298,7 @@ impl StreamingConverter {
                 .add(target_start_byte_offset) as *mut u8;
 
             // Perform the actual conversion based on data types
-            match (params.source_dtype, params.target_dtype) {
+            match (params.sourcedtype, params.targetdtype) {
                 // F32 to F16 conversion
                 (BitNetDType::F32, BitNetDType::F16) => {
                     Self::convert_f32_to_f16(source_ptr, target_ptr, end_element - start_element)?;
@@ -333,8 +334,8 @@ impl StreamingConverter {
                 // Add more conversion cases as needed
                 _ => {
                     return Err(ConversionError::UnsupportedConversion {
-                        from: params.source_dtype,
-                        to: params.target_dtype,
+                        from: params.sourcedtype,
+                        to: params.targetdtype,
                     });
                 }
             }
@@ -347,12 +348,12 @@ impl StreamingConverter {
     fn calculate_chunk_parameters(
         &self,
         shape: &[usize],
-        source_dtype: BitNetDType,
-        target_dtype: BitNetDType,
+        sourcedtype: BitNetDType,
+        targetdtype: BitNetDType,
     ) -> ConversionResult<ChunkInfo> {
         let total_elements: usize = shape.iter().product();
-        let source_bytes_per_element = source_dtype.bits_per_element() / 8;
-        let target_bytes_per_element = target_dtype.bits_per_element() / 8;
+        let source_bytes_per_element = sourcedtype.bits_per_element() / 8;
+        let target_bytes_per_element = targetdtype.bits_per_element() / 8;
 
         // Calculate elements per chunk based on memory constraints
         let max_bytes_per_chunk =
@@ -562,7 +563,7 @@ impl Converter for StreamingConverter {
         context: &ConversionContext,
         pool: &Arc<HybridMemoryPool>,
     ) -> ConversionResult<BitNetTensor> {
-        self.stream_convert(source, context.target_dtype, pool)
+        self.stream_convert(source, context.targetdtype, pool)
     }
 
     fn supports(&self, context: &ConversionContext) -> bool {
@@ -574,7 +575,7 @@ impl Converter for StreamingConverter {
 
     fn estimate_time_ms(&self, context: &ConversionContext) -> u64 {
         let element_count: usize = context.shape.iter().product();
-        let size_bytes = context.source_dtype.bytes_for_elements(element_count);
+        let size_bytes = context.sourcedtype.bytes_for_elements(element_count);
 
         // Estimate based on processing speed (~1 GB/s for conversions)
         let base_time = (size_bytes as f64) / (1024.0 * 1024.0 * 1024.0) * 1000.0;
@@ -592,6 +593,7 @@ impl Converter for StreamingConverter {
 
 /// Information about chunk processing
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct ChunkInfo {
     total_elements: usize,
     elements_per_chunk: usize,
@@ -602,6 +604,7 @@ struct ChunkInfo {
 
 /// Task for processing a chunk
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct ChunkTask {
     chunk_id: usize,
     start_element: usize,
@@ -611,15 +614,15 @@ struct ChunkTask {
 /// Parameters for conversion operations
 #[derive(Debug, Clone)]
 struct ConversionParams {
-    source_dtype: BitNetDType,
-    target_dtype: BitNetDType,
+    sourcedtype: BitNetDType,
+    targetdtype: BitNetDType,
 }
 
 impl ConversionParams {
-    fn new(source_dtype: BitNetDType, target_dtype: BitNetDType) -> Self {
+    fn new(sourcedtype: BitNetDType, targetdtype: BitNetDType) -> Self {
         Self {
-            source_dtype,
-            target_dtype,
+            sourcedtype,
+            targetdtype,
         }
     }
 }

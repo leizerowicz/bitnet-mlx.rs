@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 /// A batch of processed sequences with uniform length
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SequenceBatch {
     /// The processed sequences in the batch
     sequences: Vec<ProcessedSequence>,
@@ -17,6 +18,7 @@ pub struct SequenceBatch {
 
 /// Metadata for a sequence batch
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct BatchMetadata {
     /// Number of sequences in the batch
     pub batch_size: usize,
@@ -244,6 +246,7 @@ impl BatchMetadata {
 
 /// Options for batch processing
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct BatchingOptions {
     /// Maximum batch size
     pub max_batch_size: usize,
@@ -277,6 +280,7 @@ impl Default for BatchingOptions {
 
 /// Batch processor for handling sequence batching
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct BatchProcessor {
     config: SequenceConfig,
     options: BatchingOptions,
@@ -430,7 +434,7 @@ impl BatchProcessor {
 
         // Create processed sequences
         let mut processed_sequences = Vec::with_capacity(sequences.len());
-        for (i, (original, padded)) in sequences.iter().zip(padded_sequences.iter()).enumerate() {
+        for (_, (original, padded)) in sequences.iter().zip(padded_sequences.iter()).enumerate() {
             let attention_mask = if self.config.return_attention_mask {
                 super::masking::create_attention_mask(padded, pad_token)
             } else {
@@ -509,6 +513,7 @@ impl BatchProcessor {
 
 /// Dynamic batch sampler for efficient training
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct DynamicBatchSampler {
     /// Maximum number of tokens per batch
     pub max_tokens_per_batch: usize,

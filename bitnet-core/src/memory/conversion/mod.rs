@@ -164,11 +164,12 @@ pub enum ConversionQuality {
 
 /// Conversion context containing metadata about the operation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ConversionContext {
     /// Source data type
-    pub source_dtype: BitNetDType,
+    pub sourcedtype: BitNetDType,
     /// Target data type
-    pub target_dtype: BitNetDType,
+    pub targetdtype: BitNetDType,
     /// Source device
     pub source_device: Device,
     /// Target device
@@ -186,15 +187,15 @@ pub struct ConversionContext {
 impl ConversionContext {
     /// Creates a new conversion context
     pub fn new(
-        source_dtype: BitNetDType,
-        target_dtype: BitNetDType,
+        sourcedtype: BitNetDType,
+        targetdtype: BitNetDType,
         source_device: Device,
         target_device: Device,
         shape: Vec<usize>,
     ) -> Self {
         Self {
-            source_dtype,
-            target_dtype,
+            sourcedtype,
+            targetdtype,
             source_device,
             target_device,
             shape,
@@ -227,7 +228,7 @@ impl ConversionContext {
         // Zero-copy is possible when:
         // 1. Same data type and device
         // 2. Compatible data types with same memory layout
-        if self.source_dtype == self.target_dtype
+        if self.sourcedtype == self.targetdtype
             && std::mem::discriminant(&self.source_device)
                 == std::mem::discriminant(&self.target_device)
         {
@@ -235,7 +236,7 @@ impl ConversionContext {
         }
 
         // Check for compatible data types with same bit width
-        match (self.source_dtype, self.target_dtype) {
+        match (self.sourcedtype, self.targetdtype) {
             (BitNetDType::F16, BitNetDType::BF16) | (BitNetDType::BF16, BitNetDType::F16) => true,
             _ => false,
         }
@@ -252,8 +253,8 @@ impl ConversionContext {
             return false;
         }
 
-        let source_bits = self.source_dtype.bits_per_element();
-        let target_bits = self.target_dtype.bits_per_element();
+        let source_bits = self.sourcedtype.bits_per_element();
+        let target_bits = self.targetdtype.bits_per_element();
         target_bits <= source_bits
     }
 
@@ -266,10 +267,18 @@ impl ConversionContext {
         if self.is_zero_copy_compatible() {
             ConversionStrategy::ZeroCopy
         } else if self.is_in_place_compatible() {
-            ConversionStrategy::InPlace
+            let element_count: usize = self.shape.iter().product();
+            let size_bytes = self.sourcedtype.bytes_for_elements(element_count);
+            
+            // Use streaming for large tensors (> 100MB) even if in-place compatible
+            if size_bytes > 100 * 1024 * 1024 {
+                ConversionStrategy::Streaming
+            } else {
+                ConversionStrategy::InPlace
+            }
         } else {
             let element_count: usize = self.shape.iter().product();
-            let size_bytes = self.source_dtype.bytes_for_elements(element_count);
+            let size_bytes = self.sourcedtype.bytes_for_elements(element_count);
 
             // Use streaming for large tensors (> 100MB)
             if size_bytes > 100 * 1024 * 1024 {
@@ -283,8 +292,8 @@ impl ConversionContext {
     /// Estimates the memory overhead for this conversion
     pub fn memory_overhead_bytes(&self) -> usize {
         let element_count: usize = self.shape.iter().product();
-        let source_bytes = self.source_dtype.bytes_for_elements(element_count);
-        let target_bytes = self.target_dtype.bytes_for_elements(element_count);
+        let source_bytes = self.sourcedtype.bytes_for_elements(element_count);
+        let target_bytes = self.targetdtype.bytes_for_elements(element_count);
 
         match self.optimal_strategy() {
             ConversionStrategy::ZeroCopy => 0,
@@ -333,8 +342,8 @@ mod tests {
             vec![2, 3],
         );
 
-        assert_eq!(context.source_dtype, BitNetDType::F32);
-        assert_eq!(context.target_dtype, BitNetDType::F16);
+        assert_eq!(context.sourcedtype, BitNetDType::F32);
+        assert_eq!(context.targetdtype, BitNetDType::F16);
         assert_eq!(context.shape, vec![2, 3]);
         assert_eq!(context.strategy, ConversionStrategy::Auto);
         assert_eq!(context.quality, ConversionQuality::Balanced);

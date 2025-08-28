@@ -1,6 +1,7 @@
 use bitnet_core::memory::HybridMemoryPool;
 use bitnet_core::tensor::core::BitNetTensor;
 use bitnet_core::tensor::dtype::BitNetDType;
+use bitnet_core::tensor::memory_integration::set_global_memory_pool;
 use bitnet_core::tensor::ops::TensorOpError;
 use candle_core::Device;
 use std::sync::Arc;
@@ -12,6 +13,9 @@ use std::sync::Arc;
 fn test_infrastructure_validation() -> Result<(), Box<dyn std::error::Error>> {
     // Test memory pool creation (existing API)
     let memory_pool = Arc::new(HybridMemoryPool::new()?);
+    
+    // Set up global memory pool for tensor creation
+    set_global_memory_pool(Arc::downgrade(&memory_pool));
 
     // Test basic tensor creation (existing API)
     let device = Device::Cpu;
@@ -23,9 +27,10 @@ fn test_infrastructure_validation() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test shape validation
     let shape = tensor.shape();
-    assert_eq!(shape.dims().len(), 2);
-    assert_eq!(shape.dims()[0], 2);
-    assert_eq!(shape.dims()[1], 2);
+    let dims = shape.dims();
+    assert_eq!(dims.len(), 2);
+    assert_eq!(dims[0], 2);
+    assert_eq!(dims[1], 2);
 
     println!("✅ Infrastructure validation test passed!");
     Ok(())
@@ -54,7 +59,10 @@ fn test_error_handling_infrastructure() {
 /// Test memory pool integration
 #[test]
 fn test_memory_integration() -> Result<(), Box<dyn std::error::Error>> {
-    let _memory_pool = Arc::new(HybridMemoryPool::new()?);
+    let memory_pool = Arc::new(HybridMemoryPool::new()?);
+    
+    // Set up global memory pool for tensor creation
+    set_global_memory_pool(Arc::downgrade(&memory_pool));
 
     // Create multiple tensors to test memory allocation
     let device = Device::Cpu;
@@ -72,6 +80,11 @@ fn test_memory_integration() -> Result<(), Box<dyn std::error::Error>> {
 /// Test tensor creation patterns
 #[test]
 fn test_tensor_creation_patterns() -> Result<(), Box<dyn std::error::Error>> {
+    let memory_pool = Arc::new(HybridMemoryPool::new()?);
+    
+    // Set up global memory pool for tensor creation
+    set_global_memory_pool(Arc::downgrade(&memory_pool));
+    
     let device = Device::Cpu;
 
     // Test different creation methods

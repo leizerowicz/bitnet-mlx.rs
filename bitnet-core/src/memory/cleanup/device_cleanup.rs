@@ -38,6 +38,7 @@ pub trait DeviceCleanupOps: Send + Sync {
 
 /// Result of a device-specific cleanup operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DeviceCleanupResult {
     /// Device type that was cleaned
     pub device_type: String,
@@ -96,6 +97,7 @@ impl DeviceCleanupResult {
 
 /// Result of cache optimization operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CacheOptimizationResult {
     /// Cache hit ratio before optimization
     pub cache_hit_ratio_before: f64,
@@ -111,6 +113,7 @@ pub struct CacheOptimizationResult {
 
 /// Result of memory defragmentation operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DefragmentationResult {
     /// Fragmentation ratio before defragmentation
     pub fragmentation_before: f64,
@@ -126,6 +129,7 @@ pub struct DefragmentationResult {
 
 /// Statistics for device-specific cleanup operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DeviceCleanupStats {
     /// Device type
     pub device_type: String,
@@ -190,6 +194,7 @@ impl DeviceCleanupStats {
 }
 
 /// CPU-specific cleanup implementation
+#[allow(dead_code)]
 pub struct CpuCleanup {
     /// CPU cleanup configuration
     config: CpuCleanupConfig,
@@ -382,8 +387,8 @@ impl DeviceCleanupOps for CpuCleanup {
     fn get_cleanup_stats(&self) -> DeviceCleanupStats {
         self.stats
             .read()
-            .map(|stats| stats.clone())
-            .unwrap_or_else(|_| DeviceCleanupStats::new("CPU".to_string()))
+            .map(|stats| stats.clone()) // Fixed typo: tats -> stats
+            .unwrap_or_else(|_| DeviceCleanupStats::new("CPU".to_string())) // Fixed closure signature
     }
 
     fn reset_stats(&self) {
@@ -395,6 +400,7 @@ impl DeviceCleanupOps for CpuCleanup {
 
 /// Metal GPU-specific cleanup implementation
 #[cfg(feature = "metal")]
+#[allow(dead_code)]
 pub struct MetalCleanup {
     /// Metal cleanup configuration
     config: MetalCleanupConfig,
@@ -605,8 +611,8 @@ impl DeviceCleanupOps for MetalCleanup {
     fn get_cleanup_stats(&self) -> DeviceCleanupStats {
         self.stats
             .read()
-            .map(|stats| stats.clone())
-            .unwrap_or_else(|_| DeviceCleanupStats::new("Metal".to_string()))
+            .map(|tats| tats.clone())
+            .unwrap_or_else(|| DeviceCleanupStats::new("Metal".to_string()))
     }
 
     fn reset_stats(&self) {

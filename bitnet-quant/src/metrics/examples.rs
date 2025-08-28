@@ -20,6 +20,7 @@ use crate::metrics::{
 };
 
 /// Comprehensive example demonstrating the full quantization metrics workflow
+#[allow(dead_code)]
 pub struct MetricsWorkflowDemo {
     device: Device,
     error_analyzer: ErrorAnalyzer,
@@ -290,6 +291,7 @@ impl BasicMetricsExample {
 }
 
 /// Advanced example showing streaming processing for large models
+#[allow(dead_code)]
 pub struct StreamingProcessingExample {
     mse_calc: MSECalculator,
     sqnr_calc: SQNRCalculator,

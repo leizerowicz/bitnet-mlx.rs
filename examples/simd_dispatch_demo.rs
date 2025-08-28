@@ -109,7 +109,7 @@ fn demonstrate_simd_accelerator() -> Result<()> {
         Ok(None) => {
             println!("❌ SIMD accelerator not available on this platform");
         },
-        Err(e) => {
+        Err(_e) => {
             println!("❌ Error creating SIMD accelerator: {}", e);
         }
     }

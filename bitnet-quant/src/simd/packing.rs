@@ -11,6 +11,7 @@ use crate::quantization::utils::QuantizationError;
 use std::arch::x86_64::*;
 
 /// SIMD-optimized packing operations for ternary data
+#[allow(dead_code)]
 pub struct SimdPackingOps {
     capabilities: SimdCapabilities,
 }

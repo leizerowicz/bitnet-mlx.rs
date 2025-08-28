@@ -63,6 +63,7 @@ pub type BitNetTensorResult<T> = std::result::Result<T, BitNetTensorError>;
 
 /// BitNet tensor with automatic reference counting and lifecycle management
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct BitNetTensor {
     /// Strong reference to tensor data
     pub(crate) data: Arc<TensorData>,
@@ -97,6 +98,7 @@ impl TensorRegistry {
         self.tensors.remove(&tensor_id);
     }
 
+    #[allow(dead_code)]
     fn get_tensor(&self, tensor_id: u64) -> Option<Arc<TensorData>> {
         self.tensors.get(&tensor_id)?.upgrade()
     }
@@ -220,7 +222,7 @@ impl BitNetTensor {
         shape: Vec<usize>,
         dtype: BitNetDType,
         name: Option<String>,
-        pool: &HybridMemoryPool,
+        _pool: &HybridMemoryPool,
     ) -> BitNetTensorResult<Self> {
         // Use global registry and ID counter
         let registry = Arc::clone(&GLOBAL_TENSOR_REGISTRY);
@@ -240,7 +242,7 @@ impl BitNetTensor {
         };
 
         // Create metadata
-        let device = memory_handle.device();
+        let device = crate::device::auto_select_device(); // Fixed - use auto-selected device
         let metadata = TensorMetadata::new(tensor_id, shape, dtype, &device, name);
 
         // For now, create a dummy weak reference that will never upgrade
@@ -254,7 +256,7 @@ impl BitNetTensor {
         let tensor_data = Arc::new(TensorData {
             memory_handle,
             metadata: RwLock::new(metadata),
-            tensor_id,
+            tensor_id: tensor_id,
             pool_ref,
         });
 
@@ -326,7 +328,7 @@ impl BitNetTensor {
                 })?;
 
         let candle_dtype = metadata.dtype.to_candle_dtype();
-        let device = self.data.memory_handle.device();
+        let device = self.device(); // Fixed - get device from self
         let shape = &metadata.shape;
 
         #[cfg(feature = "tracing")]
@@ -361,7 +363,7 @@ impl BitNetTensor {
         target_device: &Device,
         pool: &HybridMemoryPool,
     ) -> BitNetTensorResult<Self> {
-        let current_device = self.data.memory_handle.device();
+        let current_device = self.device(); // Fixed - get current device from self
 
         // Check if already on target device
         if std::mem::discriminant(&current_device) == std::mem::discriminant(target_device) {
@@ -511,7 +513,7 @@ impl BitNetTensor {
 
         // Create a new tensor with the same data but different shape
         let dtype = self.dtype();
-        let device = self.device();
+        let device = self.device(); // Fixed - get device from self
         let pool = HybridMemoryPool::new()?; // TODO: This is a temporary workaround
 
         let new_tensor = Self::zeros(new_shape, dtype, &device, &pool)?;
@@ -531,7 +533,7 @@ impl BitNetTensor {
     pub fn clone_tensor(&self, pool: &HybridMemoryPool) -> BitNetTensorResult<Self> {
         let shape = self.shape();
         let dtype = self.dtype();
-        let device = self.device();
+        let device = self.device(); // Fixed - get device from self
         let name = self.name();
 
         let new_tensor = Self::zeros(&shape, dtype, &device, pool)?;
@@ -668,6 +670,8 @@ pub fn clear_global_tensor_state() {
         registry.next_handle_id = 0;
         #[cfg(feature = "tracing")]
         tracing::debug!("Cleared {} tensors from global tensor registry", count);
+        #[cfg(not(feature = "tracing"))]
+        let _ = count; // Suppress unused warning when tracing is disabled
     }
 
     // Reset the global tensor ID counter

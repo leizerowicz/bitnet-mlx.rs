@@ -111,7 +111,7 @@ fn demo_zero_copy_conversions(
     // Same type conversion (truly zero-copy)
     let f32_tensor = BitNetTensor::ones(&[32, 32], BitNetDType::F32, device, pool)?;
     let start = Instant::now();
-    let same_type_result = engine.zero_copy_convert(&f32_tensor, BitNetDType::F32)?;
+    let _same_type_result = engine.zero_copy_convert(&f32_tensor, BitNetDType::F32)?;
     let duration = start.elapsed();
     println!("  Same type (F32 -> F32): {duration:?} (zero allocation)");
 

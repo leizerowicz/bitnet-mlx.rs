@@ -129,6 +129,7 @@ pub type MemoryResult<T> = std::result::Result<T, MemoryError>;
 
 /// Configuration for the hybrid memory pool
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MemoryPoolConfig {
     /// Threshold for small vs large block allocation (default: 1MB)
     pub small_block_threshold: usize,
@@ -169,6 +170,7 @@ impl Default for MemoryPoolConfig {
 /// Main hybrid memory pool that manages both small and large allocations
 /// across different device types (CPU and Metal GPU)
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct HybridMemoryPool {
     /// Configuration for the memory pool
     config: MemoryPoolConfig,
@@ -259,9 +261,9 @@ impl HybridMemoryPool {
 
             match tracking::MemoryTracker::new(tracking_config) {
                 Ok(tracker) => Some(Arc::new(tracker)),
-                Err(e) => {
+                Err(_e) => {
                     #[cfg(feature = "tracing")]
-                    warn!("Failed to create memory tracker: {}", e);
+                    warn!("Failed to create memory tracker: {}", _e);
                     None
                 }
             }
@@ -314,6 +316,13 @@ impl HybridMemoryPool {
         alignment: usize,
         device: &Device,
     ) -> MemoryResult<MemoryHandle> {
+        // Handle zero-size allocations
+        if size == 0 {
+            return Err(MemoryError::InsufficientMemory { 
+                size: 0,
+            });
+        }
+
         // Validate alignment
         if !alignment.is_power_of_two() || alignment == 0 {
             return Err(MemoryError::InvalidAlignment { alignment });
@@ -407,9 +416,11 @@ impl HybridMemoryPool {
                         reason: "Failed to acquire handle registry lock".to_string(),
                     })?;
 
-            let handle_found = registry.contains_key(&handle_id);
             #[cfg(feature = "tracing")]
-            debug!("Handle {} found in registry: {}", handle_id, handle_found);
+            {
+                let handle_found = registry.contains_key(&handle_id);
+                debug!("Handle {} found in registry: {}", handle_id, handle_found);
+            }
 
             registry.remove(&handle_id)
         };
@@ -509,7 +520,7 @@ impl HybridMemoryPool {
         self.metrics
             .read()
             .map(|metrics| metrics.clone())
-            .unwrap_or_else(|_| MemoryMetrics::new())
+            .unwrap_or_else(|_| MemoryMetrics::new()) // Fixed closure signature
     }
 
     /// Returns detailed memory tracking metrics if advanced tracking is enabled
@@ -614,7 +625,6 @@ impl HybridMemoryPool {
 
         // Find handles in pool registry that are not in cleanup registry (orphaned)
         let orphaned_handles = if let Ok(handle_registry) = self.handle_registry.read() {
-            let total_pool_handles = handle_registry.len();
             let orphaned = handle_registry
                 .iter()
                 .filter(|(_, handle)| !active_tensor_handles.contains(&handle.id()))
@@ -624,7 +634,7 @@ impl HybridMemoryPool {
             #[cfg(feature = "tracing")]
             debug!(
                 "Pool registry has {} total handles, {} are orphaned",
-                total_pool_handles,
+                handle_registry.len(),
                 orphaned.len()
             );
 
@@ -661,13 +671,13 @@ impl HybridMemoryPool {
                     #[cfg(feature = "tracing")]
                     debug!("Successfully cleaned up orphaned handle {}", handle.id());
                 }
-                Err(e) => {
+                Err(_e) => {
                     #[cfg(feature = "tracing")]
                     warn!(
                         "Failed to deallocate orphaned handle {} (size: {}): {}",
                         handle.id(),
                         handle.size(),
-                        e
+                        _e
                     );
                 }
             }

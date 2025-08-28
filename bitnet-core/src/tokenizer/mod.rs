@@ -46,6 +46,7 @@ use tokenizers::Tokenizer as HfTokenizer;
 
 /// A unified tokenizer interface for BitNet
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Tokenizer {
     inner: TokenizerType,
     vocab_size: usize,
@@ -62,6 +63,7 @@ enum TokenizerType {
 
 /// A simple BPE tokenizer implementation
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct BpeTokenizer {
     vocab: std::collections::HashMap<String, u32>,
     merges: Vec<(String, String)>,
@@ -70,6 +72,7 @@ pub struct BpeTokenizer {
 
 /// A simple word-based tokenizer for basic use cases
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SimpleTokenizer {
     vocab: std::collections::HashMap<String, u32>,
     vocab_size: usize,

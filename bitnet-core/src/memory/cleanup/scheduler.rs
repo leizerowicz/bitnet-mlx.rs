@@ -48,6 +48,7 @@ impl From<CleanupId> for u64 {
 
 /// A scheduled cleanup operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ScheduledCleanup {
     /// Unique identifier for this scheduled cleanup
     pub id: CleanupId,
@@ -71,6 +72,33 @@ pub struct ScheduledCleanup {
     pub active: bool,
     /// Optional metadata for the cleanup
     pub metadata: HashMap<String, String>,
+}
+
+impl PartialEq for ScheduledCleanup {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.priority == other.priority && self.scheduled_time == other.scheduled_time
+    }
+}
+
+impl Eq for ScheduledCleanup {}
+
+impl PartialOrd for ScheduledCleanup {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ScheduledCleanup {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Higher priority should come first 
+        match self.priority.cmp(&other.priority) {
+            Ordering::Equal => {
+                // If priorities are equal, earlier scheduled time comes first
+                other.scheduled_time.cmp(&self.scheduled_time)
+            }
+            ord => ord,
+        }
+    }
 }
 
 impl ScheduledCleanup {
@@ -153,32 +181,9 @@ impl ScheduledCleanup {
     }
 }
 
-impl PartialEq for ScheduledCleanup {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-
-impl Eq for ScheduledCleanup {}
-
-impl PartialOrd for ScheduledCleanup {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for ScheduledCleanup {
-    fn cmp(&self, other: &Self) -> Ordering {
-        // Higher priority first, then earlier scheduled time
-        match other.priority.cmp(&self.priority) {
-            Ordering::Equal => self.scheduled_time.cmp(&other.scheduled_time),
-            other => other,
-        }
-    }
-}
-
 /// Statistics for the cleanup scheduler
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SchedulerStats {
     /// Total number of cleanups scheduled
     pub total_scheduled: u64,
@@ -224,6 +229,7 @@ impl Default for SchedulerStats {
 }
 
 /// Cleanup scheduler that manages automatic cleanup operations
+#[allow(dead_code)]
 pub struct CleanupScheduler {
     /// Scheduler configuration
     config: SchedulerConfig,
@@ -384,7 +390,7 @@ impl CleanupScheduler {
             .stats
             .read()
             .map(|s| s.clone())
-            .unwrap_or_else(|_| SchedulerStats::new());
+            .unwrap_or_else(|_| SchedulerStats::new()); // Fixed closure signature
 
         // Update uptime
         if let Ok(start_time) = self.start_time.read() {

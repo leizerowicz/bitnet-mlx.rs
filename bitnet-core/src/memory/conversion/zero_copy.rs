@@ -12,6 +12,7 @@ use std::sync::Arc;
 use tracing::{debug, info};
 
 /// Zero-copy converter for compatible data types
+#[allow(dead_code)]
 pub struct ZeroCopyConverter {
     /// Whether to enable strict compatibility checking
     strict_mode: bool,
@@ -42,42 +43,53 @@ impl ZeroCopyConverter {
         }
     }
 
+    /// Checks if two data types are zero-copy compatible with mode consideration
+    fn is_compatible_with_mode(&self, source: BitNetDType, target: BitNetDType) -> bool {
+        if self.strict_mode {
+            // In strict mode, only identical types are compatible
+            source == target
+        } else {
+            // In non-strict mode, use the standard compatibility rules
+            Self::is_compatible(source, target)
+        }
+    }
+
     /// Performs a zero-copy reinterpretation between compatible types
     pub fn reinterpret_cast(
         &self,
         source: &BitNetTensor,
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
         pool: &Arc<HybridMemoryPool>,
     ) -> ConversionResult<BitNetTensor> {
-        let source_dtype = source.dtype();
+        let sourcedtype = source.dtype();
 
-        if !Self::is_compatible(source_dtype, target_dtype) {
+        if !self.is_compatible_with_mode(sourcedtype, targetdtype) {
             return Err(ConversionError::UnsupportedConversion {
-                from: source_dtype,
-                to: target_dtype,
+                from: sourcedtype,
+                to: targetdtype,
             });
         }
 
         #[cfg(feature = "tracing")]
         debug!(
             "Performing zero-copy reinterpret cast from {} to {}",
-            source_dtype, target_dtype
+            sourcedtype, targetdtype
         );
 
         // For same types, just clone the tensor reference
-        if source_dtype == target_dtype {
+        if sourcedtype == targetdtype {
             return Ok(source.clone());
         }
 
         // For compatible types with different interpretation, create a new tensor
         // that shares the same memory but with different metadata
-        match (source_dtype, target_dtype) {
+        match (sourcedtype, targetdtype) {
             (BitNetDType::F16, BitNetDType::BF16) | (BitNetDType::BF16, BitNetDType::F16) => {
-                self.reinterpret_f16_bf16(source, target_dtype, pool)
+                self.reinterpret_f16_bf16(source, targetdtype, pool)
             }
             _ => Err(ConversionError::UnsupportedConversion {
-                from: source_dtype,
-                to: target_dtype,
+                from: sourcedtype,
+                to: targetdtype,
             }),
         }
     }
@@ -86,18 +98,18 @@ impl ZeroCopyConverter {
     fn reinterpret_f16_bf16(
         &self,
         source: &BitNetTensor,
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
         pool: &Arc<HybridMemoryPool>,
     ) -> ConversionResult<BitNetTensor> {
         let shape = source.shape();
-        let device = source.device();
+        let device = source.device(); // Fixed - get device from source tensor
 
         #[cfg(feature = "tracing")]
         debug!("Reinterpreting F16/BF16 tensor with shape {:?}", shape);
 
         // Create a new tensor with the same memory layout but different type interpretation
         let target_tensor =
-            BitNetTensor::zeros(&shape, target_dtype, &device, pool).map_err(|e| {
+            BitNetTensor::zeros(&shape, targetdtype, &device, pool).map_err(|e| {
                 ConversionError::InternalError {
                     reason: e.to_string(),
                 }
@@ -128,49 +140,49 @@ impl ZeroCopyConverter {
     pub fn create_view(
         &self,
         source: &BitNetTensor,
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
     ) -> ConversionResult<TensorView> {
-        let source_dtype = source.dtype();
+        let sourcedtype = source.dtype();
 
-        if !Self::is_compatible(source_dtype, target_dtype) {
+        if !self.is_compatible_with_mode(sourcedtype, targetdtype) {
             return Err(ConversionError::UnsupportedConversion {
-                from: source_dtype,
-                to: target_dtype,
+                from: sourcedtype,
+                to: targetdtype,
             });
         }
 
         #[cfg(feature = "tracing")]
         debug!(
             "Creating zero-copy view from {} to {}",
-            source_dtype, target_dtype
+            sourcedtype, targetdtype
         );
 
         Ok(TensorView {
             source_tensor: source.clone(),
-            view_dtype: target_dtype,
+            viewdtype: targetdtype,
         })
     }
 
     /// Validates that a zero-copy conversion is safe
     fn validate_conversion(
         &self,
-        source_dtype: BitNetDType,
-        target_dtype: BitNetDType,
+        sourcedtype: BitNetDType,
+        targetdtype: BitNetDType,
     ) -> ConversionResult<()> {
         if self.strict_mode {
             // In strict mode, only allow exact type matches
-            if source_dtype != target_dtype {
+            if sourcedtype != targetdtype {
                 return Err(ConversionError::UnsupportedConversion {
-                    from: source_dtype,
-                    to: target_dtype,
+                    from: sourcedtype,
+                    to: targetdtype,
                 });
             }
         } else {
             // In normal mode, allow compatible types
-            if !Self::is_compatible(source_dtype, target_dtype) {
+            if !Self::is_compatible(sourcedtype, targetdtype) {
                 return Err(ConversionError::UnsupportedConversion {
-                    from: source_dtype,
-                    to: target_dtype,
+                    from: sourcedtype,
+                    to: targetdtype,
                 });
             }
         }
@@ -193,7 +205,7 @@ impl Converter for ZeroCopyConverter {
         pool: &Arc<HybridMemoryPool>,
     ) -> ConversionResult<BitNetTensor> {
         // Validate that this is a zero-copy compatible conversion
-        self.validate_conversion(context.source_dtype, context.target_dtype)?;
+        self.validate_conversion(context.sourcedtype, context.targetdtype)?;
 
         // Check device compatibility
         if std::mem::discriminant(&context.source_device)
@@ -203,7 +215,7 @@ impl Converter for ZeroCopyConverter {
         }
 
         // Perform the zero-copy conversion
-        self.reinterpret_cast(source, context.target_dtype, pool)
+        self.reinterpret_cast(source, context.targetdtype, pool)
     }
 
     fn supports(&self, context: &ConversionContext) -> bool {
@@ -218,13 +230,13 @@ impl Converter for ZeroCopyConverter {
     }
 
     fn estimate_time_ms(&self, context: &ConversionContext) -> u64 {
-        if context.source_dtype == context.target_dtype {
+        if context.sourcedtype == context.targetdtype {
             // Pure reference copy - essentially instant
             0
         } else {
             // Memory copy for reinterpretation - very fast
             let element_count: usize = context.shape.iter().product();
-            let size_bytes = context.source_dtype.bytes_for_elements(element_count);
+            let size_bytes = context.sourcedtype.bytes_for_elements(element_count);
 
             // Estimate ~10 GB/s memory bandwidth
             ((size_bytes as f64) / (10.0 * 1024.0 * 1024.0 * 1024.0) * 1000.0) as u64
@@ -234,9 +246,10 @@ impl Converter for ZeroCopyConverter {
 
 /// A zero-copy view of a tensor with a different data type interpretation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TensorView {
     source_tensor: BitNetTensor,
-    view_dtype: BitNetDType,
+    viewdtype: BitNetDType,
 }
 
 impl TensorView {
@@ -247,7 +260,7 @@ impl TensorView {
 
     /// Gets the view data type
     pub fn dtype(&self) -> BitNetDType {
-        self.view_dtype
+        self.viewdtype
     }
 
     /// Gets the tensor shape (same as source)
@@ -273,21 +286,21 @@ impl TensorView {
     /// Materializes the view into a new tensor with the view's data type
     pub fn materialize(&self, pool: &Arc<HybridMemoryPool>) -> ConversionResult<BitNetTensor> {
         let converter = ZeroCopyConverter::new();
-        converter.reinterpret_cast(&self.source_tensor, self.view_dtype, pool)
+        converter.reinterpret_cast(&self.source_tensor, self.viewdtype, pool)
     }
 
     /// Creates a new view with a different data type
-    pub fn reinterpret(&self, new_dtype: BitNetDType) -> ConversionResult<TensorView> {
-        if !ZeroCopyConverter::is_compatible(self.view_dtype, new_dtype) {
+    pub fn reinterpret(&self, newdtype: BitNetDType) -> ConversionResult<TensorView> {
+        if !ZeroCopyConverter::is_compatible(self.viewdtype, newdtype) {
             return Err(ConversionError::UnsupportedConversion {
-                from: self.view_dtype,
-                to: new_dtype,
+                from: self.viewdtype,
+                to: newdtype,
             });
         }
 
         Ok(TensorView {
             source_tensor: self.source_tensor.clone(),
-            view_dtype: new_dtype,
+            viewdtype: newdtype,
         })
     }
 
@@ -320,7 +333,7 @@ pub mod utils {
     pub fn performance_gain_estimate(
         source: BitNetDType,
         target: BitNetDType,
-        element_count: usize,
+        _element_count: usize,
     ) -> f64 {
         if can_zero_copy(source, target) {
             if source == target {
@@ -476,7 +489,7 @@ mod tests {
 
     #[test]
     fn test_converter_trait_implementation() {
-        let pool = Arc::new(HybridMemoryPool::new().unwrap());
+        let _pool = Arc::new(HybridMemoryPool::new().unwrap());
         let device = get_cpu_device();
         let converter = ZeroCopyConverter::new();
 

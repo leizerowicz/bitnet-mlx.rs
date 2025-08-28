@@ -18,8 +18,8 @@ fn setup_test_device() -> Device {
 /// Create test parameters for optimizer testing
 fn create_test_parameters(device: &Device) -> CandleResult<Vec<Tensor>> {
     Ok(vec![
-        Tensor::randn(0.0, 0.1, &[10, 10], device)?,
-        Tensor::randn(0.0, 0.1, &[10, 1], device)?,
+        Tensor::randn(0.0f32, 0.1f32, &[10, 10], device)?,
+        Tensor::randn(0.0f32, 0.1f32, &[10, 1], device)?,
     ])
 }
 
@@ -27,7 +27,7 @@ fn create_test_parameters(device: &Device) -> CandleResult<Vec<Tensor>> {
 fn create_mock_gradients(params: &[Tensor]) -> CandleResult<Vec<Tensor>> {
     params
         .iter()
-        .map(|p| Tensor::randn(0.0, 0.01, p.dims(), p.device()))
+        .map(|p| Tensor::randn(0.0f32, 0.01f32, p.dims(), p.device()))
         .collect::<CandleResult<Vec<_>>>()
 }
 
@@ -482,7 +482,7 @@ mod error_handling {
 
         // Create gradients with wrong shapes
         let wrong_gradients = vec![
-            Tensor::randn(0.0, 0.01, &[5, 5], &device).unwrap(), // Wrong shape
+            Tensor::randn(0.0f32, 0.01f32, &[5, 5], &device).unwrap(), // Wrong shape
         ];
 
         let result = optimizer.step(&wrong_gradients);

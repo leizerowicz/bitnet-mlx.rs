@@ -126,10 +126,9 @@ fn demonstrate_automatic_cleanup(
 }
 
 fn demonstrate_manual_cleanup(
-    pool: &Arc<HybridMemoryPool>,
+    _pool: &Arc<HybridMemoryPool>,
     cleanup_manager: &CleanupManager,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let device = auto_select_device();
 
     println!("  🔧 Performing manual force cleanup...");
     let result = cleanup_manager.force_cleanup()?;
@@ -150,7 +149,7 @@ fn demonstrate_manual_cleanup(
 }
 
 fn demonstrate_device_cleanup(
-    pool: &Arc<HybridMemoryPool>,
+    _pool: &Arc<HybridMemoryPool>,
     cleanup_manager: &CleanupManager,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let device = auto_select_device();
@@ -174,7 +173,7 @@ fn demonstrate_device_cleanup(
 }
 
 fn demonstrate_selective_cleanup(
-    pool: &Arc<HybridMemoryPool>,
+    _pool: &Arc<HybridMemoryPool>,
     cleanup_manager: &CleanupManager,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let device = auto_select_device();

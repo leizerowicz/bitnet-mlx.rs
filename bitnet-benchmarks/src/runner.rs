@@ -14,6 +14,7 @@ use crate::comparison::{ComparisonConfig, PerformanceComparator};
 #[derive(Parser)]
 #[command(name = "bitnet-benchmarks")]
 #[command(about = "MLX vs Candle performance benchmarking tool")]
+#[allow(dead_code)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
@@ -75,6 +76,7 @@ pub enum Commands {
 }
 
 /// Benchmark runner implementation
+#[allow(dead_code)]
 pub struct BenchmarkRunner {
     config: ComparisonConfig,
     verbose: bool,

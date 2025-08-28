@@ -46,6 +46,7 @@ use std::collections::HashMap;
 
 /// QAT Training Configuration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QATConfig {
     /// STE variant to use
     pub ste_variant: STEVariant,
@@ -82,6 +83,7 @@ impl Default for QATConfig {
 
 /// QAT Training State Tracker
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QATState {
     /// Current training step
     pub step: usize,
@@ -94,6 +96,7 @@ pub struct QATState {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QuantizationParams {
     pub scale: f32,
     pub zero_point: i32,
@@ -103,6 +106,7 @@ pub struct QuantizationParams {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct STEStatistics {
     pub forward_quantization_error: f32,
     pub gradient_flow_magnitude: f32,
@@ -111,6 +115,7 @@ pub struct STEStatistics {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QATMetrics {
     pub quantization_loss: f32,
     pub distillation_loss: f32,
@@ -162,6 +167,7 @@ impl QATState {
 }
 
 /// QAT Training Context
+#[allow(dead_code)]
 pub struct QATContext {
     pub config: QATConfig,
     pub state: QATState,

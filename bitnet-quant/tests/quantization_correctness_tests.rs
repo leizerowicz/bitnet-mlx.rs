@@ -7,8 +7,35 @@ use approx::assert_abs_diff_eq;
 use bitnet_quant::prelude::*;
 use candle_core::{DType, Device, Shape, Tensor};
 
-/// Test helper to create test tensors with known patterns
+/// Test helper to create test tensors with known patterns (2D for weights)
 fn create_test_tensor(device: &Device, pattern: &str) -> Tensor {
+    match pattern {
+        "uniform" => Tensor::new(&[1.0f32, -1.0, 0.5, -0.5, 0.0, 2.0, -2.0, 1.5], device).unwrap().reshape(&[2, 4]).unwrap(),
+        "sparse" => Tensor::new(&[0.0f32, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0], device).unwrap().reshape(&[2, 4]).unwrap(),
+        "outliers" => {
+            Tensor::new(&[0.1f32, 0.2, 100.0, 0.3, -100.0, 0.4, 0.5, 0.6], device).unwrap().reshape(&[2, 4]).unwrap()
+        }
+        "small_values" => Tensor::new(
+            &[1e-6f32, -1e-6, 1e-7, -1e-7, 1e-8, -1e-8, 0.0, 1e-5],
+            device,
+        )
+        .unwrap().reshape(&[2, 4]).unwrap(),
+        "large_values" => Tensor::new(
+            &[
+                1000.0f32, -1000.0, 500.0, -500.0, 2000.0, -2000.0, 1500.0, -1500.0,
+            ],
+            device,
+        )
+        .unwrap().reshape(&[2, 4]).unwrap(),
+        "zeros" => Tensor::zeros((2, 4), DType::F32, device).unwrap(),
+        "ones" => Tensor::ones((2, 4), DType::F32, device).unwrap(),
+        "negative_ones" => Tensor::new(&[-1.0f32; 8], device).unwrap().reshape(&[2, 4]).unwrap(),
+        _ => Tensor::new(&[1.0f32, -1.0, 0.5, -0.5], device).unwrap().reshape(&[2, 2]).unwrap(),
+    }
+}
+
+/// Test helper to create activation tensors (1D for activation quantization)
+fn create_activation_tensor(device: &Device, pattern: &str) -> Tensor {
     match pattern {
         "uniform" => Tensor::new(&[1.0f32, -1.0, 0.5, -0.5, 0.0, 2.0, -2.0, 1.5], device).unwrap(),
         "sparse" => Tensor::new(&[0.0f32, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0], device).unwrap(),
@@ -116,7 +143,7 @@ fn test_activation_quantization_mathematical_correctness() {
 
     for pattern in test_patterns {
         for precision in &precisions {
-            let activations = create_test_tensor(&device, pattern);
+            let activations = create_activation_tensor(&device, pattern);
             let quantized =
                 absmax_quantize_activations(&activations, &device, Some(*precision)).unwrap();
 

@@ -19,6 +19,7 @@ use std::time::{Duration, SystemTime};
 
 /// Device comparison configuration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct DeviceComparisonConfig {
     pub devices_to_compare: Vec<String>,
     pub operations_to_test: Vec<String>,
@@ -62,6 +63,7 @@ impl Default for DeviceComparisonConfig {
 
 /// Comprehensive device comparison result
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DeviceComparisonResult {
     pub comparison_id: String,
     pub timestamp: SystemTime,
@@ -75,6 +77,7 @@ pub struct DeviceComparisonResult {
 
 /// Serializable device comparison config
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DeviceComparisonConfigSerialized {
     pub devices_to_compare: Vec<String>,
     pub operations_to_test: Vec<String>,
@@ -88,6 +91,7 @@ pub struct DeviceComparisonConfigSerialized {
 
 /// Device performance profile
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DevicePerformanceProfile {
     pub device_name: String,
     pub device_capabilities: DeviceCapabilities,
@@ -100,6 +104,7 @@ pub struct DevicePerformanceProfile {
 
 /// Device capabilities
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DeviceCapabilities {
     pub compute_units: u32,
     pub memory_size: usize,
@@ -113,16 +118,18 @@ pub struct DeviceCapabilities {
 
 /// Operation performance profile for a specific device
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct OperationPerformanceProfile {
     pub operation_name: String,
     pub performance_by_size: HashMap<String, SizePerformanceMetrics>, // size -> metrics
-    pub performance_by_dtype: HashMap<String, DtypePerformanceMetrics>, // dtype -> metrics
+    pub performance_bydtype: HashMap<String, DtypePerformanceMetrics>, // dtype -> metrics
     pub optimal_configurations: Vec<OptimalConfiguration>,
     pub performance_characteristics: PerformanceCharacteristics,
 }
 
 /// Performance metrics for a specific tensor size
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SizePerformanceMetrics {
     pub tensor_size: Vec<usize>,
     pub average_latency: Duration,
@@ -134,6 +141,7 @@ pub struct SizePerformanceMetrics {
 
 /// Performance metrics for a specific data type
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DtypePerformanceMetrics {
     pub data_type: String,
     pub average_latency: Duration,
@@ -144,6 +152,7 @@ pub struct DtypePerformanceMetrics {
 
 /// Optimal configuration for an operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct OptimalConfiguration {
     pub configuration_name: String,
     pub tensor_size: Vec<usize>,
@@ -156,6 +165,7 @@ pub struct OptimalConfiguration {
 
 /// Performance characteristics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PerformanceCharacteristics {
     pub is_compute_bound: bool,
     pub is_memory_bound: bool,
@@ -176,6 +186,7 @@ pub enum ScalingBehavior {
 
 /// Memory characteristics for a device
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct MemoryCharacteristics {
     pub allocation_overhead: Duration,
     pub deallocation_overhead: Duration,
@@ -187,6 +198,7 @@ pub struct MemoryCharacteristics {
 
 /// Power characteristics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PowerCharacteristics {
     pub idle_power: f64, // Watts
     pub peak_power: f64,
@@ -197,6 +209,7 @@ pub struct PowerCharacteristics {
 
 /// Thermal characteristics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ThermalCharacteristics {
     pub idle_temperature: f64, // Celsius
     pub peak_temperature: f64,
@@ -206,6 +219,7 @@ pub struct ThermalCharacteristics {
 
 /// Scalability analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ScalabilityAnalysis {
     pub batch_size_scaling: Vec<ScalingDataPoint>,
     pub tensor_size_scaling: Vec<ScalingDataPoint>,
@@ -215,6 +229,7 @@ pub struct ScalabilityAnalysis {
 
 /// Scaling data point
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ScalingDataPoint {
     pub parameter_value: f64,
     pub throughput: f64,
@@ -225,6 +240,7 @@ pub struct ScalingDataPoint {
 
 /// Device efficiency metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DeviceEfficiencyMetrics {
     pub compute_efficiency: f64, // % of peak performance achieved
     pub memory_efficiency: f64,
@@ -235,6 +251,7 @@ pub struct DeviceEfficiencyMetrics {
 
 /// Cross-device comparison
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CrossDeviceComparison {
     pub device_a: String,
     pub device_b: String,
@@ -249,6 +266,7 @@ pub struct CrossDeviceComparison {
 
 /// Performance comparison between devices
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PerformanceComparison {
     pub speedup: f64,
     pub throughput_ratio: f64,
@@ -259,6 +277,7 @@ pub struct PerformanceComparison {
 
 /// Memory comparison between devices
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct MemoryComparison {
     pub memory_usage_ratio: f64,
     pub allocation_efficiency_ratio: f64,
@@ -268,6 +287,7 @@ pub struct MemoryComparison {
 
 /// Power comparison between devices
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PowerComparison {
     pub power_consumption_ratio: f64,
     pub energy_efficiency_ratio: f64,
@@ -277,6 +297,7 @@ pub struct PowerComparison {
 
 /// Device recommendation
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DeviceRecommendation {
     pub recommended_device: String,
     pub confidence: f64,
@@ -287,6 +308,7 @@ pub struct DeviceRecommendation {
 
 /// Device optimization recommendation
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DeviceOptimizationRecommendation {
     pub device: String,
     pub operation: String,
@@ -321,6 +343,7 @@ pub enum ImplementationComplexity {
 
 /// Device selection guide
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DeviceSelectionGuide {
     pub decision_tree: Vec<DecisionNode>,
     pub use_case_recommendations: HashMap<String, String>, // use_case -> recommended_device
@@ -330,6 +353,7 @@ pub struct DeviceSelectionGuide {
 
 /// Decision tree node for device selection
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DecisionNode {
     pub condition: String,
     pub true_branch: Box<Option<DecisionNode>>,
@@ -339,6 +363,7 @@ pub struct DecisionNode {
 
 /// Performance matrix for different scenarios
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PerformanceMatrix {
     pub scenarios: Vec<String>,
     pub devices: Vec<String>,
@@ -347,6 +372,7 @@ pub struct PerformanceMatrix {
 
 /// Cost-benefit analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CostBenefitAnalysis {
     pub device_costs: HashMap<String, DeviceCost>,
     pub performance_benefits: HashMap<String, f64>,
@@ -355,6 +381,7 @@ pub struct CostBenefitAnalysis {
 
 /// Device cost information
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DeviceCost {
     pub hardware_cost: f64,
     pub power_cost_per_hour: f64,
@@ -364,6 +391,7 @@ pub struct DeviceCost {
 
 /// Comparison summary
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ComparisonSummary {
     pub best_overall_device: String,
     pub best_performance_device: String,
@@ -375,6 +403,7 @@ pub struct ComparisonSummary {
 }
 
 /// MLX Device Comparison Engine
+#[allow(dead_code)]
 pub struct MlxDeviceComparison {
     config: DeviceComparisonConfig,
     benchmarker: MlxPerformanceBenchmarker,
@@ -829,7 +858,7 @@ impl MlxDeviceComparison {
         &self,
         operation: &str,
         performance_by_size: &HashMap<String, SizePerformanceMetrics>,
-        performance_by_dtype: &HashMap<String, DtypePerformanceMetrics>,
+        performance_bydtype: &HashMap<String, DtypePerformanceMetrics>,
     ) -> Result<Vec<OptimalConfiguration>> {
         let mut configs = Vec::new();
 

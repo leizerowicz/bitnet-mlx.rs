@@ -12,6 +12,7 @@ use std::collections::HashMap;
 
 /// Main configuration for mixed precision operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct MixedPrecisionConfig {
     /// Global mixed precision strategy
     pub strategy: MixedPrecisionStrategy,
@@ -214,6 +215,7 @@ impl MixedPrecisionConfig {
 
 /// Configuration for a specific layer's precision settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct LayerPrecisionConfig {
     /// Layer type
     pub layer_type: LayerType,
@@ -325,6 +327,7 @@ impl LayerPrecisionConfig {
 
 /// Configuration for a specific component's precision settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ComponentPrecisionConfig {
     /// Component type
     pub component_type: ComponentType,
@@ -384,6 +387,7 @@ impl ComponentPrecisionConfig {
 
 /// Parameters for dynamic precision adjustment
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct AdjustmentParams {
     /// Threshold for increasing precision (error rate)
     pub increase_threshold: f32,
@@ -439,6 +443,7 @@ impl AdjustmentParams {
 
 /// Memory optimization configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct MemoryOptimizationConfig {
     /// Enable memory pooling for different precisions
     pub enable_memory_pooling: bool,
@@ -512,6 +517,7 @@ impl MemoryOptimizationConfig {
 
 /// Performance optimization configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PerformanceOptimizationConfig {
     /// Enable SIMD optimizations for mixed precision operations
     pub enable_simd_optimizations: bool,
@@ -587,6 +593,7 @@ impl PerformanceOptimizationConfig {
 
 /// Validation configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ValidationConfig {
     /// Enable strict validation of precision compatibility
     pub strict_validation: bool,

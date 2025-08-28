@@ -13,6 +13,7 @@ use super::{
 
 /// Comprehensive QAT training state
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QATTrainingState {
     // Basic training info
     pub epoch: usize,
@@ -146,6 +147,7 @@ impl QATTrainingState {
 
 /// Training metrics summary
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TrainingMetrics {
     pub epoch: usize,
     pub step: usize,
@@ -160,6 +162,7 @@ pub struct TrainingMetrics {
 }
 
 /// QAT State Tracker for managing training state
+#[allow(dead_code)]
 pub struct QATStateTracker {
     state: QATTrainingState,
     device: Device,
@@ -255,6 +258,7 @@ impl QATStateTracker {
 }
 
 /// Checkpoint manager for saving/loading training state
+#[allow(dead_code)]
 pub struct CheckpointManager {
     checkpoint_dir: String,
     device: Device,

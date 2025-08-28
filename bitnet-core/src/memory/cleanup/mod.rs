@@ -148,6 +148,7 @@ impl From<CleanupOperationId> for u64 {
 
 /// Information about a cleanup operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CleanupOperation {
     /// Unique identifier for this operation
     pub id: CleanupOperationId,
@@ -227,6 +228,7 @@ impl CleanupOperation {
 
 /// Global cleanup statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct GlobalCleanupStats {
     /// Total cleanup operations performed
     pub total_operations: u64,
@@ -250,6 +252,7 @@ pub struct GlobalCleanupStats {
 
 /// Cleanup statistics for a specific device type
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DeviceCleanupStats {
     /// Device type identifier
     pub device_type: String,
@@ -265,6 +268,7 @@ pub struct DeviceCleanupStats {
 
 /// Cleanup statistics for a specific strategy type
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct StrategyCleanupStats {
     /// Strategy type
     pub strategy_type: CleanupStrategyType,

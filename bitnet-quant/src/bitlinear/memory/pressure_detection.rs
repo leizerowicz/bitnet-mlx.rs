@@ -33,6 +33,7 @@ impl From<tracking::MemoryPressureLevel> for MemoryPressureLevel {
 
 /// Configuration for memory pressure integration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PressureConfig {
     /// Enable memory pressure monitoring
     pub enable_monitoring: bool,
@@ -65,6 +66,7 @@ impl Default for PressureConfig {
 ///
 /// Integrates with the existing HybridMemoryPool pressure detection
 /// and provides memory-aware optimization for BitLinear layers.
+#[allow(dead_code)]
 pub struct MemoryPressureIntegrator {
     /// Configuration for pressure detection
     config: PressureConfig,
@@ -100,7 +102,7 @@ impl MemoryPressureIntegrator {
         let mut last_check = self
             .last_check
             .lock()
-            .map_err(|_| BitLinearError::cache_lock_error("last check"))?;
+            .map_err(|__| BitLinearError::cache_lock_error("last check"))?;
 
         let now = Instant::now();
         if let Some(last) = *last_check {
@@ -122,7 +124,7 @@ impl MemoryPressureIntegrator {
         let mut current_pressure = self
             .current_pressure
             .write()
-            .map_err(|_| BitLinearError::cache_lock_error("pressure level"))?;
+            .map_err(|__| BitLinearError::cache_lock_error("pressure level"))?;
         *current_pressure = pressure_level.clone();
         drop(current_pressure);
 
@@ -134,7 +136,7 @@ impl MemoryPressureIntegrator {
         let pressure = self
             .current_pressure
             .read()
-            .map_err(|_| BitLinearError::cache_lock_error("last check"))?;
+            .map_err(|__| BitLinearError::cache_lock_error("last check"))?;
         Ok(pressure.clone())
     }
 

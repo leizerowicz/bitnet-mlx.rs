@@ -162,7 +162,7 @@ mod qat_training_tests {
             
             // Run training iterations
             let mut losses = Vec::new();
-            for iteration in 0..env.config.training_iterations {
+            for _iteration in 0..env.config.training_iterations {
                 // Forward pass simulation
                 let loss_value = 1.0 / (1.0 + iteration as f32 * 0.1); // Simulated decreasing loss
                 
@@ -390,7 +390,7 @@ mod qat_training_tests {
             state.set_learning_rate(0.001);
             
             // Update state with training progress
-            for iteration in 0..5 {
+            for _iteration in 0..5 {
                 state.update_iteration(iteration);
                 state.update_loss(1.0 / (iteration + 1) as f32);
             }
@@ -482,7 +482,7 @@ mod qat_training_tests {
             let mut tracker = QATStateTracker::new(state.clone(), &env.device);
             
             // Run training simulation with large data
-            for iteration in 0..5 {
+            for _iteration in 0..5 {
                 let tensor_idx = iteration % large_tensors.len();
                 let tensor = &large_tensors[tensor_idx];
                 

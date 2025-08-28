@@ -32,6 +32,7 @@ pub enum ScalingPolicy {
 
 /// Configuration for scaling factor management
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ScalingConfig {
     /// Default scaling policy
     pub default_policy: ScalingPolicy,
@@ -74,6 +75,7 @@ impl Default for ScalingConfig {
 
 /// Cached scaling factor entry
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ScaleEntry {
     /// The computed scale tensor
     scale: Tensor,
@@ -82,7 +84,7 @@ pub struct ScaleEntry {
     /// Original tensor shape for validation
     tensor_shape: Shape,
     /// Original tensor dtype for validation
-    tensor_dtype: DType,
+    tensordtype: DType,
     /// Scaling policy used for computation
     policy_used: ScalingPolicy,
     /// Creation timestamp
@@ -110,7 +112,7 @@ impl ScaleEntry {
             scale,
             tensor_hash,
             tensor_shape: original_tensor.shape().clone(),
-            tensor_dtype: original_tensor.dtype(),
+            tensordtype: original_tensor.dtype(),
             policy_used: policy,
             created_at: current_time,
             last_accessed: current_time,
@@ -122,7 +124,7 @@ impl ScaleEntry {
     /// Check if this entry is valid for the given tensor and policy
     pub fn is_valid_for(&self, tensor: &Tensor, policy: &ScalingPolicy) -> BitLinearResult<bool> {
         // Check if tensor matches
-        if tensor.shape() != &self.tensor_shape || tensor.dtype() != self.tensor_dtype {
+        if tensor.shape() != &self.tensor_shape || tensor.dtype() != self.tensordtype {
             return Ok(false);
         }
 
@@ -162,6 +164,7 @@ impl ScaleEntry {
 }
 
 /// Scale cache for storing computed scaling factors
+#[allow(dead_code)]
 pub struct ScaleCache {
     /// Cache storage
     cache: HashMap<String, ScaleEntry>,
@@ -276,6 +279,7 @@ impl ScaleCache {
 
 /// Statistics for scaling factor management
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct ScalingStats {
     /// Total scale computations performed
     pub computations_performed: u64,
@@ -303,6 +307,7 @@ impl ScalingStats {
 }
 
 /// Scaling factor manager
+#[allow(dead_code)]
 pub struct ScalingFactorManager {
     /// Configuration
     config: ScalingConfig,
@@ -586,7 +591,7 @@ impl ScalingFactorManager {
             let mut averages = self
                 .running_averages
                 .lock()
-                .map_err(|_| BitLinearError::cache_lock_error("running averages"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("running averages"))?;
 
             let new_avg = if let Some(&prev_avg) = averages.get(key) {
                 momentum * prev_avg + (1.0 - momentum) * current_value

@@ -23,6 +23,7 @@ use super::bitnet_ops::BitNetQuantizationConfig;
 
 /// Configuration for BitLinear tensor operations
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct BitLinearConfig {
     /// Weight quantization configuration
     pub weight_quantization: BitNetQuantizationConfig,
@@ -58,6 +59,7 @@ impl Default for BitLinearConfig {
 
 /// Weight quantization tensor operations
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct WeightQuantizationTensor {
     /// Original weight tensor
     pub weights: BitNetTensor,
@@ -74,6 +76,7 @@ pub struct WeightQuantizationTensor {
 
 /// Activation quantization tensor operations
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct ActivationQuantizationTensor {
     /// Input activation tensor
     pub activations: BitNetTensor,
@@ -90,6 +93,7 @@ pub struct ActivationQuantizationTensor {
 
 /// Activation statistics for quantization calibration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ActivationStats {
     /// Running mean of activation values
     pub running_mean: f32,
@@ -142,6 +146,7 @@ pub enum BitLinearTensorError {
 }
 
 /// LayerNorm integration support
+#[allow(dead_code)]
 pub struct LayerNormIntegration {
     /// LayerNorm weight (gamma)
     pub weight: BitNetTensor,
@@ -157,6 +162,7 @@ pub struct LayerNormIntegration {
 }
 
 /// Residual connection support
+#[allow(dead_code)]
 pub struct ResidualConnectionSupport {
     /// Whether to use residual connections
     pub enabled: bool,
@@ -170,6 +176,7 @@ pub struct ResidualConnectionSupport {
 
 /// Implementation of BitLinear tensor operations
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 pub struct BitLinearTensorOpsImpl {
     config: BitLinearConfig,
     weight_quantizer: Option<Arc<dyn WeightQuantizer>>,
@@ -610,6 +617,7 @@ impl BitLinearTensorOpsImpl {
 
 /// Mixed precision BitLinear operations
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct MixedPrecisionBitLinearOps {
     /// Weight quantization precision
     pub weight_precision: QuantizationPrecision,
@@ -626,6 +634,7 @@ pub struct MixedPrecisionBitLinearOps {
 
 /// Configuration for mixed precision operations
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MixedPrecisionConfig {
     /// Enable dynamic precision selection
     pub enable_dynamic_precision: bool,
@@ -657,6 +666,7 @@ impl Default for MixedPrecisionConfig {
 
 /// Statistics for mixed precision operations
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct MixedPrecisionStats {
     /// Operations performed at each precision
     pub operations_by_precision: HashMap<QuantizationPrecision, usize>,
@@ -673,6 +683,7 @@ pub struct MixedPrecisionStats {
 
 /// Hardware profile for optimization
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct HardwareProfile {
     /// Type of device
     pub device_type: HardwareDeviceType,
@@ -839,6 +850,7 @@ impl MixedPrecisionBitLinearOps {
 
 /// Summary of precision operations
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PrecisionSummary {
     pub total_operations: usize,
     pub avg_duration: f32,
@@ -928,6 +940,7 @@ impl ActivationStats {
 
 /// Statistics summary for activation calibration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct StatsSummary {
     pub mean: f32,
     pub variance: f32,

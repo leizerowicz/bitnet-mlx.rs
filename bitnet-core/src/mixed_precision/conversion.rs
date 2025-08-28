@@ -33,6 +33,7 @@ impl Default for ConversionStrategy {
 
 /// Configuration for precision conversion
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ConversionConfig {
     /// Conversion strategy
     pub strategy: ConversionStrategy,
@@ -63,6 +64,7 @@ impl Default for ConversionConfig {
 
 /// Precision converter for BitNet tensors
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct PrecisionConverter {
     /// Conversion configuration
     config: ConversionConfig,
@@ -138,9 +140,6 @@ impl PrecisionConverter {
         tensor: &BitNetTensor,
         target_precision: BitNetDType,
     ) -> MixedPrecisionResult<BitNetTensor> {
-        let device = tensor.device();
-        let shape = tensor.shape();
-
         // Convert to candle tensor for processing
         let candle_tensor =
             tensor
@@ -178,8 +177,7 @@ impl PrecisionConverter {
         tensor: &BitNetTensor,
         target_precision: BitNetDType,
     ) -> MixedPrecisionResult<BitNetTensor> {
-        let device = tensor.device();
-        let shape = tensor.shape();
+        let device = tensor.device(); // Fixed - get device from tensor
 
         // Get tensor data as candle tensor
         let candle_tensor =
@@ -257,7 +255,7 @@ impl PrecisionConverter {
         tensor: &BitNetTensor,
         target_precision: BitNetDType,
     ) -> MixedPrecisionResult<BitNetTensor> {
-        let device = tensor.device();
+        // let device = device.clone(); // Fixed
 
         // Get tensor data
         let candle_tensor =
@@ -313,7 +311,7 @@ impl PrecisionConverter {
             .copied()
             .unwrap_or(0.0);
 
-        let device = tensor.device();
+        let device = tensor.device(); // Fixed - get device from tensor
         let candle_tensor =
             tensor
                 .to_candle()
@@ -382,8 +380,7 @@ impl PrecisionConverter {
 
     /// Convert tensor to ternary (BitNet 1.58) precision
     fn convert_to_ternary(&self, tensor: &BitNetTensor) -> MixedPrecisionResult<BitNetTensor> {
-        let device = tensor.device();
-        let shape = tensor.shape();
+        let device = tensor.device(); // Fixed - get device from tensor
 
         let candle_tensor =
             tensor
@@ -421,7 +418,7 @@ impl PrecisionConverter {
         tensor: &BitNetTensor,
         target_precision: BitNetDType,
     ) -> MixedPrecisionResult<BitNetTensor> {
-        let device = tensor.device();
+        let device = tensor.device(); // Fixed - get device from tensor
 
         let candle_tensor =
             tensor
@@ -506,7 +503,7 @@ impl PrecisionConverter {
     fn apply_stochastic_rounding(
         &self,
         tensor: &Tensor,
-        target_precision: BitNetDType,
+        _target_precision: BitNetDType,
     ) -> MixedPrecisionResult<Tensor> {
         // For simplicity, just apply regular rounding
         // In a full implementation, this would use random rounding
@@ -599,6 +596,7 @@ impl PrecisionConverter {
 
 /// Statistics for precision conversions
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 pub struct ConversionStats {
     /// Total number of conversions performed
     pub total_conversions: usize,
@@ -656,6 +654,7 @@ impl ConversionStats {
 }
 
 /// Batch conversion utilities
+#[allow(dead_code)]
 pub struct BatchConverter {
     converter: PrecisionConverter,
 }

@@ -167,7 +167,7 @@ fn benchmark_memory_operations(
 
     // Tensor creation benchmark
     for &size in &config.memory_test_sizes {
-        let shape = vec![size];
+        let _shape = vec![size];
         let mut result = BenchmarkResult::new(format!("tensor_creation_{}", size));
         result.tensor_size = Some(shape.clone());
 
@@ -894,7 +894,7 @@ fn benchmark_scaling_analysis(
     let initial_memory = pool.get_metrics().total_allocated;
 
     for size in sizes {
-        let shape = vec![size, size];
+        let _shape = vec![size, size];
 
         let before_memory = pool.get_metrics().total_allocated;
 
@@ -987,7 +987,7 @@ fn benchmark_memory_efficiency(
             let post_large_metrics = pool.get_metrics();
             println!("  After large tensor: {} bytes allocated", post_large_metrics.total_allocated);
         }
-        Err(e) => {
+        Err(_e) => {
             println!("  ❌ Large tensor allocation failed: {}", e);
         }
     }
@@ -1216,7 +1216,7 @@ fn print_system_info() -> Result<(), Box<dyn std::error::Error>> {
     if metal_available {
         match get_metal_device() {
             Ok(metal_device) => println!("  Metal device: {:?}", metal_device),
-            Err(e) => println!("  Metal device error: {}", e),
+            Err(_e) => println!("  Metal device error: {}", e),
         }
     }
 

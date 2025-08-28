@@ -392,7 +392,7 @@ mod edge_case_tests {
             let compiler = ShaderCompiler::new(device, config).unwrap();
 
             // Repeatedly compile and clear to test memory management
-            for iteration in 0..20 {
+            for _iteration in 0..20 {
                 let start_memory = get_approximate_memory_usage();
 
                 let _result = compiler.compile_all_shaders();

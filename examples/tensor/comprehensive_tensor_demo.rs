@@ -113,7 +113,7 @@ fn demo_tensor_creation_and_basic_ops(
     // Create tensors with different shapes and data types
     let mut tensors = Vec::new();
 
-    for (i, shape) in config.tensor_sizes.iter().enumerate() {
+    for (_i, shape) in config.tensor_sizes.iter().enumerate() {
         let dtype = &config.data_types[i % config.data_types.len()];
 
         println!("Creating tensor: shape={:?}, dtype={:?}", shape, dtype);
@@ -162,7 +162,7 @@ fn demo_tensor_creation_and_basic_ops(
     if tensor.shape().len() >= 2 {
         match tensor.slice(0, 0..10) {
             Ok(slice) => println!("  🔍 Sliced tensor: shape={:?}", slice.shape()),
-            Err(e) => println!("  ❌ Slicing not implemented: {}", e),
+            Err(_e) => println!("  ❌ Slicing not implemented: {}", e),
         }
     }
 
@@ -182,7 +182,7 @@ fn demo_mathematical_operations(
     println!("----------------------------");
 
     let device = auto_select_device();
-    let shape = vec![256, 256];
+    let _shape = vec![256, 256];
 
     // Create test tensors
     let tensor_a = BitNetTensor::ones_with_pool(
@@ -319,7 +319,7 @@ fn demo_memory_pool_integration(
 
     // Create tensors of increasing size
     let sizes = vec![64, 128, 256, 512, 1024];
-    for (i, size) in sizes.iter().enumerate() {
+    for (_i, size) in sizes.iter().enumerate() {
         let tensor = BitNetTensor::zeros_with_pool(
             vec![*size, *size],
             BitNetDType::Float32,
@@ -712,7 +712,7 @@ fn demo_memory_efficiency(
         pool.clone()
     ) {
         Ok(_) => println!("  ✅ Successfully allocated large tensor despite fragmentation"),
-        Err(e) => println!("  ❌ Failed to handle fragmentation: {}", e),
+        Err(_e) => println!("  ❌ Failed to handle fragmentation: {}", e),
     }
 
     println!("✅ Memory efficiency demo completed");
@@ -741,7 +741,7 @@ fn demo_error_handling_and_recovery(
         vec![100000000, 100000000], // Too large
     ];
 
-    for (i, shape) in invalid_shapes.iter().enumerate() {
+    for (_i, shape) in invalid_shapes.iter().enumerate() {
         match BitNetTensor::zeros_with_pool(
             shape.clone(),
             BitNetDType::Float32,
@@ -749,7 +749,7 @@ fn demo_error_handling_and_recovery(
             pool.clone()
         ) {
             Ok(_) => println!("  ⚠️  Invalid shape {} unexpectedly succeeded: {:?}", i + 1, shape),
-            Err(e) => println!("  ✅ Invalid shape {} properly rejected: {}", i + 1, e),
+            Err(_e) => println!("  ✅ Invalid shape {} properly rejected: {}", i + 1, e),
         }
     }
 
@@ -776,7 +776,7 @@ fn demo_error_handling_and_recovery(
         // Test cross-device operations (should handle automatically or error gracefully)
         match cpu_tensor.add(&metal_tensor) {
             Ok(result) => println!("  ✅ Cross-device operation handled: result on {:?}", result.device()),
-            Err(e) => println!("  ℹ️  Cross-device operation rejected (expected): {}", e),
+            Err(_e) => println!("  ℹ️  Cross-device operation rejected (expected): {}", e),
         }
     }
 
@@ -803,7 +803,7 @@ fn demo_error_handling_and_recovery(
                     break;
                 }
             }
-            Err(e) => {
+            Err(_e) => {
                 println!("  ✅ Memory exhaustion handled gracefully after {} allocations: {}",
                          allocation_count, e);
                 break;
@@ -822,7 +822,7 @@ fn demo_error_handling_and_recovery(
         pool.clone()
     ) {
         Ok(_) => println!("  ✅ Successfully recovered after memory exhaustion"),
-        Err(e) => println!("  ❌ Failed to recover: {}", e),
+        Err(_e) => println!("  ❌ Failed to recover: {}", e),
     }
 
     // Test operation error handling
@@ -845,7 +845,7 @@ fn demo_error_handling_and_recovery(
     // Test incompatible shapes for element-wise operations
     match tensor1.add(&tensor2) {
         Ok(_) => println!("  ⚠️  Incompatible shapes unexpectedly succeeded"),
-        Err(e) => println!("  ✅ Incompatible shapes properly rejected: {}", e),
+        Err(_e) => println!("  ✅ Incompatible shapes properly rejected: {}", e),
     }
 
     // Test invalid matrix multiplication
@@ -858,7 +858,7 @@ fn demo_error_handling_and_recovery(
 
     match tensor1.matmul(&tensor3) {
         Ok(_) => println!("  ✅ Matrix multiplication with compatible shapes succeeded"),
-        Err(e) => println!("  ℹ️  Matrix multiplication error: {}", e),
+        Err(_e) => println!("  ℹ️  Matrix multiplication error: {}", e),
     }
 
     println!("✅ Error handling and recovery demo completed");

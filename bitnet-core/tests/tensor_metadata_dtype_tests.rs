@@ -23,7 +23,6 @@ use bitnet_core::device::{get_cpu_device, get_metal_device, is_metal_available};
 use bitnet_core::memory::tensor::metadata::DeviceInfo;
 use bitnet_core::memory::tensor::{BitNetDType, TensorMetadata};
 use candle_core::{DType, Device};
-use rand::{thread_rng, Rng};
 
 // =============================================================================
 // Test Utilities and Helpers
@@ -58,27 +57,7 @@ fn get_all_dtypes() -> Vec<BitNetDType> {
     BitNetDType::all_types().to_vec()
 }
 
-/// Helper function to create metadata with random properties
-fn create_random_metadata(id: u64) -> TensorMetadata {
-    let mut rng = thread_rng();
-    let devices = get_test_devices();
-    let dtypes = get_all_dtypes();
 
-    let device = &devices[rng.gen_range(0..devices.len())];
-    let dtype = dtypes[rng.gen_range(0..dtypes.len())];
-
-    // Generate random shape (1-4 dimensions, each 1-100 elements)
-    let rank = rng.gen_range(1..=4);
-    let shape: Vec<usize> = (0..rank).map(|_| rng.gen_range(1..=100)).collect();
-
-    let name = if rng.gen_bool(0.5) {
-        Some(format!("tensor_{id}"))
-    } else {
-        None
-    };
-
-    TensorMetadata::new(id, shape, dtype, device, name)
-}
 
 /// Helper function to simulate time passage
 fn simulate_time_passage(duration: Duration) {
@@ -537,7 +516,7 @@ fn test_dtype_conversion_accuracy_and_precision() {
             if let Some((min_val, max_val)) = dtype.value_range() {
                 // Verify that the range can represent the expected precision
                 let range_size = max_val - min_val + 1;
-                let bits = dtype.bits_per_element();
+                let _bits = dtype.bits_per_element();
 
                 match dtype {
                     BitNetDType::I4 => {

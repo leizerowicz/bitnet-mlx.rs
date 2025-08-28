@@ -4,7 +4,7 @@
 //! implementing the Straight-Through Estimator (STE) and other QAT techniques
 //! essential for training BitNet models with quantization simulation.
 
-use candle_core::{Device, Tensor as CandleTensor};
+use candle_core::{Device, Tensor, Tensor as CandleTensor};
 use std::collections::HashMap;
 
 use bitnet_core::BitNetTensor;
@@ -15,6 +15,7 @@ use super::{TensorIntegrationError, TensorIntegrationResult};
 
 /// Configuration for QAT tensor operations
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QATConfig {
     /// Enable straight-through estimator
     pub enable_ste: bool,
@@ -70,6 +71,7 @@ impl Default for QATConfig {
 
 /// Straight-Through Estimator implementation for QAT
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct StraightThroughEstimator {
     /// Configuration for STE
     config: QATConfig,
@@ -86,6 +88,7 @@ pub struct StraightThroughEstimator {
 
 /// Quantization parameters for a specific layer
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QuantizationParameters {
     /// Scale parameter (learnable)
     pub scale: f32,
@@ -121,6 +124,7 @@ impl Default for QuantizationParameters {
 
 /// QAT tensor operations with straight-through estimation
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct QATTensorOps {
     /// STE implementation
     ste: StraightThroughEstimator,
@@ -134,6 +138,7 @@ pub struct QATTensorOps {
 
 /// Quantization statistics for monitoring and debugging
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QuantizationStats {
     /// Total number of quantization operations
     pub total_quantizations: usize,
@@ -150,6 +155,7 @@ pub struct QuantizationStats {
 
 /// Gradient flow statistics for STE
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct GradientStats {
     /// Average gradient magnitude before quantization
     pub avg_grad_magnitude_before: f32,
@@ -429,7 +435,7 @@ impl StraightThroughEstimator {
             message: format!("Failed to compute absolute value: {e}"),
         })?;
 
-        let threshold_tensor = CandleTensor::new(threshold, tensor.device()).map_err(|e| {
+        let threshold_tensor = Tensor::new(threshold, tensor.device()).map_err(|e| {
             TensorIntegrationError::TensorOp {
                 message: format!("Failed to create threshold tensor: {e}"),
             }
@@ -506,7 +512,7 @@ impl StraightThroughEstimator {
             return Ok(tensor.clone());
         }
 
-        let temp_tensor = CandleTensor::new(temperature, tensor.device()).map_err(|e| {
+        let temp_tensor = Tensor::new(temperature, tensor.device()).map_err(|e| {
             TensorIntegrationError::TensorOp {
                 message: format!("Failed to create temperature tensor: {e}"),
             }

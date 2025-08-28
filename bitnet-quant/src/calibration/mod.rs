@@ -20,18 +20,13 @@
 //! use candle_core::{Tensor, Device};
 //!
 //! // Create calibration dataset
-//! let config = CalibrationConfig::builder()
-//!     .batch_size(32)
-//!     .max_samples(1000)
-//!     .enable_streaming(true)
-//!     .sampling_strategy(SamplingStrategy::Random)
-//!     .build();
+//! let config = CalibrationConfig::default();
+//! let mut dataset = CalibrationDataset::new(config)?;
 //!
-//! let dataset = CalibrationDataset::new(config)?;
-//!
-//! // Load data and collect statistics
+//! // Load data and collect statistics  
 //! dataset.load_from_path("path/to/calibration/data")?;
 //! let statistics = dataset.collect_statistics()?;
+//! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 
 pub mod config;
@@ -62,6 +57,7 @@ pub use streaming::{ChunkProcessor, StreamingProcessor};
 
 /// Core calibration result containing all collected statistics
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct CalibrationSummary {
     /// Activation statistics per layer
     pub layer_statistics: std::collections::HashMap<String, LayerStatistics>,
@@ -75,6 +71,7 @@ pub struct CalibrationSummary {
 
 /// Quantization parameters optimized from calibration
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct QuantizationParameters {
     /// Scaling factor for quantization
     pub scale: f32,
@@ -92,6 +89,7 @@ pub struct QuantizationParameters {
 
 /// Metadata about calibration process
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct CalibrationMetadata {
     /// Number of samples processed
     pub samples_processed: usize,

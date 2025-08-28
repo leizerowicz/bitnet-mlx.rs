@@ -943,7 +943,7 @@ fn test_memory_fragmentation_with_tensor_operations() {
         large_tensors.push(tensor);
     }
 
-    let fragmented_metrics = pool.get_metrics();
+    let _fragmented_metrics = pool.get_metrics();
 
     // Deallocate every other small tensor to create fragmentation
     let mut i = 0;

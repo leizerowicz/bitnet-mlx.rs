@@ -32,6 +32,7 @@ pub enum SliceIndex {
 /// This struct provides detailed information about the memory requirements
 /// for storing a tensor with a particular shape and element type.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
 pub struct MemoryRequirements {
     /// Total bytes required for tensor data
     pub total_bytes: usize,
@@ -70,6 +71,7 @@ pub enum ShapeOperation {
 /// This struct provides optimization recommendations for tensor
 /// memory layout based on shape characteristics and usage patterns.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
 pub struct LayoutRecommendation {
     /// Whether contiguous layout is recommended
     pub is_contiguous_recommended: bool,
@@ -100,6 +102,7 @@ pub enum MemoryAccessPattern {
 /// multi-dimensional tensors with broadcasting operations compatible
 /// with NumPy and PyTorch semantics.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct TensorShape {
     /// Dimensions of the tensor
     dims: Vec<usize>,

@@ -224,6 +224,7 @@ struct PooledBuffer {
 /// Configuration for buffer pool behavior
 #[cfg(target_os = "macos")]
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct BufferPoolConfig {
     /// Maximum number of buffers per size bucket
     pub max_buffers_per_size: usize,
@@ -249,6 +250,7 @@ impl Default for BufferPoolConfig {
 
 /// High-performance buffer pool for Metal buffers
 #[cfg(target_os = "macos")]
+#[allow(dead_code)]
 pub struct BufferPool {
     device: metal::Device,
     pools: RwLock<HashMap<usize, Vec<PooledBuffer>>>,
@@ -260,6 +262,7 @@ pub struct BufferPool {
 /// Statistics for buffer pool performance monitoring
 #[cfg(target_os = "macos")]
 #[derive(Debug, Default, Clone)]
+#[allow(dead_code)]
 pub struct BufferPoolStats {
     pub total_allocations: u64,
     pub cache_hits: u64,
@@ -271,6 +274,7 @@ pub struct BufferPoolStats {
 
 /// Synchronization utilities for Metal operations
 #[cfg(target_os = "macos")]
+#[allow(dead_code)]
 pub struct MetalSynchronizer {
     device: metal::Device,
     command_queue: metal::CommandQueue,
@@ -279,6 +283,7 @@ pub struct MetalSynchronizer {
 
 /// Represents a synchronization point in Metal command execution
 #[cfg(target_os = "macos")]
+#[allow(dead_code)]
 pub struct SyncPoint {
     event: metal::Event,
     command_buffer: Option<metal::CommandBuffer>,
@@ -315,6 +320,7 @@ pub enum CommandBufferPriority {
 /// Configuration for command buffer pool
 #[cfg(target_os = "macos")]
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CommandBufferPoolConfig {
     /// Maximum number of command buffers in the pool
     pub max_command_buffers: usize,
@@ -343,6 +349,7 @@ impl Default for CommandBufferPoolConfig {
 
 /// Managed command buffer with lifecycle tracking
 #[cfg(target_os = "macos")]
+#[allow(dead_code)]
 pub struct ManagedCommandBuffer {
     command_buffer: metal::CommandBuffer,
     state: CommandBufferState,
@@ -374,6 +381,7 @@ impl Clone for ManagedCommandBuffer {
 
 /// Command buffer pool for efficient command buffer management
 #[cfg(target_os = "macos")]
+#[allow(dead_code)]
 pub struct CommandBufferPool {
     command_queue: metal::CommandQueue,
     available_buffers: Arc<Mutex<Vec<ManagedCommandBuffer>>>,
@@ -386,6 +394,7 @@ pub struct CommandBufferPool {
 /// Statistics for command buffer pool monitoring
 #[cfg(target_os = "macos")]
 #[derive(Debug, Default, Clone)]
+#[allow(dead_code)]
 pub struct CommandBufferPoolStats {
     pub total_created: u64,
     pub total_completed: u64,
@@ -399,6 +408,7 @@ pub struct CommandBufferPoolStats {
 
 /// Command buffer manager for high-level command buffer operations
 #[cfg(target_os = "macos")]
+#[allow(dead_code)]
 pub struct CommandBufferManager {
     pool: CommandBufferPool,
     device: metal::Device,
@@ -408,6 +418,7 @@ pub struct CommandBufferManager {
 /// Resource tracker for command buffer dependencies
 #[cfg(target_os = "macos")]
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct ResourceTracker {
     buffers: Vec<metal::Buffer>,
     textures: Vec<metal::Texture>,
@@ -439,10 +450,16 @@ pub struct ResourceTracker {
 /// ```
 #[cfg(all(target_os = "macos", feature = "metal"))]
 pub fn create_metal_device() -> Result<metal::Device> {
-    // Get the default Metal device
-    let device = metal::Device::system_default()
-        .ok_or(MetalError::NoDevicesAvailable)
-        .context("Failed to get default Metal device")?;
+    // First check if Metal is available at all by attempting to get system_default
+    // If Metal is not available, system_default() will return None
+    let device = match metal::Device::system_default() {
+        Some(device) => device,
+        None => {
+            return Err(anyhow::anyhow!(
+                MetalError::NoDevicesAvailable
+            ).context("Metal is not available on this system"))
+        }
+    };
 
     // Verify the device supports compute operations (modern approach)
     // Note: Feature set checks are deprecated in newer macOS versions.
@@ -2084,7 +2101,7 @@ where
 /// A tuple containing (threads_per_threadgroup, number_of_threadgroups)
 #[cfg(all(target_os = "macos", feature = "metal"))]
 pub fn calculate_optimal_threadgroup_size(
-    device: &metal::Device,
+    _device: &metal::Device,
     pipeline_state: &metal::ComputePipelineState,
     total_threads: usize,
 ) -> (metal::MTLSize, metal::MTLSize) {

@@ -37,6 +37,7 @@ impl Default for TernaryMethod {
 
 /// Statistics for ternary quantization analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct TernaryStats {
     /// Total number of elements
     pub total_elements: usize,
@@ -56,6 +57,7 @@ pub struct TernaryStats {
 
 /// Configuration specific to weight quantization
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct WeightQuantizationConfig {
     /// Base quantization configuration
     pub base: QuantizationConfig,
@@ -155,6 +157,7 @@ impl WeightQuantizationConfig {
 
 /// Quantized weight representation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QuantizedWeight {
     /// Quantized weight values
     pub values: Tensor,
@@ -165,7 +168,7 @@ pub struct QuantizedWeight {
     /// Original shape of the weight tensor
     pub original_shape: Shape,
     /// Data type of quantized values
-    pub quantized_dtype: DType,
+    pub quantizeddtype: DType,
     /// Quantization configuration used
     pub config: WeightQuantizationConfig,
     /// Quantization statistics
@@ -181,7 +184,7 @@ impl QuantizedWeight {
         scales: Tensor,
         zero_points: Option<Tensor>,
         original_shape: Shape,
-        quantized_dtype: DType,
+        quantizeddtype: DType,
         config: WeightQuantizationConfig,
         stats: QuantizationStats,
     ) -> Self {
@@ -190,7 +193,7 @@ impl QuantizedWeight {
             scales,
             zero_points,
             original_shape,
-            quantized_dtype,
+            quantizeddtype,
             config,
             stats,
             packed_weights: None,
@@ -203,7 +206,7 @@ impl QuantizedWeight {
         scales: Tensor,
         zero_points: Option<Tensor>,
         original_shape: Shape,
-        quantized_dtype: DType,
+        quantizeddtype: DType,
         config: WeightQuantizationConfig,
         stats: QuantizationStats,
         packed_weights: Option<PackedTernaryWeights>,
@@ -213,7 +216,7 @@ impl QuantizedWeight {
             scales,
             zero_points,
             original_shape,
-            quantized_dtype,
+            quantizeddtype,
             config,
             stats,
             packed_weights,
@@ -235,7 +238,7 @@ impl QuantizedWeight {
         }
 
         // Otherwise use standard calculation
-        let values_size = self.values.elem_count() * self.quantized_dtype.size_in_bytes();
+        let values_size = self.values.elem_count() * self.quantizeddtype.size_in_bytes();
         let scales_size = self.scales.elem_count() * self.scales.dtype().size_in_bytes();
         let zero_points_size = self
             .zero_points
@@ -264,8 +267,8 @@ impl QuantizedWeight {
         if let Some(ref packed) = self.packed_weights {
             let packer = TernaryPackerFactory::create_packer(packed.strategy);
             let ternary_weights = packer.unpack(packed)?;
-            let device = self.values.device();
-            packing_utils::ternary_to_tensor(&ternary_weights, &self.original_shape, device)
+            let device = self.values.device().clone();
+            packing_utils::ternary_to_tensor(&ternary_weights, &self.original_shape, &device)
         } else {
             Ok(self.values.clone())
         }
@@ -344,6 +347,7 @@ pub trait WeightQuantizer:
 
 /// BitNet 1.58-bit weight quantizer
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct BitNetWeightQuantizer {
     config: WeightQuantizationConfig,
     device: Device,
@@ -896,6 +900,7 @@ pub mod weight_utils {
 
 /// Weight distribution analysis results
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct WeightDistributionAnalysis {
     pub min: f32,
     pub max: f32,

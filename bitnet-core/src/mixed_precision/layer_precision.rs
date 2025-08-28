@@ -12,6 +12,7 @@ use std::sync::{Arc, RwLock};
 
 /// Specification for a layer's precision requirements
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct LayerPrecisionSpec {
     /// Layer identifier
     pub layer_id: String,
@@ -197,6 +198,7 @@ impl LayerPrecisionSpec {
 
 /// Manager for layer-specific precision configurations
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct LayerPrecisionManager {
     /// Layer specifications
     layer_specs: Arc<RwLock<HashMap<String, LayerPrecisionSpec>>>,
@@ -300,7 +302,7 @@ impl LayerPrecisionManager {
         let specs = self.layer_specs.read().unwrap();
         specs
             .values()
-            .filter(|spec| spec.layer_type == layer_type)
+            .filter(|pec| pec.layer_type == layer_type)
             .cloned()
             .collect()
     }
@@ -310,7 +312,7 @@ impl LayerPrecisionManager {
         let specs = self.layer_specs.read().unwrap();
         specs
             .values()
-            .filter(|spec| spec.weight_precision == precision)
+            .filter(|pec| pec.weight_precision == precision)
             .cloned()
             .collect()
     }
@@ -457,6 +459,7 @@ impl Default for LayerPrecisionManager {
 
 /// Global precision constraints
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PrecisionConstraints {
     /// Minimum allowed precision globally
     pub min_global_precision: BitNetDType,
@@ -511,6 +514,7 @@ impl PrecisionConstraints {
 
 /// Layer-type specific constraints
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct LayerTypeConstraints {
     /// Allowed precisions for this layer type
     pub allowed_precisions: Vec<BitNetDType>,
@@ -549,6 +553,7 @@ impl LayerTypeConstraints {
 
 /// Performance metrics for a layer
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct LayerPerformanceMetrics {
     /// Execution time (in milliseconds)
     pub execution_time_ms: f32,
@@ -576,6 +581,7 @@ impl Default for LayerPerformanceMetrics {
 
 /// Analysis of precision impact across layers
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PrecisionImpactAnalysis {
     /// Average memory savings across all layers
     pub average_memory_savings: f32,

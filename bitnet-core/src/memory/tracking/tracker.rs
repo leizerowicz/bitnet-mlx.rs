@@ -23,6 +23,7 @@ use crate::memory::MemoryHandle;
 
 /// Main memory tracker that provides real-time monitoring and detailed metrics
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct MemoryTracker {
     /// Tracking configuration
     config: TrackingConfig,
@@ -46,6 +47,7 @@ pub struct MemoryTracker {
 
 /// Detailed memory metrics with comprehensive tracking information
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DetailedMemoryMetrics {
     /// Global tracking statistics
     pub global_stats: GlobalTrackingStats,
@@ -71,6 +73,7 @@ pub struct DetailedMemoryMetrics {
 
 /// Performance metrics for tracking operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PerformanceMetrics {
     /// Average time to track an allocation (nanoseconds)
     pub avg_track_allocation_time_ns: u64,
@@ -88,6 +91,7 @@ pub struct PerformanceMetrics {
 
 /// Tracking system overhead information
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct TrackingOverhead {
     /// Estimated memory overhead in bytes
     pub memory_overhead_bytes: u64,
@@ -106,7 +110,6 @@ struct PerformanceTracker {
     deallocation_times: Vec<Duration>,
     total_operations: u64,
     failed_operations: u64,
-    overhead_start_time: Instant,
     total_tracking_time: Duration,
 }
 
@@ -309,10 +312,9 @@ impl MemoryTracker {
     /// ```
     pub fn track_deallocation(&self, handle: &MemoryHandle) {
         let track_start = Instant::now();
-        let handle_id = handle.id();
 
         #[cfg(feature = "tracing")]
-        debug!("Tracking deallocation of handle {}", handle_id);
+        debug!("Tracking deallocation of handle {}", handle.id());
 
         // Find and remove the allocation
         let allocation_info = if let Ok(mut active) = self.active_allocations.write() {
@@ -599,7 +601,6 @@ impl PerformanceTracker {
             deallocation_times: Vec::new(),
             total_operations: 0,
             failed_operations: 0,
-            overhead_start_time: Instant::now(),
             total_tracking_time: Duration::ZERO,
         }
     }

@@ -16,6 +16,7 @@ use tracing::{debug, trace, warn};
 
 /// SIMD instruction set capabilities
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 pub struct SimdCapabilities {
     pub sse2: bool,
     pub sse4_1: bool,
@@ -132,20 +133,20 @@ pub fn simd_add_scalar_f32(tensor: &BitNetTensor, scalar: f32) -> TensorOpResult
 fn validate_simd_binary_op(
     lhs: &BitNetTensor,
     rhs: &BitNetTensor,
-    expected_dtype: BitNetDType,
+    expecteddtype: BitNetDType,
     operation: &str
 ) -> TensorOpResult<()> {
-    if lhs.dtype() != expected_dtype {
+    if lhs.dtype() != expecteddtype {
         return Err(TensorOpError::DTypeMismatch {
             operation: operation.to_string(),
-            reason: format!("LHS tensor has dtype {:?}, expected {:?}", lhs.dtype(), expected_dtype),
+            reason: format!("LHS tensor has dtype {:?}, expected {:?}", lhs.dtype(), expecteddtype),
         });
     }
 
-    if rhs.dtype() != expected_dtype {
+    if rhs.dtype() != expecteddtype {
         return Err(TensorOpError::DTypeMismatch {
             operation: operation.to_string(),
-            reason: format!("RHS tensor has dtype {:?}, expected {:?}", rhs.dtype(), expected_dtype),
+            reason: format!("RHS tensor has dtype {:?}, expected {:?}", rhs.dtype(), expecteddtype),
         });
     }
 
@@ -162,13 +163,13 @@ fn validate_simd_binary_op(
 
 fn validate_simd_unary_op(
     tensor: &BitNetTensor,
-    expected_dtype: BitNetDType,
+    expecteddtype: BitNetDType,
     operation: &str
 ) -> TensorOpResult<()> {
-    if tensor.dtype() != expected_dtype {
+    if tensor.dtype() != expecteddtype {
         return Err(TensorOpError::DTypeMismatch {
             operation: operation.to_string(),
-            reason: format!("Tensor has dtype {:?}, expected {:?}", tensor.dtype(), expected_dtype),
+            reason: format!("Tensor has dtype {:?}, expected {:?}", tensor.dtype(), expecteddtype),
         });
     }
     Ok(())

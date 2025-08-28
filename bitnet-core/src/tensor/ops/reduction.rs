@@ -68,6 +68,7 @@ impl From<Option<&[usize]>> for ReductionAxis {
 
 /// Configuration for reduction operations
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ReductionConfig {
     /// Axes to reduce over
     pub axis: ReductionAxis,
@@ -224,7 +225,7 @@ pub fn sum(
     // Create output tensor with the result
     let _output_shape = config.output_shape(tensor.shape().dims());
     let output_tensor =
-        BitNetTensor::from_candle(result_candle, &tensor.device()).map_err(|e| {
+        BitNetTensor::from_candle(result_candle, &&tensor.device()).map_err(|e| {
             TensorOpError::InternalError {
                 reason: format!("Failed to create output tensor from sum result: {}", e),
             }
@@ -312,7 +313,7 @@ pub fn mean(
     };
 
     let output_tensor =
-        BitNetTensor::from_candle(result_candle, &tensor.device()).map_err(|e| {
+        BitNetTensor::from_candle(result_candle, &&tensor.device()).map_err(|e| {
             TensorOpError::InternalError {
                 reason: format!("Failed to create output tensor from mean result: {}", e),
             }
@@ -399,7 +400,7 @@ pub fn min(
     };
 
     let output_tensor =
-        BitNetTensor::from_candle(result_candle, &tensor.device()).map_err(|e| {
+        BitNetTensor::from_candle(result_candle, &&tensor.device()).map_err(|e| {
             TensorOpError::InternalError {
                 reason: format!("Failed to create output tensor from min result: {}", e),
             }
@@ -486,7 +487,7 @@ pub fn max(
     };
 
     let output_tensor =
-        BitNetTensor::from_candle(result_candle, &tensor.device()).map_err(|e| {
+        BitNetTensor::from_candle(result_candle, &&tensor.device()).map_err(|e| {
             TensorOpError::InternalError {
                 reason: format!("Failed to create output tensor from max result: {}", e),
             }
@@ -617,7 +618,11 @@ pub fn var(
 
     // Apply degrees of freedom correction
     let corrected_n = (n_elements - ddof as f64).max(1.0);
-    let correction_scalar = CandleTensor::from_vec(vec![1.0f32 / corrected_n as f32], &[], tensor.device())
+    
+    // Get the device from tensor
+    let device = tensor.device().clone();
+    let correction_factor = corrected_n / n_elements;
+    let correction_scalar = CandleTensor::from_slice(&[correction_factor as f32], (), &device)
         .map_err(|e| TensorOpError::CandleError {
         operation: "var_correction_scalar".to_string(),
         error: e.to_string(),
@@ -631,7 +636,7 @@ pub fn var(
                 error: e.to_string(),
             })?;
 
-    let output_tensor = BitNetTensor::from_candle(variance, &tensor.device()).map_err(|e| {
+    let output_tensor = BitNetTensor::from_candle(variance, &tensor.device().clone()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create output tensor from variance result: {}", e),
         }
@@ -686,7 +691,7 @@ pub fn std(
             error: e.to_string(),
         })?;
 
-    let output_tensor = BitNetTensor::from_candle(std_candle, &tensor.device()).map_err(|e| {
+    let output_tensor = BitNetTensor::from_candle(std_candle, &tensor.device().clone()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create output tensor from std result: {}", e),
         }
@@ -841,7 +846,7 @@ pub fn prod(
         error: e.to_string(),
     })?;
 
-    let output_tensor = BitNetTensor::from_candle(product, &tensor.device()).map_err(|e| {
+    let output_tensor = BitNetTensor::from_candle(product, &tensor.device().clone()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create output tensor from product result: {}", e),
         }
@@ -954,7 +959,7 @@ pub fn count_nonzero(
     };
 
     let output_tensor =
-        BitNetTensor::from_candle(result_candle, &tensor.device()).map_err(|e| {
+        BitNetTensor::from_candle(result_candle, &&tensor.device()).map_err(|e| {
             TensorOpError::InternalError {
                 reason: format!(
                     "Failed to create output tensor from count_nonzero result: {}",

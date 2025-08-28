@@ -169,7 +169,7 @@ pub fn execute_test_with_monitoring(
     test_fn: Box<dyn FnOnce() + Send + 'static>,
 ) -> TestExecutionResult {
     let start_time = Instant::now();
-    let start_memory = get_current_memory_usage();
+    let _start_memory = get_current_memory_usage();
 
     // Create a channel for communication between threads
     let (tx, rx) = std::sync::mpsc::channel();

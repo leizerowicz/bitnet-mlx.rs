@@ -31,6 +31,7 @@ use super::{AccelerationResult, AccelerationError, AccelerationBackend, Accelera
 
 /// Metal acceleration performance metrics
 #[derive(Debug, Default, Clone)]
+#[allow(dead_code)]
 pub struct MetalAccelerationMetrics {
     /// Total GPU operations executed
     pub operations_executed: u64,
@@ -86,6 +87,7 @@ impl MetalAccelerationMetrics {
 
 /// Metal acceleration backend with compute shader support
 #[cfg(feature = "metal")]
+#[allow(dead_code)]
 pub struct MetalAccelerator {
     /// Metal device for GPU operations
     #[cfg(all(target_os = "macos", feature = "metal"))]

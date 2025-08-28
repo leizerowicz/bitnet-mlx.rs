@@ -11,6 +11,7 @@ use super::capabilities::{detect_simd_capabilities, SimdCapabilities};
 use crate::quantization::utils::QuantizationError;
 
 /// ARM-specific SIMD operations
+#[allow(dead_code)]
 pub struct ArmSimdOps {
     capabilities: SimdCapabilities,
 }

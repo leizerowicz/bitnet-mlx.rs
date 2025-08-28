@@ -23,6 +23,7 @@ pub enum STEVariant {
 
 /// STE Configuration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct STEConfig {
     /// Variant of STE to use
     pub variant: STEVariant,
@@ -64,6 +65,7 @@ impl Default for STEConfig {
 }
 
 /// Straight-Through Estimator Implementation
+#[allow(dead_code)]
 pub struct StraightThroughEstimator {
     config: STEConfig,
     device: Device,
@@ -202,8 +204,8 @@ impl StraightThroughEstimator {
         let input_mean = input.mean_all()?.to_scalar::<f32>()?;
 
         // Calculate standard deviation manually
-        let mean_tensor = input.broadcast_sub(&Tensor::new(input_mean, input.device())?)?;
-        let variance = mean_tensor.sqr()?.mean_all()?.to_scalar::<f32>()?;
+        let mean_tensor = Tensor::full(input_mean, input.shape(), input.device())?;
+        let variance = input.sub(&mean_tensor)?.sqr()?.mean_all()?.to_scalar::<f32>()?;
         let input_std = variance.sqrt();
 
         // Adjust range based on input statistics
@@ -357,6 +359,7 @@ impl StraightThroughEstimator {
 
 /// STE Statistics structure
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct STEStatistics {
     pub quantization_error: f32,
     pub gradient_magnitude: f32,
@@ -373,6 +376,7 @@ pub fn quantize_with_ste(input: &Tensor, config: &STEConfig, device: &Device) ->
 }
 
 /// Multi-layer STE manager for complex models
+#[allow(dead_code)]
 pub struct MultiLayerSTE {
     estimators: HashMap<String, StraightThroughEstimator>,
     global_config: STEConfig,
@@ -554,6 +558,7 @@ mod tests {
 
 /// Binary quantization function (placeholder for compatibility)
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct BinaryQuantizationFunction {
     pub threshold: f32,
     pub device: Device,
@@ -568,13 +573,15 @@ impl BinaryQuantizationFunction {
         // Simple binary quantization: x > threshold -> 1, else -> -1
         let ones = Tensor::ones_like(input)?;
         let neg_ones = ones.neg()?;
-        let mask = input.gt(&Tensor::full(self.threshold, input.dims(), input.device())?)?;
+        let threshold_tensor = Tensor::full(self.threshold, input.shape(), input.device())?;
+        let mask = input.gt(&threshold_tensor)?;
         mask.where_cond(&ones, &neg_ones)
     }
 }
 
 /// Ternary quantization function (placeholder for compatibility)
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TernaryQuantizationFunction {
     pub threshold_pos: f32,
     pub threshold_neg: f32,

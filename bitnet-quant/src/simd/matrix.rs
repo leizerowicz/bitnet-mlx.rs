@@ -11,6 +11,7 @@ use crate::quantization::utils::QuantizationError;
 use std::arch::x86_64::*;
 
 /// SIMD-optimized matrix operations for quantized data
+#[allow(dead_code)]
 pub struct SimdMatrixOps {
     capabilities: SimdCapabilities,
 }

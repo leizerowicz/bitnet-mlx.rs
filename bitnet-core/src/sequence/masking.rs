@@ -311,6 +311,7 @@ pub fn combine_masks(
 
 /// Mask statistics for analysis
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MaskStats {
     pub total_positions: usize,
     pub masked_positions: usize,
@@ -456,8 +457,8 @@ mod tests {
         assert_eq!(stats.total_positions, 5);
         assert_eq!(stats.masked_positions, 3);
         assert_eq!(stats.unmasked_positions, 2);
-        assert_eq!(stats.mask_ratio, 0.6);
-        assert_eq!(stats.sparsity, 0.4);
+        assert!((stats.mask_ratio - 0.6).abs() < f32::EPSILON);
+        assert!((stats.sparsity - 0.4).abs() < f32::EPSILON);
     }
 
     #[test]

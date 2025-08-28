@@ -154,7 +154,7 @@ pub fn matmul_gpu(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitN
                     error: e.to_string(),
                 })?;
 
-            BitNetTensor::from_candle(result_candle, lhs.device())
+            BitNetTensor::from_candle(result_candle, &lhs.device())
                 .map_err(|e| TensorOpError::InternalError {
                     reason: format!("Failed to create result tensor: {}", e),
                 })

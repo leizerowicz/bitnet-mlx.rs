@@ -18,6 +18,7 @@ use std::collections::HashMap;
 
 /// Device migration test configuration
 #[derive(Clone)]
+#[allow(dead_code)]
 struct DeviceMigrationConfig {
     enable_performance_tracking: bool,
     migration_timeout: Duration,
@@ -38,6 +39,7 @@ impl Default for DeviceMigrationConfig {
 
 /// Migration performance metrics
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct MigrationMetrics {
     source_device: String,
     target_device: String,
@@ -53,7 +55,6 @@ fn get_device_name(device: &candle_core::Device) -> String {
         candle_core::Device::Cpu => "CPU".to_string(),
         candle_core::Device::Metal(_metal) => "Metal".to_string(),
         candle_core::Device::Cuda(_cuda) => "CUDA".to_string(),
-        _ => "Unknown".to_string(),
     }
 }
 
@@ -72,7 +73,7 @@ fn create_migration_pool() -> HybridMemoryPool {
 
 #[test]
 fn test_cpu_device_tensor_creation() {
-    let pool = create_migration_pool();
+    let _pool = create_migration_pool();
     let cpu_device = get_cpu_device();
     let config = DeviceMigrationConfig::default();
 
@@ -272,7 +273,7 @@ fn test_migration_performance_baseline() {
         // Measure tensor creation time as baseline
         let start_time = Instant::now();
 
-        let tensor = BitNetTensor::zeros(shape, BitNetDType::F32, Some(cpu_device.clone()))
+        let _tensor = BitNetTensor::zeros(shape, BitNetDType::F32, Some(cpu_device.clone()))
             .expect("Failed to create baseline tensor");
 
         let creation_time = start_time.elapsed();
@@ -532,7 +533,7 @@ fn test_device_memory_characteristics() {
             .unwrap_or(0);
 
         let mut metal_tensors = Vec::new();
-        for i in 0..5 {
+        for _ in 0..5 {
             // Fewer for GPU memory
             if let Ok(tensor) =
                 BitNetTensor::zeros(&[64, 64], BitNetDType::F32, Some(metal_device.clone()))

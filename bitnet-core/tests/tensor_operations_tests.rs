@@ -727,8 +727,9 @@ fn test_tensor_memory_tracking() {
 
     // Note: Memory tracking may not be fully implemented yet
     // We'll verify that we can at least get metrics without panicking
-    assert!(metrics.active_allocations >= 0); // Should be non-negative
-    assert!(metrics.current_allocated >= 0); // Should be non-negative
+    // Basic metrics validation - these values are unsigned types so always >= 0
+    assert!(metrics.active_allocations < u64::MAX); // Sanity check
+    assert!(metrics.current_allocated < u64::MAX); // Sanity check
 
     // Note: Detailed metrics not yet implemented
     // TODO: Add detailed metrics tests when implemented
@@ -1438,7 +1439,7 @@ fn test_quantized_type_value_ranges() {
     ];
 
     for &dtype in &quantized_types {
-        let tensor = BitNetTensor::zeros(&[10], dtype, &device, &pool)
+        let _tensor = BitNetTensor::zeros(&[10], dtype, &device, &pool)
             .unwrap_or_else(|_| panic!("Failed to create tensor with dtype {dtype}"));
 
         // Verify value range is defined for quantized types
@@ -1510,7 +1511,7 @@ fn test_quantization_round_trip_accuracy() {
         .expect("Failed to create F32 tensor");
 
     // Convert to candle for testing
-    let candle_f32 = f32_tensor.to_candle().expect("Failed to convert to candle");
+    let _candle_f32 = f32_tensor.to_candle().expect("Failed to convert to candle");
 
     // TODO: Implement actual quantization and dequantization functions
     // For now, we test the infrastructure
@@ -2482,7 +2483,7 @@ fn test_concurrent_multi_device_operations() {
                 total_tensors += tensors;
             }
             Err(e) => {
-                println!("Thread {i} panicked: {e:?}");
+                println!("Thread {} panicked: {:?}", i, e);
             }
         }
     }
@@ -2495,7 +2496,7 @@ fn test_concurrent_multi_device_operations() {
                 total_operations += cross_ops;
             }
             Err(e) => {
-                println!("Cross-device thread panicked: {e:?}");
+                println!("Cross-device thread panicked: {:?}", e);
             }
         }
     }
@@ -2580,7 +2581,7 @@ fn test_cyclic_reference_cleanup() {
     let mut tensors = Vec::new();
     let mut handles = Vec::new();
 
-    for i in 0..10 {
+    for _ in 0..10 {
         let tensor = BitNetTensor::zeros(&[100], BitNetDType::F32, &device, &pool)
             .expect("Failed to create tensor");
 
@@ -3092,7 +3093,7 @@ fn test_memory_tracking_integration() {
 
     // Get peak metrics
     let peak_metrics = tracker.get_detailed_metrics();
-    let peak_allocations = peak_metrics.active_allocations;
+    let _peak_allocations = peak_metrics.active_allocations;
     let peak_memory = peak_metrics.current_memory_usage;
 
     // Drop all tensors
@@ -3666,7 +3667,7 @@ fn benchmark_concurrent_operation_performance() {
                 .expect("Failed to create shared tensor"),
         );
 
-        let handle_start = std::time::Instant::now();
+        let _handle_start = std::time::Instant::now();
         let mut handle_handles = Vec::new();
 
         for _ in 0..thread_count {
@@ -3760,7 +3761,7 @@ fn benchmark_memory_efficiency() {
         let element_count: usize = shape.iter().product();
 
         // Benchmark allocation speed
-        let (tensor, memory_used, allocations_made) = measure_memory_usage(&pool, || {
+        let (tensor, memory_used, _allocations_made) = measure_memory_usage(&pool, || {
             BitNetTensor::zeros(shape, BitNetDType::F32, &device, &pool)
                 .expect("Failed to create tensor")
         });
@@ -3820,7 +3821,7 @@ fn benchmark_memory_efficiency() {
 
     // Test memory cleanup efficiency
     println!("Testing memory cleanup efficiency...");
-    let initial_metrics = pool.get_metrics();
+    let _initial_metrics = pool.get_metrics();
 
     let peak_metrics = {
         let mut tensors = Vec::new();
@@ -4041,7 +4042,7 @@ fn benchmark_quantization_performance() {
     println!("Testing quantized memory efficiency...");
 
     let efficiency_test_shape = vec![100, 100]; // Reduced size to avoid memory issues
-    let element_count = 10000;
+    let _element_count = 10000;
 
     // Compare memory usage: F32 vs I8 vs BitNet158
     let (f32_tensor, f32_memory, _) = measure_memory_usage(&pool, || {

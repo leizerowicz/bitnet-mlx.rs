@@ -145,7 +145,7 @@ fn test_basic_tensor_lifecycle(pool: &HybridMemoryPool, metrics: &mut TestMetric
     // Perform operations on tensors
     for tensor in &tensors {
         // Test tensor metadata access
-        let shape = tensor.shape();
+        let _shape = tensor.shape();
         let dtype = tensor.dtype();
         let device = tensor.device();
 
@@ -182,7 +182,7 @@ fn test_concurrent_tensor_operations(
         let failure_counter_clone = failure_counter.clone();
         let config_clone = config.clone();
 
-        let handle = thread::spawn(move || {
+        let _handle = thread::spawn(move || {
             let device = auto_select_device();
             let mut local_success = 0;
             let mut local_failure = 0;
@@ -192,7 +192,7 @@ fn test_concurrent_tensor_operations(
                     (config_clone.tensor_size_range.1 - config_clone.tensor_size_range.0) +
                     config_clone.tensor_size_range.0;
 
-                let shape = vec![size / 4, 4]; // Simple 2D tensor
+                let _shape = vec![size / 4, 4]; // Simple 2D tensor
 
                 match BitNetTensor::zeros_with_pool(
                     shape,
@@ -250,7 +250,7 @@ fn test_memory_pressure_tensor_handling(
     let max_iterations = 100;
 
     for i in 0..max_iterations {
-        let shape = vec![tensor_size, tensor_size];
+        let _shape = vec![tensor_size, tensor_size];
 
         match BitNetTensor::zeros_with_pool(
             shape,

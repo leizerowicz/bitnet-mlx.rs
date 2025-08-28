@@ -44,7 +44,7 @@ mod memory_pressure_tests {
         
         // Allocate tensors until we hit memory pressure
         for i in 0..1000 {
-            let shape = vec![100, 100]; // 10K elements per tensor
+            let _shape = vec![100, 100]; // 10K elements per tensor
             match BitNetTensor::zeros(&shape, BitNetDType::F32, &device) {
                 Ok(tensor) => {
                     tensors.push(tensor);
@@ -54,7 +54,7 @@ mod memory_pressure_tests {
                     // Expected under memory pressure
                     break;
                 },
-                Err(e) => {
+                Err(_e) => {
                     panic!("Unexpected error under memory pressure: {:?}", e);
                 }
             }
@@ -134,7 +134,7 @@ mod memory_pressure_tests {
         let mut tensors = Vec::new();
         
         // Allocate in a pattern that causes fragmentation
-        for (i, size) in sizes.iter().enumerate() {
+        for (_i, size) in sizes.iter().enumerate() {
             for _ in 0..5 {
                 let tensor = BitNetTensor::zeros(size, BitNetDType::F32, &device);
                 assert!(tensor.is_ok(), "Allocation {} should succeed even with fragmentation", i);
@@ -144,7 +144,7 @@ mod memory_pressure_tests {
         
         // Drop every other tensor to create gaps
         let mut retained_tensors = Vec::new();
-        for (i, tensor) in tensors.into_iter().enumerate() {
+        for (_i, tensor) in tensors.into_iter().enumerate() {
             if i % 2 == 0 {
                 retained_tensors.push(tensor);
             }
@@ -304,7 +304,7 @@ mod error_recovery_tests {
             thread::spawn(move || {
                 for i in 0..10 {
                     // Mix successful and error-inducing operations
-                    let shape = if (thread_id + i) % 3 == 0 {
+                    let _shape = if (thread_id + i) % 3 == 0 {
                         vec![0, 10] // Invalid - will cause error
                     } else {
                         vec![10, 10] // Valid

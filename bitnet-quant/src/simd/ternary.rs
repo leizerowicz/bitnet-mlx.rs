@@ -11,6 +11,7 @@ use crate::{QuantizationError, QuantizationResult};
 use std::arch::x86_64::*;
 
 /// SIMD-accelerated ternary quantization operations
+#[allow(dead_code)]
 pub struct SimdTernaryOps {
     capabilities: SimdCapabilities,
 }

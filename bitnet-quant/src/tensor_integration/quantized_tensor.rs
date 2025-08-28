@@ -4,7 +4,7 @@
 //! tensor system while providing efficient storage and manipulation of quantized data
 //! with full integration with the existing memory management and device systems.
 
-use candle_core::{DType, Device, Tensor as CandleTensor};
+use candle_core::{DType, Device, Tensor, Tensor as CandleTensor};
 use std::sync::Arc;
 
 use bitnet_core::{
@@ -13,14 +13,15 @@ use bitnet_core::{
 
 use bitnet_core::tensor::shape::BroadcastCompatible;
 
-use crate::quantization::{QuantizationPrecision, QuantizationStrategy, Quantizer};
+use crate::quantization::{QuantizationPrecision, QuantizationStrategy};
 
-use super::{QuantizationAwareTensorOps, TensorIntegrationError, TensorIntegrationResult};
+use super::{TensorIntegrationError, TensorIntegrationResult};
 
 use super::bitnet_ops::{QuantizedArithmetic, TernaryArithmetic, TernaryTensorRepresentation};
 
 /// Configuration for quantized tensor creation and operations
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QuantizedTensorConfig {
     /// Quantization precision
     pub precision: QuantizationPrecision,
@@ -56,6 +57,7 @@ impl Default for QuantizedTensorConfig {
 
 /// Scale and zero-point parameters for quantization
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ScaleZeroPoint {
     /// Scaling factor for dequantization
     pub scale: f32,
@@ -105,6 +107,7 @@ impl ScaleZeroPoint {
 
 /// Complete quantization parameters
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QuantizationParameters {
     /// Scale and zero-point information
     pub scale_zero_point: ScaleZeroPoint,
@@ -116,10 +119,10 @@ pub struct QuantizationParameters {
     pub strategy: QuantizationStrategy,
 
     /// Original tensor data type
-    pub original_dtype: BitNetDType,
+    pub originaldtype: BitNetDType,
 
     /// Quantized tensor data type
-    pub quantized_dtype: DType,
+    pub quantizeddtype: DType,
 
     /// Compression ratio achieved
     pub compression_ratio: f32,
@@ -130,13 +133,13 @@ pub struct QuantizationParameters {
 
 impl QuantizationParameters {
     /// Create parameters for 1.58-bit (ternary) quantization
-    pub fn ternary(alpha: f32, original_dtype: BitNetDType) -> Self {
+    pub fn ternary(alpha: f32, originaldtype: BitNetDType) -> Self {
         Self {
             scale_zero_point: ScaleZeroPoint::symmetric(alpha, (-1.0, 1.0)),
             precision: QuantizationPrecision::OneFiveFiveBit,
             strategy: QuantizationStrategy::Symmetric,
-            original_dtype,
-            quantized_dtype: DType::I64,
+            originaldtype,
+            quantizeddtype: DType::I64,
             compression_ratio: 32.0 / 1.58, // Approximate compression from f32
             num_levels: 3,                  // {-1, 0, 1}
         }
@@ -148,9 +151,9 @@ impl QuantizationParameters {
         strategy: QuantizationStrategy,
         scale: f32,
         zero_point: f32,
-        original_dtype: BitNetDType,
+        originaldtype: BitNetDType,
     ) -> Self {
-        let (quantized_dtype, num_levels, compression_ratio) = match precision {
+        let (quantizeddtype, num_levels, compression_ratio) = match precision {
             QuantizationPrecision::OneFiveFiveBit => (DType::I64, 3, 32.0 / 1.58),
             QuantizationPrecision::OneBit => (DType::I64, 2, 32.0),
             QuantizationPrecision::TwoBit => (DType::I64, 4, 16.0),
@@ -175,8 +178,8 @@ impl QuantizationParameters {
             scale_zero_point,
             precision,
             strategy,
-            original_dtype,
-            quantized_dtype,
+            originaldtype,
+            quantizeddtype,
             compression_ratio,
             num_levels,
         }
@@ -252,6 +255,7 @@ pub enum QuantizedStorage {
 
 /// Information for unpacking packed quantized data
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PackingInfo {
     /// Number of values packed per byte
     pub values_per_byte: usize,
@@ -268,6 +272,7 @@ pub struct PackingInfo {
 
 /// Memory layout information for quantized tensors
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QuantizedLayout {
     /// Storage backend type
     pub storage_type: QuantizedStorageType,
@@ -295,6 +300,7 @@ pub enum QuantizedStorageType {
 
 /// Compression ratio information
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CompressionRatio {
     /// Original size in bytes
     pub original_size: usize,
@@ -325,6 +331,7 @@ impl CompressionRatio {
 
 /// Main quantized tensor implementation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QuantizedTensor {
     /// Storage backend for quantized data
     storage: QuantizedStorage,
@@ -398,7 +405,7 @@ impl QuantizedTensor {
 
         let parameters = QuantizationParameters::ternary(
             ternary.quantization_params.alpha,
-            ternary.original_dtype,
+            ternary.originaldtype,
         );
 
         let storage = QuantizedStorage::Ternary {
@@ -476,17 +483,17 @@ impl QuantizedTensor {
     pub fn compression_ratio(&self) -> CompressionRatio {
         let original_size = match &self.storage {
             QuantizedStorage::Dense { parameters, .. } => {
-                self.shape().total_elements() * Self::dtype_size(parameters.original_dtype)
+                self.shape().total_elements() * Self::dtype_size(parameters.originaldtype)
             }
             QuantizedStorage::Sparse {
                 shape, parameters, ..
-            } => shape.total_elements() * Self::dtype_size(parameters.original_dtype),
+            } => shape.total_elements() * Self::dtype_size(parameters.originaldtype),
             QuantizedStorage::Packed {
                 shape, parameters, ..
-            } => shape.total_elements() * Self::dtype_size(parameters.original_dtype),
+            } => shape.total_elements() * Self::dtype_size(parameters.originaldtype),
             QuantizedStorage::Ternary { ternary_repr, .. } => {
                 ternary_repr.original_shape.total_elements()
-                    * Self::dtype_size(ternary_repr.original_dtype)
+                    * Self::dtype_size(ternary_repr.originaldtype)
             }
         };
 
@@ -612,15 +619,16 @@ impl QuantizedTensor {
                 message: format!("Failed to compute sign: {e}"),
             })?;
 
-        let values = BitNetTensor::from_candle_tensor(sign_tensor, tensor.device().clone())
-            .map_err(TensorIntegrationError::Memory)?;
+        let values = sign_tensor.clone();
 
-        let scales = BitNetTensor::from_scalar(alpha, tensor.device().clone())
-            .map_err(TensorIntegrationError::Memory)?;
+        let scales = Tensor::new(vec![alpha], candle_tensor.device())
+            .map_err(|e| TensorIntegrationError::TensorOp {
+                message: format!("Failed to create scale tensor: {e}"),
+            })?;
 
         let ternary_repr = TernaryTensorRepresentation {
-            values,
-            scales,
+            values: BitNetTensor::from_candle(values, &candle_tensor.device())?,
+            scales: BitNetTensor::from_candle(scales, &candle_tensor.device())?,
             original_shape: tensor.shape().clone(),
             quantization_params: super::bitnet_ops::TernaryQuantizationParams {
                 method: crate::quantization::TernaryMethod::DetSTE,
@@ -631,7 +639,7 @@ impl QuantizedTensor {
                 alpha,
             },
             device: tensor.device().clone(),
-            original_dtype: tensor.dtype(),
+            originaldtype: tensor.dtype(),
         };
 
         Ok(QuantizedStorage::Ternary {
@@ -679,11 +687,10 @@ impl QuantizedTensor {
                 message: format!("Failed to round quantized values: {e}"),
             })?;
 
-        let quantized_tensor = BitNetTensor::from_candle_tensor(quantized, tensor.device().clone())
-            .map_err(TensorIntegrationError::Memory)?;
+        let quantized_tensor = quantized.clone();
 
         Ok(QuantizedStorage::Dense {
-            data: quantized_tensor,
+            data: BitNetTensor::from_candle(quantized, &candle_tensor.device())?,
             parameters,
         })
     }
@@ -692,7 +699,7 @@ impl QuantizedTensor {
         match storage {
             QuantizedStorage::Dense { data, parameters } => {
                 let memory_footprint =
-                    data.shape().total_elements() * Self::dtype_size(parameters.original_dtype);
+                    data.shape().total_elements() * Self::dtype_size(parameters.originaldtype);
                 Ok(QuantizedLayout {
                     storage_type: QuantizedStorageType::Dense,
                     alignment: 64,
@@ -851,8 +858,8 @@ impl QuantizedTensor {
     /// Get the data type of the quantized tensor
     pub fn dtype(&self) -> BitNetDType {
         match &self.storage {
-            QuantizedStorage::Dense { parameters, .. } => parameters.original_dtype,
-            QuantizedStorage::Ternary { ternary_repr, .. } => ternary_repr.original_dtype,
+            QuantizedStorage::Dense { parameters, .. } => parameters.originaldtype,
+            QuantizedStorage::Ternary { ternary_repr, .. } => ternary_repr.originaldtype,
             _ => BitNetDType::F32, // Default fallback
         }
     }
@@ -1001,7 +1008,7 @@ impl TernaryArithmetic for QuantizedTensor {
                     alpha: combined_scale,
                 },
                 device: self.device.clone(),
-                original_dtype: self.dtype(),
+                originaldtype: self.dtype(),
             };
 
             Self::from_ternary_representation(result_ternary, self.config.clone())
@@ -1062,7 +1069,7 @@ impl TernaryArithmetic for QuantizedTensor {
                     alpha: combined_scale,
                 },
                 device: self.device.clone(),
-                original_dtype: self.dtype(),
+                originaldtype: self.dtype(),
             };
 
             Self::from_ternary_representation(result_ternary, self.config.clone())
@@ -1114,7 +1121,7 @@ impl TernaryArithmetic for QuantizedTensor {
                     alpha: 1.0,
                 },
                 device: self.device.clone(),
-                original_dtype: self.dtype(),
+                originaldtype: self.dtype(),
             };
 
             Self::from_ternary_representation(result_ternary, self.config.clone())

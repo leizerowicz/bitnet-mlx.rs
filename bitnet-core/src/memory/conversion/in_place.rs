@@ -12,6 +12,7 @@ use std::sync::Arc;
 use tracing::{debug, info, warn};
 
 /// In-place converter for memory-efficient conversions
+#[allow(dead_code)]
 pub struct InPlaceConverter {
     /// Whether to allow potentially lossy conversions
     allow_lossy: bool,
@@ -48,29 +49,29 @@ impl InPlaceConverter {
     pub fn convert_in_place(
         &self,
         tensor: &mut BitNetTensor,
-        target_dtype: BitNetDType,
+        targetdtype: BitNetDType,
     ) -> ConversionResult<()> {
-        let source_dtype = tensor.dtype();
+        let sourcedtype = tensor.dtype();
 
         #[cfg(feature = "tracing")]
         info!(
             "Starting in-place conversion from {} to {}",
-            source_dtype, target_dtype
+            sourcedtype, targetdtype
         );
 
         // Check if conversion is possible
-        if !self.is_in_place_compatible(source_dtype, target_dtype) {
+        if !self.is_in_place_compatible(sourcedtype, targetdtype) {
             return Err(ConversionError::UnsupportedConversion {
-                from: source_dtype,
-                to: target_dtype,
+                from: sourcedtype,
+                to: targetdtype,
             });
         }
 
         // Check for potential data loss
-        if !self.allow_lossy && self.is_lossy_conversion(source_dtype, target_dtype) {
+        if !self.allow_lossy && self.is_lossy_conversion(sourcedtype, targetdtype) {
             return Err(ConversionError::DataLossError {
-                from: source_dtype,
-                to: target_dtype,
+                from: sourcedtype,
+                to: targetdtype,
             });
         }
 
@@ -79,7 +80,7 @@ impl InPlaceConverter {
         // Perform the in-place conversion
         unsafe {
             let ptr = tensor.data.memory_handle.as_ptr() as *mut u8;
-            self.convert_memory_in_place(ptr, element_count, source_dtype, target_dtype)?;
+            self.convert_memory_in_place(ptr, element_count, sourcedtype, targetdtype)?;
         }
 
         // Update tensor metadata
@@ -93,14 +94,14 @@ impl InPlaceConverter {
                         reason: "Failed to acquire metadata write lock".to_string(),
                     })?;
 
-            metadata.dtype = target_dtype;
-            metadata.size_bytes = target_dtype.bytes_for_elements(element_count);
+            metadata.dtype = targetdtype;
+            metadata.size_bytes = targetdtype.bytes_for_elements(element_count);
             metadata.touch();
         }
 
         // Validate integrity if requested
         if self.validate_integrity {
-            self.validate_conversion_integrity(tensor, source_dtype, target_dtype)?;
+            self.validate_conversion_integrity(tensor, sourcedtype, targetdtype)?;
         }
 
         #[cfg(feature = "tracing")]
@@ -207,10 +208,10 @@ impl InPlaceConverter {
         &self,
         ptr: *mut u8,
         element_count: usize,
-        source_dtype: BitNetDType,
-        target_dtype: BitNetDType,
+        sourcedtype: BitNetDType,
+        targetdtype: BitNetDType,
     ) -> ConversionResult<()> {
-        match (source_dtype, target_dtype) {
+        match (sourcedtype, targetdtype) {
             // Same type - no conversion needed
             (a, b) if a == b => Ok(()),
 
@@ -251,12 +252,12 @@ impl InPlaceConverter {
 
             // Any type to BitNet 1.58b
             (_, BitNetDType::BitNet158) => {
-                self.convert_to_bitnet158_in_place(ptr, element_count, source_dtype)
+                self.convert_to_bitnet158_in_place(ptr, element_count, sourcedtype)
             }
 
             _ => Err(ConversionError::UnsupportedConversion {
-                from: source_dtype,
-                to: target_dtype,
+                from: sourcedtype,
+                to: targetdtype,
             }),
         }
     }
@@ -420,13 +421,13 @@ impl InPlaceConverter {
         &self,
         ptr: *mut u8,
         element_count: usize,
-        source_dtype: BitNetDType,
+        sourcedtype: BitNetDType,
     ) -> ConversionResult<()> {
         let byte_slice = std::slice::from_raw_parts_mut(ptr, (element_count + 3) / 4);
 
         // First, convert source to f32 values, then quantize to {-1, 0, +1}
         for i in 0..element_count {
-            let f32_val = match source_dtype {
+            let f32_val = match sourcedtype {
                 BitNetDType::F32 => {
                     let f32_slice = std::slice::from_raw_parts(ptr as *const f32, element_count);
                     f32_slice[i]
@@ -529,8 +530,8 @@ impl InPlaceConverter {
     fn validate_conversion_integrity(
         &self,
         tensor: &BitNetTensor,
-        source_dtype: BitNetDType,
-        target_dtype: BitNetDType,
+        _source_dtype: BitNetDType,
+        targetdtype: BitNetDType,
     ) -> ConversionResult<()> {
         // Basic validation - check that tensor metadata is consistent
         let metadata = tensor
@@ -541,13 +542,13 @@ impl InPlaceConverter {
                 reason: "Failed to acquire metadata read lock".to_string(),
             })?;
 
-        if metadata.dtype != target_dtype {
+        if metadata.dtype != targetdtype {
             return Err(ConversionError::InternalError {
                 reason: "Tensor metadata not updated correctly".to_string(),
             });
         }
 
-        let expected_size = target_dtype.bytes_for_elements(metadata.element_count);
+        let expected_size = targetdtype.bytes_for_elements(metadata.element_count);
         if metadata.size_bytes != expected_size {
             return Err(ConversionError::InternalError {
                 reason: "Tensor size not updated correctly".to_string(),
@@ -579,7 +580,7 @@ impl Converter for InPlaceConverter {
                     reason: format!("Failed to clone tensor: {}", e),
                 })?;
 
-        self.convert_in_place(&mut target, context.target_dtype)?;
+        self.convert_in_place(&mut target, context.targetdtype)?;
         Ok(target)
     }
 

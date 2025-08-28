@@ -17,6 +17,7 @@ use anyhow::Result;
 
 /// Main sequence manager for processing variable-length sequences
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SequenceManager {
     config: SequenceConfig,
     validator: SequenceValidator,
@@ -312,7 +313,7 @@ impl SequenceManager {
 
     /// Get memory usage estimate for a batch
     pub fn estimate_memory_usage(&self, sequences: &[Vec<u32>]) -> usize {
-        let total_tokens: usize = sequences.iter().map(|s| s.len()).sum();
+        let _total_tokens: usize = sequences.iter().map(|s| s.len()).sum();
 
         // Estimate based on target length calculation
         let lengths: Vec<usize> = sequences.iter().map(|s| s.len()).collect();
@@ -391,6 +392,7 @@ impl Default for SequenceManager {
 
 /// Summary of sequence processing results
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ProcessingSummary {
     pub total_sequences: usize,
     pub total_original_length: usize,

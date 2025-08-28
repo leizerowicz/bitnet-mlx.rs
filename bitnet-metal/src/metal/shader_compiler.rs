@@ -21,6 +21,7 @@ use super::MetalError;
 
 /// Shader compilation configuration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ShaderCompilerConfig {
     /// Directory containing Metal shader source files
     pub shader_directory: PathBuf,
@@ -38,6 +39,7 @@ pub struct ShaderCompilerConfig {
 
 /// Metal shader compilation options
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CompileOptions {
     /// Preprocessor definitions
     pub defines: HashMap<String, String>,
@@ -85,6 +87,7 @@ pub enum OptimizationLevel {
 
 /// Compiled shader information
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CompiledShader {
     /// Shader name
     pub name: String,
@@ -109,6 +112,7 @@ struct CacheEntry {
 }
 
 /// Metal shader compiler and loader
+#[allow(dead_code)]
 pub struct ShaderCompiler {
     #[cfg(target_os = "macos")]
     device: metal::Device,
@@ -182,7 +186,7 @@ impl ShaderCompiler {
         compile_options.set_fast_math_enabled(config.compile_options.fast_math);
 
         // Set preprocessor definitions
-        for (key, value) in &config.compile_options.defines {
+        for (_key, _value) in &config.compile_options.defines {
             // Note: Metal 0.27.0 has different preprocessor macro API
             // This functionality may need to be implemented differently
             // For now, we'll skip setting preprocessor macros
@@ -442,6 +446,7 @@ impl ShaderCompiler {
 
 /// Shader compiler statistics
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ShaderCompilerStats {
     pub cached_shaders: usize,
     pub total_functions: usize,
@@ -450,6 +455,7 @@ pub struct ShaderCompilerStats {
 }
 
 /// Shader loading utilities
+#[allow(dead_code)]
 pub struct ShaderLoader {
     compiler: ShaderCompiler,
     preloaded_shaders: HashMap<String, CompiledShader>,
@@ -508,7 +514,7 @@ impl ShaderLoader {
         }
 
         // Try to get from compiler cache
-        if let Some(shader) = self.compiler.get_shader(name) {
+        if let Some(_shader) = self.compiler.get_shader(name) {
             // Note: This would require making preloaded_shaders mutable
             // For now, return an error suggesting preloading
             return Err(MetalError::ComputeFunctionNotFound(format!(

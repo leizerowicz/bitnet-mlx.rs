@@ -23,6 +23,7 @@ pub enum ProgressiveStrategy {
 
 /// Progressive quantization phase configuration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QuantizationPhase {
     pub name: String,
     pub min_steps: usize,
@@ -49,6 +50,7 @@ pub enum CompletionCriteria {
 }
 
 /// Progressive quantization scheduler
+#[allow(dead_code)]
 pub struct ProgressiveQuantization {
     strategy: ProgressiveStrategy,
     phases: Vec<QuantizationPhase>,
@@ -71,6 +73,7 @@ pub struct ProgressiveQuantization {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PhaseTransition {
     pub from_phase: usize,
     pub to_phase: usize,
@@ -435,6 +438,7 @@ impl ProgressiveQuantization {
 
 /// Progressive quantization statistics
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ProgressiveQuantizationStats {
     pub current_phase: usize,
     pub current_step: usize,
@@ -447,6 +451,7 @@ pub struct ProgressiveQuantizationStats {
 }
 
 /// Layer-wise quantization scheduler
+#[allow(dead_code)]
 pub struct LayerWiseQuantization {
     progressive: ProgressiveQuantization,
     layer_order: Vec<String>,

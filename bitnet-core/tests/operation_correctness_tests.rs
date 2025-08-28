@@ -304,7 +304,7 @@ fn test_quantization_value_ranges() {
     ];
 
     for (dtype, expected_min, expected_max) in quantized_types {
-        let tensor = BitNetTensor::zeros(&[10], dtype, &device, &pool)
+        let _tensor = BitNetTensor::zeros(&[10], dtype, &device, &pool)
             .unwrap_or_else(|_| panic!("Failed to create tensor with dtype {dtype}"));
 
         // Verify value range is correctly defined
@@ -494,14 +494,14 @@ fn test_memory_conversion_correctness() {
     // Test memory overhead estimation
     let memory_overhead = conversion_context.memory_overhead_bytes();
     assert!(
-        memory_overhead >= 0,
-        "Memory overhead should be non-negative"
+        memory_overhead < usize::MAX,
+        "Memory overhead should be reasonable"
     );
 }
 
 #[test]
 fn test_conversion_strategy_correctness() {
-    let pool = create_test_pool();
+    let _pool = create_test_pool();
     let device = get_cpu_device();
 
     // Test zero-copy conversion compatibility
@@ -761,7 +761,7 @@ fn test_execution_backend_selection_correctness() {
         ("io", ExecutionBackend::CandleCpu),
     ];
 
-    for (operation, expected_backend_type) in test_operations {
+    for (operation, _expected_backend_type) in test_operations {
         let selected_backend = choose_execution_backend(operation);
 
         // Verify backend selection is reasonable

@@ -18,6 +18,7 @@ use std::time::Duration;
 /// - Performance metrics like allocation latency
 /// - Pool-specific statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct MemoryMetrics {
     /// Total number of bytes allocated since pool creation
     pub total_allocated: u64,
@@ -49,6 +50,7 @@ pub struct MemoryMetrics {
 
 /// Memory statistics for a specific device type
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DeviceMemoryStats {
     /// Total bytes allocated on this device
     pub total_allocated: u64,
@@ -68,6 +70,7 @@ pub struct DeviceMemoryStats {
 
 /// Memory statistics by pool type
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PoolMemoryStats {
     /// Statistics for small block pools
     pub small_block: PoolTypeStats,
@@ -77,6 +80,7 @@ pub struct PoolMemoryStats {
 
 /// Statistics for a specific pool type
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PoolTypeStats {
     /// Total bytes allocated by this pool type
     pub total_allocated: u64,
@@ -98,6 +102,7 @@ pub struct PoolTypeStats {
 
 /// Efficiency metrics for pool types
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PoolEfficiencyMetrics {
     /// Average allocation size
     pub average_allocation_size: f64,
@@ -113,6 +118,7 @@ pub struct PoolEfficiencyMetrics {
 
 /// Distribution of allocation sizes
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SizeDistribution {
     /// Allocations <= 1KB
     pub tiny: u64,
@@ -128,6 +134,7 @@ pub struct SizeDistribution {
 
 /// Performance metrics for memory operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PerformanceMetrics {
     /// Average allocation latency in nanoseconds
     pub avg_allocation_latency_ns: u64,

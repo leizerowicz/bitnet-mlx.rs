@@ -14,6 +14,7 @@ use std::collections::HashMap;
 
 /// Results of property-based testing
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct PropertyTestResults {
     pub total_property_tests: usize,
     pub passed_property_tests: usize,
@@ -23,6 +24,7 @@ pub struct PropertyTestResults {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PropertyResult {
     pub property_name: String,
     pub test_count: usize,

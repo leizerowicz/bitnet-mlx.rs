@@ -107,6 +107,7 @@ impl AccelerationBackend {
 
 /// Performance characteristics for a backend
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PerformanceCharacteristics {
     /// Throughput in GFLOPS
     pub throughput_gflops: f64,
@@ -213,6 +214,7 @@ impl OperationType {
 
 /// Performance requirements for operations
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PerformanceRequirements {
     /// Maximum acceptable latency in microseconds
     pub max_latency_us: Option<u64>,
@@ -237,6 +239,7 @@ impl Default for PerformanceRequirements {
 
 /// Operation context for dispatch decisions
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct OperationContext {
     /// Type of operation
     pub operation_type: OperationType,
@@ -261,7 +264,7 @@ impl OperationContext {
     /// Calculate the operation complexity score
     pub fn complexity_score(&self) -> f64 {
         let total_elements: usize = self.input_shapes.iter()
-            .map(|shape| shape.iter().product::<usize>())
+            .map(|hape| shape.iter().product::<usize>())
             .sum();
 
         let intensity = self.operation_type.computational_intensity();
@@ -271,7 +274,7 @@ impl OperationContext {
     /// Estimate memory usage for this operation
     pub fn estimated_memory_bytes(&self) -> usize {
         let total_elements: usize = self.input_shapes.iter()
-            .map(|shape| shape.iter().product::<usize>())
+            .map(|hape| shape.iter().product::<usize>())
             .sum();
 
         let dtype_size = match self.dtype {
@@ -290,6 +293,7 @@ impl OperationContext {
 
 /// Backend selection result
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct BackendSelection {
     /// Selected backend
     pub backend: AccelerationBackend,
@@ -302,6 +306,7 @@ pub struct BackendSelection {
 }
 
 /// Main operation dispatcher
+#[allow(dead_code)]
 pub struct OperationDispatcher {
     /// Available acceleration backends
     backends: RwLock<HashMap<AccelerationBackend, Box<dyn AccelerationBackendImpl + Send + Sync>>>,

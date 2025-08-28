@@ -14,6 +14,7 @@ use std::collections::VecDeque;
 
 /// Configuration specific to activation quantization
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ActivationQuantizationConfig {
     /// Base quantization configuration
     pub base: QuantizationConfig,
@@ -92,6 +93,7 @@ impl ActivationQuantizationConfig {
 
 /// Quantized activation representation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QuantizedActivation {
     /// Quantized activation values
     pub values: Tensor,
@@ -102,7 +104,7 @@ pub struct QuantizedActivation {
     /// Original shape of the activation tensor
     pub original_shape: Shape,
     /// Data type of quantized values
-    pub quantized_dtype: DType,
+    pub quantizeddtype: DType,
     /// Quantization configuration used
     pub config: ActivationQuantizationConfig,
     /// Quantization statistics
@@ -118,7 +120,7 @@ impl QuantizedActivation {
         scales: Tensor,
         zero_points: Option<Tensor>,
         original_shape: Shape,
-        quantized_dtype: DType,
+        quantizeddtype: DType,
         config: ActivationQuantizationConfig,
         stats: QuantizationStats,
         sequence_length: Option<usize>,
@@ -128,7 +130,7 @@ impl QuantizedActivation {
             scales,
             zero_points,
             original_shape,
-            quantized_dtype,
+            quantizeddtype,
             config,
             stats,
             sequence_length,
@@ -153,7 +155,7 @@ impl QuantizedActivation {
 
     /// Get the memory footprint of the quantized activation
     pub fn memory_footprint(&self) -> usize {
-        let values_size = self.values.elem_count() * self.quantized_dtype.size_in_bytes();
+        let values_size = self.values.elem_count() * self.quantizeddtype.size_in_bytes();
         let scales_size = self.scales.elem_count() * self.scales.dtype().size_in_bytes();
         let zero_points_size = self
             .zero_points
@@ -200,6 +202,7 @@ pub trait ActivationQuantizer:
 
 /// Dynamic activation quantizer with calibration support
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct DynamicActivationQuantizer {
     config: ActivationQuantizationConfig,
     device: Device,
@@ -319,7 +322,7 @@ impl Quantizer for DynamicActivationQuantizer {
                 .unwrap_or(1.0)
         });
 
-        let (quantized_values, quantized_dtype) = match self.config.base.precision {
+        let (quantized_values, quantizeddtype) = match self.config.base.precision {
             QuantizationPrecision::OneFiveFiveBit => (
                 self.quantize_ternary_activation(activations, scale)?,
                 DType::U8,
@@ -347,7 +350,7 @@ impl Quantizer for DynamicActivationQuantizer {
             scales,
             None,
             activations.shape().clone(),
-            quantized_dtype,
+            quantizeddtype,
             self.config.clone(),
             stats,
             None,
@@ -573,7 +576,7 @@ pub fn absmax_quantize_activations(
     };
 
     // Quantize based on precision
-    let (quantized_values, quantized_dtype) = match precision {
+    let (quantized_values, quantizeddtype) = match precision {
         QuantizationPrecision::OneFiveFiveBit => {
             // Ternary quantization for 1.58-bit
             let scale_tensor = Tensor::new(scale, device)?.broadcast_as(activations.shape())?;
@@ -633,7 +636,7 @@ pub fn absmax_quantize_activations(
         scales,
         None, // No zero points for symmetric quantization
         activations.shape().clone(),
-        quantized_dtype,
+        quantizeddtype,
         config,
         stats,
         None, // No sequence length specified
@@ -721,6 +724,7 @@ pub mod activation_utils {
 
 /// Activation pattern analysis results
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ActivationPatternAnalysis {
     pub global_min: f32,
     pub global_max: f32,
@@ -731,6 +735,7 @@ pub struct ActivationPatternAnalysis {
 
 /// Attention quantization parameters
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct AttentionQuantParams {
     pub scale: f32,
     pub sequence_length: usize,
@@ -824,7 +829,7 @@ mod tests {
         .unwrap();
 
         // Check that quantized dtype is correct
-        assert_eq!(quantized.quantized_dtype, DType::U8);
+        assert_eq!(quantized.quantizeddtype, DType::U8);
 
         // Check that values are in valid uint8 range
         // Convert to F32 first since quantized values are stored as U8

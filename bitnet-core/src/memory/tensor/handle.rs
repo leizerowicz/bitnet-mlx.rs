@@ -59,6 +59,7 @@ pub type TensorHandleResult<T> = std::result::Result<T, TensorHandleError>;
 /// and lifecycle management. It ensures that the underlying tensor data remains valid
 /// as long as the handle exists.
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct TensorHandle {
     /// Weak reference to the tensor data to avoid cycles
     tensor_ref: Weak<TensorData>,
@@ -142,9 +143,9 @@ pub fn unregister_memory_handle(tensor_id: u64) -> Option<MemoryHandle> {
                                 tensor_id
                             );
                         }
-                        Err(e) => {
+                        Err(_e) => {
                             #[cfg(feature = "tracing")]
-                            tracing::warn!("Immediate deallocation failed for handle {} (tensor {}): {}. Triggering cleanup.", handle.id(), tensor_id, e);
+                            tracing::warn!("Immediate deallocation failed for handle {} (tensor {}): {}. Triggering cleanup.", handle.id(), tensor_id, _e);
 
                             // If immediate deallocation fails, trigger cleanup
                             let cleaned_up = pool.cleanup_orphaned_handles();
@@ -197,6 +198,8 @@ pub fn clear_global_state() {
         registry.clear();
         #[cfg(feature = "tracing")]
         tracing::debug!("Cleared {} handles from global cleanup registry", count);
+        #[cfg(not(feature = "tracing"))]
+        let _ = count; // Suppress unused warning when tracing is disabled
     }
 
     // Clear the global memory pool reference
@@ -209,6 +212,7 @@ pub fn clear_global_state() {
 
 /// Internal tensor data structure
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct TensorData {
     /// Memory handle for the tensor data
     pub memory_handle: MemoryHandle,
@@ -237,6 +241,8 @@ impl Drop for TensorData {
                 self.tensor_id,
                 handle.id()
             );
+            #[cfg(not(feature = "tracing"))]
+            let _ = handle; // Suppress unused warning when tracing is disabled
         } else {
             #[cfg(feature = "tracing")]
             tracing::warn!(
@@ -470,7 +476,7 @@ impl TensorHandle {
     pub fn validate(
         &self,
         expected_shape: Option<&[usize]>,
-        expected_dtype: Option<BitNetDType>,
+        expecteddtype: Option<BitNetDType>,
     ) -> TensorHandleResult<()> {
         let metadata = self.metadata()?;
 
@@ -490,7 +496,7 @@ impl TensorHandle {
         }
 
         // Validate data type if provided
-        if let Some(expected) = expected_dtype {
+        if let Some(expected) = expecteddtype {
             if metadata.dtype != expected {
                 return Err(TensorHandleError::DTypeMismatch {
                     expected,
@@ -503,6 +509,7 @@ impl TensorHandle {
     }
 
     /// Gets access to the underlying memory handle
+    #[allow(dead_code)]
     pub(crate) fn memory_handle(&self) -> TensorHandleResult<MemoryHandle> {
         let tensor_data = self
             .tensor_ref
@@ -512,6 +519,7 @@ impl TensorHandle {
     }
 
     /// Gets access to the tensor data for internal operations
+    #[allow(dead_code)]
     pub(crate) fn tensor_data(&self) -> TensorHandleResult<Arc<TensorData>> {
         self.tensor_ref
             .upgrade()
@@ -548,6 +556,7 @@ impl fmt::Display for TensorHandle {
 
 /// Weak tensor handle that doesn't affect reference counting
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct WeakTensorHandle {
     tensor_ref: Weak<TensorData>,
     handle_id: u64,

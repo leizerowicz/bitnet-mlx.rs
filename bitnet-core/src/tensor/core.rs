@@ -25,6 +25,7 @@ use tracing::{debug, error, info, warn};
 /// with efficient memory management through HybridMemoryPool,
 /// device awareness, and support for BitNet quantization.
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct BitNetTensor {
     /// Tensor storage backend
     storage: Arc<TensorStorage>,
@@ -479,6 +480,7 @@ impl BitNetTensor {
 
 /// Memory statistics for a tensor
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TensorMemoryStats {
     pub tensor_id: u64,
     pub storage_id: u64,

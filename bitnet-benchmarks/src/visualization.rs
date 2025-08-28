@@ -10,6 +10,7 @@ use std::collections::HashMap;
 
 /// Chart configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ChartConfig {
     pub width: u32,
     pub height: u32,
@@ -40,6 +41,7 @@ impl Default for ChartConfig {
 }
 
 /// Performance visualization generator
+#[allow(dead_code)]
 pub struct PerformanceVisualizer {
     config: ChartConfig,
 }

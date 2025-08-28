@@ -128,6 +128,7 @@ pub type AccelerationResult<T> = Result<T, AccelerationError>;
 
 /// Performance metrics for acceleration operations
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct AccelerationMetrics {
     /// Backend used for the operation
     pub backend_used: AccelerationBackend,
@@ -225,6 +226,7 @@ pub trait AccelerationBackendImpl {
 }
 
 /// Global acceleration context for managing backends
+#[allow(dead_code)]
 pub struct AccelerationContext {
     dispatcher: Arc<OperationDispatcher>,
     selector: Arc<AutoAccelerationSelector>,
@@ -286,9 +288,9 @@ pub fn get_global_acceleration_context() -> AccelerationResult<&'static Accelera
                 info!("Global acceleration context initialized successfully");
                 Some(context)
             }
-            Err(_e) => {
+            Err(e) => {
                 #[cfg(feature = "tracing")]
-                warn!("Failed to initialize global acceleration context: {}", _e);
+                warn!("Failed to initialize global acceleration context: {}", e);
                 None
             }
         }

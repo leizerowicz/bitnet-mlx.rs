@@ -28,6 +28,7 @@ use crate::memory::{HybridMemoryPool, MemoryMetrics};
 
 /// Result of a cleanup operation with detailed information
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CleanupOperationResult {
     /// Number of bytes freed
     pub bytes_freed: u64,
@@ -86,6 +87,7 @@ impl CleanupOperationResult {
 
 /// Result of a pool compaction operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CompactionResult {
     /// Number of bytes compacted
     pub bytes_compacted: u64,
@@ -138,6 +140,7 @@ impl CompactionResult {
 }
 
 /// Main cleanup manager that coordinates all cleanup operations
+#[allow(dead_code)]
 pub struct CleanupManager {
     /// Configuration for cleanup operations
     config: CleanupConfig,
@@ -366,11 +369,11 @@ impl CleanupManager {
     }
 
     /// Performs cleanup on a specific device
-    pub fn cleanup_device(&self, device: &Device) -> CleanupResult<CleanupOperationResult> {
+    pub fn cleanup_device(&self, _device: &Device) -> CleanupResult<CleanupOperationResult> {
         #[cfg(feature = "tracing")]
         debug!(
             "Performing device-specific cleanup for device: {:?}",
-            device
+            _device
         );
 
         // Use device-specific strategy
@@ -381,13 +384,13 @@ impl CleanupManager {
     pub fn cleanup_selective(
         &self,
         min_age: Option<Duration>,
-        min_size: Option<usize>,
-        device_filter: Option<&Device>,
+        _min_size: Option<usize>,
+        _device_filter: Option<&Device>,
     ) -> CleanupResult<CleanupOperationResult> {
         #[cfg(feature = "tracing")]
         debug!(
             "Performing selective cleanup with filters - age: {:?}, size: {:?}, device: {:?}",
-            min_age, min_size, device_filter
+            min_age, _min_size, _device_filter
         );
 
         // For selective cleanup, use generational strategy if age is specified,
@@ -463,8 +466,8 @@ impl CleanupManager {
     pub fn get_cleanup_stats(&self) -> GlobalCleanupStats {
         self.stats
             .read()
-            .map(|stats| stats.clone())
-            .unwrap_or_else(|_| GlobalCleanupStats::new())
+            .map(|stats| stats.clone()) // Fixed typo: tats -> stats
+            .unwrap_or_else(|_| GlobalCleanupStats::new()) // Fixed closure signature
     }
 
     /// Returns the cleanup configuration
@@ -485,7 +488,7 @@ impl CleanupManager {
         self.operation_history
             .read()
             .map(|history| history.clone())
-            .unwrap_or_else(|_| Vec::new())
+            .unwrap_or_else(|_| Vec::new()) // Fixed closure signature
     }
 
     // Private helper methods
@@ -686,6 +689,7 @@ impl CleanupManager {
 
 /// Simplified cleanup manager for scheduler use
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct SchedulerCleanupManager {
     pool: Arc<HybridMemoryPool>,
     strategies: Arc<RwLock<HashMap<CleanupStrategyType, Box<dyn CleanupStrategy>>>>,

@@ -70,6 +70,7 @@ const BLOCKS_PER_CHUNK: &[usize] = &[
 /// - **Alignment**: All allocations are properly aligned
 /// - **Thread Safety**: Uses internal locking for thread-safe operations
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct SmallBlockPool {
     /// Free lists for each size class
     free_lists: Vec<FreeList>,
@@ -113,6 +114,7 @@ struct Chunk {
 
 /// Statistics for the small block pool
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PoolStats {
     /// Total number of allocations
     allocations: u64,
@@ -136,11 +138,11 @@ impl SmallBlockPool {
     /// # Returns
     ///
     /// A Result containing the new pool or an error if creation fails
-    pub fn new(initial_size: usize, max_size: usize, device: &Device) -> MemoryResult<Self> {
+    pub fn new(_initial_size: usize, max_size: usize, device: &Device) -> MemoryResult<Self> {
         #[cfg(feature = "tracing")]
         debug!(
             "Creating small block pool: initial_size={}, max_size={}, device={:?}",
-            initial_size, max_size, device
+            _initial_size, max_size, device
         );
 
         // Validate parameters
@@ -210,12 +212,11 @@ impl SmallBlockPool {
 
         // Find appropriate size class
         let size_class = self.find_size_class(size, alignment)?;
-        let actual_size = SIZE_CLASSES[size_class];
-
+        
         #[cfg(feature = "tracing")]
         debug!(
             "Allocating {} bytes (actual: {}) from size class {}",
-            size, actual_size, size_class
+            size, SIZE_CLASSES[size_class], size_class
         );
 
         // Get a block from the free list
@@ -620,7 +621,7 @@ mod tests {
         let mut handles = Vec::new();
 
         // Allocate multiple blocks
-        for i in 0..10 {
+        for _i in 0..10 {
             let handle = pool
                 .allocate(64, 16, &device, handle_counter.clone())
                 .unwrap();

@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 /// Enhanced tokenizer with sequence management capabilities
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SequenceAwareTokenizer {
     /// The underlying tokenizer
     tokenizer: Tokenizer,
@@ -21,6 +22,7 @@ pub struct SequenceAwareTokenizer {
 
 /// Configuration for tokenizer sequence integration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct TokenizerSequenceConfig {
     /// Whether to automatically manage sequence lengths
     pub auto_manage_sequences: bool,
@@ -36,6 +38,7 @@ pub struct TokenizerSequenceConfig {
 
 /// Special tokens for sequence processing
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SpecialTokens {
     /// Beginning of sequence token
     pub bos_token: Option<u32>,
@@ -81,6 +84,7 @@ impl Default for TokenizerSequenceConfig {
 
 /// Result of tokenization with sequence management
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct TokenizationResult {
     /// Processed sequences
     pub sequences: Vec<ProcessedSequence>,
@@ -92,6 +96,7 @@ pub struct TokenizationResult {
 
 /// Metadata about the tokenization process
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct TokenizationMetadata {
     /// Number of input texts
     pub input_count: usize,
@@ -546,7 +551,15 @@ mod tests {
     #[test]
     fn test_special_tokens_removal() {
         let tokenizer = create_test_tokenizer();
-        let seq_tokenizer = SequenceAwareTokenizer::with_tokenizer(tokenizer);
+        
+        // Set up tokenizer config with the special tokens used in the test
+        let mut tokenizer_config = TokenizerSequenceConfig::default();
+        tokenizer_config.special_tokens.cls_token = Some(4);
+        tokenizer_config.special_tokens.sep_token = Some(5);
+        tokenizer_config.special_tokens.pad_token = Some(3);
+        
+        let sequence_config = SequenceConfig::default();
+        let seq_tokenizer = SequenceAwareTokenizer::new(tokenizer, sequence_config, tokenizer_config).unwrap();
 
         let tokens_with_special = vec![4, 0, 1, 5, 3, 3]; // [CLS] hello world [SEP] [PAD] [PAD]
         let cleaned_tokens = seq_tokenizer.remove_special_tokens(&tokens_with_special);

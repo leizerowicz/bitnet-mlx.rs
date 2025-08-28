@@ -53,6 +53,7 @@ impl std::error::Error for ValidationError {}
 
 /// Validation rules for sequences
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ValidationRules {
     /// Minimum allowed sequence length
     pub min_length: Option<usize>,
@@ -138,6 +139,7 @@ impl ValidationRules {
 
 /// Sequence validator
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SequenceValidator {
     rules: ValidationRules,
     stats: ValidationStats,
@@ -218,7 +220,7 @@ impl SequenceValidator {
         }
 
         // Check token validity
-        for (pos, &token) in sequence.iter().enumerate() {
+        for (_pos, &token) in sequence.iter().enumerate() {
             // Check forbidden tokens
             if self.rules.forbidden_tokens.contains(&token) {
                 self.stats.failed_validations += 1;
@@ -269,6 +271,7 @@ impl SequenceValidator {
 
 /// Validation statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ValidationStats {
     /// Total number of sequences validated
     pub total_validated: usize,
@@ -365,7 +368,7 @@ pub fn validate_token_ids(
     vocab_size: usize,
     special_tokens: Option<&std::collections::HashSet<u32>>,
 ) -> SequenceResult<()> {
-    for (pos, &token) in sequence.iter().enumerate() {
+    for (_pos, &token) in sequence.iter().enumerate() {
         let is_valid = if token < vocab_size as u32 {
             true
         } else if let Some(special) = special_tokens {
@@ -400,7 +403,7 @@ pub fn validate_batch_consistency(
 
     if require_same_length {
         let first_length = sequences[0].len();
-        for (i, sequence) in sequences.iter().enumerate().skip(1) {
+        for (_, sequence) in sequences.iter().enumerate().skip(1) {
             if sequence.len() != first_length {
                 return Err(SequenceError::InconsistentBatchLengths);
             }
@@ -411,6 +414,7 @@ pub fn validate_batch_consistency(
 }
 
 /// Advanced sequence validator with custom rules
+#[allow(dead_code)]
 pub struct AdvancedValidator {
     base_validator: SequenceValidator,
     custom_rules: Vec<Box<dyn Fn(&[u32]) -> Result<(), String> + Send + Sync>>,

@@ -169,7 +169,7 @@ impl CandleOps {
         let var = tensor.var_keepdim(tensor.rank() - 1)?;
 
         // Create eps tensor with the same shape as var for proper broadcasting
-        let eps_tensor = Tensor::full(eps as f32, var.shape(), tensor.device())?;
+        let eps_tensor = Tensor::full(eps as f32, var.shape(), var.device())?;
         let std = (var + eps_tensor)?.sqrt()?;
 
         let normalized = tensor.broadcast_sub(&mean)?.broadcast_div(&std)?;

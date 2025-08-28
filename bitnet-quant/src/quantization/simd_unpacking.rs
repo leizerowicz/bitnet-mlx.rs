@@ -8,6 +8,7 @@ use super::packing::{PackedTernaryWeights, TernaryPackingStrategy};
 use super::utils::QuantizationError;
 
 /// SIMD-optimized unpacker for ternary weights
+#[allow(dead_code)]
 pub struct SimdUnpacker {
     /// Whether SIMD instructions are available
     simd_available: SimdCapabilities,
@@ -15,6 +16,7 @@ pub struct SimdUnpacker {
 
 /// Available SIMD instruction sets
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 pub struct SimdCapabilities {
     pub sse2: bool,
     pub avx2: bool,
@@ -449,7 +451,8 @@ pub mod benchmark {
 
     /// Benchmark result for unpacking performance
     #[derive(Debug, Clone)]
-    pub struct UnpackingBenchmark {
+    #[allow(dead_code)]
+pub struct UnpackingBenchmark {
         pub strategy: TernaryPackingStrategy,
         pub element_count: usize,
         pub simd_time_ns: u64,

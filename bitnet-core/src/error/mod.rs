@@ -15,6 +15,7 @@ pub use formatting::{ErrorFormatter, ErrorReport, ErrorSeverity};
 
 /// Enhanced error with detailed context and formatting
 #[derive(Error, Debug, Clone)]
+#[allow(dead_code)]
 pub struct BitNetError {
     /// The underlying error kind
     pub kind: BitNetErrorKind,
@@ -195,6 +196,11 @@ impl BitNetError {
     /// Checks if this is a Metal-related error
     pub fn is_metal_error(&self) -> bool {
         matches!(self.kind, BitNetErrorKind::Metal { .. })
+    }
+
+    /// Checks if this is an MLX-related error
+    pub fn is_mlx_error(&self) -> bool {
+        matches!(self.kind, BitNetErrorKind::Mlx { .. })
     }
 
     /// Checks if this is a critical error

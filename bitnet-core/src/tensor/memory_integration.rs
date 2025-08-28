@@ -28,6 +28,7 @@ static TENSOR_ID_COUNTER: Mutex<u64> = Mutex::new(1);
 /// This manager provides high-level memory operations for tensors while
 /// leveraging the sophisticated memory pool infrastructure.
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct TensorMemoryManager {
     /// Reference to the memory pool
     pool: Arc<HybridMemoryPool>,
@@ -36,7 +37,7 @@ pub struct TensorMemoryManager {
     /// Registry of active tensor memory handles
     handle_registry: Arc<Mutex<HashMap<u64, MemoryHandle>>>,
     /// Next tensor ID for tracking
-    next_tensor_id: Arc<Mutex<u64>>,
+    nexttensor_id: Arc<Mutex<u64>>,
 }
 
 impl TensorMemoryManager {
@@ -70,7 +71,7 @@ impl TensorMemoryManager {
             pool,
             device,
             handle_registry: Arc::new(Mutex::new(HashMap::new())),
-            next_tensor_id: Arc::new(Mutex::new(1)),
+            nexttensor_id: Arc::new(Mutex::new(1)),
         }
     }
 
@@ -108,12 +109,12 @@ impl TensorMemoryManager {
         &self,
         size_bytes: usize,
         alignment: usize,
-        dtype: BitNetDType,
+        _dtype: BitNetDType,
     ) -> MemoryResult<(u64, MemoryHandle)> {
         // Generate unique tensor ID
         let tensor_id = {
             let mut counter =
-                self.next_tensor_id
+                self.nexttensor_id
                     .lock()
                     .map_err(|_| MemoryError::InternalError {
                         reason: "Failed to acquire tensor ID counter lock".to_string(),
@@ -294,10 +295,10 @@ impl TensorMemoryManager {
         };
 
         let mut errors = Vec::new();
-        for (tensor_id, handle) in handles {
+        for (_tensor_id, handle) in handles {
             if let Err(e) = self.pool.deallocate(handle) {
                 #[cfg(feature = "tracing")]
-                error!("Failed to deallocate tensor {}: {}", tensor_id, e);
+                error!("Failed to deallocate tensor {}: {}", _tensor_id, e);
                 errors.push(e);
             }
         }
@@ -317,9 +318,9 @@ impl TensorMemoryManager {
 
 impl Drop for TensorMemoryManager {
     fn drop(&mut self) {
-        if let Err(e) = self.cleanup_all_tensors() {
+        if let Err(_e) = self.cleanup_all_tensors() {
             #[cfg(feature = "tracing")]
-            error!("Error during tensor memory manager cleanup: {}", e);
+            error!("Error during tensor memory manager cleanup: {}", _e);
         }
     }
 }
@@ -414,7 +415,7 @@ pub fn allocate_tensor_memory_global(
 }
 
 /// Generates a unique tensor ID
-pub fn generate_tensor_id() -> u64 {
+pub fn generatetensor_id() -> u64 {
     if let Ok(mut counter) = TENSOR_ID_COUNTER.lock() {
         let id = *counter;
         *counter += 1;
@@ -541,9 +542,9 @@ mod tests {
     }
 
     #[test]
-    fn test_tensor_id_generation() {
-        let id1 = generate_tensor_id();
-        let id2 = generate_tensor_id();
+    fn testtensor_id_generation() {
+        let id1 = generatetensor_id();
+        let id2 = generatetensor_id();
         assert!(id2 > id1);
     }
 

@@ -50,7 +50,7 @@ fn create_bitnet_tensor(
         _ => (0..total_elements).map(|i| i as f32 * 0.1).collect(),
     };
 
-    let shape = Shape::from_dims(shape);
+    let _shape = Shape::from_dims(shape);
     let tensor = Tensor::from_vec(data, shape, device).unwrap();
     // For testing purposes, create a simple BitNetTensor
     // Note: This is a simplified approach for testing

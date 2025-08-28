@@ -56,8 +56,8 @@ where
             result
         },
         Err(_) => {
-            eprintln!("Test {} timed out after {:?}", test_name, timeout);
-            Err(format!("Test timed out after {:?}", timeout).into())
+            eprintln!("Test {test_name} timed out after {timeout:?}");
+            Err(format!("Test timed out after {timeout:?}").into())
         }
     }
 }
@@ -187,8 +187,8 @@ monitored_test! {
         let profiler = match MemoryProfiler::new(Default::default()) {
             Ok(p) => p,
             Err(e) => {
-                eprintln!("Failed to create memory profiler: {:?}", e);
-                panic!("Memory profiler creation failed: {}", e);
+                eprintln!("Failed to create memory profiler: {e:?}");
+                panic!("Memory profiler creation failed: {e}");
             }
         };
 
@@ -352,8 +352,8 @@ monitored_test! {
         let pool_no_tracking = match HybridMemoryPool::new() {
             Ok(pool) => pool,
             Err(e) => {
-                eprintln!("Failed to create memory pool without tracking: {:?}", e);
-                panic!("Memory pool creation failed: {}", e);
+                eprintln!("Failed to create memory pool without tracking: {e:?}");
+                panic!("Memory pool creation failed: {e}");
             }
         };
         
@@ -365,7 +365,7 @@ monitored_test! {
             match pool_no_tracking.allocate(1024 + i, 16, &device) {
                 Ok(handle) => handles_no_tracking.push(handle),
                 Err(e) => {
-                    eprintln!("Allocation {} failed without tracking: {:?}", i, e);
+                    eprintln!("Allocation {i} failed without tracking: {e:?}");
                     // Continue with partial test data
                     break;
                 }
@@ -375,7 +375,7 @@ monitored_test! {
         // Cleanup with error handling
         for (idx, handle) in handles_no_tracking.into_iter().enumerate() {
             if let Err(e) = pool_no_tracking.deallocate(handle) {
-                eprintln!("Deallocation {} failed without tracking: {:?}", idx, e);
+                eprintln!("Deallocation {idx} failed without tracking: {e:?}");
                 // Continue cleanup
             }
         }
@@ -391,8 +391,8 @@ monitored_test! {
         let pool_with_tracking = match HybridMemoryPool::with_config(config) {
             Ok(pool) => pool,
             Err(e) => {
-                eprintln!("Failed to create memory pool with tracking: {:?}", e);
-                panic!("Tracking memory pool creation failed: {}", e);
+                eprintln!("Failed to create memory pool with tracking: {e:?}");
+                panic!("Tracking memory pool creation failed: {e}");
             }
         };
         
@@ -404,7 +404,7 @@ monitored_test! {
             match pool_with_tracking.allocate(1024 + i, 16, &device) {
                 Ok(handle) => handles_with_tracking.push(handle),
                 Err(e) => {
-                    eprintln!("Allocation {} failed with tracking: {:?}", i, e);
+                    eprintln!("Allocation {i} failed with tracking: {e:?}");
                     // Continue with partial test data
                     break;
                 }
@@ -414,7 +414,7 @@ monitored_test! {
         // Cleanup with error handling
         for (idx, handle) in handles_with_tracking.into_iter().enumerate() {
             if let Err(e) = pool_with_tracking.deallocate(handle) {
-                eprintln!("Deallocation {} failed with tracking: {:?}", idx, e);
+                eprintln!("Deallocation {idx} failed with tracking: {e:?}");
                 // Continue cleanup
             }
         }
@@ -520,8 +520,8 @@ monitored_test! {
         let pool = match HybridMemoryPool::with_config(config) {
             Ok(pool) => Arc::new(pool),
             Err(e) => {
-                eprintln!("Failed to create memory pool with tracking: {:?}", e);
-                panic!("Memory pool creation failed: {}", e);
+                eprintln!("Failed to create memory pool with tracking: {e:?}");
+                panic!("Memory pool creation failed: {e}");
             }
         };
 
@@ -531,7 +531,7 @@ monitored_test! {
         let thread_count = 4;
         let allocations_per_thread = 25;
 
-        println!("🚀 Spawning {} threads with {} allocations each...", thread_count, allocations_per_thread);
+        println!("🚀 Spawning {thread_count} threads with {allocations_per_thread} allocations each...");
 
         // Spawn multiple threads doing allocations with comprehensive error handling
         for thread_id in 0..thread_count {
@@ -549,7 +549,7 @@ monitored_test! {
                     match pool_clone.allocate(size, 16, &device_clone) {
                         Ok(handle) => thread_handles.push(handle),
                         Err(e) => {
-                            eprintln!("Thread {} allocation {} failed: {:?}", thread_id, i, e);
+                            eprintln!("Thread {thread_id} allocation {i} failed: {e:?}");
                             allocation_errors += 1;
                             // Continue with remaining allocations
                         }
@@ -561,7 +561,7 @@ monitored_test! {
                 for i in 0..deallocate_count {
                     if let Some(handle) = thread_handles.pop() {
                         if let Err(e) = pool_clone.deallocate(handle) {
-                            eprintln!("Thread {} deallocation {} failed: {:?}", thread_id, i, e);
+                            eprintln!("Thread {thread_id} deallocation {i} failed: {e:?}");
                             deallocation_errors += 1;
                             // Continue with remaining deallocations
                         }
@@ -588,18 +588,18 @@ monitored_test! {
                     remaining_handles.append(&mut thread_handles);
                     total_allocation_errors += alloc_errors;
                     total_deallocation_errors += dealloc_errors;
-                    println!("✅ Thread {} joined successfully", thread_id);
+                    println!("✅ Thread {thread_id} joined successfully");
                 }
                 Err(e) => {
-                    eprintln!("❌ Thread {} panicked: {:?}", thread_id, e);
+                    eprintln!("❌ Thread {thread_id} panicked: {e:?}");
                     // Continue with other threads
                 }
             }
         }
 
         println!("📊 Concurrent test summary:");
-        println!("   Total allocation errors: {}", total_allocation_errors);
-        println!("   Total deallocation errors: {}", total_deallocation_errors);
+        println!("   Total allocation errors: {total_allocation_errors}");
+        println!("   Total deallocation errors: {total_deallocation_errors}");
         println!("   Remaining handles: {}", remaining_handles.len());
 
         // Verify tracking worked correctly with detailed error reporting
@@ -628,14 +628,14 @@ monitored_test! {
         let mut cleanup_errors = 0;
         for (idx, handle) in remaining_handles.into_iter().enumerate() {
             if let Err(e) = pool.deallocate(handle) {
-                eprintln!("Cleanup deallocation {} failed: {:?}", idx, e);
+                eprintln!("Cleanup deallocation {idx} failed: {e:?}");
                 cleanup_errors += 1;
                 // Continue cleanup
             }
         }
 
         if cleanup_errors > 0 {
-            eprintln!("⚠️  {} cleanup errors occurred", cleanup_errors);
+            eprintln!("⚠️  {cleanup_errors} cleanup errors occurred");
         }
 
         // Verify final state with detailed validation

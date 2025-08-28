@@ -34,6 +34,7 @@ pub type PressureCallback = Box<dyn Fn(MemoryPressureLevel) + Send + Sync>;
 
 /// Memory pressure event information
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PressureEvent {
     /// Pressure level that triggered the event
     pub level: MemoryPressureLevel,
@@ -50,6 +51,7 @@ pub struct PressureEvent {
 }
 
 /// Memory pressure detector with configurable thresholds and callbacks
+#[allow(dead_code)]
 pub struct MemoryPressureDetector {
     /// Pressure detection thresholds
     thresholds: PressureThresholds,
@@ -84,6 +86,7 @@ struct SystemMemoryInfo {
 
 /// Memory pressure statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PressureStatistics {
     /// Current pressure level
     pub current_level: MemoryPressureLevel,

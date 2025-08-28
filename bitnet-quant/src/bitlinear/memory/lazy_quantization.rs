@@ -12,6 +12,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Configuration for lazy quantization
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct LazyQuantizationConfig {
     /// Maximum number of cached quantized weights
     pub max_cache_entries: usize,
@@ -137,6 +138,7 @@ impl LazyQuantizationEntry {
 
 /// Lazy quantization statistics
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct LazyQuantizationStats {
     /// Total cache hits
     pub hits: u64,
@@ -166,6 +168,7 @@ impl LazyQuantizationStats {
 }
 
 /// Lazy quantizer implementation
+#[allow(dead_code)]
 pub struct LazyQuantizer {
     /// Configuration
     config: LazyQuantizationConfig,
@@ -215,7 +218,7 @@ impl LazyQuantizer {
         // Check if we should quantize based on memory pressure
         if self.config.enable_pressure_aware && self.should_defer_quantization()? {
             // Return identity quantization (no actual quantization)
-            let scales = Tensor::ones(&[1], weights.dtype(), weights.device()).map_err(|e| {
+            let scales = Tensor::ones(&[1], candle_core::DType::F32, weights.device()).map_err(|e| {
                 BitLinearError::TensorError(format!("Scale tensor creation failed: {e}"))
             })?;
 
@@ -285,7 +288,7 @@ impl LazyQuantizer {
             let cache = self
                 .cache
                 .read()
-                .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
             (cache.len() as f32 * reduction_factor) as usize
         };
 
@@ -299,7 +302,7 @@ impl LazyQuantizer {
             let mut cache = self
                 .cache
                 .write()
-                .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
             cache.clear();
         }
 
@@ -307,7 +310,7 @@ impl LazyQuantizer {
             let mut lru_order = self
                 .lru_order
                 .lock()
-                .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire LRU lock"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire LRU lock"))?;
             lru_order.clear();
         }
 
@@ -325,7 +328,7 @@ impl LazyQuantizer {
         let mut cache = self
             .cache
             .write()
-            .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
+            .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
 
         if let Some(entry) = cache.get_mut(layer_name) {
             // Check if entry is valid and not expired
@@ -411,7 +414,7 @@ impl LazyQuantizer {
             .map_err(|e| BitLinearError::TensorError(format!("Scale computation failed: {e}")))?;
 
         // Add small epsilon to prevent division by zero
-        let epsilon = Tensor::full(1e-8f32, scales.shape(), scales.device()).map_err(|e| {
+        let epsilon = Tensor::new(1e-8f32, weights.device()).map_err(|e| {
             BitLinearError::TensorError(format!("Epsilon tensor creation failed: {e}"))
         })?;
         let scales_safe = scales.add(&epsilon).map_err(|e| {
@@ -450,7 +453,7 @@ impl LazyQuantizer {
         let mut cache = self
             .cache
             .write()
-            .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
+            .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
 
         let entry = LazyQuantizationEntry {
             original_weights: original_weights.clone(),
@@ -488,7 +491,7 @@ impl LazyQuantizer {
         let mut cache = self
             .cache
             .write()
-            .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
+            .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
 
         if let Some(entry) = cache.get_mut(layer_name) {
             entry.state = state;
@@ -509,7 +512,7 @@ impl LazyQuantizer {
             let lru_order = self
                 .lru_order
                 .lock()
-                .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire LRU lock"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire LRU lock"))?;
 
             lru_order.iter().take(count).cloned().collect::<Vec<_>>()
         };
@@ -518,7 +521,7 @@ impl LazyQuantizer {
             let mut cache = self
                 .cache
                 .write()
-                .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
 
             for key in &keys_to_evict {
                 cache.remove(key);
@@ -529,7 +532,7 @@ impl LazyQuantizer {
             let mut lru_order = self
                 .lru_order
                 .lock()
-                .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire LRU lock"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire LRU lock"))?;
 
             lru_order.retain(|k| !keys_to_evict.contains(k));
         }
@@ -547,7 +550,7 @@ impl LazyQuantizer {
             let cache = self
                 .cache
                 .read()
-                .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
 
             cache
                 .iter()
@@ -565,7 +568,7 @@ impl LazyQuantizer {
             let mut cache = self
                 .cache
                 .write()
-                .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire cache lock"))?;
 
             for key in &expired_keys {
                 cache.remove(key);
@@ -576,7 +579,7 @@ impl LazyQuantizer {
             let mut lru_order = self
                 .lru_order
                 .lock()
-                .map_err(|_| BitLinearError::cache_lock_error("Failed to acquire LRU lock"))?;
+                .map_err(|__| BitLinearError::cache_lock_error("Failed to acquire LRU lock"))?;
 
             lru_order.retain(|k| !expired_keys.contains(k));
 

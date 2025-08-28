@@ -8,6 +8,7 @@ use super::straight_through::STEStatistics;
 
 /// Parameter configuration for Adam optimizer
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ParamsAdam {
     pub lr: f32,
     pub beta1: f32,
@@ -30,6 +31,7 @@ impl Default for ParamsAdam {
 
 /// Parameter configuration for AdamW optimizer
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ParamsAdamW {
     pub lr: f32,
     pub beta1: f32,
@@ -52,6 +54,7 @@ impl Default for ParamsAdamW {
 
 /// Parameter configuration for SGD optimizer
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ParamsSGD {
     pub lr: f32,
     pub momentum: f32,
@@ -94,6 +97,7 @@ pub trait QATOptimizer {
 }
 
 /// Quantization-Aware Adam Optimizer
+#[allow(dead_code)]
 pub struct QuantizationAwareAdam {
     learning_rate: f32,
     beta1: f32,
@@ -380,6 +384,7 @@ impl QATOptimizer for QuantizationAwareAdam {
 }
 
 /// Quantization-Aware AdamW Optimizer (with decoupled weight decay)
+#[allow(dead_code)]
 pub struct QuantizationAwareAdamW {
     adam: QuantizationAwareAdam,
     decoupled_weight_decay: f32,
@@ -472,6 +477,7 @@ impl QATOptimizer for QuantizationAwareAdamW {
 }
 
 /// Learning Rate Scheduler for QAT
+#[allow(dead_code)]
 pub struct QATLearningRateScheduler {
     initial_lr: f32,
     schedule_type: ScheduleType,
@@ -676,11 +682,11 @@ mod tests {
         let mut params = HashMap::new();
         params.insert(
             "weight1".to_string(),
-            Tensor::from_slice(&[1.0, 2.0], (2,), &Device::Cpu)?,
+            Tensor::from_slice(&[1.0f32, 2.0f32], (2,), &Device::Cpu)?,
         );
         params.insert(
             "weight2".to_string(),
-            Tensor::from_slice(&[3.0, 4.0], (2,), &Device::Cpu)?,
+            Tensor::from_slice(&[3.0f32, 4.0f32], (2,), &Device::Cpu)?,
         );
         Ok(params)
     }
@@ -689,11 +695,11 @@ mod tests {
         let mut grads = HashMap::new();
         grads.insert(
             "weight1".to_string(),
-            Tensor::from_slice(&[0.1, 0.2], (2,), &Device::Cpu)?,
+            Tensor::from_slice(&[0.1f32, 0.2f32], (2,), &Device::Cpu)?,
         );
         grads.insert(
             "weight2".to_string(),
-            Tensor::from_slice(&[0.3, 0.4], (2,), &Device::Cpu)?,
+            Tensor::from_slice(&[0.3f32, 0.4f32], (2,), &Device::Cpu)?,
         );
         Ok(grads)
     }
@@ -892,6 +898,7 @@ impl QATAdamW {
 }
 
 /// QAT SGD with Momentum optimizer (placeholder for future implementation)
+#[allow(dead_code)]
 #[allow(dead_code)]
 pub struct QATSGDWithMomentum {
     learning_rate: f32,

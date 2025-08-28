@@ -17,6 +17,7 @@ use super::{CleanupOperation, CleanupOperationId};
 
 /// Comprehensive cleanup metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CleanupMetrics {
     /// Overall cleanup statistics
     pub overall: OverallCleanupMetrics,
@@ -36,6 +37,7 @@ pub struct CleanupMetrics {
 
 /// Overall cleanup statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct OverallCleanupMetrics {
     /// Total number of cleanup operations
     pub total_operations: u64,
@@ -61,6 +63,7 @@ pub struct OverallCleanupMetrics {
 
 /// Metrics for a specific cleanup strategy
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct StrategyMetrics {
     /// Strategy type
     pub strategy_type: CleanupStrategyType,
@@ -88,6 +91,7 @@ pub struct StrategyMetrics {
 
 /// Metrics for a specific device type
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct DeviceMetrics {
     /// Device type
     pub device_type: String,
@@ -109,6 +113,7 @@ pub struct DeviceMetrics {
 
 /// Performance-related metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PerformanceMetrics {
     /// Minimum cleanup duration observed
     pub min_cleanup_duration: Duration,
@@ -130,6 +135,7 @@ pub struct PerformanceMetrics {
 
 /// Efficiency-related metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct EfficiencyMetrics {
     /// Overall cleanup efficiency (bytes freed per millisecond)
     pub overall_efficiency: f64,
@@ -149,6 +155,7 @@ pub struct EfficiencyMetrics {
 
 /// Metrics for a single cleanup operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CleanupOperationMetrics {
     /// Operation ID
     pub operation_id: CleanupOperationId,
@@ -211,6 +218,7 @@ impl CleanupOperationMetrics {
 }
 
 /// Cleanup metrics collector and analyzer
+#[allow(dead_code)]
 pub struct CleanupMetricsCollector {
     /// Current metrics
     metrics: Arc<RwLock<CleanupMetrics>>,
@@ -296,7 +304,7 @@ impl CleanupMetricsCollector {
         self.metrics
             .read()
             .map(|metrics| metrics.clone())
-            .unwrap_or_else(|_| CleanupMetrics::new())
+            .unwrap_or_else(|_| CleanupMetrics::new()) // Fixed closure signature
     }
 
     /// Returns recent operation history

@@ -17,6 +17,7 @@ pub trait QATRegularization {
 
 /// Configuration for regularization terms
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct RegularizationConfig {
     pub weight_decay: f32,
     pub quantization_penalty: f32,
@@ -43,6 +44,7 @@ impl Default for RegularizationConfig {
 
 /// Statistics tracking for regularization
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct RegularizationStats {
     pub weight_decay_loss: f32,
     pub quantization_penalty_loss: f32,
@@ -74,6 +76,7 @@ impl RegularizationStats {
 }
 
 /// Comprehensive quantization regularizer
+#[allow(dead_code)]
 pub struct QuantizationRegularizer {
     config: RegularizationConfig,
     device: Device,
@@ -136,7 +139,7 @@ impl QuantizationRegularizer {
     fn compute_distance_to_quantization_levels(&self, weights: &Tensor) -> Result<Tensor> {
         // BitNet quantization levels: -1, 0, 1
         let abs_weights = weights.abs()?.to_dtype(DType::F32)?;
-        let ones = Tensor::ones(weights.shape(), DType::F32, weights.device())?;
+        let ones = Tensor::ones_like(&abs_weights)?;
 
         // Distance to 0
         let dist_to_zero = abs_weights.clone();

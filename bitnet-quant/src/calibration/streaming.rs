@@ -14,6 +14,7 @@ use std::time::SystemTime;
 
 /// Streaming processor for handling large datasets
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct StreamingProcessor {
     /// Configuration
     config: StreamingConfig,
@@ -44,6 +45,7 @@ pub enum StreamingState {
 
 /// Data chunk for streaming processing
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct DataChunk {
     /// Chunk identifier
     pub id: usize,
@@ -57,6 +59,7 @@ pub struct DataChunk {
 
 /// Metadata for data chunks
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ChunkMetadata {
     /// Source file path
     pub source_path: Option<PathBuf>,
@@ -72,6 +75,7 @@ pub struct ChunkMetadata {
 
 /// Streaming processing metrics
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct StreamingMetrics {
     /// Total chunks processed
     pub chunks_processed: usize,
@@ -114,6 +118,7 @@ pub trait ChunkProcessor: Send + Sync {
 
 /// Metrics for chunk processors
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ProcessorMetrics {
     /// Processing time per chunk
     pub avg_processing_time: f64,
@@ -258,7 +263,7 @@ impl StreamingProcessor {
         for handle in handles {
             handle
                 .join()
-                .map_err(|_| CalibrationError::streaming("Thread join failed".to_string()))?
+                .map_err(|__| CalibrationError::streaming("Thread join failed".to_string()))?
                 .map_err(|e| {
                     CalibrationError::streaming(format!("Parallel processing failed: {e}"))
                 })?;
@@ -416,6 +421,7 @@ impl Default for ProcessorMetrics {
 }
 
 /// Simple chunk processor for testing
+#[allow(dead_code)]
 pub struct SimpleChunkProcessor {
     metrics: ProcessorMetrics,
     processed_count: usize,

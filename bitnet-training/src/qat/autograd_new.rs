@@ -19,6 +19,7 @@ pub trait QATAutograd {
 }
 
 /// Quantization function with custom gradients
+#[allow(dead_code)]
 pub struct QuantizationFunction {
     config: STEConfig,
     device: Device,
@@ -102,7 +103,7 @@ impl QATAutograd for QuantizationFunction {
 
         // Apply gradient scaling
         if self.gradient_scale != 1.0 {
-            let scale_tensor = Tensor::new(self.gradient_scale, grad_output.device())?;
+            let _scale_tensor = )?;
             modified_grad = modified_grad.broadcast_mul(&scale_tensor)?;
         }
 

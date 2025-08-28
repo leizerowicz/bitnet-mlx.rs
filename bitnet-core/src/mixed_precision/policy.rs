@@ -12,6 +12,7 @@ use std::collections::HashMap;
 
 /// Precision policy defining rules for precision selection
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PrecisionPolicy {
     /// Policy identifier
     pub id: String,
@@ -90,6 +91,7 @@ impl PrecisionPolicy {
 
 /// Policy rule defining conditions and actions
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PolicyRule {
     /// Rule identifier
     pub id: String,
@@ -147,6 +149,7 @@ impl PolicyRule {
 
 /// Policy condition for rule matching
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PolicyCondition {
     /// Condition type
     pub condition_type: ConditionType,
@@ -359,6 +362,7 @@ impl PolicyAction {
 
 /// Formula for calculating precision based on context
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PrecisionFormula {
     /// Formula type
     pub formula_type: FormulaType,
@@ -463,6 +467,7 @@ pub enum FormulaType {
 
 /// Context for policy evaluation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PolicyContext {
     /// Layer type
     pub layer_type: LayerType,
@@ -527,6 +532,7 @@ impl PolicyContext {
 
 /// Policy engine for managing and applying precision policies
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct PolicyEngine {
     /// Registered policies
     policies: HashMap<String, PrecisionPolicy>,
@@ -608,7 +614,7 @@ impl PolicyEngine {
         current_precision: BitNetDType,
         layer_spec: &LayerPrecisionSpec,
         component_type: ComponentType,
-        context: &PrecisionContext,
+        _context: &PrecisionContext,
     ) -> MixedPrecisionResult<BitNetDType> {
         let policy_context = PolicyContext::new(layer_spec.layer_type, component_type)
             .with_layer_name(layer_spec.layer_id.clone());
@@ -681,6 +687,7 @@ impl Default for PolicyEngine {
 
 /// Statistics for policy applications
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 pub struct PolicyStats {
     /// Total policy applications
     pub total_applications: usize,

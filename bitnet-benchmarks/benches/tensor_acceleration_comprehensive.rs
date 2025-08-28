@@ -146,7 +146,7 @@ fn bench_mlx_element_wise_operations(c: &mut Criterion) {
     let operations = vec!["add", "multiply"];
 
     for &size in &config.vector_sizes {
-        let shape = vec![size];
+        let _shape = vec![size];
 
         for &dtype in &config.data_types {
             for operation in &operations {

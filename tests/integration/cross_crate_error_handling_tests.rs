@@ -31,7 +31,7 @@ fn test_cross_crate_error_propagation() -> Result<()> {
             println!("    ❌ Expected error for invalid shape but operation succeeded");
             return Ok(()); // This is actually unexpected but we'll continue
         },
-        Err(e) => {
+        Err(_e) => {
             println!("    ✅ Core tensor error properly caught: {}", e);
             
             // Convert to test error and handle
@@ -59,7 +59,7 @@ fn test_cross_crate_error_propagation() -> Result<()> {
         Ok(_) => {
             println!("    ✅ Large tensor creation succeeded (sufficient memory available)");
         },
-        Err(e) => {
+        Err(_e) => {
             println!("    ✅ Memory error properly handled: {}", e);
             
             let memory_error = TestError::memory(
@@ -218,7 +218,7 @@ fn test_concurrent_error_handling() -> Result<()> {
         thread::spawn(move || {
             for i in 0..5 {
                 // Create different error scenarios across threads
-                let shape = match (thread_id + i) % 4 {
+                let _shape = match (thread_id + i) % 4 {
                     0 => vec![0, 5], // Invalid - zero dimension
                     1 => vec![10, 10], // Valid
                     2 => vec![100, 100], // Valid but larger
@@ -230,7 +230,7 @@ fn test_concurrent_error_handling() -> Result<()> {
                     Ok(_) => {
                         success_count.fetch_add(1, Ordering::Relaxed);
                     },
-                    Err(e) => {
+                    Err(_e) => {
                         error_count.fetch_add(1, Ordering::Relaxed);
                         
                         // Create error handler for this thread

@@ -14,6 +14,7 @@ use anyhow::Result;
 /// MLX tensor wrapper with BitNet integration
 #[cfg(feature = "mlx")]
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct MlxTensor {
     array: Array,
     device: BitNetMlxDevice,

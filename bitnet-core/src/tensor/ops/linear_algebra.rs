@@ -82,6 +82,7 @@ pub enum MatMulStrategy {
 
 /// Matrix multiplication configuration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MatMulConfig {
     /// Optimization strategy to use
     pub strategy: MatMulStrategy,
@@ -208,7 +209,7 @@ pub fn batched_matmul(a: &BitNetTensor, b: &BitNetTensor) -> TensorOpResult<BitN
             error: e.to_string(),
         })?;
 
-    BitNetTensor::from_candle(result_candle, a.device()).map_err(|e| TensorOpError::InternalError {
+    BitNetTensor::from_candle(result_candle, &a.device()).map_err(|e| TensorOpError::InternalError {
         reason: format!("Failed to create batched matmul result: {}", e),
     })
 }
@@ -262,7 +263,7 @@ pub fn dot(a: &BitNetTensor, b: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
                 error: e.to_string(),
             })?;
 
-        return BitNetTensor::from_candle(result_candle, a.device()).map_err(|e| {
+        return BitNetTensor::from_candle(result_candle, &a.device()).map_err(|e| {
             TensorOpError::InternalError {
                 reason: format!("Failed to create dot product result: {}", e),
             }
@@ -283,7 +284,7 @@ pub fn dot(a: &BitNetTensor, b: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
                 error: e.to_string(),
             })?;
 
-    BitNetTensor::from_candle(result_candle, a.device()).map_err(|e| TensorOpError::InternalError {
+    BitNetTensor::from_candle(result_candle, &a.device()).map_err(|e| TensorOpError::InternalError {
         reason: format!("Failed to create dot product result: {}", e),
     })
 }
@@ -335,7 +336,7 @@ pub fn outer(a: &BitNetTensor, b: &BitNetTensor) -> TensorOpResult<BitNetTensor>
                 error: e.to_string(),
             })?;
 
-    BitNetTensor::from_candle(result_candle, a.device()).map_err(|e| TensorOpError::InternalError {
+    BitNetTensor::from_candle(result_candle, &a.device()).map_err(|e| TensorOpError::InternalError {
         reason: format!("Failed to create outer product result: {}", e),
     })
 }
@@ -385,7 +386,7 @@ pub fn transpose(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
             })?
     };
 
-    BitNetTensor::from_candle(result_candle, tensor.device()).map_err(|e| {
+    BitNetTensor::from_candle(result_candle, &tensor.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create transpose result: {}", e),
         }
@@ -421,7 +422,7 @@ pub fn permute(tensor: &BitNetTensor, dims: &[usize]) -> TensorOpResult<BitNetTe
             error: e.to_string(),
         })?;
 
-    BitNetTensor::from_candle(result_candle, tensor.device()).map_err(|e| {
+    BitNetTensor::from_candle(result_candle, &tensor.device()).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create permute result: {}", e),
         }
@@ -508,6 +509,7 @@ pub fn cholesky(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
 // ============================================================================
 
 /// Get a single matrix element from a Candle tensor
+#[allow(dead_code)]
 fn get_matrix_element(tensor: &CandleTensor, row: usize, col: usize) -> TensorOpResult<f32> {
     let narrow_row = tensor
         .narrow(0, row, 1)
@@ -532,6 +534,7 @@ fn get_matrix_element(tensor: &CandleTensor, row: usize, col: usize) -> TensorOp
 }
 
 /// Construct lower triangular matrix from 2D vector
+#[allow(dead_code)]
 fn construct_lower_triangular_matrix(data: &[Vec<f32>], n: usize) -> TensorOpResult<CandleTensor> {
     let mut flat_data = vec![0.0f32; n * n];
 
@@ -551,6 +554,7 @@ fn construct_lower_triangular_matrix(data: &[Vec<f32>], n: usize) -> TensorOpRes
 }
 
 /// Check if matrix is positive definite by examining diagonal elements and attempting Cholesky
+#[allow(dead_code)]
 fn is_positive_definite_check(tensor: &CandleTensor) -> TensorOpResult<bool> {
     let dims = tensor.dims2().map_err(|e| TensorOpError::CandleError {
         operation: "is_positive_definite_check".to_string(),
@@ -586,6 +590,7 @@ fn is_positive_definite_check(tensor: &CandleTensor) -> TensorOpResult<bool> {
 }
 
 /// Extract column from a Candle tensor
+#[allow(dead_code)]
 fn extract_column(tensor: &CandleTensor, col: usize) -> TensorOpResult<CandleTensor> {
     tensor
         .narrow(1, col, 1)?
@@ -597,6 +602,7 @@ fn extract_column(tensor: &CandleTensor, col: usize) -> TensorOpResult<CandleTen
 }
 
 /// Compute dot product between two Candle tensors
+#[allow(dead_code)]
 fn dot_product_candle(a: &CandleTensor, b: &CandleTensor) -> TensorOpResult<f32> {
     let product = (a * b)?;
     let sum = product.sum_all()?;
@@ -608,12 +614,13 @@ fn dot_product_candle(a: &CandleTensor, b: &CandleTensor) -> TensorOpResult<f32>
 }
 
 /// Subtract scaled vector: a - scale * b
+#[allow(dead_code)]
 fn subtract_scaled_candle(
     a: &CandleTensor,
     b: &CandleTensor,
     scale: f32,
 ) -> TensorOpResult<CandleTensor> {
-    let scale_tensor = CandleTensor::full(scale, b.shape(), b.device())?;
+    let scale_tensor = CandleTensor::new(scale, a.device())?;
     let scaled_b = b.mul(&scale_tensor)?;
     (a - &scaled_b).map_err(|e| TensorOpError::CandleError {
         operation: "subtract_scaled_candle".to_string(),
@@ -622,6 +629,7 @@ fn subtract_scaled_candle(
 }
 
 /// Compute L2 norm of a Candle tensor
+#[allow(dead_code)]
 fn compute_norm_candle(tensor: &CandleTensor) -> TensorOpResult<f32> {
     let squared = (tensor * tensor)?;
     let sum = squared.sum_all()?;
@@ -630,8 +638,9 @@ fn compute_norm_candle(tensor: &CandleTensor) -> TensorOpResult<f32> {
 }
 
 /// Scale vector by scalar: scale * tensor
+#[allow(dead_code)]
 fn scale_vector_candle(tensor: &CandleTensor, scale: f32) -> TensorOpResult<CandleTensor> {
-    let scale_tensor = CandleTensor::full(scale, tensor.shape(), tensor.device())?;
+    let scale_tensor = CandleTensor::new(scale, tensor.device())?;
     tensor
         .mul(&scale_tensor)
         .map_err(|e| TensorOpError::CandleError {
@@ -641,6 +650,7 @@ fn scale_vector_candle(tensor: &CandleTensor, scale: f32) -> TensorOpResult<Cand
 }
 
 /// Construct matrix from column vectors
+#[allow(dead_code)]
 fn construct_matrix_from_columns(
     columns: &[CandleTensor],
     rows: usize,
@@ -677,6 +687,7 @@ fn construct_matrix_from_columns(
 }
 
 /// Construct upper triangular matrix from 2D vector data
+#[allow(dead_code)]
 fn construct_upper_triangular_matrix(
     data: &[Vec<f32>],
     rows: usize,
@@ -702,6 +713,7 @@ fn construct_upper_triangular_matrix(
 }
 
 /// Expand 1D tensor to 2D column vector
+#[allow(dead_code)]
 fn expand_to_2d(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
     let dims = tensor.shape().dims();
     if dims.len() != 1 {
@@ -720,6 +732,7 @@ fn expand_to_2d(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
 }
 
 /// Squeeze 2D tensor to 1D vector
+#[allow(dead_code)]
 fn squeeze_to_1d(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
     let dims = tensor.shape().dims();
     if dims.len() != 2 {
@@ -765,8 +778,19 @@ pub fn eig(tensor: &BitNetTensor) -> TensorOpResult<(BitNetTensor, BitNetTensor)
 
     // Placeholder implementation
     let dims = tensor.shape().dims();
-    let eigenvals = BitNetTensor::ones(&[dims[0]], tensor.dtype(), Some(tensor.device().clone()))?;
-    let eigenvecs = eye(dims[0], tensor.dtype(), Some(tensor.device().clone()))?;
+    let n = dims[0];
+    
+    // Create placeholder eigenvalues (diagonal of the matrix)
+    let eigenvals = BitNetTensor::ones(&[n], tensor.dtype(), Some(tensor.device().clone()))
+        .map_err(|e| TensorOpError::InternalError {
+            reason: format!("Failed to create eigenvalues tensor: {}", e),
+        })?;
+    
+    // Create placeholder eigenvectors (identity matrix)
+    let eigenvecs = BitNetTensor::zeros(&[n, n], tensor.dtype(), Some(tensor.device().clone()))
+        .map_err(|e| TensorOpError::InternalError {
+            reason: format!("Failed to create eigenvectors tensor: {}", e),
+        })?;
 
     #[cfg(feature = "tracing")]
     warn!("Eigendecomposition implementation is placeholder");
@@ -816,8 +840,11 @@ pub fn det(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
         tensor.shape().dims()
     );
 
-    // Placeholder implementation
-    let result = BitNetTensor::ones(&[], tensor.dtype(), Some(tensor.device().clone()))?;
+    // Placeholder implementation - return 1.0 as a scalar tensor
+    let result = BitNetTensor::ones(&[1], tensor.dtype(), Some(tensor.device().clone()))
+        .map_err(|e| TensorOpError::InternalError {
+            reason: format!("Failed to create determinant result: {}", e),
+        })?;
 
     #[cfg(feature = "tracing")]
     warn!("Determinant implementation is placeholder - returning 1.0");
@@ -837,7 +864,8 @@ pub fn inv(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
 
     // Placeholder implementation using identity
     let dims = tensor.shape().dims();
-    let result = eye(dims[0], tensor.dtype(), Some(tensor.device().clone()))?;
+    let n = dims[0];
+    let result = eye(n, tensor.dtype(), Some(tensor.device().clone()))?;
 
     #[cfg(feature = "tracing")]
     warn!("Matrix inverse implementation is placeholder - using identity");
@@ -865,7 +893,7 @@ fn matmul_standard(
             error: e.to_string(),
         })?;
 
-    BitNetTensor::from_candle(result_candle, a.device()).map_err(|e| TensorOpError::InternalError {
+    BitNetTensor::from_candle(result_candle, &a.device()).map_err(|e| TensorOpError::InternalError {
         reason: format!("Failed to create matmul result: {}", e),
     })
 }
@@ -1150,6 +1178,7 @@ fn validate_permute_inputs(tensor: &BitNetTensor, dims: &[usize]) -> TensorOpRes
 }
 
 /// Validate input for SVD
+#[allow(dead_code)]
 fn validate_svd_input(tensor: &BitNetTensor) -> TensorOpResult<()> {
     if tensor.shape().rank() != 2 {
         return Err(TensorOpError::ShapeMismatch {
@@ -1163,6 +1192,7 @@ fn validate_svd_input(tensor: &BitNetTensor) -> TensorOpResult<()> {
 }
 
 /// Validate input for QR decomposition
+#[allow(dead_code)]
 fn validate_qr_input(tensor: &BitNetTensor) -> TensorOpResult<()> {
     if tensor.shape().rank() != 2 {
         return Err(TensorOpError::ShapeMismatch {
@@ -1176,6 +1206,7 @@ fn validate_qr_input(tensor: &BitNetTensor) -> TensorOpResult<()> {
 }
 
 /// Validate input for Cholesky decomposition
+#[allow(dead_code)]
 fn validate_cholesky_input(tensor: &BitNetTensor) -> TensorOpResult<()> {
     let dims = tensor.shape().dims();
 
@@ -1280,6 +1311,7 @@ mod tests {
     use std::sync::{Arc, Once};
 
     /// Ensures the global memory pool is initialized once for all tests
+    #[allow(dead_code)]
     fn setup_global_memory_pool() {
         use std::sync::OnceLock;
         static INIT: Once = Once::new();

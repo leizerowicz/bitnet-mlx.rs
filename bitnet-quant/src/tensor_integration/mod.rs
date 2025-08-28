@@ -206,6 +206,7 @@ impl TensorIntegrationFactory {
 
 /// Global tensor integration configuration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct GlobalTensorIntegrationConfig {
     /// Default quantization precision
     pub default_precision: QuantizationPrecision,
@@ -237,6 +238,7 @@ impl Default for GlobalTensorIntegrationConfig {
 
 /// Memory pool integration configuration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MemoryPoolIntegrationConfig {
     /// Use existing HybridMemoryPool for quantized tensors
     pub use_hybrid_pool: bool,
@@ -280,6 +282,7 @@ pub enum QuantizedAllocationStrategy {
 
 /// Device acceleration integration configuration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct AccelerationIntegrationConfig {
     /// Enable MLX acceleration for Apple Silicon
     pub enable_mlx: bool,
@@ -311,6 +314,7 @@ impl Default for AccelerationIntegrationConfig {
 
 /// Error handling configuration
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ErrorHandlingConfig {
     /// Enable automatic error recovery
     pub auto_recovery: bool,

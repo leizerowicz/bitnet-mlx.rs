@@ -99,6 +99,7 @@ impl SimdOptimization {
 
 /// SIMD acceleration metrics
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SimdAccelerationMetrics {
     /// SIMD optimization level used
     pub optimization_level: SimdOptimization,
@@ -154,6 +155,7 @@ impl SimdAccelerationMetrics {
 }
 
 /// SIMD acceleration backend with cross-platform optimization
+#[allow(dead_code)]
 pub struct SimdAccelerator {
     /// Current SIMD optimization level
     optimization_level: SimdOptimization,
@@ -214,6 +216,7 @@ impl SimdAccelerator {
     }
 
     // SIMD-optimized element-wise addition
+    #[allow(dead_code)]
     fn simd_elementwise_add(
         &self,
         a: &[f32],
@@ -335,6 +338,7 @@ impl SimdAccelerator {
     }
 
     #[cfg(target_arch = "aarch64")]
+    #[allow(dead_code)]
     unsafe fn neon_elementwise_add(&self, a: &[f32], b: &[f32], result: &mut [f32]) {
         use std::arch::aarch64::*;
 
@@ -352,6 +356,7 @@ impl SimdAccelerator {
         }
     }
 
+    #[allow(dead_code)]
     fn update_metrics(
         &self,
         vectorized_ops: usize,
@@ -388,8 +393,8 @@ impl AccelerationBackendImpl for SimdAccelerator {
 
     fn matmul(
         &self,
-        a: &BitNetTensor,
-        b: &BitNetTensor,
+        _a: &BitNetTensor,
+        _b: &BitNetTensor,
     ) -> AccelerationResult<(BitNetTensor, AccelerationMetrics)> {
         if !self.initialized {
             return Err(AccelerationError::NotInitialized {
@@ -454,8 +459,8 @@ impl AccelerationBackendImpl for SimdAccelerator {
 
     fn mul(
         &self,
-        a: &BitNetTensor,
-        b: &BitNetTensor,
+        _a: &BitNetTensor,
+        _b: &BitNetTensor,
     ) -> AccelerationResult<(BitNetTensor, AccelerationMetrics)> {
         // Similar implementation to add() but with multiplication
         Err(AccelerationError::OperationNotSupported {

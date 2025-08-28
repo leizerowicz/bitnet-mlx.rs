@@ -9,6 +9,7 @@ use std::collections::HashMap;
 
 /// Comprehensive quantization metrics
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QuantizationMetrics {
     /// Mean Squared Error
     pub mse: f64,
@@ -137,6 +138,7 @@ impl QuantizationMetrics {
 
 /// Quality assessment thresholds
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QualityThresholds {
     pub max_mse: f64,
     pub min_sqnr_db: f64,
@@ -191,6 +193,7 @@ impl QualityThresholds {
 
 /// Quality assessment result
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QualityAssessment {
     pub overall_passed: bool,
     pub passed_criteria: Vec<String>,
@@ -211,6 +214,7 @@ impl QualityAssessment {
 
 /// Statistical analysis of quantization behavior
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct StatisticalAnalysis {
     /// Distribution of quantized values
     pub value_distribution: ValueDistribution,
@@ -244,6 +248,7 @@ impl StatisticalAnalysis {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ValueDistribution {
     pub histogram: HashMap<i32, usize>,
     pub entropy: f64,
@@ -252,6 +257,7 @@ pub struct ValueDistribution {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ErrorDistributionAnalysis {
     pub mean_error: f64,
     pub std_error: f64,
@@ -261,6 +267,7 @@ pub struct ErrorDistributionAnalysis {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct OutlierAnalysis {
     pub outlier_count: usize,
     pub outlier_threshold: f64,
@@ -269,6 +276,7 @@ pub struct OutlierAnalysis {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct StabilityAnalysis {
     pub cross_tensor_mse_variance: f64,
     pub consistency_score: f64, // [0, 1] - higher is more consistent

@@ -4,7 +4,7 @@
 //! for BitNet operations, enabling optimal performance across different hardware
 //! configurations while maintaining reliability through fallback strategies.
 
-use crate::error::{BitNetError, BitNetErrorKind};
+use crate::error::BitNetError;
 use anyhow::Result;
 use std::fmt;
 
@@ -247,9 +247,9 @@ pub fn fallback_to_candle(mlx_error: MlxError) -> Result<Tensor> {
 }
 
 /// Create a basic fallback tensor for CPU execution
-fn create_fallback_tensor(reason: &str) -> Result<Tensor> {
+fn create_fallback_tensor(_reason: &str) -> Result<Tensor> {
     #[cfg(feature = "tracing")]
-    tracing::info!("Creating fallback tensor: {}", reason);
+    tracing::info!("Creating fallback tensor: {}", _reason);
 
     // Create a minimal 1x1 tensor on CPU as a safe fallback
     let device = candle_core::Device::Cpu;
@@ -434,6 +434,7 @@ mod tests {
         let mlx_error = MlxError::MemoryError("Out of memory".to_string());
         let bitnet_error: BitNetError = mlx_error.into();
 
-        assert!(matches!(bitnet_error.kind(), BitNetErrorKind::Mlx { .. }));
+        // Check that the error was converted properly to BitNet MLX error type
+        assert!(bitnet_error.is_mlx_error());
     }
 }

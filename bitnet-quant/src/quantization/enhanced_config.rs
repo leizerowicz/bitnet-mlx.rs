@@ -20,6 +20,7 @@ use serde::{Deserialize, Serialize};
 
 /// Enhanced quantization configuration builder with precision control
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 pub struct EnhancedQuantizationConfigBuilder {
     // Base configuration
     precision: Option<QuantizationPrecision>,
@@ -314,6 +315,7 @@ impl EnhancedQuantizationConfigBuilder {
 
 /// Enhanced quantization configuration with precision control
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct EnhancedQuantizationConfiguration {
     /// Base quantization configuration
     pub base: EnhancedQuantizationConfig,

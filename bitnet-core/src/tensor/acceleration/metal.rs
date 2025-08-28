@@ -28,6 +28,7 @@ use super::{
 
 /// Metal acceleration performance metrics
 #[derive(Debug, Default, Clone)]
+#[allow(dead_code)]
 pub struct MetalAccelerationMetrics {
     /// Total GPU operations executed
     pub operations_executed: u64,
@@ -85,6 +86,7 @@ impl MetalAccelerationMetrics {
 
 /// Metal acceleration backend with compute shader support
 #[cfg(feature = "metal")]
+#[allow(dead_code)]
 pub struct MetalAccelerator {
     /// Metal device for GPU operations
     #[cfg(all(target_os = "macos", feature = "metal"))]
@@ -709,6 +711,7 @@ pub fn is_metal_available() -> bool {
 
 /// Stub MetalAccelerator for when Metal feature is disabled
 #[cfg(not(feature = "metal"))]
+#[allow(dead_code)]
 pub struct MetalAccelerator {
     _phantom: std::marker::PhantomData<()>,
 }

@@ -5,7 +5,7 @@
 
 use super::{
     QuantizationConfig, QuantizationPrecision, QuantizationResult, QuantizationStats,
-    QuantizationStrategy, Quantizer,
+    QuantizationStrategy,
 };
 use crate::quantization::utils::QuantizationError;
 use crate::quantization::weights::TernaryMethod;
@@ -15,6 +15,7 @@ use std::fmt::Debug;
 
 /// Quantization scheme configuration that supports multiple precision levels
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct QuantizationSchemeConfig {
     /// Base quantization configuration
     pub base: QuantizationConfig,
@@ -30,6 +31,7 @@ pub struct QuantizationSchemeConfig {
 
 /// Scheme-specific parameters for different quantization types
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[allow(dead_code)]
 pub struct SchemeParameters {
     /// Parameters for 1-bit quantization
     pub one_bit: OneBitParams,
@@ -41,6 +43,7 @@ pub struct SchemeParameters {
 
 /// Configuration for 1-bit quantization
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct OneBitParams {
     /// Threshold method for binary quantization
     pub threshold_method: BinaryThresholdMethod,
@@ -54,6 +57,7 @@ pub struct OneBitParams {
 
 /// Configuration for 1.58-bit quantization
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct OneFiveEightBitParams {
     /// Ternary quantization method
     pub ternary_method: TernaryMethod,
@@ -67,6 +71,7 @@ pub struct OneFiveEightBitParams {
 
 /// Configuration for multi-bit quantization (2-bit, 4-bit, 8-bit)
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct MultiBitParams {
     /// Number of quantization levels
     pub num_levels: u32,
@@ -95,6 +100,7 @@ pub enum BinaryThresholdMethod {
 
 /// Custom threshold configuration for different precisions
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ThresholdConfig {
     /// Threshold for 1-bit quantization
     pub one_bit_threshold: Option<f32>,
@@ -106,6 +112,7 @@ pub struct ThresholdConfig {
 
 /// Optimization configuration for quantization schemes
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct OptimizationConfig {
     /// Whether to enable SIMD optimizations
     pub enable_simd: bool,
@@ -178,6 +185,7 @@ impl Default for OptimizationConfig {
 
 /// Configurable quantization scheme that supports multiple precision levels
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct ConfigurableQuantizationScheme {
     config: QuantizationSchemeConfig,
     device: Device,
@@ -302,7 +310,7 @@ impl ConfigurableQuantizationScheme {
             zero_points: None,
             original_shape: input.shape().clone(),
             precision: QuantizationPrecision::OneBit,
-            quantized_dtype: DType::U8,
+            quantizeddtype: DType::U8,
             stats,
         })
     }
@@ -345,7 +353,7 @@ impl ConfigurableQuantizationScheme {
             zero_points: None,
             original_shape: input.shape().clone(),
             precision: QuantizationPrecision::OneFiveFiveBit,
-            quantized_dtype: DType::U8,
+            quantizeddtype: DType::U8,
             stats,
         })
     }
@@ -403,7 +411,7 @@ impl ConfigurableQuantizationScheme {
             zero_points: Some(Tensor::new(zero_point as f32, &self.device)?),
             original_shape: input.shape().clone(),
             precision: self.config.base.precision,
-            quantized_dtype: DType::U8, // Use U8 for all multi-bit quantization
+            quantizeddtype: DType::U8, // Use U8 for all multi-bit quantization
             stats,
         })
     }
@@ -677,6 +685,7 @@ impl ConfigurableQuantizationScheme {
 
 /// Quantized tensor representation for configurable schemes
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct QuantizedTensor {
     /// Quantized values
     pub values: Tensor,
@@ -689,7 +698,7 @@ pub struct QuantizedTensor {
     /// Quantization precision used
     pub precision: QuantizationPrecision,
     /// Data type of quantized values
-    pub quantized_dtype: DType,
+    pub quantizeddtype: DType,
     /// Quantization statistics
     pub stats: QuantizationStats,
 }
@@ -697,7 +706,7 @@ pub struct QuantizedTensor {
 impl QuantizedTensor {
     /// Get memory footprint of quantized tensor
     pub fn memory_footprint(&self) -> usize {
-        let values_size = self.values.elem_count() * self.quantized_dtype.size_in_bytes();
+        let values_size = self.values.elem_count() * self.quantizeddtype.size_in_bytes();
         let scales_size = self.scales.elem_count() * self.scales.dtype().size_in_bytes();
         let zero_points_size = self
             .zero_points
@@ -878,7 +887,7 @@ mod tests {
             zero_points: None,
             original_shape: shape,
             precision: QuantizationPrecision::OneBit,
-            quantized_dtype: DType::U8,
+            quantizeddtype: DType::U8,
             stats,
         };
 

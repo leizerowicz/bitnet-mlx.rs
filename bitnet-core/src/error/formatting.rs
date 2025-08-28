@@ -59,6 +59,7 @@ impl fmt::Display for ErrorSeverity {
 
 /// Comprehensive error report with detailed information
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ErrorReport {
     /// Error ID for tracking
     pub error_id: String,
@@ -86,6 +87,7 @@ pub struct ErrorReport {
 
 /// Technical details for debugging
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct TechnicalDetails {
     /// Component or module where error occurred
     pub component: String,
@@ -103,6 +105,7 @@ pub struct TechnicalDetails {
 
 /// System information at time of error
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SystemInfo {
     /// Operating system
     pub os: String,
@@ -118,6 +121,7 @@ pub struct SystemInfo {
 
 /// Performance metrics at time of error
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PerformanceMetrics {
     /// Memory usage in bytes
     pub memory_usage: u64,
@@ -433,6 +437,7 @@ impl ErrorReport {
 }
 
 /// Error formatter with customizable output options
+#[allow(dead_code)]
 pub struct ErrorFormatter {
     /// Include technical details in output
     pub include_technical_details: bool,
