@@ -5,6 +5,10 @@ pub mod model_loader;
 pub mod execution_context;
 pub mod cpu_backend;
 pub mod device_selector;
+pub mod gpu_memory_optimizer;
+pub mod zero_copy_loader;
+pub mod dynamic_batching;
+pub mod parallel_processor;
 
 #[cfg(feature = "metal")]
 pub mod metal_backend;
@@ -17,6 +21,10 @@ pub use model_loader::{ModelLoader, LoadedModel, ModelMetadata, ModelArchitectur
 pub use execution_context::{ExecutionContext, ExecutionConfig, ExecutionStats};
 pub use cpu_backend::CpuInferenceBackend;
 pub use device_selector::{DeviceSelector, SelectionStrategy, DeviceCapabilities};
+pub use gpu_memory_optimizer::{GPUMemoryManager, GPUAllocation, MemoryStats};
+pub use zero_copy_loader::{ZeroCopyModelLoader, MmapModel, ModelHeader, WeightLayout};
+pub use dynamic_batching::{DynamicBatchProcessor, MemoryMonitor, PerformanceTracker, DynamicBatchStats, MemoryStats as DynamicMemoryStats, PerformanceStats};
+pub use parallel_processor::{ParallelInferenceProcessor, InferenceTask, InferenceResult, ParallelConfig, ParallelProcessorStats, WorkerStats};
 
 #[cfg(feature = "metal")]
 pub use metal_backend::MetalInferenceBackend;
@@ -24,7 +32,7 @@ pub use metal_backend::MetalInferenceBackend;
 #[cfg(feature = "mlx")]
 pub use mlx_backend::MLXInferenceBackend;
 
-use crate::{Result, InferenceError};
+use crate::Result;
 use bitnet_core::{Device, Tensor};
 use std::sync::Arc;
 
@@ -337,5 +345,25 @@ impl Model {
         // Rough estimate based on parameter count and quantization
         let bits_per_param = self.quantization_config.weight_bits as usize;
         (self.parameter_count * bits_per_param) / 8
+    }
+
+    /// Get input dimension for GPU memory allocation
+    pub fn get_input_dim(&self) -> usize {
+        self.input_dim
+    }
+
+    /// Get output dimension for GPU memory allocation
+    pub fn get_output_dim(&self) -> usize {
+        self.output_dim
+    }
+
+    /// Get total weight count for GPU buffer sizing
+    pub fn get_total_weight_count(&self) -> usize {
+        self.parameter_count
+    }
+
+    /// Get model ID for caching purposes
+    pub fn get_model_id(&self) -> String {
+        format!("{}_{}", self.name, self.version)
     }
 }

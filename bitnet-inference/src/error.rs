@@ -36,11 +36,23 @@ pub enum InferenceError {
     CoreError(#[from] bitnet_core::BitNetError),
 
     #[error("Quantization error: {0}")]
-    QuantError(#[from] bitnet_quant::QuantizationError),
+    QuantError(#[from] bitnet_quant::quantization::utils::QuantizationError),
+
+    #[error("Candle tensor error: {0}")]
+    CandleError(#[from] candle_core::Error),
 
     #[cfg(feature = "metal")]
     #[error("Metal backend error: {0}")]
     MetalError(#[from] bitnet_metal::MetalError),
+
+    #[error("Resource error: {0}")]
+    ResourceError(String),
+
+    #[error("Unsupported operation: {0}")]
+    UnsupportedOperation(String),
+
+    #[error("Concurrency error: {0}")]
+    ConcurrencyError(String),
 }
 
 impl InferenceError {
@@ -77,6 +89,28 @@ impl InferenceError {
     /// Create a new configuration error.
     pub fn config<S: Into<String>>(msg: S) -> Self {
         InferenceError::ConfigError(msg.into())
+    }
+
+    /// Create a new resource error.
+    pub fn resource<S: Into<String>>(msg: S) -> Self {
+        InferenceError::ResourceError(msg.into())
+    }
+
+    /// Create a new serialization error.
+    pub fn serialization<S: Into<String>>(msg: S) -> Self {
+        InferenceError::SerializationError(bincode::Error::new(bincode::ErrorKind::Io(
+            std::io::Error::new(std::io::ErrorKind::Other, msg.into())
+        )))
+    }
+
+    /// Create a new unsupported operation error.
+    pub fn unsupported<S: Into<String>>(msg: S) -> Self {
+        InferenceError::UnsupportedOperation(msg.into())
+    }
+
+    /// Create a new concurrency error.
+    pub fn concurrency<S: Into<String>>(msg: S) -> Self {
+        InferenceError::ConcurrencyError(msg.into())
     }
 
     /// Check if this error is recoverable.

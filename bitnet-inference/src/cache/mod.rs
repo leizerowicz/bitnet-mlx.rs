@@ -1,8 +1,16 @@
 //! Model caching and memory management for efficient inference.
 
-pub mod model_cache;
+pub mod enhanced_memory_pool;
+pub mod advanced_model_cache;
 
-use crate::Result;
+pub use advanced_model_cache::{
+    AdvancedModelCache, CachedModel, ExecutionPlan, LayerExecution, 
+    MemoryLayout, FusionGroup, FusionType, TensorSpec, DevicePlacement,
+    ExecutionLayerType, TensorLayout, CacheStats
+};
+// Re-export the advanced cache as the primary ModelCache for compatibility
+pub use advanced_model_cache::AdvancedModelCache as ModelCache;
+
 use std::path::PathBuf;
 
 /// Configuration for caching behavior.
@@ -28,6 +36,3 @@ impl Default for CacheConfig {
         }
     }
 }
-
-// Re-export commonly used types from submodules
-pub use model_cache::{ModelCache, CachedModel};

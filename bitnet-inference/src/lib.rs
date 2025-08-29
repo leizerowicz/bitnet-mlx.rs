@@ -35,6 +35,7 @@ pub mod engine;
 pub mod api;
 pub mod cache;
 pub mod optimization;
+pub mod profiling;
 pub mod error;
 
 // Re-export the main API components
@@ -43,4 +44,10 @@ pub use error::{InferenceError, Result};
 
 // Re-export commonly used types
 pub use engine::{InferenceContext, OptimizationLevel, InferenceBackend};
-pub use cache::{ModelCache, CacheConfig};
+pub use engine::{DynamicBatchProcessor, ParallelInferenceProcessor, ParallelConfig, MemoryMonitor, PerformanceTracker, DynamicBatchStats};
+pub use cache::{ModelCache, CacheConfig, AdvancedModelCache, CachedModel, ExecutionPlan};
+pub use profiling::{MemoryProfiler, MemoryProfile, MemoryAnalysis};
+
+// Re-export advanced caching and loading
+pub use cache::{MemoryLayout, FusionGroup, FusionType, TensorSpec, DevicePlacement};
+pub use engine::{ZeroCopyModelLoader, MmapModel, ModelHeader, WeightLayout};

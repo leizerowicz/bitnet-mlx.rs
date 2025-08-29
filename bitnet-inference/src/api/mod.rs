@@ -157,7 +157,7 @@ impl InferenceEngine {
     }
 
     /// Get cache statistics.
-    pub fn cache_stats(&self) -> crate::cache::model_cache::CacheStats {
+    pub fn cache_stats(&self) -> crate::cache::advanced_model_cache::CacheStats {
         self.model_cache.stats()
     }
 
