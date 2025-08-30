@@ -39,7 +39,7 @@ pub mod profiling;
 pub mod error;
 
 // Re-export the main API components
-pub use api::{InferenceEngine, EngineConfig};
+pub use api::{InferenceEngine, EngineConfig, InferenceStream, StreamingConfig};
 pub use error::{InferenceError, Result};
 
 // Re-export commonly used types

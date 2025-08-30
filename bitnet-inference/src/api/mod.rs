@@ -2,6 +2,10 @@
 
 pub mod simple;
 pub mod builder;
+pub mod streaming;
+
+// Re-export streaming types for convenience
+pub use streaming::{InferenceStream, StreamingConfig};
 
 use crate::{Result, InferenceError};
 use crate::engine::{InferenceBackend, InferenceContext, OptimizationLevel, Model, CpuInferenceBackend, DeviceSelector, SelectionStrategy};

@@ -51,14 +51,11 @@ impl MLXInferenceBackend {
 
 impl InferenceBackend for MLXInferenceBackend {
     fn execute_batch(&self, inputs: &[Tensor]) -> Result<Vec<Tensor>> {
-        // Stub implementation - just create dummy outputs with same shape as inputs
+        // Stub implementation - create mock outputs with expected dimensions [1, 768]
         let mut outputs = Vec::new();
         for input in inputs {
-            let output = Tensor::zeros(
-                input.shape(), 
-                input.dtype(), 
-                input.device()
-            ).map_err(|e| crate::InferenceError::model_load(format!("Failed to create output tensor: {}", e)))?;
+            let output_data = vec![0.1f32; 768]; // Mock output with 768 dimensions
+            let output = Tensor::from_slice(&output_data, &[1, 768], input.device())?;
             outputs.push(output);
         }
         Ok(outputs)

@@ -1,6 +1,6 @@
 [package]
 name = "bitnet-benchmarks"
-version = "0.3.2"
+version = "1.0.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -57,11 +57,11 @@ memory = ["dep:tikv-jemallocator"]
 mlx = ["bitnet-core/mlx"]
 
 [dependencies]
-bitnet-core = { path = "../bitnet-core", version = ">=0.3.0" }
-bitnet-quant = { path = "../bitnet-quant", version = ">=0.1.0, <0.3.0" }
-# bitnet-inference = { path = "../bitnet-inference", version = "0.1.0" }
-# bitnet-metal = { path = "../bitnet-metal", version = "0.1.0", optional = true }
-# bitnet-training = { path = "../bitnet-training", version = "0.1.0", optional = true }
+bitnet-core = { path = "../bitnet-core", version = "1.0.0" }
+bitnet-quant = { path = "../bitnet-quant", version = "1.0.0" }
+# bitnet-inference = { path = "../bitnet-inference", version = "^1.0" }
+# bitnet-metal = { path = "../bitnet-metal", version = "^1.0", optional = true }
+# bitnet-training = { path = "../bitnet-training", version = "^1.0", optional = true }
 
 # Benchmarking framework
 criterion.workspace = true

@@ -1,6 +1,6 @@
 [package]
 name = "bitnet-core"
-version = "0.3.5"
+version = "1.0.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -19,11 +19,13 @@ tracing = ["dep:tracing"]
 # Enable SIMD optimizations
 simd = ["candle-core/cuda"]
 # Enable Metal GPU support (macOS only)
-metal = ["candle-core/metal", "dep:metal", "dep:bitnet-metal"]
+# metal = ["candle-core/metal", "dep:metal", "dep:bitnet-metal"]
+metal = ["candle-core/metal", "dep:metal"]
 # Enable MLX support (Apple Silicon only)
 mlx = ["dep:mlx-rs"]
 # Enable both Metal and MLX for maximum Apple Silicon performance
-apple-silicon = ["metal", "mlx"]
+# apple-silicon = ["metal", "mlx"]
+apple-silicon = ["mlx"]
 # Enable backtrace capture for debugging
 backtrace = ["dep:backtrace"]
 # Enable tokenizer support
@@ -35,7 +37,7 @@ test-utils = []
 
 [dependencies]
 # Bitnet crate dependencies
-bitnet-metal = { path = "../bitnet-metal", version = ">=0.1.0, <0.3.0", optional = true }
+# bitnet-metal = { path = "../bitnet-metal", version = "1.0.0", optional = true }
 
 # Core tensor operations
 candle-core.workspace = true

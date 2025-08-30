@@ -1,6 +1,6 @@
 [package]
 name = "bitnet-cli"
-version = "0.1.1"
+version = "1.0.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -31,11 +31,11 @@ conversion = ["dep:safetensors"]
 # metal = ["bitnet-inference/metal", "bitnet-training/metal"]
 
 [dependencies]
-bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.4.0" }
-bitnet-quant = { path = "../bitnet-quant", version = ">=0.1.0, <0.3.0" }
-# bitnet-inference = { path = "../bitnet-inference", version = "0.1.0" }
-# bitnet-training = { path = "../bitnet-training", version = "0.1.0" }
-# bitnet-benchmarks = { path = "../bitnet-benchmarks", version = "0.1.0", optional = true }
+bitnet-core = { path = "../bitnet-core", version = "1.0.0" }
+bitnet-quant = { path = "../bitnet-quant", version = "1.0.0" }
+# bitnet-inference = { path = "../bitnet-inference", version = "^1.0" }
+# bitnet-training = { path = "../bitnet-training", version = "^1.0" }
+# bitnet-benchmarks = { path = "../bitnet-benchmarks", version = "^1.0", optional = true }
 
 # CLI framework
 clap = { version = "4.0", features = ["derive", "env"] }
