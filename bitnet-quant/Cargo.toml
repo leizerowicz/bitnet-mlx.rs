@@ -1,6 +1,6 @@
 [package]
 name = "bitnet-quant"
-version = "0.2.9"
+version = "1.0.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -46,7 +46,8 @@ thread-safety-tests = []
 memory-profiling = ["tracing"]
 
 [dependencies]
-bitnet-core = { path = "../bitnet-core", version = ">=0.1.0, <0.4.0" }
+# Bitnet crate dependencies
+bitnet-core = { path = "../bitnet-core", version = "1.0.0" }
 
 # Core dependencies
 candle-core.workspace = true
