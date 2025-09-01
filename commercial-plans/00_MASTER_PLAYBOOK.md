@@ -32,7 +32,7 @@ Complete Technical Infrastructure + Production Performance + Market Validation =
 3. **💰 Customer Discovery**: 10 beta customer interviews and pricing validation  
 4. **🏗️ Commercial Infrastructure**: Customer onboarding automation and support systems
 
-**⚠️ COMPREHENSIVE INTEGRATION**: All tasks detailed in [`09_COMPREHENSIVE_TASK_INTEGRATION.md`](09_COMPREHENSIVE_TASK_INTEGRATION.md) with complete feature inventory from README analysis and preserved existing commercial plans.
+**⚠️ COMPREHENSIVE INTEGRATION**: All tasks detailed in [`13_COMPREHENSIVE_TASK_INTEGRATION.md`](13_COMPREHENSIVE_TASK_INTEGRATION.md) with complete feature inventory from README analysis and preserved existing commercial plans.
 
 #### HIGH (Commercial Week 3-8) 🚀 **MARKET DEPLOYMENT**  
 1. **👥 Customer Acquisition**: Beta customer conversion to paying customers
