@@ -123,7 +123,7 @@
 
 ## 📋 Complete Task Integration from Final Delegation Report
 
-**⚠️ COMPREHENSIVE INTEGRATION REFERENCE**: This section provides an overview of task integration. For complete details including unimplemented features from README analysis, preserved existing commercial plans, and comprehensive delegation matrix, see [`09_COMPREHENSIVE_TASK_INTEGRATION.md`](09_COMPREHENSIVE_TASK_INTEGRATION.md).
+**⚠️ COMPREHENSIVE INTEGRATION REFERENCE**: This section provides an overview of task integration. For complete details including unimplemented features from README analysis, preserved existing commercial plans, and comprehensive delegation matrix, see [`13_COMPREHENSIVE_TASK_INTEGRATION.md`](13_COMPREHENSIVE_TASK_INTEGRATION.md).
 
 ### Overview: Three Sources of Tasks Integrated
 
