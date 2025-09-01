@@ -114,6 +114,44 @@ Validation of performance, security, usability, and other non-functional aspects
 - **Data Protection Testing**: [Validating data security measures]
 - **Vulnerability Testing**: [Security vulnerability assessments]
 
+##### AI Pentest Methodology for Agentic Systems
+Comprehensive security testing methodology specifically designed for agentic systems and AI applications:
+
+**System Inputs Context Testing**
+- **Hardware Specifications Validation**: [Testing system performance under various hardware constraints]
+- **Runtime Configuration Security**: [Validating secure configuration management and runtime parameters]
+- **Resource Management Security**: [Testing resource allocation, memory management, and computational resource security]
+
+**Ecosystem Context Testing**
+- **Environment Awareness Security**: [Testing security in different deployment environments]
+- **Integration Security Testing**: [Validating secure integrations with external systems and APIs]
+- **Security Requirements Compliance**: [Ensuring compliance with security frameworks and standards]
+
+**Model Context Testing**
+- **Model Architecture Security**: [Testing for model vulnerabilities and architectural weaknesses]
+- **Model Capabilities Assessment**: [Validating model behavior within security boundaries]
+- **Behavioral Parameters Testing**: [Testing model responses under various security-relevant scenarios]
+
+**Prompt Engineering Security Testing**
+- **Dynamic Prompt Construction Security**: [Testing for prompt injection and manipulation vulnerabilities]
+- **Prompt Optimization Security**: [Ensuring optimization processes don't introduce security vulnerabilities]
+- **Input Sanitization Testing**: [Validating prompt input filtering and sanitization mechanisms]
+
+**Data Context Security Testing**
+- **Training Data Security Assessment**: [Evaluating training data for security implications and biases]
+- **Real-time Input Validation**: [Testing security of real-time data inputs and processing]
+- **Data Pipeline Security**: [Validating security throughout data processing pipelines]
+
+**Application Context Security Testing**
+- **Business Logic Security**: [Testing business logic for security flaws and edge cases]
+- **User Interaction Security**: [Validating secure user interaction patterns and access controls]
+- **Domain-specific Security Requirements**: [Testing security requirements specific to the application domain]
+
+**Pivoting Context Security Testing**
+- **Adaptive Behavior Security**: [Testing security implications of adaptive and learning behaviors]
+- **Fallback Strategy Security**: [Validating security of fallback and error handling mechanisms]
+- **Dynamic Reconfiguration Security**: [Testing security during system reconfiguration and updates]
+
 #### Usability Validation
 - **User Interface Testing**: [UI consistency and usability]
 - **User Experience Testing**: [End-to-end UX validation]
