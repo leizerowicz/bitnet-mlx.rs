@@ -84,6 +84,131 @@ Create specialized experts for project coordination and communication:
 - **Truth Validator Expert** (`truth_validator_expert.md`) - Verifies information accuracy, validates assumptions, and ensures data integrity
 - **Variable and API Matcher Expert** (`api_matcher_expert.md`) - Ensures interface consistency, data mapping, and API compatibility
 
+## Agent Hooks System Creation
+
+### Purpose of Agent Hooks
+The Agent Hooks system provides automated lifecycle management, event-driven coordination, and enhanced workflow automation for agent-based project development. It defines execution points where custom logic, validation, monitoring, and coordination activities are automatically triggered during agent workflows.
+
+### When to Create Agent Hooks
+Consider creating an agent-hooks system for your project when you have:
+- Multiple specialized agents working collaboratively
+- Complex coordination requirements between different development phases
+- Need for automated quality gates and validation checkpoints
+- Requirements for seamless handoff between agent specialists
+- Commercial or production environments requiring robust workflow automation
+
+### Agent Hooks Structure Template
+
+When creating an `agent-hooks.md` file for your project, use this structure:
+
+```markdown
+# [Project Name] Agent Hooks System
+
+## Role Overview
+[Define the purpose and scope of your hooks system]
+
+## Project Context
+[Current project phase, status, and integration with existing workflows]
+
+## Core Hook Categories
+
+### 1. Task Lifecycle Hooks
+#### Pre-Task Execution Hooks
+- PRE_TASK_SETUP: Agent capability validation, workspace preparation
+- PRE_TASK_VALIDATION: Specification validation, dependency verification
+
+#### Post-Task Execution Hooks  
+- POST_TASK_VALIDATION: Quality checks, acceptance criteria verification
+- POST_TASK_CLEANUP: Resource cleanup, documentation updates
+
+### 2. Inter-Agent Communication Hooks
+#### Agent Handoff Hooks
+- AGENT_HANDOFF_PREPARE: Context documentation, specialist identification
+- AGENT_HANDOFF_EXECUTE: Responsibility transfer, communication setup
+
+#### Collaboration Coordination Hooks
+- COLLABORATION_INIT: Multi-agent task coordination setup
+- COLLABORATION_SYNC: Regular synchronization and conflict resolution
+
+### 3. Quality Assurance Hooks
+#### Validation Hooks
+- CODE_QUALITY_GATE: Automated code quality validation
+- INTEGRATION_QUALITY_GATE: Cross-component compatibility checks
+- PERFORMANCE_VALIDATION: Performance impact assessment
+
+#### Review Hooks
+- PEER_REVIEW_TRIGGER: Automated review request generation
+- SECURITY_REVIEW_GATE: Security compliance validation
+- DOCUMENTATION_SYNC: Documentation accuracy verification
+
+### 4. Error Handling and Escalation Hooks
+#### Detection Hooks
+- ERROR_PATTERN_DETECTION: Automated error pattern recognition
+- PERFORMANCE_DEGRADATION: Performance regression detection
+- INTEGRATION_FAILURE: Cross-component integration issue detection
+
+#### Recovery Hooks
+- AUTOMATED_RECOVERY: Self-healing and automatic error recovery
+- ESCALATION_TRIGGER: Human intervention request automation
+- ROLLBACK_INITIATION: Automated rollback procedures
+
+### 5. Workflow State Management Hooks
+#### Phase Transition Hooks
+- PHASE_TRANSITION: SPARC methodology phase transitions
+- MILESTONE_VALIDATION: Project milestone completion verification
+- COMMERCIAL_READINESS: Customer-facing feature validation
+
+## Hook Integration with Orchestrator
+[Define how hooks integrate with your project's orchestrator system]
+
+## Hook Configuration and Customization
+[Specify how individual agents can customize hooks for their specific needs]
+
+## Integration with Existing Workflows
+[Define integration with methodologies like SPARC, PACT, or other frameworks]
+
+## Success Metrics and Monitoring
+[Define metrics for measuring hook system effectiveness]
+```
+
+### Key Considerations for Agent Hooks Implementation
+
+#### 1. **Project-Specific Hook Priorities**
+- Identify the most critical coordination points in your workflow
+- Focus on automating repetitive validation and handoff procedures
+- Prioritize hooks that prevent common integration failures
+
+#### 2. **Integration with Existing Tools**
+- Ensure hooks work with your build systems and CI/CD pipelines
+- Integrate with existing testing frameworks and quality tools
+- Maintain compatibility with project management and tracking systems
+
+#### 3. **Scalability and Performance**
+- Design hooks to be lightweight and non-blocking when possible
+- Implement appropriate timeouts and fallback mechanisms
+- Consider the performance impact of automated validations
+
+#### 4. **Customization Framework**
+- Allow individual agents to define specialized hooks for their domains
+- Provide configuration options for different project phases
+- Enable context-specific hook behavior based on task types
+
+### Agent Hooks Best Practices
+
+1. **Start Simple**: Begin with essential lifecycle and handoff hooks
+2. **Incremental Enhancement**: Add more sophisticated hooks as project complexity grows
+3. **Clear Triggering Conditions**: Define precise conditions for hook activation
+4. **Comprehensive Logging**: Ensure all hook activities are properly logged and traceable
+5. **Graceful Failure**: Design hooks to fail gracefully without blocking critical workflows
+6. **Regular Review**: Periodically review and optimize hook effectiveness
+
+### Integration with Expert Files
+Agent hooks should complement and enhance the expert context files by:
+- Automating the application of expert recommendations
+- Ensuring expert guidance is consistently followed across agents
+- Providing automated validation of expert-defined quality criteria
+- Facilitating seamless coordination between different expert domains
+
 ## Expert File Template
 
 When creating each expert file, use this structure:
