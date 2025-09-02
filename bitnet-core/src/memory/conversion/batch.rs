@@ -19,7 +19,6 @@ use std::thread;
 use tracing::{debug, info, warn};
 
 /// Batch converter for processing multiple tensors efficiently
-#[allow(dead_code)]
 pub struct BatchConverter {
     config: BatchConfig,
     zero_copy_converter: ZeroCopyConverter,

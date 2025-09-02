@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 
 /// Main configuration for the conversion engine
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ConversionConfig {
     /// Default conversion strategy
     pub default_strategy: ConversionStrategy,
@@ -105,7 +104,6 @@ impl ConversionConfig {
 
 /// Configuration for streaming conversions
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct StreamingConfig {
     /// Size of each chunk in bytes
     pub chunk_size: usize,
@@ -193,7 +191,6 @@ impl StreamingConfig {
 
 /// Configuration for batch conversions
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct BatchConfig {
     /// Maximum number of tensors to process in a single batch
     pub max_batch_size: usize,
@@ -279,7 +276,6 @@ impl BatchConfig {
 
 /// Performance tuning configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PerformanceConfig {
     /// Whether to use SIMD instructions when available
     pub use_simd: bool,

@@ -346,7 +346,6 @@ fn create_mock_calibration_results(
 }
 
 /// Utility function to format bytes in human-readable format
-#[allow(dead_code)]
 fn format_bytes(bytes: u64) -> String {
     const UNITS: &[&str] = &["B", "KB", "MB", "GB"];
     let mut size = bytes as f64;

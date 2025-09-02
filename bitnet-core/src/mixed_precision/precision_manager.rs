@@ -18,7 +18,6 @@ use std::sync::{Arc, Mutex, RwLock};
 
 /// Context for precision decisions
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PrecisionContext {
     /// Current layer being processed
     pub current_layer: Option<String>,
@@ -49,7 +48,6 @@ impl Default for PrecisionContext {
 
 /// Performance requirements for precision decisions
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PerformanceRequirements {
     /// Target throughput (operations per second)
     pub target_throughput: Option<f32>,
@@ -74,7 +72,6 @@ impl Default for PerformanceRequirements {
 
 /// Accuracy requirements for precision decisions
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct AccuracyRequirements {
     /// Minimum acceptable accuracy
     pub min_accuracy: Option<f32>,
@@ -99,7 +96,6 @@ impl Default for AccuracyRequirements {
 
 /// Device capabilities affecting precision decisions
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DeviceCapabilities {
     /// Supported data types
     pub supported_dtypes: Vec<BitNetDType>,
@@ -127,7 +123,6 @@ impl Default for DeviceCapabilities {
 
 /// Central precision manager coordinating all mixed precision operations
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct PrecisionManager {
     /// Mixed precision configuration
     config: Arc<RwLock<MixedPrecisionConfig>>,
@@ -464,7 +459,6 @@ pub enum OptimizationObjective {
 
 /// Performance metrics for precision operations
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct PrecisionMetrics {
     /// Total number of conversions
     pub total_conversions: usize,
@@ -524,7 +518,6 @@ impl PrecisionMetrics {
 
 /// Analysis results for precision configuration
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PrecisionAnalysis {
     /// Average memory savings across layers
     pub memory_savings: f32,
@@ -542,7 +535,6 @@ pub struct PrecisionAnalysis {
 
 /// Optimization recommendation
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct OptimizationRecommendation {
     /// Type of recommendation
     pub recommendation_type: RecommendationType,

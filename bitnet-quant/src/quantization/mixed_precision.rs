@@ -20,7 +20,6 @@ use std::sync::{Arc, Mutex};
 
 /// Mixed precision quantization configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MixedPrecisionQuantizationConfig {
     /// Base mixed precision configuration
     pub mixed_precision: MixedPrecisionConfig,
@@ -100,7 +99,6 @@ impl MixedPrecisionQuantizationConfig {
 
 /// Parameters for automatic precision adjustment
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PrecisionAdjustmentParams {
     /// Accuracy threshold for increasing precision
     pub accuracy_threshold: f32,
@@ -168,7 +166,6 @@ impl PrecisionAdjustmentParams {
 
 /// Mixed precision quantizer that integrates precision management with quantization
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct MixedPrecisionQuantizer {
     /// Configuration
     config: MixedPrecisionQuantizationConfig,
@@ -484,7 +481,6 @@ impl MixedPrecisionQuantizer {
 
 /// Result of layer quantization
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct LayerQuantizationResult {
     /// Layer identifier
     pub layer_id: String,
@@ -506,7 +502,6 @@ pub struct LayerQuantizationResult {
 
 /// Performance metrics for a layer
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct LayerPerformanceMetrics {
     /// Accuracy score (0-1)
     pub accuracy: f32,

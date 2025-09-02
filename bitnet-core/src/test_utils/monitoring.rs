@@ -12,7 +12,6 @@ use std::time::{Duration, Instant, SystemTime};
 use super::{ResourceUsage, TestCategory};
 
 /// Real-time test monitor for tracking active test execution
-#[allow(dead_code)]
 pub struct TestMonitor {
     /// Currently running tests
     active_tests: Arc<RwLock<HashMap<String, ActiveTestInfo>>>,
@@ -26,7 +25,6 @@ pub struct TestMonitor {
 
 /// Configuration for test monitoring
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MonitorConfig {
     /// Interval for resource monitoring
     pub monitoring_interval: Duration,
@@ -57,7 +55,6 @@ impl Default for MonitorConfig {
 
 /// Information about an actively running test
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ActiveTestInfo {
     /// Test name
     pub test_name: String,
@@ -78,7 +75,6 @@ pub struct ActiveTestInfo {
 }
 
 /// Resource usage tracker
-#[allow(dead_code)]
 pub struct ResourceTracker {
     /// System resource monitoring
     system_monitor: SystemResourceMonitor,
@@ -89,7 +85,6 @@ pub struct ResourceTracker {
 }
 
 /// System-wide resource monitoring
-#[allow(dead_code)]
 pub struct SystemResourceMonitor {
     /// Last CPU measurement
     last_cpu_measurement: Option<(Instant, f64)>,
@@ -99,7 +94,6 @@ pub struct SystemResourceMonitor {
 
 /// Per-test resource usage tracking
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct TestResourceUsage {
     /// Test name
     pub test_name: String,
@@ -117,7 +111,6 @@ pub struct TestResourceUsage {
 
 /// System resource snapshot
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct SystemResourceSnapshot {
     /// Total system memory usage
     pub total_memory_usage: u64,
@@ -133,7 +126,6 @@ pub struct SystemResourceSnapshot {
 
 /// Test alert types
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TestAlert {
     /// Alert type
     pub alert_type: AlertType,
@@ -203,7 +195,6 @@ impl AlertHandler for ConsoleAlertHandler {
 }
 
 /// File-based alert handler that logs alerts to a file
-#[allow(dead_code)]
 pub struct FileAlertHandler {
     file_path: String,
 }
@@ -608,7 +599,6 @@ impl TestMonitor {
 
 /// Monitoring report
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MonitoringReport {
     /// When the report was generated
     pub generated_at: SystemTime,
@@ -626,7 +616,6 @@ pub struct MonitoringReport {
 
 /// Resource usage summary
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ResourceSummary {
     /// Total memory usage across all tests
     pub total_memory_usage: u64,
@@ -640,7 +629,6 @@ pub struct ResourceSummary {
 
 /// System health assessment
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct SystemHealth {
     /// Overall health status
     pub status: HealthStatus,

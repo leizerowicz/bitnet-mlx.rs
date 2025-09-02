@@ -10,7 +10,7 @@
 //! - Buffer pool management with staging buffers
 //! - Inference-specific memory layouts
 
-use crate::{Result, InferenceError, engine::Model};
+use crate::{Result, InferenceError};
 use bitnet_core::{Device, Tensor};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};

@@ -32,7 +32,6 @@ pub enum CleanupPriority {
 
 /// Result of a cleanup operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CleanupOperationResult {
     /// Number of bytes freed
     pub bytes_freed: u64,
@@ -115,7 +114,6 @@ pub trait CleanupStrategy: Send + Sync {
 }
 
 /// Idle cleanup strategy - performs cleanup during idle periods
-#[allow(dead_code)]
 pub struct IdleCleanupStrategy {
     last_cleanup: Arc<RwLock<Option<Instant>>>,
     min_idle_time: Duration,
@@ -222,7 +220,6 @@ impl CleanupStrategy for IdleCleanupStrategy {
 }
 
 /// Pressure-based cleanup strategy - performs cleanup under memory pressure
-#[allow(dead_code)]
 pub struct PressureCleanupStrategy {
     light_threshold: f64,
     aggressive_threshold: f64,
@@ -390,7 +387,6 @@ impl CleanupStrategy for PressureCleanupStrategy {
 }
 
 /// Periodic cleanup strategy - performs cleanup at regular intervals
-#[allow(dead_code)]
 pub struct PeriodicCleanupStrategy {
     interval: Duration,
     last_cleanup: Arc<RwLock<Option<Instant>>>,
@@ -486,7 +482,6 @@ impl CleanupStrategy for PeriodicCleanupStrategy {
 }
 
 /// Device-specific cleanup strategy
-#[allow(dead_code)]
 pub struct DeviceCleanupStrategy {
     device_type: String,
     cleanup_interval: Duration,
@@ -596,7 +591,6 @@ impl CleanupStrategy for DeviceCleanupStrategy {
 }
 
 /// Generational cleanup strategy - performs age-based cleanup
-#[allow(dead_code)]
 pub struct GenerationalCleanupStrategy {
     young_age_threshold: Duration,
     old_age_threshold: Duration,

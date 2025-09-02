@@ -17,7 +17,6 @@ use std::collections::HashMap;
 
 /// Results of comprehensive ternary validation testing
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct TernaryValidationResults {
     pub method_results: HashMap<TernaryMethod, MethodValidationResults>,
     pub pattern_results: HashMap<TestPattern, PatternValidationResults>,
@@ -39,7 +38,6 @@ impl Default for TernaryValidationResults {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MethodValidationResults {
     pub method: TernaryMethod,
     pub total_tests: usize,
@@ -51,7 +49,6 @@ pub struct MethodValidationResults {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PatternValidationResults {
     pub pattern: TestPattern,
     pub method_performance: HashMap<TernaryMethod, f64>,
@@ -61,7 +58,6 @@ pub struct PatternValidationResults {
 }
 
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct ValidationSummaryStatistics {
     pub total_tensors_tested: usize,
     pub total_values_tested: usize,
@@ -382,7 +378,6 @@ pub fn test_ternary_method_with_thresholds(
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ThresholdTestResults {
     pub method: TernaryMethod,
     pub pattern: TestPattern,
@@ -393,7 +388,6 @@ pub struct ThresholdTestResults {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ThresholdResult {
     pub threshold_factor: f32,
     pub is_ternary: bool,
@@ -456,7 +450,6 @@ pub fn test_ternary_edge_cases(device: &Device) -> QuantizationResult<EdgeCaseTe
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct EdgeCaseTestResults {
     pub test_results: HashMap<String, bool>,
     pub total_tests: usize,

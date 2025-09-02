@@ -21,7 +21,6 @@ use super::MetalError;
 
 /// Shader compilation configuration
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ShaderCompilerConfig {
     /// Directory containing Metal shader source files
     pub shader_directory: PathBuf,
@@ -39,7 +38,6 @@ pub struct ShaderCompilerConfig {
 
 /// Metal shader compilation options
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CompileOptions {
     /// Preprocessor definitions
     pub defines: HashMap<String, String>,
@@ -87,7 +85,6 @@ pub enum OptimizationLevel {
 
 /// Compiled shader information
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CompiledShader {
     /// Shader name
     pub name: String,
@@ -112,7 +109,6 @@ struct CacheEntry {
 }
 
 /// Metal shader compiler and loader
-#[allow(dead_code)]
 pub struct ShaderCompiler {
     #[cfg(target_os = "macos")]
     device: metal::Device,
@@ -446,7 +442,6 @@ impl ShaderCompiler {
 
 /// Shader compiler statistics
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ShaderCompilerStats {
     pub cached_shaders: usize,
     pub total_functions: usize,
@@ -455,7 +450,6 @@ pub struct ShaderCompilerStats {
 }
 
 /// Shader loading utilities
-#[allow(dead_code)]
 pub struct ShaderLoader {
     compiler: ShaderCompiler,
     preloaded_shaders: HashMap<String, CompiledShader>,

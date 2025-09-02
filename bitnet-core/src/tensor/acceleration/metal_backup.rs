@@ -41,7 +41,6 @@ use metal::{Device, CommandQueue, Library, Buffer, MTLResourceOptions};
 /// Metal GPU buffer for tensor storage
 #[cfg(all(target_os = "macos", feature = "metal"))]
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MetalBuffer {
     buffer: Buffer,
     size: usize,
@@ -50,7 +49,6 @@ pub struct MetalBuffer {
 
 /// Metal acceleration performance metrics
 #[derive(Debug, Default, Clone)]
-#[allow(dead_code)]
 pub struct MetalAccelerationMetrics {
     /// Total GPU operations executed
     pub operations_executed: u64,
@@ -106,7 +104,6 @@ impl MetalAccelerationMetrics {
 
 /// Metal acceleration backend with compute shader support
 #[cfg(feature = "metal")]
-#[allow(dead_code)]
 pub struct MetalAccelerator {
     /// Metal device for GPU operations
     #[cfg(all(target_os = "macos", feature = "metal"))]
@@ -148,7 +145,6 @@ pub struct MetalAccelerator {
 
 /// Metal acceleration backend with compute shader support
 #[cfg(feature = "metal")]
-#[allow(dead_code)]
 pub struct MetalAccelerator {
     /// Metal device for GPU operations
     #[cfg(all(target_os = "macos", feature = "metal"))]
@@ -189,7 +185,6 @@ pub struct MetalAccelerator {
 }
 /// Metal acceleration performance metrics
 #[derive(Debug, Default, Clone)]
-#[allow(dead_code)]
 pub struct MetalAccelerationMetrics {
     /// Total GPU operations executed
     pub operations_executed: u64,
@@ -922,7 +917,6 @@ impl AccelerationBackendImpl for MetalAccelerator {
 
 // Fallback implementation for non-Metal platforms
 #[cfg(not(feature = "metal"))]
-#[allow(dead_code)]
 pub struct MetalAccelerator {
     initialized: bool,
 }

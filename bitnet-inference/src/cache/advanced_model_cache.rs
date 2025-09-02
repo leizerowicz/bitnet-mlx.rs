@@ -419,7 +419,7 @@ impl CachedModel {
     }
 
     /// Calculate the total memory size including optimized weights and execution plan
-    fn calculate_memory_size(model: &LoadedModel, optimized_weights: &[u8], execution_plan: &ExecutionPlan) -> usize {
+    fn calculate_memory_size(_model: &LoadedModel, optimized_weights: &[u8], execution_plan: &ExecutionPlan) -> usize {
         let base_size = std::mem::size_of::<LoadedModel>();
         let weights_size = optimized_weights.len();
         let plan_size = execution_plan.estimated_memory;
@@ -429,7 +429,7 @@ impl CachedModel {
     }
 
     /// Calculate memory size from serialized parts
-    fn calculate_memory_size_from_parts(metadata: &ModelMetadata, weights: &[u8], plan: &ExecutionPlan) -> usize {
+    fn calculate_memory_size_from_parts(_metadata: &ModelMetadata, weights: &[u8], plan: &ExecutionPlan) -> usize {
         let base_size = std::mem::size_of::<ModelMetadata>();
         let weights_size = weights.len();
         let plan_size = plan.estimated_memory;

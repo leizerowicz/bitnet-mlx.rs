@@ -89,7 +89,7 @@ impl CpuInferenceBackend {
                 // For now, just return the first input as placeholder
                 Ok(inputs[0].clone())
             }
-            OperationType::RMSNorm { eps } => {
+            OperationType::RMSNorm { eps: _ } => {
                 // TODO: Implement RMSNorm computation
                 Ok(inputs[0].clone())
             }

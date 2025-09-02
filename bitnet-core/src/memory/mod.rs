@@ -129,7 +129,6 @@ pub type MemoryResult<T> = std::result::Result<T, MemoryError>;
 
 /// Configuration for the hybrid memory pool
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MemoryPoolConfig {
     /// Threshold for small vs large block allocation (default: 1MB)
     pub small_block_threshold: usize,
@@ -170,7 +169,6 @@ impl Default for MemoryPoolConfig {
 /// Main hybrid memory pool that manages both small and large allocations
 /// across different device types (CPU and Metal GPU)
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct HybridMemoryPool {
     /// Configuration for the memory pool
     config: MemoryPoolConfig,

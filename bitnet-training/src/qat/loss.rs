@@ -13,7 +13,6 @@ pub trait QATLoss {
 }
 
 /// Quantization-aware loss that includes quantization regularization
-#[allow(dead_code)]
 pub struct QuantizationAwareLoss {
     base_loss: BaseLossType,
     regularization_weight: f32,
@@ -142,7 +141,6 @@ impl QATLoss for QuantizationAwareLoss {
 }
 
 /// Knowledge Distillation Loss for QAT
-#[allow(dead_code)]
 pub struct DistillationLoss {
     temperature: f32,
     alpha: f32, // Weight for distillation loss
@@ -262,7 +260,6 @@ impl QATLoss for DistillationLoss {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DistillationLossComponents {
     pub distillation_loss: f32,
     pub regularization_loss: f32,
@@ -271,7 +268,6 @@ pub struct DistillationLossComponents {
 }
 
 /// Progressive Quantization Loss - adjusts loss based on training phase
-#[allow(dead_code)]
 pub struct ProgressiveQuantizationLoss {
     base_loss: QuantizationAwareLoss,
     current_phase: usize,
@@ -280,7 +276,6 @@ pub struct ProgressiveQuantizationLoss {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PhaseConfig {
     pub quantization_weight: f32,
     pub regularization_weight: f32,
@@ -380,7 +375,6 @@ impl QATLoss for ProgressiveQuantizationLoss {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ProgressiveLossComponents {
     pub base_loss: f32,
     pub regularization_loss: f32,

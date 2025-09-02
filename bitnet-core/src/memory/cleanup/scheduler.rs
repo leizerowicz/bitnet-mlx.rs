@@ -48,7 +48,6 @@ impl From<CleanupId> for u64 {
 
 /// A scheduled cleanup operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ScheduledCleanup {
     /// Unique identifier for this scheduled cleanup
     pub id: CleanupId,
@@ -183,7 +182,6 @@ impl ScheduledCleanup {
 
 /// Statistics for the cleanup scheduler
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct SchedulerStats {
     /// Total number of cleanups scheduled
     pub total_scheduled: u64,
@@ -229,7 +227,6 @@ impl Default for SchedulerStats {
 }
 
 /// Cleanup scheduler that manages automatic cleanup operations
-#[allow(dead_code)]
 pub struct CleanupScheduler {
     /// Scheduler configuration
     config: SchedulerConfig,

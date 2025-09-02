@@ -70,7 +70,6 @@ pub enum BroadcastStrategy {
 
 /// Broadcasting metadata for efficient operations
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BroadcastInfo {
     /// Final broadcast shape
     pub broadcast_shape: Vec<usize>,
@@ -326,7 +325,6 @@ pub fn prepare_elementwise_broadcast(
 /// This struct provides an efficient way to iterate over elements
 /// of two tensors with broadcasting, handling stride calculations
 /// automatically.
-#[allow(dead_code)]
 pub struct BroadcastIterator {
     shape: Vec<usize>,
     left_strides: Vec<usize>,

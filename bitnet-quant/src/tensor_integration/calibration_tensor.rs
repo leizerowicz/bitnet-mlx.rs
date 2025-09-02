@@ -15,7 +15,6 @@ use super::{TensorIntegrationError, TensorIntegrationResult};
 
 /// Configuration for calibration tensor operations
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CalibrationConfig {
     /// Number of calibration samples
     pub num_samples: usize,
@@ -55,7 +54,6 @@ impl Default for CalibrationConfig {
 
 /// Calibration dataset processor
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct CalibrationDataset {
     /// Dataset samples
     pub samples: Vec<BitNetTensor>,
@@ -69,7 +67,6 @@ pub struct CalibrationDataset {
 
 /// Dataset metadata information
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DatasetMetadata {
     /// Total number of samples
     pub total_samples: usize,
@@ -89,7 +86,6 @@ pub struct DatasetMetadata {
 
 /// Statistical moments for calibration
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct StatisticalMoments {
     /// First moment (mean)
     pub mean: f32,
@@ -125,7 +121,6 @@ impl Default for StatisticalMoments {
 
 /// Distribution analysis results
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DistributionAnalysis {
     /// Minimum value
     pub min_value: f32,
@@ -148,7 +143,6 @@ pub struct DistributionAnalysis {
 
 /// Histogram data for distribution analysis
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct HistogramData {
     /// Bin edges
     pub bin_edges: Vec<f32>,
@@ -165,7 +159,6 @@ pub struct HistogramData {
 
 /// Statistics collector for calibration
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct StatisticsCollector {
     /// Configuration
     config: CalibrationConfig,
@@ -185,7 +178,6 @@ pub struct StatisticsCollector {
 
 /// Dataset processor for calibration operations
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct DatasetProcessor {
     /// Configuration
     config: CalibrationConfig,
@@ -218,7 +210,6 @@ pub enum CalibrationError {
 
 /// Main calibration tensor processor
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct CalibrationTensor {
     /// Configuration
     config: CalibrationConfig,
@@ -561,7 +552,6 @@ impl CalibrationTensor {
 
 /// Results from calibration processing
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CalibrationResults {
     /// Individual sample statistics
     pub sample_statistics: Vec<SampleStatistics>,
@@ -607,7 +597,6 @@ impl CalibrationResults {
 
 /// Statistics for individual sample
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SampleStatistics {
     /// Sample tensor shape
     pub sample_shape: TensorShape,
@@ -624,7 +613,6 @@ pub struct SampleStatistics {
 
 /// Quantization parameter recommendations
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QuantizationRecommendations {
     /// Recommended quantization precision
     pub recommended_precision: QuantizationPrecision,

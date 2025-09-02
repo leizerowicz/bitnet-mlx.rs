@@ -37,7 +37,6 @@ impl Default for TernaryMethod {
 
 /// Statistics for ternary quantization analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TernaryStats {
     /// Total number of elements
     pub total_elements: usize,
@@ -57,7 +56,6 @@ pub struct TernaryStats {
 
 /// Configuration specific to weight quantization
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct WeightQuantizationConfig {
     /// Base quantization configuration
     pub base: QuantizationConfig,
@@ -157,7 +155,6 @@ impl WeightQuantizationConfig {
 
 /// Quantized weight representation
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QuantizedWeight {
     /// Quantized weight values
     pub values: Tensor,
@@ -347,7 +344,6 @@ pub trait WeightQuantizer:
 
 /// BitNet 1.58-bit weight quantizer
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct BitNetWeightQuantizer {
     config: WeightQuantizationConfig,
     device: Device,
@@ -508,7 +504,7 @@ impl BitNetWeightQuantizer {
         let total_elements = original.elem_count();
 
         // Create scalar tensors with the same shape as quantized for comparison
-        let zero_tensor = quantized.zeros_like()?;
+        let _zero_tensor = quantized.zeros_like()?;
         let eps = 1e-6f32;
         let eps_tensor = Tensor::new(eps, quantized.device())?.broadcast_as(quantized.shape())?;
 
@@ -665,7 +661,7 @@ impl WeightQuantizer for BitNetWeightQuantizer {
     fn quantize_blockwise(
         &self,
         weights: &Tensor,
-        block_size: usize,
+        _block_size: usize,
     ) -> QuantizationResult<QuantizedWeight> {
         // Implementation for block-wise quantization
         // Similar to grouped but with 2D blocks
@@ -900,7 +896,6 @@ pub mod weight_utils {
 
 /// Weight distribution analysis results
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct WeightDistributionAnalysis {
     pub min: f32,
     pub max: f32,

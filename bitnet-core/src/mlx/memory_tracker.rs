@@ -15,7 +15,6 @@ use std::time::{Duration, Instant, SystemTime};
 
 /// Memory allocation event
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MemoryEvent {
     pub event_type: MemoryEventType,
     pub size_bytes: usize,
@@ -38,7 +37,6 @@ pub enum MemoryEventType {
 
 /// Memory usage snapshot
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MemorySnapshot {
     pub timestamp: SystemTime,
     pub device_type: String,
@@ -61,7 +59,6 @@ pub enum MemoryPressure {
 
 /// Memory optimization suggestion
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MemoryOptimization {
     pub suggestion_type: OptimizationType,
     pub description: String,
@@ -101,7 +98,6 @@ pub enum ImplementationEffort {
 }
 
 /// MLX Memory Tracker
-#[allow(dead_code)]
 pub struct MlxMemoryTracker {
     events: Arc<Mutex<Vec<MemoryEvent>>>,
     snapshots: Arc<Mutex<Vec<MemorySnapshot>>>,
@@ -114,7 +110,6 @@ pub struct MlxMemoryTracker {
 
 /// Device-specific memory statistics
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DeviceMemoryStats {
     total_allocated: usize,
     peak_allocated: usize,

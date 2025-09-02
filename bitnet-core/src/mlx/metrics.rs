@@ -16,7 +16,6 @@ use std::time::{Duration, Instant, SystemTime};
 
 /// Comprehensive metrics collection for MLX operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MlxMetrics {
     pub performance: PerformanceMetrics,
     pub memory: MemoryMetrics,
@@ -26,7 +25,6 @@ pub struct MlxMetrics {
 
 /// Memory-specific metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MemoryMetrics {
     pub current_usage: MemoryUsage,
     pub pressure_level: String, // Serialized MemoryPressure
@@ -39,7 +37,6 @@ pub struct MemoryMetrics {
 
 /// System-level metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct SystemMetrics {
     pub cpu_usage: f64,
     pub gpu_usage: f64,
@@ -52,7 +49,6 @@ pub struct SystemMetrics {
 
 /// Operation context information
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct OperationContext {
     pub operation_name: String,
     pub batch_size: usize,
@@ -65,7 +61,6 @@ pub struct OperationContext {
 
 /// Metrics collection configuration
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MetricsConfig {
     pub collect_performance: bool,
     pub collect_memory: bool,
@@ -100,7 +95,6 @@ impl Default for MetricsConfig {
 }
 
 /// MLX Metrics Collector
-#[allow(dead_code)]
 pub struct MlxMetricsCollector {
     config: MetricsConfig,
     metrics_history: Arc<Mutex<Vec<MlxMetrics>>>,
@@ -112,7 +106,6 @@ pub struct MlxMetricsCollector {
 
 /// Aggregated statistics over time
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct AggregatedStats {
     total_operations: usize,
     total_execution_time: Duration,

@@ -18,7 +18,6 @@ use super::{
 
 /// Configuration for mixed precision operations
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PrecisionConfig {
     /// Default precision for operations
     pub default_precision: QuantizationPrecision,
@@ -62,7 +61,6 @@ impl Default for PrecisionConfig {
 
 /// Precision policy for specific layers
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct LayerPrecisionPolicy {
     /// Layer identifier
     pub layer_id: String,
@@ -110,7 +108,6 @@ pub enum LayerType {
 
 /// Performance characteristics of a layer
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PerformanceProfile {
     /// Compute intensity (FLOPs per element)
     pub compute_intensity: f32,
@@ -146,7 +143,6 @@ pub enum PrecisionPolicy {
 
 /// Configuration for dynamic precision adjustment
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DynamicPrecisionConfig {
     /// Threshold for precision adjustment
     pub adjustment_threshold: f32,
@@ -204,7 +200,6 @@ pub enum MixedPrecisionError {
 
 /// Precision selector for automatic precision assignment
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct PrecisionSelector {
     /// Configuration
     config: PrecisionConfig,
@@ -221,7 +216,6 @@ pub struct PrecisionSelector {
 
 /// Performance monitoring for precision selection
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct PerformanceMonitor {
     /// Monitored metrics
     metrics: HashMap<PerformanceMetric, Vec<f32>>,
@@ -308,7 +302,6 @@ pub trait PrecisionTensorOps {
 
 /// Performance data for precision adjustment
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PerformanceData {
     /// Layer performance metrics
     pub layer_metrics: HashMap<String, LayerMetrics>,
@@ -322,7 +315,6 @@ pub struct PerformanceData {
 
 /// Layer-specific performance metrics
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct LayerMetrics {
     /// Layer identifier
     pub layer_id: String,
@@ -342,7 +334,6 @@ pub struct LayerMetrics {
 
 /// Model-level performance metrics
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ModelMetrics {
     /// Total inference time
     pub inference_time: f32,
@@ -362,7 +353,6 @@ pub struct ModelMetrics {
 
 /// Resource utilization metrics
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ResourceUtilization {
     /// CPU utilization
     pub cpu_usage: f32,
@@ -379,7 +369,6 @@ pub struct ResourceUtilization {
 
 /// Main mixed precision tensor implementation
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct MixedPrecisionTensor {
     /// Configuration
     config: PrecisionConfig,
@@ -396,7 +385,6 @@ pub struct MixedPrecisionTensor {
 
 /// Mixed precision tensor operations implementation
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct MixedPrecisionTensorOpsImpl {
     /// Configuration
     config: PrecisionConfig,

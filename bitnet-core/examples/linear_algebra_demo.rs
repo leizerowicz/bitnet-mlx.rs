@@ -380,7 +380,6 @@ fn demo_optimization_strategies() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 // Helper function for pretty-printing performance results
-#[allow(dead_code)]
 fn format_duration(duration: std::time::Duration) -> String {
     if duration.as_secs_f64() >= 1.0 {
         format!("{:.2}s", duration.as_secs_f64())

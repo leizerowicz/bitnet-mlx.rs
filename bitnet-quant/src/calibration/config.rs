@@ -11,7 +11,6 @@ use std::path::PathBuf;
 
 /// Main configuration for calibration dataset
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CalibrationConfig {
     /// Batch size for processing
     pub batch_size: usize,
@@ -47,7 +46,6 @@ pub struct CalibrationConfig {
 
 /// Device configuration for calibration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct DeviceConfig {
     /// Auto-select optimal device
     pub auto_select: bool,
@@ -68,7 +66,6 @@ pub enum PreferredDevice {
 
 /// Statistics collection configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct StatisticsConfig {
     /// Track min/max values per layer
     pub track_min_max: bool,
@@ -88,7 +85,6 @@ pub struct StatisticsConfig {
 
 /// Histogram collection configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct HistogramConfig {
     /// Enable histogram collection
     pub enabled: bool,
@@ -119,7 +115,6 @@ pub enum HistogramRangeStrategy {
 
 /// Persistence configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PersistenceConfig {
     /// Enable automatic saving
     pub auto_save: bool,
@@ -148,7 +143,6 @@ pub enum StorageFormat {
 
 /// Streaming configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct StreamingConfig {
     /// Chunk size for streaming processing
     pub chunk_size: usize,
@@ -166,7 +160,6 @@ pub struct StreamingConfig {
 
 /// Validation configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ValidationConfig {
     /// Minimum samples required
     pub min_samples: usize,
@@ -289,7 +282,6 @@ impl Default for ValidationConfig {
 
 /// Builder for calibration configuration
 #[derive(Debug, Default)]
-#[allow(dead_code)]
 pub struct CalibrationConfigBuilder {
     config: CalibrationConfig,
 }

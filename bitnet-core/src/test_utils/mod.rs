@@ -16,7 +16,6 @@ use std::time::Duration;
 
 /// Test execution result with performance metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TestExecutionResult {
     /// Test name
     pub test_name: String,
@@ -53,7 +52,6 @@ pub enum TestCategory {
 
 /// Resource usage metrics during test execution
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ResourceUsage {
     /// Peak memory usage in bytes
     pub peak_memory_bytes: u64,
@@ -69,7 +67,6 @@ pub struct ResourceUsage {
 
 /// Test timeout configuration
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct TimeoutConfig {
     /// Default timeout for unit tests
     pub unit_timeout: Duration,
@@ -140,7 +137,6 @@ impl TestCategory {
 }
 
 /// Global test performance tracker
-#[allow(dead_code)]
 pub struct TestPerformanceTracker {
     /// Test execution history
     results: std::sync::Mutex<Vec<TestExecutionResult>>,
@@ -231,7 +227,6 @@ impl TestPerformanceTracker {
 
 /// Statistics for a test category
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CategoryStats {
     /// Total number of tests in this category
     pub total_count: usize,
@@ -265,7 +260,6 @@ impl CategoryStats {
 
 /// Comprehensive test performance report
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TestPerformanceReport {
     /// Total number of tests executed
     pub total_tests: usize,

@@ -16,7 +16,6 @@ use tracing::{debug, trace, warn};
 
 /// SIMD instruction set capabilities
 #[derive(Debug, Clone, Copy)]
-#[allow(dead_code)]
 pub struct SimdCapabilities {
     pub sse2: bool,
     pub sse4_1: bool,
@@ -130,7 +129,6 @@ pub fn simd_add_scalar_f32(tensor: &BitNetTensor, scalar: f32) -> TensorOpResult
 // Validation Functions
 // ============================================================================
 
-#[allow(dead_code)]
 fn validate_simd_binary_op(
     lhs: &BitNetTensor,
     rhs: &BitNetTensor,
@@ -170,7 +168,6 @@ fn validate_simd_binary_op(
     Ok(())
 }
 
-#[allow(dead_code)]
 fn validate_simd_unary_op(
     tensor: &BitNetTensor,
     expecteddtype: BitNetDType,

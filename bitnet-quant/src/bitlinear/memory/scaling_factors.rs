@@ -32,7 +32,6 @@ pub enum ScalingPolicy {
 
 /// Configuration for scaling factor management
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ScalingConfig {
     /// Default scaling policy
     pub default_policy: ScalingPolicy,
@@ -75,7 +74,6 @@ impl Default for ScalingConfig {
 
 /// Cached scaling factor entry
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ScaleEntry {
     /// The computed scale tensor
     scale: Tensor,
@@ -164,7 +162,6 @@ impl ScaleEntry {
 }
 
 /// Scale cache for storing computed scaling factors
-#[allow(dead_code)]
 pub struct ScaleCache {
     /// Cache storage
     cache: HashMap<String, ScaleEntry>,
@@ -279,7 +276,6 @@ impl ScaleCache {
 
 /// Statistics for scaling factor management
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct ScalingStats {
     /// Total scale computations performed
     pub computations_performed: u64,
@@ -307,7 +303,6 @@ impl ScalingStats {
 }
 
 /// Scaling factor manager
-#[allow(dead_code)]
 pub struct ScalingFactorManager {
     /// Configuration
     config: ScalingConfig,
@@ -435,7 +430,7 @@ impl ScalingFactorManager {
     }
 
     /// Cache computed scales
-    pub fn cache_scales(&mut self, layer_name: &str, scales: &Tensor) -> BitLinearResult<()> {
+    pub fn cache_scales(&mut self, _layer_name: &str, _scales: &Tensor) -> BitLinearResult<()> {
         // For caching without the original tensor, we can't validate properly
         // This is mainly for compatibility with existing code
         Ok(())
@@ -490,7 +485,7 @@ impl ScalingFactorManager {
         }
 
         if let Ok(cache) = self.cache.write() {
-            let (hits, misses, evictions) = cache.stats();
+            let (hits, misses, _evictions) = cache.stats();
             if let Ok(mut stats) = self.stats.write() {
                 stats.cache_hits = hits;
                 stats.cache_misses = misses;

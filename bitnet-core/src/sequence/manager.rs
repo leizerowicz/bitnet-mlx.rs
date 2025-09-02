@@ -17,7 +17,6 @@ use anyhow::Result;
 
 /// Main sequence manager for processing variable-length sequences
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SequenceManager {
     config: SequenceConfig,
     validator: SequenceValidator,
@@ -392,7 +391,6 @@ impl Default for SequenceManager {
 
 /// Summary of sequence processing results
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ProcessingSummary {
     pub total_sequences: usize,
     pub total_original_length: usize,

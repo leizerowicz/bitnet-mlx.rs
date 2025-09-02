@@ -16,7 +16,6 @@ use std::thread;
 use tracing::{debug, info, warn};
 
 /// Streaming converter for processing large tensors in chunks
-#[allow(dead_code)]
 pub struct StreamingConverter {
     pub(crate) config: StreamingConfig,
 }
@@ -593,7 +592,6 @@ impl Converter for StreamingConverter {
 
 /// Information about chunk processing
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 struct ChunkInfo {
     total_elements: usize,
     elements_per_chunk: usize,
@@ -604,7 +602,6 @@ struct ChunkInfo {
 
 /// Task for processing a chunk
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 struct ChunkTask {
     chunk_id: usize,
     start_element: usize,

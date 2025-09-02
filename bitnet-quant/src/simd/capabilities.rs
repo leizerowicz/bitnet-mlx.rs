@@ -5,7 +5,6 @@
 
 /// SIMD instruction set capabilities
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(dead_code)]
 pub struct SimdCapabilities {
     // x86/x86_64 capabilities
     pub sse: bool,

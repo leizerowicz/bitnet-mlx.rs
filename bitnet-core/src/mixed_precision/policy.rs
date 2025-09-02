@@ -12,7 +12,6 @@ use std::collections::HashMap;
 
 /// Precision policy defining rules for precision selection
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PrecisionPolicy {
     /// Policy identifier
     pub id: String,
@@ -91,7 +90,6 @@ impl PrecisionPolicy {
 
 /// Policy rule defining conditions and actions
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PolicyRule {
     /// Rule identifier
     pub id: String,
@@ -149,7 +147,6 @@ impl PolicyRule {
 
 /// Policy condition for rule matching
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PolicyCondition {
     /// Condition type
     pub condition_type: ConditionType,
@@ -362,7 +359,6 @@ impl PolicyAction {
 
 /// Formula for calculating precision based on context
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PrecisionFormula {
     /// Formula type
     pub formula_type: FormulaType,
@@ -467,7 +463,6 @@ pub enum FormulaType {
 
 /// Context for policy evaluation
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PolicyContext {
     /// Layer type
     pub layer_type: LayerType,
@@ -532,7 +527,6 @@ impl PolicyContext {
 
 /// Policy engine for managing and applying precision policies
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct PolicyEngine {
     /// Registered policies
     policies: HashMap<String, PrecisionPolicy>,
@@ -687,7 +681,6 @@ impl Default for PolicyEngine {
 
 /// Statistics for policy applications
 #[derive(Debug, Default)]
-#[allow(dead_code)]
 pub struct PolicyStats {
     /// Total policy applications
     pub total_applications: usize,

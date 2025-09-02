@@ -16,7 +16,6 @@ use tracing::{debug, info, warn};
 
 /// Acceleration capabilities for a specific backend
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct AccelerationCapabilities {
     /// The acceleration backend
     pub backend: AccelerationBackend,
@@ -136,7 +135,6 @@ impl AccelerationCapabilities {
 }
 
 /// Hardware detection and capability assessment
-#[allow(dead_code)]
 pub struct HardwareDetector {
     /// Cached hardware capabilities
     capabilities_cache: Mutex<Option<HardwareCapabilities>>,
@@ -144,7 +142,6 @@ pub struct HardwareDetector {
 
 /// Detected hardware capabilities
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct HardwareCapabilities {
     /// Whether we're running on Apple Silicon
     pub is_apple_silicon: bool,
@@ -164,7 +161,6 @@ pub struct HardwareCapabilities {
 
 /// SIMD instruction set capabilities
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SimdCapabilities {
     /// AVX2 support (x86_64)
     pub avx2: bool,
@@ -328,7 +324,6 @@ impl HardwareDetector {
 }
 
 /// Automatic acceleration backend selector
-#[allow(dead_code)]
 pub struct AutoAccelerationSelector {
     /// Hardware detector
     detector: HardwareDetector,

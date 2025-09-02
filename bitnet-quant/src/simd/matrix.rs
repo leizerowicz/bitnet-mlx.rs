@@ -11,7 +11,6 @@ use crate::quantization::utils::QuantizationError;
 use std::arch::x86_64::*;
 
 /// SIMD-optimized matrix operations for quantized data
-#[allow(dead_code)]
 pub struct SimdMatrixOps {
     capabilities: SimdCapabilities,
 }
@@ -202,7 +201,7 @@ impl SimdMatrixOps {
     /// ARM NEON implementation of ternary GEMM
     #[cfg(target_arch = "aarch64")]
     #[target_feature(enable = "neon")]
-    unsafe fn ternary_gemm_neon(
+    pub unsafe fn ternary_gemm_neon(
         &self,
         a_ternary: &[i8],
         b: &[f32],
@@ -424,7 +423,7 @@ impl SimdMatrixOps {
     /// NEON implementation of ternary GEMV
     #[cfg(target_arch = "aarch64")]
     #[target_feature(enable = "neon")]
-    unsafe fn ternary_gemv_neon(
+    pub unsafe fn ternary_gemv_neon(
         &self,
         a_ternary: &[i8],
         x: &[f32],

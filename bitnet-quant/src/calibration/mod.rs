@@ -57,7 +57,6 @@ pub use streaming::{ChunkProcessor, StreamingProcessor};
 
 /// Core calibration result containing all collected statistics
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[allow(dead_code)]
 pub struct CalibrationSummary {
     /// Activation statistics per layer
     pub layer_statistics: std::collections::HashMap<String, LayerStatistics>,
@@ -71,7 +70,6 @@ pub struct CalibrationSummary {
 
 /// Quantization parameters optimized from calibration
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[allow(dead_code)]
 pub struct QuantizationParameters {
     /// Scaling factor for quantization
     pub scale: f32,
@@ -89,7 +87,6 @@ pub struct QuantizationParameters {
 
 /// Metadata about calibration process
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[allow(dead_code)]
 pub struct CalibrationMetadata {
     /// Number of samples processed
     pub samples_processed: usize,

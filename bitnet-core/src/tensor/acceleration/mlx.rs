@@ -44,7 +44,6 @@ use tracing::{debug, error, info, instrument, warn};
 
 /// MLX acceleration backend implementation
 #[cfg(feature = "mlx")]
-#[allow(dead_code)]
 pub struct MlxAccelerator {
     device: BitNetMlxDevice,
     initialized: bool,

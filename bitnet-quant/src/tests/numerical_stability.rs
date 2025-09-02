@@ -13,7 +13,6 @@ use std::collections::HashMap;
 
 /// Results of numerical stability testing
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct NumericalStabilityResults {
     pub stability_tests_run: usize,
     pub stability_tests_passed: usize,
@@ -24,7 +23,6 @@ pub struct NumericalStabilityResults {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ConditionResult {
     pub condition_name: String,
     pub test_iterations: usize,
@@ -35,7 +33,6 @@ pub struct ConditionResult {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct StabilityMetrics {
     pub max_relative_error: f64,
     pub mean_relative_error: f64,

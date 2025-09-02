@@ -14,7 +14,6 @@ use tracing::{debug, info};
 use super::{AllocationId, AllocationInfo, TrackingResult};
 
 /// Memory profiler for debugging and leak detection
-#[allow(dead_code)]
 pub struct MemoryProfiler {
     /// Whether profiling is currently active
     is_profiling: Arc<RwLock<bool>>,
@@ -36,7 +35,6 @@ pub struct MemoryProfiler {
 
 /// Configuration for memory profiling
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ProfilingConfig {
     /// Maximum number of allocations to track
     pub max_tracked_allocations: usize,
@@ -54,7 +52,6 @@ pub struct ProfilingConfig {
 
 /// Information about an allocation's lifetime
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct AllocationLifetime {
     /// Allocation information
     pub allocation: AllocationInfo,
@@ -70,7 +67,6 @@ pub struct AllocationLifetime {
 
 /// Candidate for a memory leak
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct LeakCandidate {
     /// Allocation information
     pub allocation: AllocationInfo,
@@ -86,7 +82,6 @@ pub struct LeakCandidate {
 
 /// Pattern of memory allocations
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct AllocationPattern {
     /// Pattern identifier
     pub pattern_id: String,
@@ -106,7 +101,6 @@ pub struct AllocationPattern {
 
 /// Memory snapshot for comparison
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MemorySnapshot {
     /// Snapshot identifier
     pub id: String,
@@ -126,7 +120,6 @@ pub struct MemorySnapshot {
 
 /// Comprehensive profiling report
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ProfilingReport {
     /// Profiling session duration
     pub session_duration: Duration,
@@ -152,7 +145,6 @@ pub struct ProfilingReport {
 
 /// Memory leak detection report
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct LeakReport {
     /// Number of potential leaks detected
     pub leak_count: usize,
@@ -170,7 +162,6 @@ pub struct LeakReport {
 
 /// Statistics about allocation lifetimes
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct LifetimeStatistics {
     /// Average allocation lifetime
     pub average_lifetime: Duration,
@@ -188,7 +179,6 @@ pub struct LifetimeStatistics {
 
 /// Memory usage trends over time
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct UsageTrends {
     /// Memory usage growth rate (bytes per second)
     pub growth_rate: f64,
@@ -204,7 +194,6 @@ pub struct UsageTrends {
 
 /// Profiling overhead information
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ProfilingOverhead {
     /// Memory overhead in bytes
     pub memory_overhead_bytes: u64,

@@ -43,7 +43,6 @@ pub enum AccessPattern {
 }
 
 /// Cache-friendly tensor wrapper
-#[allow(dead_code)]
 pub struct CacheFriendlyTensor {
     /// The underlying tensor data
     tensor: Tensor,
@@ -127,7 +126,7 @@ impl CacheFriendlyTensor {
     pub fn cache_friendly_matmul(
         &self,
         other: &CacheFriendlyTensor,
-        memory_pool: &Arc<HybridMemoryPool>,
+        _memory_pool: &Arc<HybridMemoryPool>,
     ) -> BitLinearResult<CacheFriendlyTensor> {
         // Choose optimal strategy based on layouts
         let result_tensor = match (&self.layout, &other.layout) {
@@ -218,7 +217,7 @@ impl CacheFriendlyTensor {
         Ok(result)
     }
 
-    fn blocked_matmul(&self, other: &Tensor, block_size: usize) -> BitLinearResult<Tensor> {
+    fn blocked_matmul(&self, other: &Tensor, _block_size: usize) -> BitLinearResult<Tensor> {
         // Block-based matrix multiplication for better cache locality
         let result = self
             .tensor
@@ -233,8 +232,8 @@ impl CacheFriendlyTensor {
 pub fn optimize_for_access_pattern(
     tensor: &Tensor,
     pattern: AccessPattern,
-    alignment: usize,
-    memory_pool: &Arc<HybridMemoryPool>,
+    _alignment: usize,
+    _memory_pool: &Arc<HybridMemoryPool>,
 ) -> BitLinearResult<CacheFriendlyTensor> {
     let layout = match pattern {
         AccessPattern::Sequential => MemoryLayout::RowMajor,
@@ -260,14 +259,14 @@ pub fn optimize_for_access_pattern(
         AccessPattern::Transpose => MemoryLayout::ColumnMajor,
     };
 
-    CacheFriendlyTensor::with_optimized_layout(tensor.clone(), layout, memory_pool)
+    CacheFriendlyTensor::with_optimized_layout(tensor.clone(), layout, _memory_pool)
 }
 
 /// Optimize tensor layout based on memory layout strategy
 fn optimize_tensor_layout(
     tensor: &Tensor,
     layout: &MemoryLayout,
-    memory_pool: &Arc<HybridMemoryPool>,
+    _memory_pool: &Arc<HybridMemoryPool>,
 ) -> BitLinearResult<Tensor> {
     match layout {
         MemoryLayout::RowMajor => {
@@ -294,7 +293,7 @@ fn optimize_tensor_layout(
                 Ok(tensor.clone())
             }
         }
-        MemoryLayout::Blocked { block_size } => {
+        MemoryLayout::Blocked { block_size: _ } => {
             // For now, just ensure contiguous layout
             // A full blocked layout would require tensor restructuring
             if tensor.is_contiguous() {
@@ -348,7 +347,6 @@ fn optimize_tensor_layout(
 }
 
 /// Memory access pattern analyzer
-#[allow(dead_code)]
 pub struct AccessPatternAnalyzer {
     /// Historical access patterns
     access_history: Vec<(usize, usize)>, // (offset, size) pairs
@@ -428,7 +426,7 @@ impl CacheFriendlyOps {
     pub fn cache_aware_copy(
         src: &Tensor,
         dst: &mut Tensor,
-        memory_pool: &Arc<HybridMemoryPool>,
+        _memory_pool: &Arc<HybridMemoryPool>,
     ) -> BitLinearResult<()> {
         // For simplicity, use standard copy
         // In a full implementation, this would use optimized copy routines
@@ -441,7 +439,7 @@ impl CacheFriendlyOps {
     }
 
     /// Transpose tensor with cache-friendly blocking
-    pub fn blocked_transpose(tensor: &Tensor, block_size: usize) -> BitLinearResult<Tensor> {
+    pub fn blocked_transpose(tensor: &Tensor, _block_size: usize) -> BitLinearResult<Tensor> {
         // For tensors with more than 2 dimensions, transpose the last two
         let transposed = tensor
             .t()
@@ -481,7 +479,6 @@ impl CacheFriendlyOps {
 
 /// Memory layout information for debugging and optimization
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct LayoutInfo {
     /// Current layout strategy
     pub layout: MemoryLayout,

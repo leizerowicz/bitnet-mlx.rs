@@ -9,7 +9,6 @@ use std::collections::HashMap;
 
 /// Result of ternary quantization validation
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct TernaryValidationResult {
     /// Whether all values are strictly ternary {-1, 0, +1}
     pub is_strictly_ternary: bool,
@@ -25,7 +24,6 @@ pub struct TernaryValidationResult {
 
 /// Distribution of ternary values
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct TernaryDistribution {
     pub negative_ones: usize,
     pub zeros: usize,
@@ -47,7 +45,6 @@ impl TernaryDistribution {
 
 /// Counts of quantization levels
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QuantizationCounts {
     pub minus_one: usize,
     pub zero: usize,
@@ -108,7 +105,6 @@ pub fn validate_ternary_values(tensor: &Tensor) -> QuantizationResult<TernaryVal
 
 /// Result of round-trip accuracy validation
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct RoundTripValidationResult {
     /// Mean Squared Error
     pub mse: f64,
@@ -128,7 +124,6 @@ pub struct RoundTripValidationResult {
 
 /// Detailed error analysis
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ErrorAnalysis {
     /// Per-element absolute errors
     pub element_errors: Vec<f32>,
@@ -256,7 +251,6 @@ pub fn validate_round_trip_accuracy(
 
 /// Scaling factor validation result
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ScalingFactorValidationResult {
     pub computed_scale: f32,
     pub expected_scale: f32,
@@ -338,7 +332,6 @@ pub fn validate_scaling_factor(
 
 /// General validation result
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ValidationResult {
     pub passed: bool,
     pub score: f64,
@@ -457,7 +450,6 @@ pub fn compute_tensor_statistics(tensor: &Tensor) -> QuantizationResult<TensorSt
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct TensorStatistics {
     pub mean: f64,
     pub std_dev: f64,

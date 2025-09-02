@@ -9,7 +9,6 @@ use std::fmt;
 
 /// Detailed device comparison result
 #[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
 pub struct DeviceComparisonResult {
     /// Whether the devices are considered equal
     pub equal: bool,
@@ -19,7 +18,6 @@ pub struct DeviceComparisonResult {
 
 /// Detailed information about device comparison
 #[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
 pub struct DeviceComparisonDetails {
     /// Type of the first device
     pub device1_type: DeviceType,
@@ -39,7 +37,6 @@ pub enum DeviceType {
 
 /// Additional metadata for device comparison
 #[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
 pub struct DeviceComparisonMetadata {
     /// Whether devices are on the same physical hardware
     pub same_hardware: bool,

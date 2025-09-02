@@ -17,7 +17,6 @@ use tracing::{debug, trace, warn, info};
 ///
 /// Manages Metal compute pipelines and provides high-level interface
 /// for GPU-accelerated BitNet operations.
-#[allow(dead_code)]
 pub struct BitNetMetalKernels {
     device: Device,
     command_queue: CommandQueue,
@@ -716,7 +715,6 @@ impl BitNetMetalKernels {
 ///
 /// Automatically selects between CPU and GPU implementations based on
 /// tensor size, device availability, and operation type.
-#[allow(dead_code)]
 pub struct BitNetGPUDispatcher {
     metal_kernels: Option<BitNetMetalKernels>,
     gpu_threshold: usize,

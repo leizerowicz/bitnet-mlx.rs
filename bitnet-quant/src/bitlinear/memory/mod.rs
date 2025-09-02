@@ -31,7 +31,6 @@ pub use weight_cache::{
 
 /// Comprehensive memory optimization configuration
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MemoryOptimizationConfig {
     /// Enable lazy quantization
     pub enable_lazy_quantization: bool,
@@ -68,7 +67,6 @@ impl Default for MemoryOptimizationConfig {
 
 /// Memory optimization metrics for monitoring and debugging
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct MemoryOptimizationMetrics {
     /// Lazy quantization statistics
     pub lazy_quantization_hits: u64,
@@ -135,7 +133,6 @@ impl MemoryOptimizationMetrics {
 }
 
 /// Comprehensive memory optimizer for BitLinear layers
-#[allow(dead_code)]
 pub struct BitLinearMemoryOptimizer {
     /// Configuration
     config: MemoryOptimizationConfig,

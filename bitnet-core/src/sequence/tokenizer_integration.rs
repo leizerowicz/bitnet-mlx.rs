@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 
 /// Enhanced tokenizer with sequence management capabilities
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SequenceAwareTokenizer {
     /// The underlying tokenizer
     tokenizer: Tokenizer,
@@ -22,7 +21,6 @@ pub struct SequenceAwareTokenizer {
 
 /// Configuration for tokenizer sequence integration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TokenizerSequenceConfig {
     /// Whether to automatically manage sequence lengths
     pub auto_manage_sequences: bool,
@@ -38,7 +36,6 @@ pub struct TokenizerSequenceConfig {
 
 /// Special tokens for sequence processing
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct SpecialTokens {
     /// Beginning of sequence token
     pub bos_token: Option<u32>,
@@ -84,7 +81,6 @@ impl Default for TokenizerSequenceConfig {
 
 /// Result of tokenization with sequence management
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TokenizationResult {
     /// Processed sequences
     pub sequences: Vec<ProcessedSequence>,
@@ -96,7 +92,6 @@ pub struct TokenizationResult {
 
 /// Metadata about the tokenization process
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TokenizationMetadata {
     /// Number of input texts
     pub input_count: usize,

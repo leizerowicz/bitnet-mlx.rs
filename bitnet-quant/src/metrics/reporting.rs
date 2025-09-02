@@ -13,7 +13,6 @@ use std::collections::HashMap;
 
 /// Comprehensive reporting engine for quantization analysis
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct ReportingEngine {
     output_directory: String,
     report_format: ReportFormat,
@@ -921,7 +920,7 @@ impl ReportingEngine {
 
         match self.report_format {
             ReportFormat::Markdown => {
-                let markdown_content = self.generate_markdown_report(report)?;
+                let _markdown_content = self.generate_markdown_report(report)?;
                 let filename = format!("{}/quantization_analysis_report.md", self.output_directory);
                 // In practice, write to file: std::fs::write(&filename, markdown_content)?;
                 println!("Would export Markdown report to: {filename}");
@@ -929,7 +928,7 @@ impl ReportingEngine {
             }
 
             ReportFormat::HTML => {
-                let html_content = self.generate_html_report(report)?;
+                let _html_content = self.generate_html_report(report)?;
                 let filename = format!(
                     "{}/quantization_analysis_report.html",
                     self.output_directory
@@ -948,7 +947,7 @@ impl ReportingEngine {
             }
 
             ReportFormat::JSON => {
-                let json_content = serde_json::to_string_pretty(report)
+                let _json_content = serde_json::to_string_pretty(report)
                     .map_err(|e| CandleError::Msg(format!("JSON serialization error: {e}")))?;
                 let filename = format!(
                     "{}/quantization_analysis_report.json",
@@ -1118,7 +1117,6 @@ impl ReportingEngine {
 /// Report data structures
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ComprehensiveReport {
     pub metadata: ReportMetadata,
     pub executive_summary: ExecutiveSummary,
@@ -1128,7 +1126,6 @@ pub struct ComprehensiveReport {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ReportMetadata {
     pub title: String,
     pub generated_at: u64,
@@ -1138,7 +1135,6 @@ pub struct ReportMetadata {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ExecutiveSummary {
     pub overall_quality_grade: QualityGrade,
     pub key_findings: Vec<String>,
@@ -1158,7 +1154,6 @@ pub enum QualityGrade {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct BusinessImpact {
     pub performance_impact: PerformanceImpact,
     pub deployment_risk: DeploymentRisk,
@@ -1182,7 +1177,6 @@ pub enum DeploymentRisk {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct DetailedAnalysis {
     pub layer_breakdown: Vec<LayerBreakdown>,
     pub quantization_patterns: QuantizationPatterns,
@@ -1191,7 +1185,6 @@ pub struct DetailedAnalysis {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct LayerBreakdown {
     pub layer_name: String,
     pub metrics: QuantizationMetrics,
@@ -1202,7 +1195,6 @@ pub struct LayerBreakdown {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct LayerQualityAssessment {
     pub overall_score: u8,
     pub mse_grade: String,
@@ -1212,7 +1204,6 @@ pub struct LayerQualityAssessment {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct QuantizationPatterns {
     pub error_distribution_summary: String,
     pub layer_type_patterns: HashMap<String, i32>,
@@ -1221,7 +1212,6 @@ pub struct QuantizationPatterns {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PerformanceAnalysis {
     pub consistency_rating: String,
     pub predictability_score: f32,
@@ -1232,7 +1222,6 @@ pub struct PerformanceAnalysis {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ErrorCorrelationSummary {
     pub strong_correlations: usize,
     pub average_correlation: f32,
@@ -1241,7 +1230,6 @@ pub struct ErrorCorrelationSummary {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct RecommendationSection {
     pub immediate_actions: Vec<ImmediateAction>,
     pub optimization_roadmap: OptimizationRoadmap,
@@ -1250,7 +1238,6 @@ pub struct RecommendationSection {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ImmediateAction {
     pub priority: ActionPriority,
     pub description: String,
@@ -1268,7 +1255,6 @@ pub enum ActionPriority {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct OptimizationRoadmap {
     pub phases: Vec<RoadmapPhase>,
     pub total_estimated_duration: String,
@@ -1276,7 +1262,6 @@ pub struct OptimizationRoadmap {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct RoadmapPhase {
     pub phase_name: String,
     pub duration: String,
@@ -1285,7 +1270,6 @@ pub struct RoadmapPhase {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct BestPractice {
     pub category: String,
     pub recommendation: String,
@@ -1294,7 +1278,6 @@ pub struct BestPractice {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MonitoringRecommendations {
     pub key_metrics_to_track: Vec<String>,
     pub alert_thresholds: Vec<String>,
@@ -1303,7 +1286,6 @@ pub struct MonitoringRecommendations {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TechnicalAppendix {
     pub methodology: String,
     pub detailed_metrics: HashMap<String, QuantizationMetrics>,
@@ -1316,7 +1298,6 @@ pub struct TechnicalAppendix {
 /// Mitigation reporting structures
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MitigationReport {
     pub summary: MitigationSummary,
     pub action_details: Vec<crate::metrics::mitigation::MitigationAction>,
@@ -1326,7 +1307,6 @@ pub struct MitigationReport {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MitigationSummary {
     pub total_actions: usize,
     pub expected_improvement: f32,

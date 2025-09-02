@@ -16,7 +16,6 @@ use tracing::{debug, info, warn};
 
 /// Comprehensive metrics for conversion operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ConversionMetrics {
     /// Total number of conversions performed
     pub total_conversions: u64,
@@ -154,7 +153,6 @@ impl Default for ConversionMetrics {
 
 /// Metrics for a specific conversion strategy
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct StrategyMetrics {
     pub usage_count: u64,
     pub total_time_ms: u64,
@@ -207,7 +205,6 @@ impl StrategyMetrics {
 
 /// Data type conversion pair
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct DTypeConversion {
     pub from: BitNetDType,
     pub to: BitNetDType,
@@ -221,7 +218,6 @@ impl DTypeConversion {
 
 /// Metrics for a specific data type conversion
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct DTypeMetrics {
     pub conversion_count: u64,
     pub total_time_ms: u64,
@@ -270,7 +266,6 @@ impl DTypeMetrics {
 
 /// Device-specific metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct DeviceMetrics {
     pub conversions_count: u64,
     pub total_time_ms: u64,
@@ -310,7 +305,6 @@ impl DeviceMetrics {
 
 /// Memory usage statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MemoryStats {
     pub peak_memory_usage: u64,
     pub total_memory_allocated: u64,
@@ -347,7 +341,6 @@ impl MemoryStats {
 
 /// Performance statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PerformanceStats {
     pub min_conversion_time_ms: u64,
     pub max_conversion_time_ms: u64,
@@ -394,7 +387,6 @@ impl PerformanceStats {
 
 /// Error statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ErrorStats {
     pub total_errors: u64,
     pub memory_errors: u64,
@@ -431,7 +423,6 @@ impl ErrorStats {
 
 /// Represents a single conversion event for detailed tracking
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ConversionEvent {
     pub timestamp: u64,
     pub sourcedtype: BitNetDType,
@@ -533,7 +524,6 @@ impl ConversionEvent {
 
 /// Statistics aggregator for conversion events
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct ConversionStats {
     events: Arc<RwLock<Vec<ConversionEvent>>>,
     max_events: usize,

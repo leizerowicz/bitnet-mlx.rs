@@ -33,7 +33,6 @@ impl Default for ConversionStrategy {
 
 /// Configuration for precision conversion
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ConversionConfig {
     /// Conversion strategy
     pub strategy: ConversionStrategy,
@@ -64,7 +63,6 @@ impl Default for ConversionConfig {
 
 /// Precision converter for BitNet tensors
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct PrecisionConverter {
     /// Conversion configuration
     config: ConversionConfig,
@@ -596,7 +594,6 @@ impl PrecisionConverter {
 
 /// Statistics for precision conversions
 #[derive(Debug, Default)]
-#[allow(dead_code)]
 pub struct ConversionStats {
     /// Total number of conversions performed
     pub total_conversions: usize,
@@ -654,7 +651,6 @@ impl ConversionStats {
 }
 
 /// Batch conversion utilities
-#[allow(dead_code)]
 pub struct BatchConverter {
     converter: PrecisionConverter,
 }

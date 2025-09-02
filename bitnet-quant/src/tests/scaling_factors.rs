@@ -13,7 +13,6 @@ use std::collections::HashMap;
 
 /// Results of comprehensive scaling factor validation
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct ScalingFactorResults {
     pub mathematical_correctness_rate: f64,
     pub numerical_stability_rate: f64,
@@ -25,7 +24,6 @@ pub struct ScalingFactorResults {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MethodScalingResults {
     pub method: TernaryMethod,
     pub correctness_rate: f64,
@@ -35,7 +33,6 @@ pub struct MethodScalingResults {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PatternScalingResults {
     pub pattern: TestPattern,
     pub average_accuracy: f64,

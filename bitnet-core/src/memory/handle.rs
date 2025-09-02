@@ -24,7 +24,6 @@ use std::sync::Arc;
 /// - Providing device-aware memory management
 /// - Maintaining proper alignment information
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MemoryHandle {
     /// Unique identifier for this memory allocation
     id: u64,
@@ -53,7 +52,6 @@ pub enum PoolType {
 
 /// Device-specific metadata for memory allocations
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct MemoryMetadata {
     /// CPU-specific metadata
     pub cpu: Option<CpuMemoryMetadata>,
@@ -64,7 +62,6 @@ pub struct MemoryMetadata {
 
 /// CPU memory allocation metadata
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct CpuMemoryMetadata {
     /// Whether the memory is page-aligned
     pub page_aligned: bool,
@@ -77,7 +74,6 @@ pub struct CpuMemoryMetadata {
 /// Metal GPU memory allocation metadata
 #[cfg(feature = "metal")]
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct MetalMemoryMetadata {
     /// Metal buffer object
     pub buffer: metal::Buffer,

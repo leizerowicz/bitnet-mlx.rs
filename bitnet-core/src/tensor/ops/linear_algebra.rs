@@ -82,7 +82,6 @@ pub enum MatMulStrategy {
 
 /// Matrix multiplication configuration
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MatMulConfig {
     /// Optimization strategy to use
     pub strategy: MatMulStrategy,
@@ -509,7 +508,6 @@ pub fn cholesky(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
 // ============================================================================
 
 /// Get a single matrix element from a Candle tensor
-#[allow(dead_code)]
 fn get_matrix_element(tensor: &CandleTensor, row: usize, col: usize) -> TensorOpResult<f32> {
     let narrow_row = tensor
         .narrow(0, row, 1)
@@ -534,7 +532,6 @@ fn get_matrix_element(tensor: &CandleTensor, row: usize, col: usize) -> TensorOp
 }
 
 /// Construct lower triangular matrix from 2D vector
-#[allow(dead_code)]
 fn construct_lower_triangular_matrix(data: &[Vec<f32>], n: usize) -> TensorOpResult<CandleTensor> {
     let mut flat_data = vec![0.0f32; n * n];
 
@@ -554,7 +551,6 @@ fn construct_lower_triangular_matrix(data: &[Vec<f32>], n: usize) -> TensorOpRes
 }
 
 /// Check if matrix is positive definite by examining diagonal elements and attempting Cholesky
-#[allow(dead_code)]
 fn is_positive_definite_check(tensor: &CandleTensor) -> TensorOpResult<bool> {
     let dims = tensor.dims2().map_err(|e| TensorOpError::CandleError {
         operation: "is_positive_definite_check".to_string(),
@@ -590,7 +586,6 @@ fn is_positive_definite_check(tensor: &CandleTensor) -> TensorOpResult<bool> {
 }
 
 /// Extract column from a Candle tensor
-#[allow(dead_code)]
 fn extract_column(tensor: &CandleTensor, col: usize) -> TensorOpResult<CandleTensor> {
     tensor
         .narrow(1, col, 1)?
@@ -602,7 +597,6 @@ fn extract_column(tensor: &CandleTensor, col: usize) -> TensorOpResult<CandleTen
 }
 
 /// Compute dot product between two Candle tensors
-#[allow(dead_code)]
 fn dot_product_candle(a: &CandleTensor, b: &CandleTensor) -> TensorOpResult<f32> {
     let product = (a * b)?;
     let sum = product.sum_all()?;
@@ -614,7 +608,6 @@ fn dot_product_candle(a: &CandleTensor, b: &CandleTensor) -> TensorOpResult<f32>
 }
 
 /// Subtract scaled vector: a - scale * b
-#[allow(dead_code)]
 fn subtract_scaled_candle(
     a: &CandleTensor,
     b: &CandleTensor,
@@ -629,7 +622,6 @@ fn subtract_scaled_candle(
 }
 
 /// Compute L2 norm of a Candle tensor
-#[allow(dead_code)]
 fn compute_norm_candle(tensor: &CandleTensor) -> TensorOpResult<f32> {
     let squared = (tensor * tensor)?;
     let sum = squared.sum_all()?;
@@ -638,7 +630,6 @@ fn compute_norm_candle(tensor: &CandleTensor) -> TensorOpResult<f32> {
 }
 
 /// Scale vector by scalar: scale * tensor
-#[allow(dead_code)]
 fn scale_vector_candle(tensor: &CandleTensor, scale: f32) -> TensorOpResult<CandleTensor> {
     let scale_tensor = CandleTensor::new(scale, tensor.device())?;
     tensor
@@ -650,7 +641,6 @@ fn scale_vector_candle(tensor: &CandleTensor, scale: f32) -> TensorOpResult<Cand
 }
 
 /// Construct matrix from column vectors
-#[allow(dead_code)]
 fn construct_matrix_from_columns(
     columns: &[CandleTensor],
     rows: usize,
@@ -687,7 +677,6 @@ fn construct_matrix_from_columns(
 }
 
 /// Construct upper triangular matrix from 2D vector data
-#[allow(dead_code)]
 fn construct_upper_triangular_matrix(
     data: &[Vec<f32>],
     rows: usize,
@@ -713,7 +702,6 @@ fn construct_upper_triangular_matrix(
 }
 
 /// Expand 1D tensor to 2D column vector
-#[allow(dead_code)]
 fn expand_to_2d(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
     let dims = tensor.shape().dims();
     if dims.len() != 1 {
@@ -732,7 +720,6 @@ fn expand_to_2d(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
 }
 
 /// Squeeze 2D tensor to 1D vector
-#[allow(dead_code)]
 fn squeeze_to_1d(tensor: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
     let dims = tensor.shape().dims();
     if dims.len() != 2 {
@@ -1178,7 +1165,6 @@ fn validate_permute_inputs(tensor: &BitNetTensor, dims: &[usize]) -> TensorOpRes
 }
 
 /// Validate input for SVD
-#[allow(dead_code)]
 fn validate_svd_input(tensor: &BitNetTensor) -> TensorOpResult<()> {
     if tensor.shape().rank() != 2 {
         return Err(TensorOpError::ShapeMismatch {
@@ -1192,7 +1178,6 @@ fn validate_svd_input(tensor: &BitNetTensor) -> TensorOpResult<()> {
 }
 
 /// Validate input for QR decomposition
-#[allow(dead_code)]
 fn validate_qr_input(tensor: &BitNetTensor) -> TensorOpResult<()> {
     if tensor.shape().rank() != 2 {
         return Err(TensorOpError::ShapeMismatch {
@@ -1206,7 +1191,6 @@ fn validate_qr_input(tensor: &BitNetTensor) -> TensorOpResult<()> {
 }
 
 /// Validate input for Cholesky decomposition
-#[allow(dead_code)]
 fn validate_cholesky_input(tensor: &BitNetTensor) -> TensorOpResult<()> {
     let dims = tensor.shape().dims();
 
@@ -1311,7 +1295,6 @@ mod tests {
     use std::sync::{Arc, Once};
 
     /// Ensures the global memory pool is initialized once for all tests
-    #[allow(dead_code)]
     fn setup_global_memory_pool() {
         use std::sync::OnceLock;
         static INIT: Once = Once::new();

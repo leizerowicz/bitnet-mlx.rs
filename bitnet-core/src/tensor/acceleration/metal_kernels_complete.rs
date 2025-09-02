@@ -17,7 +17,6 @@ use tracing::{debug, trace, warn, info};
 ///
 /// Manages Metal compute pipelines and provides high-level interface
 /// for GPU-accelerated BitNet operations.
-#[allow(dead_code)]
 pub struct BitNetMetalKernels {
     device: Device,
     command_queue: CommandQueue,
@@ -515,7 +514,6 @@ impl BitNetMetalKernels {
 }
 
 /// Global Metal kernel manager for automatic dispatch
-#[allow(dead_code)]
 pub struct GlobalMetalKernels {
     metal_kernels: Option<BitNetMetalKernels>,
 }

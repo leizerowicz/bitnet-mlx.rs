@@ -109,7 +109,6 @@ pub fn calculate_psnr(original: &Tensor, quantized: &Tensor, max_value: f32) -> 
 
 /// MSE Calculator with advanced features
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct MSECalculator {
     device: Device,
     streaming_threshold: usize,
@@ -256,7 +255,6 @@ impl MSECalculator {
 
 /// Comprehensive MSE metrics structure
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MSEMetrics {
     pub mse: f32,
     pub rmse: f32,
@@ -303,7 +301,6 @@ pub enum MSEQuality {
 }
 
 /// Batch MSE calculator for efficient multiple tensor processing
-#[allow(dead_code)]
 pub struct BatchMSECalculator {
     calculator: MSECalculator,
     batch_size: usize,

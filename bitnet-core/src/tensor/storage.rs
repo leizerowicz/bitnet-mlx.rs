@@ -21,7 +21,6 @@ use tracing::{debug, error, warn};
 /// with efficient memory management, device awareness, and support for
 /// different data layouts.
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct TensorStorage {
     /// Unique identifier for this storage
     storage_id: u64,

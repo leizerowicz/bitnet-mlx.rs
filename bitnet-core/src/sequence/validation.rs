@@ -53,7 +53,6 @@ impl std::error::Error for ValidationError {}
 
 /// Validation rules for sequences
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ValidationRules {
     /// Minimum allowed sequence length
     pub min_length: Option<usize>,
@@ -139,7 +138,6 @@ impl ValidationRules {
 
 /// Sequence validator
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SequenceValidator {
     rules: ValidationRules,
     stats: ValidationStats,
@@ -271,7 +269,6 @@ impl SequenceValidator {
 
 /// Validation statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ValidationStats {
     /// Total number of sequences validated
     pub total_validated: usize,
@@ -414,7 +411,6 @@ pub fn validate_batch_consistency(
 }
 
 /// Advanced sequence validator with custom rules
-#[allow(dead_code)]
 pub struct AdvancedValidator {
     base_validator: SequenceValidator,
     custom_rules: Vec<Box<dyn Fn(&[u32]) -> Result<(), String> + Send + Sync>>,

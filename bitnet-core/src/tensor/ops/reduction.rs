@@ -68,7 +68,6 @@ impl From<Option<&[usize]>> for ReductionAxis {
 
 /// Configuration for reduction operations
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ReductionConfig {
     /// Axes to reduce over
     pub axis: ReductionAxis,

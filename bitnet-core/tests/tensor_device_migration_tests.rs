@@ -18,7 +18,6 @@ use std::collections::HashMap;
 
 /// Device migration test configuration
 #[derive(Clone)]
-#[allow(dead_code)]
 struct DeviceMigrationConfig {
     enable_performance_tracking: bool,
     migration_timeout: Duration,
@@ -39,7 +38,6 @@ impl Default for DeviceMigrationConfig {
 
 /// Migration performance metrics
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 struct MigrationMetrics {
     source_device: String,
     target_device: String,

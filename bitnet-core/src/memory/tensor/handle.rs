@@ -59,7 +59,6 @@ pub type TensorHandleResult<T> = std::result::Result<T, TensorHandleError>;
 /// and lifecycle management. It ensures that the underlying tensor data remains valid
 /// as long as the handle exists.
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct TensorHandle {
     /// Weak reference to the tensor data to avoid cycles
     tensor_ref: Weak<TensorData>,
@@ -212,7 +211,6 @@ pub fn clear_global_state() {
 
 /// Internal tensor data structure
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct TensorData {
     /// Memory handle for the tensor data
     pub memory_handle: MemoryHandle,
@@ -509,7 +507,6 @@ impl TensorHandle {
     }
 
     /// Gets access to the underlying memory handle
-    #[allow(dead_code)]
     pub(crate) fn memory_handle(&self) -> TensorHandleResult<MemoryHandle> {
         let tensor_data = self
             .tensor_ref
@@ -519,7 +516,6 @@ impl TensorHandle {
     }
 
     /// Gets access to the tensor data for internal operations
-    #[allow(dead_code)]
     pub(crate) fn tensor_data(&self) -> TensorHandleResult<Arc<TensorData>> {
         self.tensor_ref
             .upgrade()
@@ -556,7 +552,6 @@ impl fmt::Display for TensorHandle {
 
 /// Weak tensor handle that doesn't affect reference counting
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct WeakTensorHandle {
     tensor_ref: Weak<TensorData>,
     handle_id: u64,

@@ -98,7 +98,6 @@ impl SimdOptimization {
 
 /// SIMD acceleration metrics
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SimdAccelerationMetrics {
     /// SIMD optimization level used
     pub optimization_level: SimdOptimization,
@@ -148,7 +147,6 @@ impl SimdAccelerationMetrics {
 }
 
 /// SIMD acceleration backend with cross-platform optimization
-#[allow(dead_code)]
 pub struct SimdAccelerator {
     /// Current SIMD optimization level
     optimization_level: SimdOptimization,

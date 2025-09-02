@@ -230,7 +230,6 @@ fn demo_performance_comparison(device: &BitNetMlxDevice) -> Result<()> {
 }
 
 #[cfg(not(feature = "mlx"))]
-#[allow(dead_code)]
 fn run_mlx_demo() -> Result<()> {
     unreachable!("This function should not be called when MLX is not available")
 }

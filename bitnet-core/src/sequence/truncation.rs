@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 
 /// Options for sequence truncation
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TruncationOptions {
     /// Truncation strategy to use
     pub strategy: TruncationStrategy,
@@ -258,7 +257,6 @@ pub fn truncate_to_budget(
 
 /// Calculate truncation statistics for a batch of sequences
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct TruncationStats {
     pub total_sequences: usize,
     pub truncated_sequences: usize,

@@ -8,7 +8,6 @@ use std::collections::HashMap;
 
 /// Comprehensive sequence statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct SequenceStats {
     /// Total number of sequences analyzed
     pub count: usize,
@@ -231,7 +230,6 @@ impl Default for SequenceStats {
 
 /// Length distribution analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct LengthDistribution {
     /// Histogram of length frequencies
     pub histogram: HashMap<usize, usize>,
@@ -348,7 +346,6 @@ fn percentile(sorted_data: &[f64], p: f64) -> f64 {
 
 /// Batch statistics for comparing multiple datasets
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct BatchStats {
     /// Individual statistics for each batch
     pub batch_stats: Vec<SequenceStats>,
@@ -360,7 +357,6 @@ pub struct BatchStats {
 
 /// Comparison metrics between batches
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct BatchComparison {
     /// Variance in mean lengths across batches
     pub mean_variance: f64,
@@ -468,7 +464,6 @@ impl BatchStats {
 
 /// Sequence length recommendations based on statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct LengthRecommendations {
     /// Recommended maximum length (covers 95% of sequences)
     pub recommended_max_length: usize,

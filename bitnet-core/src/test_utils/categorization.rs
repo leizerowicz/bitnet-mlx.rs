@@ -11,7 +11,6 @@ use super::{TestCategory, TestExecutionResult};
 
 /// Test categorization rules and configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TestCategorizationConfig {
     /// Rules for automatically categorizing tests
     pub categorization_rules: Vec<CategorizationRule>,
@@ -25,7 +24,6 @@ pub struct TestCategorizationConfig {
 
 /// Rule for automatically categorizing tests based on patterns
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CategorizationRule {
     /// Pattern to match test names against
     pub name_pattern: String,
@@ -41,7 +39,6 @@ pub struct CategorizationRule {
 
 /// Execution policy for different environments
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ExecutionPolicy {
     /// Categories allowed to run in this environment
     pub allowed_categories: Vec<TestCategory>,
@@ -57,7 +54,6 @@ pub struct ExecutionPolicy {
 
 /// Resource-based execution thresholds
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ResourceThresholds {
     /// Minimum available memory required (bytes)
     pub min_available_memory: u64,
@@ -86,7 +82,6 @@ pub enum ExecutionDecision {
 }
 
 /// Test categorizer for automatic test classification
-#[allow(dead_code)]
 pub struct TestCategorizer {
     /// Configuration for categorization
     config: TestCategorizationConfig,
@@ -650,7 +645,6 @@ impl TestCategorizer {
 
 /// Execution statistics for test categorization
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ExecutionStatistics {
     /// Total number of tests
     pub total_tests: usize,
@@ -672,7 +666,6 @@ pub struct ExecutionStatistics {
 
 /// Breakdown of tests by category
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CategoryBreakdown {
     /// Total tests in this category
     pub total_tests: usize,
@@ -686,7 +679,6 @@ pub struct CategoryBreakdown {
 
 /// Policy effectiveness metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PolicyEffectiveness {
     /// Percentage of tests executed (vs skipped)
     pub execution_rate: f64,
@@ -702,7 +694,6 @@ pub struct PolicyEffectiveness {
 
 /// Comprehensive categorization report
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CategorizationReport {
     /// Environment this report was generated for
     pub environment: String,

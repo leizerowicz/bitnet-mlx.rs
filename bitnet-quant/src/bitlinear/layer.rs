@@ -17,7 +17,6 @@ use std::sync::{Arc, Mutex, RwLock};
 
 /// Configuration for BitLinear layer with memory optimization support
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BitLinearConfig {
     /// Input features dimension
     pub in_features: usize,
@@ -80,7 +79,6 @@ impl Default for BitLinearConfig {
 /// This struct maintains both full-precision weights for training and cached
 /// quantized weights for inference. It integrates with the existing device
 /// abstraction layer and memory pool system.
-#[allow(dead_code)]
 pub struct BitLinear {
     /// Layer configuration
     config: BitLinearConfig,
@@ -181,7 +179,7 @@ impl BitLinear {
     }
 
     /// Initialize weights using Xavier/Glorot initialization
-    fn initialize_weights(shape: &Shape, device: &Device) -> BitLinearResult<Tensor> {
+    pub fn initialize_weights(shape: &Shape, device: &Device) -> BitLinearResult<Tensor> {
         let dims = shape.dims();
         if dims.len() != 2 {
             return Err(BitLinearError::ConfigError(

@@ -84,7 +84,6 @@ impl Default for TruncationStrategy {
 
 /// Configuration for sequence processing operations
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct SequenceConfig {
     /// Maximum allowed sequence length
     pub max_length: Option<usize>,
@@ -179,7 +178,6 @@ impl SequenceConfig {
 
 /// A processed sequence with metadata
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ProcessedSequence {
     /// The processed token sequence
     pub tokens: Vec<u32>,

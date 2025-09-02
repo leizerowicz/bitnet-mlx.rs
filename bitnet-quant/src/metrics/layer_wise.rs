@@ -15,7 +15,6 @@ use std::collections::HashMap;
 
 /// Layer-wise quantization analysis engine
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct LayerWiseAnalyzer {
     device: Device,
     mse_calculator: MSECalculator,
@@ -646,7 +645,6 @@ impl LayerWiseAnalyzer {
 
 /// Input data for layer analysis
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct LayerData {
     pub original_output: Tensor,
     pub quantized_output: Tensor,
@@ -666,7 +664,6 @@ pub enum LayerType {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ActivationStats {
     pub min_value: f32,
     pub max_value: f32,
@@ -677,7 +674,6 @@ pub struct ActivationStats {
 
 /// Comprehensive layer-wise analysis results
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct LayerWiseAnalysisResult {
     pub layer_metrics: HashMap<String, QuantizationMetrics>,
     pub sensitivity_ranking: Vec<(String, f32)>,
@@ -691,7 +687,6 @@ pub struct LayerWiseAnalysisResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct LayerRanking {
     pub metric_name: String,
     pub layer_order: Vec<(String, f32)>, // (layer_name, metric_value)
@@ -699,7 +694,6 @@ pub struct LayerRanking {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct GlobalStatistics {
     pub num_layers: usize,
     pub mean_mse: f32,
@@ -731,7 +725,6 @@ impl Default for GlobalStatistics {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct OptimizationPlan {
     pub high_priority_layers: Vec<String>,
     pub medium_priority_layers: Vec<String>,
@@ -768,7 +761,6 @@ pub enum ImplementationComplexity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ProblematicLayer {
     pub layer_name: String,
     pub issues: Vec<QualityIssue>,
@@ -795,7 +787,6 @@ pub enum IssueSeverity {
 
 /// Temporal analysis of layer metrics
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct TemporalAnalysis {
     pub layer_trends: HashMap<String, LayerTrend>,
     pub time_range: (u64, u64), // (start_timestamp, end_timestamp)
@@ -803,7 +794,6 @@ pub struct TemporalAnalysis {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct LayerTrend {
     pub mse_trend: TrendDirection,
     pub sqnr_trend: TrendDirection,

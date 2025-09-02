@@ -146,7 +146,6 @@ pub enum ErrorRecoveryStrategy {
 
 /// Comprehensive error context for test failures
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TestErrorContext {
     /// The test error itself
     pub error: TestError,
@@ -417,7 +416,6 @@ impl TestErrorContext {
 }
 
 /// Test error handler for managing error responses
-#[allow(dead_code)]
 pub struct TestErrorHandler {
     /// Configuration for error handling
     pub config: ErrorHandlerConfig,
@@ -427,7 +425,6 @@ pub struct TestErrorHandler {
 
 /// Configuration for the error handler
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ErrorHandlerConfig {
     /// Maximum number of retries for any test
     pub max_retries: usize,
@@ -578,7 +575,6 @@ pub enum ErrorHandlerAction {
 
 /// Summary of all errors encountered during testing
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TestErrorSummary {
     /// Total number of errors
     pub total_errors: usize,

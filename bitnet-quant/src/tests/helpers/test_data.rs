@@ -108,7 +108,6 @@ pub fn generate_test_tensor_set(device: &Device) -> QuantizationResult<TestTenso
 }
 
 /// Collection of test tensors organized by pattern
-#[allow(dead_code)]
 pub struct TestTensorSet {
     pub tensor_sets: HashMap<TestPattern, Vec<Tensor>>,
 }
@@ -239,7 +238,6 @@ fn generate_exponential_distribution(n: usize) -> Vec<f32> {
 
 /// Statistical properties of generated data
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct DataStatistics {
     pub mean: f32,
     pub std_dev: f32,

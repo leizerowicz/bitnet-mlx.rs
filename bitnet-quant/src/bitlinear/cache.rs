@@ -34,7 +34,6 @@ pub type CacheResult<T> = std::result::Result<T, CacheError>;
 
 /// Configuration for the quantized weight cache
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CacheConfig {
     /// Maximum number of entries in the cache
     pub max_entries: usize,
@@ -56,7 +55,6 @@ impl Default for CacheConfig {
 
 /// Cache entry containing quantized weights and metadata
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CacheEntry {
     /// The cached quantized weight
     pub quantized_weight: QuantizedWeight,
@@ -184,7 +182,6 @@ impl CacheEntry {
 
 /// Cache statistics for monitoring and debugging
 #[derive(Debug, Default, Clone)]
-#[allow(dead_code)]
 pub struct CacheStats {
     /// Number of cache hits
     pub hits: u64,
@@ -212,7 +209,6 @@ impl CacheStats {
 }
 
 /// Quantized weight cache implementation
-#[allow(dead_code)]
 pub struct QuantizedWeightCache {
     /// Cache configuration
     config: CacheConfig,

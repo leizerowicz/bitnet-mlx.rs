@@ -15,7 +15,6 @@ pub use formatting::{ErrorFormatter, ErrorReport, ErrorSeverity};
 
 /// Enhanced error with detailed context and formatting
 #[derive(Error, Debug, Clone)]
-#[allow(dead_code)]
 pub struct BitNetError {
     /// The underlying error kind
     pub kind: BitNetErrorKind,

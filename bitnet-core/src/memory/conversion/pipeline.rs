@@ -16,7 +16,6 @@ use std::sync::{Arc, Mutex, RwLock};
 use tracing::{debug, info, warn};
 
 /// A conversion pipeline that chains multiple operations with memory optimization
-#[allow(dead_code)]
 pub struct ConversionPipeline {
     /// Pipeline configuration
     config: ConversionConfig,
@@ -481,7 +480,6 @@ impl TensorCache {
 
 /// Tracks memory usage and performance metrics for the pipeline
 #[derive(Debug)]
-#[allow(dead_code)]
 struct MemoryTracker {
     total_executions: u64,
     total_stages_executed: u64,
@@ -539,7 +537,6 @@ impl MemoryTracker {
 
 /// Result of executing a pipeline stage
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 struct StageResult {
     stage_index: usize,
     input_size: usize,
@@ -549,7 +546,6 @@ struct StageResult {
 
 /// Statistics about pipeline execution
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PipelineStats {
     pub total_executions: u64,
     pub total_stages_executed: u64,

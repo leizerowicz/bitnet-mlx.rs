@@ -454,7 +454,6 @@ mod benchmark_tests {
 mod test_helpers {
     use super::*;
 
-    #[allow(dead_code)]
     pub fn create_test_tensors(
         size: usize,
     ) -> Result<(BitNetTensor, BitNetTensor), Box<dyn std::error::Error>> {
@@ -464,7 +463,6 @@ mod test_helpers {
         Ok((a, b))
     }
 
-    #[allow(dead_code)]
     pub fn measure_operation_time<F, T>(operation: F) -> (T, std::time::Duration)
     where
         F: FnOnce() -> T,
@@ -475,7 +473,6 @@ mod test_helpers {
         (result, duration)
     }
 
-    #[allow(dead_code)]
     pub fn assert_tensor_equal(
         a: &BitNetTensor,
         b: &BitNetTensor,

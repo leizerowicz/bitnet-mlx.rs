@@ -15,7 +15,6 @@ use std::time::{Duration, Instant};
 
 /// Results of memory pool integration testing
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct MemoryPoolIntegrationResults {
     pub pool_tests_run: usize,
     pub pool_tests_passed: usize,
@@ -27,7 +26,6 @@ pub struct MemoryPoolIntegrationResults {
 }
 
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct ConcurrentTestResults {
     pub concurrent_quantizations: usize,
     pub successful_concurrent_ops: usize,
@@ -36,7 +34,6 @@ pub struct ConcurrentTestResults {
 }
 
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct PoolPerformanceMetrics {
     pub average_allocation_time_ns: u64,
     pub average_deallocation_time_ns: u64,

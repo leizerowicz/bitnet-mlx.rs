@@ -292,7 +292,6 @@ fn demonstrate_operation_contexts() -> Result<()> {
     Ok(())
 }
 
-#[allow(dead_code)]
 fn benchmark_tensor_operations() -> Result<()> {
     println!("🏁 Tensor Operation Benchmarks");
     println!("=============================");
@@ -324,7 +323,6 @@ fn benchmark_tensor_operations() -> Result<()> {
 }
 
 /// Demonstrate real-world usage patterns
-#[allow(dead_code)]
 fn demonstrate_real_world_usage() -> Result<()> {
     println!("🌍 Real-World Usage Patterns");
     println!("============================");

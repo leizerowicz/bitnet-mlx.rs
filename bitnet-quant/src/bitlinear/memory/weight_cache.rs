@@ -12,7 +12,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Configuration for weight cache management
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CacheConfig {
     /// Maximum number of cached weight entries
     pub max_entries: usize,
@@ -55,7 +54,6 @@ impl Default for CacheConfig {
 
 /// Cache entry containing quantized weights and metadata
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CacheEntry {
     /// Quantized weights tensor
     quantized_weights: Tensor,
@@ -177,7 +175,6 @@ impl CacheEntry {
 
 /// Cache statistics for monitoring and optimization
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct CacheStats {
     /// Total cache hits
     pub hits: u64,
@@ -225,7 +222,6 @@ impl CacheStats {
 }
 
 /// Weight cache manager implementation
-#[allow(dead_code)]
 pub struct WeightCacheManager {
     /// Configuration
     config: CacheConfig,

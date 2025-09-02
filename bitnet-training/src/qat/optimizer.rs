@@ -8,7 +8,6 @@ use super::straight_through::STEStatistics;
 
 /// Parameter configuration for Adam optimizer
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ParamsAdam {
     pub lr: f32,
     pub beta1: f32,
@@ -31,7 +30,6 @@ impl Default for ParamsAdam {
 
 /// Parameter configuration for AdamW optimizer
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ParamsAdamW {
     pub lr: f32,
     pub beta1: f32,
@@ -54,7 +52,6 @@ impl Default for ParamsAdamW {
 
 /// Parameter configuration for SGD optimizer
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ParamsSGD {
     pub lr: f32,
     pub momentum: f32,
@@ -97,7 +94,6 @@ pub trait QATOptimizer {
 }
 
 /// Quantization-Aware Adam Optimizer
-#[allow(dead_code)]
 pub struct QuantizationAwareAdam {
     learning_rate: f32,
     beta1: f32,
@@ -384,7 +380,6 @@ impl QATOptimizer for QuantizationAwareAdam {
 }
 
 /// Quantization-Aware AdamW Optimizer (with decoupled weight decay)
-#[allow(dead_code)]
 pub struct QuantizationAwareAdamW {
     adam: QuantizationAwareAdam,
     decoupled_weight_decay: f32,
@@ -477,7 +472,6 @@ impl QATOptimizer for QuantizationAwareAdamW {
 }
 
 /// Learning Rate Scheduler for QAT
-#[allow(dead_code)]
 pub struct QATLearningRateScheduler {
     initial_lr: f32,
     schedule_type: ScheduleType,
@@ -857,6 +851,16 @@ impl QATAdam {
         Ok(QATAdam(optimizer))
     }
 
+    /// Get a reference to the inner optimizer
+    pub fn inner(&self) -> &QuantizationAwareAdam {
+        &self.0
+    }
+
+    /// Get a mutable reference to the inner optimizer
+    pub fn inner_mut(&mut self) -> &mut QuantizationAwareAdam {
+        &mut self.0
+    }
+
     #[allow(unused_variables)]
     pub fn step(&mut self, gradients: &[Tensor]) -> Result<()> {
         // Convert gradients slice to HashMap for internal use
@@ -890,6 +894,16 @@ impl QATAdamW {
         Ok(QATAdamW(optimizer))
     }
 
+    /// Get a reference to the inner optimizer
+    pub fn inner(&self) -> &QuantizationAwareAdamW {
+        &self.0
+    }
+
+    /// Get a mutable reference to the inner optimizer
+    pub fn inner_mut(&mut self) -> &mut QuantizationAwareAdamW {
+        &mut self.0
+    }
+
     #[allow(unused_variables)]
     pub fn step(&mut self, gradients: &[Tensor]) -> Result<()> {
         // Placeholder implementation
@@ -898,8 +912,6 @@ impl QATAdamW {
 }
 
 /// QAT SGD with Momentum optimizer (placeholder for future implementation)
-#[allow(dead_code)]
-#[allow(dead_code)]
 pub struct QATSGDWithMomentum {
     learning_rate: f32,
     momentum: f32,

@@ -13,7 +13,6 @@ use super::TestExecutionResult;
 
 /// Performance trend analysis for a specific test
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TestPerformanceTrend {
     /// Test name
     pub test_name: String,
@@ -50,7 +49,6 @@ pub enum PerformanceCategory {
 
 /// Performance regression detection result
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PerformanceRegression {
     /// Test name that regressed
     pub test_name: String,
@@ -83,7 +81,6 @@ pub enum RegressionSeverity {
 
 /// Comprehensive performance analysis report
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PerformanceAnalysisReport {
     /// Analysis timestamp
     pub generated_at: SystemTime,
@@ -103,7 +100,6 @@ pub struct PerformanceAnalysisReport {
 
 /// Performance improvement detection
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PerformanceImprovement {
     /// Test name that improved
     pub test_name: String,
@@ -119,7 +115,6 @@ pub struct PerformanceImprovement {
 
 /// Overall performance statistics across all tests
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct OverallPerformanceStats {
     /// Total execution time for all tests
     pub total_execution_time: Duration,
@@ -137,7 +132,6 @@ pub struct OverallPerformanceStats {
 
 /// Optimization recommendation
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct OptimizationRecommendation {
     /// Type of optimization
     pub optimization_type: OptimizationType,
@@ -180,7 +174,6 @@ pub enum Priority {
 }
 
 /// Performance monitor for tracking test execution over time
-#[allow(dead_code)]
 pub struct PerformanceMonitor {
     /// Historical performance data
     performance_history: BTreeMap<String, Vec<TestExecutionResult>>,
@@ -190,7 +183,6 @@ pub struct PerformanceMonitor {
 
 /// Configuration for performance monitoring
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PerformanceMonitorConfig {
     /// Maximum number of historical results to keep per test
     pub max_history_per_test: usize,

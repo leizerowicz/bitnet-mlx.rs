@@ -19,7 +19,6 @@ use std::time::Instant;
 use tracing::{debug, info, warn};
 
 /// Main conversion engine that orchestrates all conversion operations
-#[allow(dead_code)]
 pub struct ConversionEngine {
     /// Engine configuration
     config: ConversionConfig,
@@ -553,7 +552,6 @@ impl Clone for StreamingConverter {
 
 /// Information about the optimal conversion strategy
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ConversionStrategyInfo {
     pub strategy: ConversionStrategy,
     pub estimated_time_ms: u64,

@@ -11,7 +11,6 @@ use std::collections::HashMap;
 
 /// Performance benchmark results
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct PerformanceRegressionResults {
     pub benchmarks_run: usize,
     pub benchmarks_passed: usize,
@@ -22,7 +21,6 @@ pub struct PerformanceRegressionResults {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BenchmarkResult {
     pub benchmark_name: String,
     pub iterations: usize,
@@ -33,7 +31,6 @@ pub struct BenchmarkResult {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PerformanceStatistics {
     pub mean_duration: Duration,
     pub median_duration: Duration,
@@ -45,7 +42,6 @@ pub struct PerformanceStatistics {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BaselineComparison {
     pub baseline_mean: Duration,
     pub current_mean: Duration,

@@ -12,7 +12,6 @@ use std::time::SystemTime;
 
 /// Histogram collector for activation distributions
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct HistogramCollector {
     /// Configuration
     config: HistogramConfig,
@@ -24,7 +23,6 @@ pub struct HistogramCollector {
 
 /// Histogram for activation values
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ActivationHistogram {
     /// Histogram bins
     pub bins: Vec<HistogramBin>,
@@ -46,7 +44,6 @@ pub struct ActivationHistogram {
 
 /// Individual histogram bin
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct HistogramBin {
     /// Bin lower bound
     pub lower_bound: f32,
@@ -85,7 +82,6 @@ struct PercentileEstimator {
 }
 
 /// Quantization optimizer using histogram analysis
-#[allow(dead_code)]
 pub struct QuantizationOptimizer {
     /// Histogram data
     histogram: ActivationHistogram,
@@ -108,7 +104,6 @@ pub enum OptimizationStrategy {
 
 /// Quantization parameters derived from histogram
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct OptimizedQuantizationParams {
     /// Optimal scaling factor
     pub scale: f32,

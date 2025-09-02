@@ -28,7 +28,6 @@ static TENSOR_ID_COUNTER: Mutex<u64> = Mutex::new(1);
 /// This manager provides high-level memory operations for tensors while
 /// leveraging the sophisticated memory pool infrastructure.
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct TensorMemoryManager {
     /// Reference to the memory pool
     pool: Arc<HybridMemoryPool>,

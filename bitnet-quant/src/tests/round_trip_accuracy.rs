@@ -18,7 +18,6 @@ use std::collections::HashMap;
 
 /// Results of comprehensive round-trip accuracy testing
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct RoundTripResults {
     pub pattern_results: HashMap<TestPattern, PatternRoundTripResults>,
     pub method_results: HashMap<TernaryMethod, MethodRoundTripResults>,
@@ -47,7 +46,6 @@ impl Default for RoundTripResults {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PatternRoundTripResults {
     pub pattern: TestPattern,
     pub method_performance: HashMap<TernaryMethod, RoundTripValidationResult>,
@@ -60,7 +58,6 @@ pub struct PatternRoundTripResults {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MethodRoundTripResults {
     pub method: TernaryMethod,
     pub pattern_performance: HashMap<TestPattern, RoundTripValidationResult>,
@@ -78,7 +75,6 @@ pub enum ReliabilityRating {
 }
 
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct OverallRoundTripMetrics {
     pub total_tests: usize,
     pub successful_tests: usize,
@@ -413,7 +409,6 @@ pub fn test_threshold_impact_on_accuracy(
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ThresholdAccuracyResults {
     pub method: TernaryMethod,
     pub pattern: TestPattern,
@@ -463,7 +458,6 @@ pub fn test_size_impact_on_accuracy(
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SizeAccuracyResults {
     pub method: TernaryMethod,
     pub pattern: TestPattern,

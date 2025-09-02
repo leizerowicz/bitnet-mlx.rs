@@ -20,7 +20,6 @@ use bitnet_core::mlx::MlxDevice;
 
 /// Test configuration for tensor core tests
 #[derive(Clone)]
-#[allow(dead_code)]
 struct TensorTestConfig {
     enable_tracking: bool,
     enable_cleanup: bool,
@@ -54,7 +53,6 @@ fn setup_global_memory_pool() -> Arc<HybridMemoryPool> {
 }
 
 /// Helper function to create a test memory pool (legacy, for compatibility)
-#[allow(dead_code)]
 fn create_test_pool() -> Arc<HybridMemoryPool> {
     setup_global_memory_pool()
 }

@@ -17,7 +17,6 @@ use std::time::SystemTime;
 
 /// Main persistence interface for calibration data
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct CalibrationCache {
     /// Configuration
     config: PersistenceConfig,
@@ -31,7 +30,6 @@ pub struct CalibrationCache {
 
 /// Individual cache entry
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CacheEntry {
     /// Entry identifier
     pub id: String,
@@ -66,7 +64,6 @@ pub enum CacheData {
 
 /// Compression information
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CompressionInfo {
     /// Original size in bytes
     pub original_size: usize,
@@ -80,7 +77,6 @@ pub struct CompressionInfo {
 
 /// Cache performance metrics
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CacheMetrics {
     /// Cache hits
     pub hits: usize,

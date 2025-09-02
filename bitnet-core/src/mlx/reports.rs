@@ -15,7 +15,6 @@ use std::time::{Duration, SystemTime};
 
 /// Comprehensive performance report
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PerformanceReport {
     pub metadata: ReportMetadata,
     pub executive_summary: ExecutiveSummary,
@@ -29,7 +28,6 @@ pub struct PerformanceReport {
 
 /// Report metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ReportMetadata {
     pub generated_at: SystemTime,
     pub report_version: String,
@@ -42,7 +40,6 @@ pub struct ReportMetadata {
 
 /// System information
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct SystemInfo {
     pub os: String,
     pub architecture: String,
@@ -54,7 +51,6 @@ pub struct SystemInfo {
 
 /// Executive summary
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ExecutiveSummary {
     pub key_findings: Vec<String>,
     pub performance_highlights: Vec<String>,
@@ -65,7 +61,6 @@ pub struct ExecutiveSummary {
 
 /// Performance analysis section
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PerformanceAnalysis {
     pub operation_performance: HashMap<String, OperationPerformanceStats>,
     pub throughput_analysis: ThroughputAnalysis,
@@ -76,7 +71,6 @@ pub struct PerformanceAnalysis {
 
 /// Operation-specific performance statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct OperationPerformanceStats {
     pub operation_name: String,
     pub total_executions: usize,
@@ -93,7 +87,6 @@ pub struct OperationPerformanceStats {
 
 /// Throughput analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ThroughputAnalysis {
     pub peak_throughput: f64,
     pub average_throughput: f64,
@@ -113,7 +106,6 @@ pub enum ThroughputTrend {
 
 /// Latency analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct LatencyAnalysis {
     pub average_latency: Duration,
     pub p50_latency: Duration,
@@ -125,7 +117,6 @@ pub struct LatencyAnalysis {
 
 /// Latency bucket for distribution analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct LatencyBucket {
     pub range_start: Duration,
     pub range_end: Duration,
@@ -135,7 +126,6 @@ pub struct LatencyBucket {
 
 /// Outlier analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct OutlierAnalysis {
     pub outlier_count: usize,
     pub outlier_threshold: Duration,
@@ -144,7 +134,6 @@ pub struct OutlierAnalysis {
 
 /// Scalability analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ScalabilityAnalysis {
     pub batch_size_scaling: Vec<ScalingPoint>,
     pub tensor_size_scaling: Vec<ScalingPoint>,
@@ -155,7 +144,6 @@ pub struct ScalabilityAnalysis {
 
 /// Scaling point for analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ScalingPoint {
     pub parameter_value: f64,
     pub throughput: f64,
@@ -166,7 +154,6 @@ pub struct ScalingPoint {
 
 /// Efficiency metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct EfficiencyMetrics {
     pub compute_efficiency: f64,
     pub memory_efficiency: f64,
@@ -176,7 +163,6 @@ pub struct EfficiencyMetrics {
 
 /// Resource utilization
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ResourceUtilization {
     pub cpu_utilization: f64,
     pub gpu_utilization: f64,
@@ -186,7 +172,6 @@ pub struct ResourceUtilization {
 
 /// Memory analysis section
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MemoryAnalysis {
     pub allocation_patterns: AllocationPatterns,
     pub memory_pressure_analysis: MemoryPressureAnalysis,
@@ -197,7 +182,6 @@ pub struct MemoryAnalysis {
 
 /// Allocation patterns
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct AllocationPatterns {
     pub total_allocations: usize,
     pub total_deallocations: usize,
@@ -209,7 +193,6 @@ pub struct AllocationPatterns {
 
 /// Memory pressure analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MemoryPressureAnalysis {
     pub pressure_events: Vec<PressureEvent>,
     pub average_pressure_level: String,
@@ -219,7 +202,6 @@ pub struct MemoryPressureAnalysis {
 
 /// Pressure event
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PressureEvent {
     pub timestamp: SystemTime,
     pub pressure_level: String,
@@ -230,7 +212,6 @@ pub struct PressureEvent {
 
 /// Fragmentation analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct FragmentationAnalysis {
     pub fragmentation_ratio: f64,
     pub fragmentation_trend: FragmentationTrend,
@@ -248,7 +229,6 @@ pub enum FragmentationTrend {
 
 /// Leak detection
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct LeakDetection {
     pub potential_leaks: Vec<PotentialLeak>,
     pub leak_score: f64, // 0-100, higher means more likely leaks
@@ -257,7 +237,6 @@ pub struct LeakDetection {
 
 /// Potential memory leak
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PotentialLeak {
     pub operation: String,
     pub allocation_growth_rate: f64,
@@ -268,7 +247,6 @@ pub struct PotentialLeak {
 
 /// Device comparison
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct DeviceComparison {
     pub device_a: String,
     pub device_b: String,
@@ -281,7 +259,6 @@ pub struct DeviceComparison {
 
 /// Performance comparison between devices
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PerformanceComparison {
     pub speedup: f64,
     pub throughput_improvement: f64,
@@ -291,7 +268,6 @@ pub struct PerformanceComparison {
 
 /// Memory comparison between devices
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MemoryComparison {
     pub memory_efficiency_improvement: f64,
     pub peak_memory_reduction: f64,
@@ -300,7 +276,6 @@ pub struct MemoryComparison {
 
 /// Optimization recommendation
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct OptimizationRecommendation {
     pub category: OptimizationCategory,
     pub title: String,
@@ -323,7 +298,6 @@ pub enum OptimizationCategory {
 
 /// Expected improvement
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ExpectedImprovement {
     pub performance_gain: Option<f64>,
     pub memory_reduction: Option<f64>,
@@ -352,7 +326,6 @@ pub enum Priority {
 
 /// Code example
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CodeExample {
     pub language: String,
     pub title: String,
@@ -362,7 +335,6 @@ pub struct CodeExample {
 
 /// Regression analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct RegressionAnalysis {
     pub baseline_period: String,
     pub comparison_period: String,
@@ -373,7 +345,6 @@ pub struct RegressionAnalysis {
 
 /// Regression event
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct RegressionEvent {
     pub operation: String,
     pub device: String,
@@ -385,7 +356,6 @@ pub struct RegressionEvent {
 
 /// Improvement event
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ImprovementEvent {
     pub operation: String,
     pub device: String,
@@ -414,7 +384,6 @@ pub enum PerformanceTrend {
 
 /// Report appendix
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ReportAppendix {
     pub raw_metrics: Vec<MlxMetrics>,
     pub configuration_details: HashMap<String, String>,
@@ -424,7 +393,6 @@ pub struct ReportAppendix {
 }
 
 /// Performance Report Generator
-#[allow(dead_code)]
 pub struct PerformanceReportGenerator {
     template_engine: Option<String>, // For future template support
 }

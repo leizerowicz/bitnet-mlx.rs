@@ -10,7 +10,6 @@ use std::fmt;
 
 /// Represents a node in the computation graph
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct GraphNode {
     pub id: usize,
     pub operation: Operation,
@@ -59,7 +58,6 @@ impl fmt::Display for Operation {
 
 /// MLX computation graph
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct MlxComputationGraph {
     nodes: HashMap<usize, GraphNode>,
     next_id: usize,
@@ -349,7 +347,6 @@ impl MlxComputationGraph {
 
 /// Represents a fusion opportunity in the graph
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct FusionOpportunity {
     pub pattern: FusionPattern,
     pub nodes: Vec<usize>,
@@ -367,7 +364,6 @@ pub enum FusionPattern {
 
 /// Memory layout optimization plan
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct MemoryLayoutPlan {
     pub memory_groups: Vec<Vec<usize>>,
     pub tensor_lifetimes: HashMap<usize, (usize, usize)>,
@@ -384,7 +380,6 @@ impl MemoryLayoutPlan {
 
 /// Complete execution plan for the graph
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct ExecutionPlan {
     pub execution_order: Vec<usize>,
     pub fusion_opportunities: Vec<FusionOpportunity>,
@@ -394,7 +389,6 @@ pub struct ExecutionPlan {
 }
 
 /// Graph builder for easier construction
-#[allow(dead_code)]
 pub struct GraphBuilder {
     graph: MlxComputationGraph,
 }

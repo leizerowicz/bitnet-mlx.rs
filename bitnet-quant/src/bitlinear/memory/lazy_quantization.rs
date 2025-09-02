@@ -4,7 +4,7 @@
 //! when needed for forward pass operations, reducing memory usage and computational overhead.
 
 use crate::bitlinear::error::{BitLinearError, BitLinearResult};
-use bitnet_core::memory::{HybridMemoryPool, MemoryHandle};
+use bitnet_core::memory::HybridMemoryPool;
 use candle_core::{DType, Device, Tensor};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
@@ -12,7 +12,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Configuration for lazy quantization
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct LazyQuantizationConfig {
     /// Maximum number of cached quantized weights
     pub max_cache_entries: usize,
@@ -88,22 +87,16 @@ struct LazyQuantizationEntry {
     state: QuantizationState,
     /// Last access timestamp
     last_accessed: u64,
-    /// Memory handle for the quantized data
-    memory_handle: Option<MemoryHandle>,
-    /// Layer name for debugging
-    layer_name: String,
 }
 
 impl LazyQuantizationEntry {
-    fn new(weights: Tensor, layer_name: String) -> Self {
+    pub fn new(weights: Tensor, _layer_name: String) -> Self {
         Self {
             original_weights: weights,
             quantized_weights: None,
             scales: None,
             state: QuantizationState::NotQuantized,
             last_accessed: current_timestamp(),
-            memory_handle: None,
-            layer_name,
         }
     }
 
@@ -116,7 +109,7 @@ impl LazyQuantizationEntry {
         current_time.saturating_sub(self.last_accessed) > ttl_seconds
     }
 
-    fn memory_usage(&self) -> usize {
+    pub fn memory_usage(&self) -> usize {
         let mut usage = 0;
 
         // Original weights
@@ -138,7 +131,6 @@ impl LazyQuantizationEntry {
 
 /// Lazy quantization statistics
 #[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct LazyQuantizationStats {
     /// Total cache hits
     pub hits: u64,
@@ -168,7 +160,6 @@ impl LazyQuantizationStats {
 }
 
 /// Lazy quantizer implementation
-#[allow(dead_code)]
 pub struct LazyQuantizer {
     /// Configuration
     config: LazyQuantizationConfig,
@@ -461,8 +452,6 @@ impl LazyQuantizer {
             scales: Some(scales.clone()),
             state: QuantizationState::NotQuantized, // Will be updated by caller
             last_accessed: current_timestamp(),
-            memory_handle: None, // Could allocate dedicated memory handle if needed
-            layer_name: layer_name.to_string(),
         };
 
         cache.insert(layer_name.to_string(), entry);
@@ -543,7 +532,7 @@ impl LazyQuantizer {
     }
 
     fn evict_expired_entries(&mut self) -> BitLinearResult<()> {
-        let current_time = current_timestamp();
+        let _current_time = current_timestamp();
         let ttl = self.config.cache_ttl_seconds;
 
         let expired_keys = {

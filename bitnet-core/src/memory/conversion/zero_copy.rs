@@ -12,7 +12,6 @@ use std::sync::Arc;
 use tracing::{debug, info};
 
 /// Zero-copy converter for compatible data types
-#[allow(dead_code)]
 pub struct ZeroCopyConverter {
     /// Whether to enable strict compatibility checking
     strict_mode: bool,
@@ -246,7 +245,6 @@ impl Converter for ZeroCopyConverter {
 
 /// A zero-copy view of a tensor with a different data type interpretation
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct TensorView {
     source_tensor: BitNetTensor,
     viewdtype: BitNetDType,

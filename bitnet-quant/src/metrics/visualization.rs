@@ -17,7 +17,6 @@ use std::collections::HashMap;
 
 /// Comprehensive visualization engine for quantization analysis
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct VisualizationEngine {
     device: Device,
     output_format: OutputFormat,
@@ -766,7 +765,6 @@ impl VisualizationEngine {
 
 /// Visualization data structures
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct VisualizationDashboard {
     pub title: String,
     pub visualizations: Vec<Visualization>,
@@ -797,7 +795,6 @@ impl VisualizationDashboard {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct Visualization {
     pub id: String,
     pub title: String,
@@ -807,7 +804,6 @@ pub struct Visualization {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct DataPoint {
     pub label: String,
     pub values: Vec<(String, DataValue)>,
@@ -870,7 +866,6 @@ pub enum VisualizationType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ChartConfig {
     pub width: u32,
     pub height: u32,
@@ -904,7 +899,6 @@ pub enum OutputFormat {
 
 /// Real-time dashboard components
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct RealtimeDashboard {
     pub id: String,
     pub title: String,
@@ -914,7 +908,6 @@ pub struct RealtimeDashboard {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DashboardPanel {
     pub id: String,
     pub title: String,

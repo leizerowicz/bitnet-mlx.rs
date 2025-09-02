@@ -28,7 +28,6 @@ use crate::memory::{HybridMemoryPool, MemoryMetrics};
 
 /// Result of a cleanup operation with detailed information
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CleanupOperationResult {
     /// Number of bytes freed
     pub bytes_freed: u64,
@@ -87,7 +86,6 @@ impl CleanupOperationResult {
 
 /// Result of a pool compaction operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CompactionResult {
     /// Number of bytes compacted
     pub bytes_compacted: u64,
@@ -140,7 +138,6 @@ impl CompactionResult {
 }
 
 /// Main cleanup manager that coordinates all cleanup operations
-#[allow(dead_code)]
 pub struct CleanupManager {
     /// Configuration for cleanup operations
     config: CleanupConfig,
@@ -689,7 +686,6 @@ impl CleanupManager {
 
 /// Simplified cleanup manager for scheduler use
 #[derive(Clone)]
-#[allow(dead_code)]
 pub struct SchedulerCleanupManager {
     pool: Arc<HybridMemoryPool>,
     strategies: Arc<RwLock<HashMap<CleanupStrategyType, Box<dyn CleanupStrategy>>>>,

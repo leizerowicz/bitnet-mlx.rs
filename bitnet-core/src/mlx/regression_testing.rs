@@ -17,7 +17,6 @@ use std::time::{Duration, SystemTime};
 
 /// Regression testing configuration
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct RegressionTestConfig {
     pub baseline_directory: PathBuf,
     pub test_operations: Vec<String>,
@@ -66,7 +65,6 @@ impl Default for RegressionTestConfig {
 
 /// Baseline performance data
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PerformanceBaseline {
     pub baseline_id: String,
     pub created_at: SystemTime,
@@ -79,7 +77,6 @@ pub struct PerformanceBaseline {
 
 /// Version information
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct VersionInfo {
     pub mlx_version: String,
     pub rust_version: String,
@@ -90,7 +87,6 @@ pub struct VersionInfo {
 
 /// System information for baseline
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct SystemInfo {
     pub os: String,
     pub architecture: String,
@@ -104,7 +100,6 @@ pub struct SystemInfo {
 
 /// Baseline metrics for a specific test
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct BaselineMetrics {
     pub test_key: String,
     pub operation: String,
@@ -123,7 +118,6 @@ pub struct BaselineMetrics {
 
 /// Memory baseline
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MemoryBaseline {
     pub test_key: String,
     pub peak_memory_usage: usize,
@@ -136,7 +130,6 @@ pub struct MemoryBaseline {
 
 /// Baseline metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct BaselineMetadata {
     pub description: String,
     pub tags: Vec<String>,
@@ -157,7 +150,6 @@ pub enum ValidationStatus {
 
 /// Regression test result
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct RegressionTestResult {
     pub test_id: String,
     pub timestamp: SystemTime,
@@ -173,7 +165,6 @@ pub struct RegressionTestResult {
 
 /// Serializable regression test config
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct RegressionTestConfigSerialized {
     pub test_operations: Vec<String>,
     pub test_devices: Vec<String>,
@@ -186,7 +177,6 @@ pub struct RegressionTestConfigSerialized {
 
 /// Individual test case result
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TestCaseResult {
     pub test_key: String,
     pub operation: String,
@@ -201,7 +191,6 @@ pub struct TestCaseResult {
 
 /// Performance change analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PerformanceChange {
     pub execution_time_change: f64, // Percentage change
     pub throughput_change: f64,
@@ -222,7 +211,6 @@ pub enum TestCaseStatus {
 
 /// Regression detection
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct RegressionDetection {
     pub test_key: String,
     pub operation: String,
@@ -258,7 +246,6 @@ pub enum RegressionSeverity {
 
 /// Improvement detection
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ImprovementDetection {
     pub test_key: String,
     pub operation: String,
@@ -283,7 +270,6 @@ pub enum ImprovementType {
 
 /// Memory regression detection
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MemoryRegressionDetection {
     pub test_key: String,
     pub operation: String,
@@ -317,7 +303,6 @@ pub enum TestStatus {
 
 /// Regression test summary
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct RegressionTestSummary {
     pub total_tests: usize,
     pub passed_tests: usize,
@@ -332,7 +317,6 @@ pub struct RegressionTestSummary {
 
 /// Bisection result for automated regression analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct BisectionResult {
     pub suspected_commit: Option<String>,
     pub commit_range: (String, String),
@@ -342,7 +326,6 @@ pub struct BisectionResult {
 }
 
 /// MLX Regression Testing Engine
-#[allow(dead_code)]
 pub struct MlxRegressionTester {
     config: RegressionTestConfig,
     benchmarker: MlxPerformanceBenchmarker,
@@ -1044,7 +1027,6 @@ impl MlxRegressionTester {
 }
 
 /// Baseline Manager for storing and retrieving performance baselines
-#[allow(dead_code)]
 pub struct BaselineManager {
     baseline_directory: PathBuf,
 }

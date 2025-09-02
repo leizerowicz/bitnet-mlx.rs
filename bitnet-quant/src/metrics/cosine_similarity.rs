@@ -109,7 +109,6 @@ pub fn cosine_to_angular_distance_degrees(cosine_similarity: f32) -> f32 {
 
 /// Cosine Similarity Calculator with advanced features
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct CosineSimilarityCalculator {
     device: Device,
     streaming_threshold: usize,
@@ -368,7 +367,6 @@ impl CosineSimilarityCalculator {
 
 /// Comprehensive cosine similarity analysis results
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CosineSimilarityAnalysis {
     pub cosine_similarity: f32,
     pub angular_distance_rad: f32,
@@ -425,7 +423,6 @@ pub enum ZeroVectorHandling {
 
 /// Similarity evolution tracking
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SimilarityEvolution {
     pub similarity_values: Vec<f32>,
     pub angular_distances: Vec<f32>,
@@ -444,7 +441,6 @@ pub enum SimilarityTrend {
 
 /// Statistical analysis of similarity values
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SimilarityStatistics {
     pub mean: f32,
     pub median: f32,
@@ -470,7 +466,6 @@ impl Default for SimilarityStatistics {
 }
 
 /// Batch cosine similarity calculator for efficient processing
-#[allow(dead_code)]
 pub struct BatchCosineSimilarityCalculator {
     calculator: CosineSimilarityCalculator,
 }

@@ -102,7 +102,7 @@ impl MemoryProfiler {
         // Reset profiling state
         self.reset();
 
-        let start_memory = self.get_current_memory_usage();
+        let _start_memory = self.get_current_memory_usage();
         let start_time = Instant::now();
 
         // Record initial component usage
@@ -114,7 +114,7 @@ impl MemoryProfiler {
         let _outputs = engine.infer_batch(model, inputs).await?;
 
         let end_time = Instant::now();
-        let duration = end_time - start_time;
+        let _duration = end_time - start_time;
 
         // Calculate backend-specific memory usage
         let backend_usage = self.profile_backend_memory(engine).await?;
@@ -344,28 +344,24 @@ impl MemoryProfiler {
 
     /// Check if Metal backend is available
     #[cfg(feature = "metal")]
-    #[allow(dead_code)]
     fn is_metal_available(&self) -> bool {
         // Would check for Metal availability
         true
     }
 
     #[cfg(not(feature = "metal"))]
-    #[allow(dead_code)]
     fn is_metal_available(&self) -> bool {
         false
     }
 
     /// Check if MLX backend is available
     #[cfg(feature = "mlx")]
-    #[allow(dead_code)]
     fn is_mlx_available(&self) -> bool {
         // Would check for MLX availability on Apple Silicon
         true
     }
 
     #[cfg(not(feature = "mlx"))]
-    #[allow(dead_code)]
     fn is_mlx_available(&self) -> bool {
         false
     }

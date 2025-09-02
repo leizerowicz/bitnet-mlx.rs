@@ -23,7 +23,6 @@ use crate::memory::MemoryHandle;
 
 /// Main memory tracker that provides real-time monitoring and detailed metrics
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct MemoryTracker {
     /// Tracking configuration
     config: TrackingConfig,
@@ -47,7 +46,6 @@ pub struct MemoryTracker {
 
 /// Detailed memory metrics with comprehensive tracking information
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct DetailedMemoryMetrics {
     /// Global tracking statistics
     pub global_stats: GlobalTrackingStats,
@@ -73,7 +71,6 @@ pub struct DetailedMemoryMetrics {
 
 /// Performance metrics for tracking operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PerformanceMetrics {
     /// Average time to track an allocation (nanoseconds)
     pub avg_track_allocation_time_ns: u64,
@@ -91,7 +88,6 @@ pub struct PerformanceMetrics {
 
 /// Tracking system overhead information
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TrackingOverhead {
     /// Estimated memory overhead in bytes
     pub memory_overhead_bytes: u64,

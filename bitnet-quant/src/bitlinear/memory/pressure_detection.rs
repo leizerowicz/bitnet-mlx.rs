@@ -33,7 +33,6 @@ impl From<tracking::MemoryPressureLevel> for MemoryPressureLevel {
 
 /// Configuration for memory pressure integration
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PressureConfig {
     /// Enable memory pressure monitoring
     pub enable_monitoring: bool,
@@ -66,7 +65,6 @@ impl Default for PressureConfig {
 ///
 /// Integrates with the existing HybridMemoryPool pressure detection
 /// and provides memory-aware optimization for BitLinear layers.
-#[allow(dead_code)]
 pub struct MemoryPressureIntegrator {
     /// Configuration for pressure detection
     config: PressureConfig,

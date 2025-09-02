@@ -11,7 +11,6 @@ use std::collections::HashMap;
 
 /// Core quantization configuration shared across all quantization types
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct QuantizationConfig {
     /// Quantization precision (1.58-bit, 8-bit, etc.)
     pub precision: QuantizationPrecision,
@@ -168,7 +167,6 @@ impl QuantizationConfig {
 
 /// Enhanced weight quantization configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct WeightQuantizationConfig {
     /// Base quantization configuration
     pub base: QuantizationConfig,
@@ -323,7 +321,6 @@ impl WeightQuantizationConfig {
 
 /// Enhanced activation quantization configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ActivationQuantizationConfig {
     /// Base quantization configuration
     pub base: QuantizationConfig,
@@ -488,7 +485,6 @@ impl ActivationQuantizationConfig {
 
 /// Attention-specific quantization configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct AttentionQuantizationConfig {
     /// Whether to quantize query projections
     pub quantize_query: bool,
@@ -582,7 +578,6 @@ impl AttentionQuantizationConfig {
 
 /// Enhanced packing configuration for ternary weights
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PackingConfig {
     /// Primary packing strategy
     pub strategy: TernaryPackingStrategy,
@@ -744,7 +739,6 @@ impl PackingConfig {
 
 /// SIMD optimization configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct SimdConfig {
     /// Whether to enable SIMD optimizations
     pub enabled: bool,
@@ -899,7 +893,6 @@ impl std::error::Error for ConfigValidationError {}
 
 /// Configuration builder for creating complex quantization configurations
 #[derive(Debug, Default)]
-#[allow(dead_code)]
 pub struct QuantizationConfigBuilder {
     precision: Option<QuantizationPrecision>,
     strategy: Option<QuantizationStrategy>,
@@ -984,7 +977,6 @@ impl QuantizationConfigBuilder {
 
 /// Weight quantization configuration builder
 #[derive(Debug, Default)]
-#[allow(dead_code)]
 pub struct WeightQuantizationConfigBuilder {
     base: Option<QuantizationConfig>,
     group_size: Option<usize>,

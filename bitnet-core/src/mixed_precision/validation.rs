@@ -11,7 +11,6 @@ use std::collections::HashMap;
 
 /// Validation rule for precision configurations
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ValidationRule {
     /// Rule identifier
     pub id: String,
@@ -70,7 +69,6 @@ impl std::fmt::Display for ValidationSeverity {
 
 /// Result of a validation check
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ValidationResult {
     /// Whether validation passed
     pub passed: bool,
@@ -84,7 +82,6 @@ pub struct ValidationResult {
 
 /// Validation issue
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ValidationIssue {
     /// Issue identifier
     pub id: String,
@@ -100,7 +97,6 @@ pub struct ValidationIssue {
 
 /// Validation warning
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ValidationWarning {
     /// Warning message
     pub message: String,
@@ -112,7 +108,6 @@ pub struct ValidationWarning {
 
 /// Validation suggestion
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ValidationSuggestion {
     /// Suggestion description
     pub description: String,
@@ -135,7 +130,6 @@ pub enum SuggestionDifficulty {
 
 /// Precision validator
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct PrecisionValidator {
     /// Validation rules
     rules: HashMap<String, ValidationRule>,
@@ -583,7 +577,6 @@ impl Default for PrecisionValidator {
 
 /// Validation statistics
 #[derive(Debug, Default)]
-#[allow(dead_code)]
 pub struct ValidationStats {
     /// Total validations performed
     pub total_validations: usize,

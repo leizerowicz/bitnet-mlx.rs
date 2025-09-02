@@ -11,7 +11,6 @@ use super::capabilities::{detect_simd_capabilities, SimdCapabilities};
 use crate::quantization::utils::QuantizationError;
 
 /// ARM-specific SIMD operations
-#[allow(dead_code)]
 pub struct ArmSimdOps {
     capabilities: SimdCapabilities,
 }
@@ -109,7 +108,7 @@ impl ArmSimdOps {
             return Err(QuantizationError::ConfigError("Dimension mismatch".into()));
         }
 
-        let scale_vec = vdupq_n_f32(scale);
+        let _scale_vec = vdupq_n_f32(scale);
 
         for i in 0..m {
             let mut acc = vdupq_n_f32(0.0);
@@ -336,7 +335,7 @@ impl ArmSimdOps {
         while output_pos + 8 <= count && input_pos + 2 <= input.len() {
             // Load 2 bytes (8 ternary values) using NEON
             let bytes = [input[input_pos], input[input_pos + 1], 0, 0, 0, 0, 0, 0];
-            let packed = vld1_u8(bytes.as_ptr());
+            let _packed = vld1_u8(bytes.as_ptr());
 
             // Extract individual values manually
             let byte1 = input[input_pos];

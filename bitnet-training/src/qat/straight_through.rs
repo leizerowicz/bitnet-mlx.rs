@@ -23,7 +23,6 @@ pub enum STEVariant {
 
 /// STE Configuration
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct STEConfig {
     /// Variant of STE to use
     pub variant: STEVariant,
@@ -65,7 +64,6 @@ impl Default for STEConfig {
 }
 
 /// Straight-Through Estimator Implementation
-#[allow(dead_code)]
 pub struct StraightThroughEstimator {
     config: STEConfig,
     device: Device,
@@ -359,7 +357,6 @@ impl StraightThroughEstimator {
 
 /// STE Statistics structure
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct STEStatistics {
     pub quantization_error: f32,
     pub gradient_magnitude: f32,
@@ -376,7 +373,6 @@ pub fn quantize_with_ste(input: &Tensor, config: &STEConfig, device: &Device) ->
 }
 
 /// Multi-layer STE manager for complex models
-#[allow(dead_code)]
 pub struct MultiLayerSTE {
     estimators: HashMap<String, StraightThroughEstimator>,
     global_config: STEConfig,
@@ -558,7 +554,6 @@ mod tests {
 
 /// Binary quantization function (placeholder for compatibility)
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BinaryQuantizationFunction {
     pub threshold: f32,
     pub device: Device,
@@ -581,7 +576,6 @@ impl BinaryQuantizationFunction {
 
 /// Ternary quantization function (placeholder for compatibility)
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct TernaryQuantizationFunction {
     pub threshold_pos: f32,
     pub threshold_neg: f32,

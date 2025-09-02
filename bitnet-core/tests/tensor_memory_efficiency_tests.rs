@@ -19,7 +19,6 @@ use bitnet_core::tensor::{BitNetDType, BitNetTensor};
 
 /// Configuration for memory efficiency tests
 #[derive(Clone)]
-#[allow(dead_code)]
 struct MemoryEfficiencyConfig {
     tracking_level: TrackingLevel,
     enable_profiling: bool,
@@ -42,7 +41,6 @@ impl Default for MemoryEfficiencyConfig {
 
 /// Memory efficiency metrics collection
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 struct MemoryEfficiencyMetrics {
     initial_usage: usize,
     peak_usage: usize,

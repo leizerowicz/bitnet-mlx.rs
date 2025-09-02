@@ -12,7 +12,6 @@ use std::sync::Arc;
 use tracing::{debug, info, warn};
 
 /// In-place converter for memory-efficient conversions
-#[allow(dead_code)]
 pub struct InPlaceConverter {
     /// Whether to allow potentially lossy conversions
     allow_lossy: bool,

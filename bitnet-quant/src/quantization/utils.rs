@@ -65,7 +65,6 @@ pub enum QuantizationError {
 
 /// Scaling factor for quantization operations
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ScalingFactor {
     /// The scaling value
     pub value: f32,
@@ -409,7 +408,7 @@ impl QuantizationUtils {
         tensor: &Tensor,
         min_val: f32,
         max_val: f32,
-        device: &Device,
+        _device: &Device,
     ) -> Result<Tensor, QuantizationError> {
         let rounded = tensor.round()?;
         let clipped = rounded.clamp(min_val, max_val)?;
@@ -419,7 +418,6 @@ impl QuantizationUtils {
 
 /// Memory savings estimation results
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MemorySavingsEstimate {
     pub original_size_bytes: usize,
     pub quantized_size_bytes: usize,
@@ -533,7 +531,7 @@ impl CalibrationUtils {
     /// Find optimal quantization parameters using KL divergence
     pub fn find_optimal_threshold_kl(
         data: &[Tensor],
-        num_bins: usize,
+        _num_bins: usize,
     ) -> Result<f32, QuantizationError> {
         // Simplified KL divergence-based threshold finding
         // In practice, this would implement the full algorithm
@@ -544,7 +542,6 @@ impl CalibrationUtils {
 
 /// Calibration statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CalibrationStatistics {
     pub global_min: f32,
     pub global_max: f32,

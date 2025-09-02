@@ -1,10 +1,9 @@
 //! Simple high-level API for easy inference operations.
 
-use crate::{Result, InferenceError};
+use crate::Result;
 use crate::api::{InferenceEngine, EngineConfig};
 use crate::engine::OptimizationLevel;
-use bitnet_core::{Device, Tensor};
-use std::sync::Arc;
+use bitnet_core::Tensor;
 use std::path::Path;
 
 /// Simple inference API for basic use cases.

@@ -422,7 +422,6 @@ pub fn error_analysis(
 
 /// Error analysis report structure
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ErrorAnalysisReport {
     pub operation: String,
     pub norm: f64,

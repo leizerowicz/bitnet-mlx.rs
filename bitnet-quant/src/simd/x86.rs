@@ -10,7 +10,6 @@ use super::capabilities::{detect_simd_capabilities, SimdCapabilities};
 use crate::quantization::utils::QuantizationError;
 
 /// x86-specific SIMD operations
-#[allow(dead_code)]
 pub struct X86SimdOps {
     capabilities: SimdCapabilities,
 }

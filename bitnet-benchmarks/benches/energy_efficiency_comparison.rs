@@ -63,7 +63,6 @@ impl PowerMonitor {
         }
     }
 
-    #[allow(dead_code)]
     fn estimate_device_power(device_type: &str, operation_intensity: f64) -> f64 {
         match device_type {
             "cpu" => 5.0 + (operation_intensity * 15.0), // 5-20W range

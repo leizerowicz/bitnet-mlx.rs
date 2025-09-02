@@ -70,7 +70,6 @@ const BLOCKS_PER_CHUNK: &[usize] = &[
 /// - **Alignment**: All allocations are properly aligned
 /// - **Thread Safety**: Uses internal locking for thread-safe operations
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct SmallBlockPool {
     /// Free lists for each size class
     free_lists: Vec<FreeList>,
@@ -114,7 +113,6 @@ struct Chunk {
 
 /// Statistics for the small block pool
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PoolStats {
     /// Total number of allocations
     allocations: u64,

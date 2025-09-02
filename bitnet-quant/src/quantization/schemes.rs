@@ -15,7 +15,6 @@ use std::fmt::Debug;
 
 /// Quantization scheme configuration that supports multiple precision levels
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct QuantizationSchemeConfig {
     /// Base quantization configuration
     pub base: QuantizationConfig,
@@ -31,7 +30,6 @@ pub struct QuantizationSchemeConfig {
 
 /// Scheme-specific parameters for different quantization types
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[allow(dead_code)]
 pub struct SchemeParameters {
     /// Parameters for 1-bit quantization
     pub one_bit: OneBitParams,
@@ -43,7 +41,6 @@ pub struct SchemeParameters {
 
 /// Configuration for 1-bit quantization
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct OneBitParams {
     /// Threshold method for binary quantization
     pub threshold_method: BinaryThresholdMethod,
@@ -57,7 +54,6 @@ pub struct OneBitParams {
 
 /// Configuration for 1.58-bit quantization
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct OneFiveEightBitParams {
     /// Ternary quantization method
     pub ternary_method: TernaryMethod,
@@ -71,7 +67,6 @@ pub struct OneFiveEightBitParams {
 
 /// Configuration for multi-bit quantization (2-bit, 4-bit, 8-bit)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MultiBitParams {
     /// Number of quantization levels
     pub num_levels: u32,
@@ -100,7 +95,6 @@ pub enum BinaryThresholdMethod {
 
 /// Custom threshold configuration for different precisions
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ThresholdConfig {
     /// Threshold for 1-bit quantization
     pub one_bit_threshold: Option<f32>,
@@ -112,7 +106,6 @@ pub struct ThresholdConfig {
 
 /// Optimization configuration for quantization schemes
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct OptimizationConfig {
     /// Whether to enable SIMD optimizations
     pub enable_simd: bool,
@@ -185,7 +178,6 @@ impl Default for OptimizationConfig {
 
 /// Configurable quantization scheme that supports multiple precision levels
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct ConfigurableQuantizationScheme {
     config: QuantizationSchemeConfig,
     device: Device,
@@ -200,6 +192,33 @@ struct CachedQuantizationParams {
     scale_factor: f32,
     zero_point: Option<i32>,
     lookup_table: Option<Vec<f32>>,
+}
+
+impl CachedQuantizationParams {
+    /// Get the cached precision
+    pub fn precision(&self) -> QuantizationPrecision {
+        self.precision
+    }
+
+    /// Get the threshold value
+    pub fn threshold(&self) -> f32 {
+        self.threshold
+    }
+
+    /// Get the scale factor
+    pub fn scale_factor(&self) -> f32 {
+        self.scale_factor
+    }
+
+    /// Get the zero point if available
+    pub fn zero_point(&self) -> Option<i32> {
+        self.zero_point
+    }
+
+    /// Get a reference to the lookup table if available
+    pub fn lookup_table(&self) -> Option<&Vec<f32>> {
+        self.lookup_table.as_ref()
+    }
 }
 
 impl ConfigurableQuantizationScheme {
@@ -546,7 +565,7 @@ impl ConfigurableQuantizationScheme {
 
         // Need to increase sparsity by setting some non-zero values to zero
         let abs_quantized = quantized.abs()?;
-        let non_zero_mask = abs_quantized.gt(&eps_tensor)?;
+        let _non_zero_mask = abs_quantized.gt(&eps_tensor)?;
 
         // For simplicity, randomly set some non-zero values to zero
         // In practice, you might want to use a more sophisticated method
@@ -685,7 +704,6 @@ impl ConfigurableQuantizationScheme {
 
 /// Quantized tensor representation for configurable schemes
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QuantizedTensor {
     /// Quantized values
     pub values: Tensor,

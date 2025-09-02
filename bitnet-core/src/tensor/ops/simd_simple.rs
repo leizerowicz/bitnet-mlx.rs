@@ -16,7 +16,6 @@ use tracing::{debug, trace, warn};
 
 /// SIMD instruction set capabilities
 #[derive(Debug, Clone, Copy)]
-#[allow(dead_code)]
 pub struct SimdCapabilities {
     pub sse2: bool,
     pub sse4_1: bool,

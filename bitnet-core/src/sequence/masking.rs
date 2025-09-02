@@ -311,7 +311,6 @@ pub fn combine_masks(
 
 /// Mask statistics for analysis
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MaskStats {
     pub total_positions: usize,
     pub masked_positions: usize,

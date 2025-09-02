@@ -19,7 +19,6 @@ pub trait QATAutograd {
 }
 
 /// Quantization function with custom gradients
-#[allow(dead_code)]
 pub struct QuantizationFunction {
     config: STEConfig,
     device: Device,

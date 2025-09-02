@@ -134,7 +134,6 @@ impl fmt::Display for CorruptionType {
 
 /// Detailed corruption report
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CorruptionReport {
     /// Type of corruption detected
     pub corruption_type: CorruptionType,
@@ -185,7 +184,6 @@ pub enum RecoveryAction {
 }
 
 /// Comprehensive corruption detector for packed ternary data
-#[allow(dead_code)]
 pub struct CorruptionDetector {
     /// Enable checksum validation
     pub enable_checksums: bool,
@@ -934,7 +932,7 @@ impl StrategyValidator for CompressedSparseValidator {
 
         // Validate indices
         let mut offset = 4;
-        for i in 0..nnz.min((packed.data.len().saturating_sub(4)) / 4) {
+        for _i in 0..nnz.min((packed.data.len().saturating_sub(4)) / 4) {
             if offset + 4 <= packed.data.len() {
                 let idx = u32::from_le_bytes([
                     packed.data[offset],
@@ -1209,7 +1207,6 @@ impl CorruptionDetector {
 
 /// Recovery plan for corrupted data
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct RecoveryPlan {
     pub auto_repairable: Vec<CorruptionReport>,
     pub requires_fallback: Vec<CorruptionReport>,

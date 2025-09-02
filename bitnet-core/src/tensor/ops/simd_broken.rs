@@ -37,7 +37,6 @@ use tracing::{debug, trace, warn};
 
 /// SIMD instruction set capabilities
 #[derive(Debug, Clone, Copy)]
-#[allow(dead_code)]
 pub struct SimdCapabilities {
     pub sse2: bool,
     pub sse4_1: bool,
@@ -648,13 +647,11 @@ where
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct SimdBenchmarkResults {
     pub results: Vec<SimdBenchmarkResult>,
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct SimdBenchmarkResult {
     pub size: usize,
     pub scalar_time: std::time::Duration,

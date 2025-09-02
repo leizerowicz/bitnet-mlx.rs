@@ -12,7 +12,6 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 /// Test harness for memory pool integration with quantization
-#[allow(dead_code)]
 pub struct MemoryTestHarness {
     memory_pool: Arc<HybridMemoryPool>,
     device: Device,
@@ -21,7 +20,6 @@ pub struct MemoryTestHarness {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct AllocationRecord {
     pub timestamp: Instant,
     pub size: usize,
@@ -191,7 +189,6 @@ impl MemoryTestHarness {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MemoryLeakReport {
     pub total_allocated: usize,
     pub peak_allocated: usize,
@@ -211,7 +208,6 @@ impl MemoryLeakReport {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MemoryTestStatistics {
     pub total_allocations: usize,
     pub total_bytes_requested: usize,
@@ -222,7 +218,6 @@ pub struct MemoryTestStatistics {
 }
 
 /// Test memory pool specifically configured for quantization testing
-#[allow(dead_code)]
 pub struct TestMemoryPool {
     pool: HybridMemoryPool,
     config: MemoryPoolConfig,
@@ -282,7 +277,6 @@ impl TestMemoryPool {
 }
 
 /// Concurrent memory test harness for thread-safety testing
-#[allow(dead_code)]
 pub struct ConcurrentMemoryTestHarness {
     memory_pool: Arc<HybridMemoryPool>,
     device: Device,
@@ -391,7 +385,6 @@ impl ConcurrentMemoryTestHarness {
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct ConcurrentTestResults {
     pub num_threads: usize,
     pub operations_per_thread: usize,

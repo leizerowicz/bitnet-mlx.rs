@@ -107,7 +107,6 @@ impl AccelerationBackend {
 
 /// Performance characteristics for a backend
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PerformanceCharacteristics {
     /// Throughput in GFLOPS
     pub throughput_gflops: f64,
@@ -228,7 +227,6 @@ impl std::fmt::Display for OperationType {
 
 /// Performance requirements for operations
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PerformanceRequirements {
     /// Maximum acceptable latency in microseconds
     pub max_latency_us: Option<u64>,
@@ -253,7 +251,6 @@ impl Default for PerformanceRequirements {
 
 /// Operation context for dispatch decisions
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct OperationContext {
     /// Type of operation
     pub operation_type: OperationType,
@@ -323,7 +320,6 @@ impl OperationContext {
 
 /// Backend selection result
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BackendSelection {
     /// Selected backend
     pub backend: AccelerationBackend,
@@ -336,7 +332,6 @@ pub struct BackendSelection {
 }
 
 /// Main operation dispatcher
-#[allow(dead_code)]
 pub struct OperationDispatcher {
     /// Available acceleration backends
     backends: RwLock<HashMap<AccelerationBackend, Box<dyn AccelerationBackendImpl + Send + Sync>>>,

@@ -21,7 +21,6 @@ use super::bitnet_ops::{QuantizedArithmetic, TernaryArithmetic, TernaryTensorRep
 
 /// Configuration for quantized tensor creation and operations
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QuantizedTensorConfig {
     /// Quantization precision
     pub precision: QuantizationPrecision,
@@ -57,7 +56,6 @@ impl Default for QuantizedTensorConfig {
 
 /// Scale and zero-point parameters for quantization
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ScaleZeroPoint {
     /// Scaling factor for dequantization
     pub scale: f32,
@@ -107,7 +105,6 @@ impl ScaleZeroPoint {
 
 /// Complete quantization parameters
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QuantizationParameters {
     /// Scale and zero-point information
     pub scale_zero_point: ScaleZeroPoint,
@@ -255,7 +252,6 @@ pub enum QuantizedStorage {
 
 /// Information for unpacking packed quantized data
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct PackingInfo {
     /// Number of values packed per byte
     pub values_per_byte: usize,
@@ -272,7 +268,6 @@ pub struct PackingInfo {
 
 /// Memory layout information for quantized tensors
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QuantizedLayout {
     /// Storage backend type
     pub storage_type: QuantizedStorageType,
@@ -300,7 +295,6 @@ pub enum QuantizedStorageType {
 
 /// Compression ratio information
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CompressionRatio {
     /// Original size in bytes
     pub original_size: usize,
@@ -331,7 +325,6 @@ impl CompressionRatio {
 
 /// Main quantized tensor implementation
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QuantizedTensor {
     /// Storage backend for quantized data
     storage: QuantizedStorage,
@@ -600,7 +593,7 @@ impl QuantizedTensor {
     fn create_ternary_storage(
         tensor: BitNetTensor,
         parameters: QuantizationParameters,
-        config: &QuantizedTensorConfig,
+        _config: &QuantizedTensorConfig,
     ) -> TensorIntegrationResult<QuantizedStorage> {
         // This would typically use the BitNetTensorOps to create ternary representation
         // For now, create a placeholder that would integrate with bitnet_ops
@@ -651,7 +644,7 @@ impl QuantizedTensor {
     fn create_general_storage(
         tensor: BitNetTensor,
         parameters: QuantizationParameters,
-        config: &QuantizedTensorConfig,
+        _config: &QuantizedTensorConfig,
     ) -> TensorIntegrationResult<QuantizedStorage> {
         // Apply general quantization
         let candle_tensor =
@@ -687,7 +680,7 @@ impl QuantizedTensor {
                 message: format!("Failed to round quantized values: {e}"),
             })?;
 
-        let quantized_tensor = quantized.clone();
+        let _quantized_tensor = quantized.clone();
 
         Ok(QuantizedStorage::Dense {
             data: BitNetTensor::from_candle(quantized, &candle_tensor.device())?,
@@ -1178,8 +1171,8 @@ impl QuantizedTensor {
         &self,
         lhs: &BitNetTensor,
         rhs: &BitNetTensor,
-        lhs_params: &QuantizationParameters,
-        rhs_params: &QuantizationParameters,
+        _lhs_params: &QuantizationParameters,
+        _rhs_params: &QuantizationParameters,
     ) -> TensorIntegrationResult<Self> {
         // Simplified dense addition - in practice would need proper scale handling
         let lhs_tensor = lhs

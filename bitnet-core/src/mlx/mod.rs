@@ -100,7 +100,6 @@ mod optimization_tests;
 /// MLX tensor wrapper for BitNet operations
 #[cfg(feature = "mlx")]
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct BitNetMlxTensor {
     array: Array,
     device: device::BitNetMlxDevice,

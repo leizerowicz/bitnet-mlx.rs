@@ -164,7 +164,6 @@ pub enum ConversionQuality {
 
 /// Conversion context containing metadata about the operation
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ConversionContext {
     /// Source data type
     pub sourcedtype: BitNetDType,

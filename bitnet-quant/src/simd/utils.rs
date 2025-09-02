@@ -8,7 +8,6 @@ use std::alloc::{alloc, dealloc, Layout};
 use std::ptr::NonNull;
 
 /// Aligned memory allocator for SIMD operations
-#[allow(dead_code)]
 pub struct AlignedAllocator {
     alignment: usize,
 }
@@ -201,7 +200,6 @@ pub mod vectorization_hints {
 
 /// SIMD-friendly data structures
 #[repr(align(64))] // Align to cache line boundary
-#[allow(dead_code)]
 pub struct CacheAlignedVec<T> {
     data: Vec<T>,
     capacity: usize,
@@ -340,7 +338,6 @@ pub fn get_cache_line_size() -> usize {
 }
 
 /// Performance counters for SIMD operations (when available)
-#[allow(dead_code)]
 pub struct SimdPerformanceCounters {
     pub vectorized_operations: u64,
     pub scalar_fallbacks: u64,

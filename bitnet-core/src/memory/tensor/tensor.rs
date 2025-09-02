@@ -63,7 +63,6 @@ pub type BitNetTensorResult<T> = std::result::Result<T, BitNetTensorError>;
 
 /// BitNet tensor with automatic reference counting and lifecycle management
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct BitNetTensor {
     /// Strong reference to tensor data
     pub(crate) data: Arc<TensorData>,
@@ -98,7 +97,6 @@ impl TensorRegistry {
         self.tensors.remove(&tensor_id);
     }
 
-    #[allow(dead_code)]
     fn get_tensor(&self, tensor_id: u64) -> Option<Arc<TensorData>> {
         self.tensors.get(&tensor_id)?.upgrade()
     }
@@ -131,7 +129,21 @@ impl BitNetTensor {
             shape, dtype, size_bytes
         );
 
-        // Allocate memory
+        // Handle zero-element tensors specially
+        if element_count == 0 {
+            #[cfg(feature = "tracing")]
+            debug!("Creating empty zeros tensor with zero elements");
+            
+            // For empty tensors, allocate minimal memory (1 byte) to satisfy memory pool requirements
+            let memory_handle = pool.allocate(1, 16, device)?;
+            
+            // Create tensor - no initialization needed for empty tensor
+            let tensor = Self::from_memory_handle(memory_handle, shape.to_vec(), dtype, None, pool)?;
+            
+            return Ok(tensor);
+        }
+
+        // Allocate memory for non-empty tensors
         let memory_handle = pool.allocate(size_bytes, 16, device)?;
 
         // Create tensor and initialize with zeros
@@ -162,7 +174,21 @@ impl BitNetTensor {
             shape, dtype, size_bytes
         );
 
-        // Allocate memory
+        // Handle zero-element tensors specially
+        if element_count == 0 {
+            #[cfg(feature = "tracing")]
+            debug!("Creating empty ones tensor with zero elements");
+            
+            // For empty tensors, allocate minimal memory (1 byte) to satisfy memory pool requirements
+            let memory_handle = pool.allocate(1, 16, device)?;
+            
+            // Create tensor - no initialization needed for empty tensor
+            let tensor = Self::from_memory_handle(memory_handle, shape.to_vec(), dtype, None, pool)?;
+            
+            return Ok(tensor);
+        }
+
+        // Allocate memory for non-empty tensors
         let memory_handle = pool.allocate(size_bytes, 16, device)?;
 
         // Create tensor and initialize with ones
@@ -201,7 +227,21 @@ impl BitNetTensor {
             shape, dtype, size_bytes
         );
 
-        // Allocate memory
+        // Handle zero-element tensors specially
+        if element_count == 0 {
+            #[cfg(feature = "tracing")]
+            debug!("Creating empty tensor with zero elements");
+            
+            // For empty tensors, allocate minimal memory (1 byte) to satisfy memory pool requirements
+            let memory_handle = pool.allocate(1, 16, device)?;
+            
+            // Create tensor - no data to copy for empty tensor
+            let tensor = Self::from_memory_handle(memory_handle, shape.to_vec(), dtype, None, pool)?;
+            
+            return Ok(tensor);
+        }
+
+        // Allocate memory for non-empty tensors
         let memory_handle = pool.allocate(size_bytes, 16, device)?;
 
         // Create tensor

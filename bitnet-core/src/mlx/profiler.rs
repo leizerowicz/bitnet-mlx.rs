@@ -20,7 +20,6 @@ use std::time::{Duration, Instant, SystemTime};
 
 /// Profiling session configuration
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ProfilerConfig {
     pub enable_call_stack_tracking: bool,
     pub enable_memory_profiling: bool,
@@ -59,7 +58,6 @@ impl Default for ProfilerConfig {
 
 /// Profiling session data
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ProfilingSession {
     pub session_id: String,
     pub start_time: SystemTime,
@@ -75,7 +73,6 @@ pub struct ProfilingSession {
 
 /// Serializable profiler config
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ProfilerConfigSerialized {
     pub enable_call_stack_tracking: bool,
     pub enable_memory_profiling: bool,
@@ -88,7 +85,6 @@ pub struct ProfilerConfigSerialized {
 
 /// Call stack sample
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CallStackSample {
     pub timestamp: SystemTime,
     pub thread_id: String,
@@ -99,7 +95,6 @@ pub struct CallStackSample {
 
 /// Stack frame information
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct StackFrame {
     pub function_name: String,
     pub file_name: Option<String>,
@@ -111,7 +106,6 @@ pub struct StackFrame {
 
 /// Performance hotspot
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct Hotspot {
     pub function_name: String,
     pub total_time: Duration,
@@ -125,7 +119,6 @@ pub struct Hotspot {
 
 /// Optimization potential assessment
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct OptimizationPotential {
     pub score: f64, // 0-100
     pub category: OptimizationCategory,
@@ -145,7 +138,6 @@ pub enum OptimizationCategory {
 
 /// Memory profiling data
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MemoryProfile {
     pub allocation_timeline: Vec<AllocationEvent>,
     pub memory_leaks: Vec<MemoryLeak>,
@@ -156,7 +148,6 @@ pub struct MemoryProfile {
 
 /// Allocation event for timeline
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct AllocationEvent {
     pub timestamp: SystemTime,
     pub event_type: String, // "alloc", "dealloc", "realloc"
@@ -167,7 +158,6 @@ pub struct AllocationEvent {
 
 /// Memory leak detection
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MemoryLeak {
     pub allocation_site: String,
     pub size: usize,
@@ -178,7 +168,6 @@ pub struct MemoryLeak {
 
 /// Fragmentation analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct FragmentationAnalysis {
     pub fragmentation_ratio: f64,
     pub largest_free_block: usize,
@@ -188,7 +177,6 @@ pub struct FragmentationAnalysis {
 
 /// Peak usage analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PeakUsageAnalysis {
     pub peak_timestamp: SystemTime,
     pub peak_size: usize,
@@ -198,7 +186,6 @@ pub struct PeakUsageAnalysis {
 
 /// Allocation pattern analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct AllocationPatternAnalysis {
     pub common_sizes: Vec<(usize, usize)>, // (size, frequency)
     pub allocation_frequency: f64,
@@ -208,7 +195,6 @@ pub struct AllocationPatternAnalysis {
 
 /// Size distribution statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct SizeDistribution {
     pub mean: f64,
     pub median: f64,
@@ -218,7 +204,6 @@ pub struct SizeDistribution {
 
 /// GPU profiling data
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct GpuProfile {
     pub utilization_timeline: Vec<GpuUtilizationSample>,
     pub memory_usage_timeline: Vec<GpuMemoryUsageSample>,
@@ -228,7 +213,6 @@ pub struct GpuProfile {
 
 /// GPU utilization sample
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct GpuUtilizationSample {
     pub timestamp: SystemTime,
     pub compute_utilization: f64,
@@ -239,7 +223,6 @@ pub struct GpuUtilizationSample {
 
 /// GPU memory usage sample
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct GpuMemoryUsageSample {
     pub timestamp: SystemTime,
     pub used_memory: usize,
@@ -250,7 +233,6 @@ pub struct GpuMemoryUsageSample {
 
 /// Kernel execution information
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct KernelExecution {
     pub kernel_name: String,
     pub start_time: SystemTime,
@@ -263,7 +245,6 @@ pub struct KernelExecution {
 
 /// GPU performance counters
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct GpuPerformanceCounters {
     pub instructions_executed: u64,
     pub memory_transactions: u64,
@@ -275,7 +256,6 @@ pub struct GpuPerformanceCounters {
 
 /// Performance timeline entry
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PerformanceTimelineEntry {
     pub timestamp: SystemTime,
     pub operation: String,
@@ -289,7 +269,6 @@ pub struct PerformanceTimelineEntry {
 
 /// Performance bottleneck
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct PerformanceBottleneck {
     pub bottleneck_type: BottleneckType,
     pub severity: BottleneckSeverity,
@@ -321,7 +300,6 @@ pub enum BottleneckSeverity {
 }
 
 /// MLX Advanced Profiler
-#[allow(dead_code)]
 pub struct MlxAdvancedProfiler {
     config: ProfilerConfig,
     current_session: Option<Arc<Mutex<ProfilingSession>>>,

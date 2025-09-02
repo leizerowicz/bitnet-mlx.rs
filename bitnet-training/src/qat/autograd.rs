@@ -18,9 +18,7 @@ pub trait QATAutograd {
 }
 
 /// Quantization Function for autograd integration
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QuantizationFunction {
     config: STEConfig,
     device: Device,

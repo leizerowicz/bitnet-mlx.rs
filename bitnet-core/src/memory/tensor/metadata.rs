@@ -10,7 +10,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Metadata associated with a BitNet tensor
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct TensorMetadata {
     /// Unique identifier for this tensor
     pub id: u64,

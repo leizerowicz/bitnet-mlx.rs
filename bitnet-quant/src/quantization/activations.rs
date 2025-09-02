@@ -14,7 +14,6 @@ use std::collections::VecDeque;
 
 /// Configuration specific to activation quantization
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ActivationQuantizationConfig {
     /// Base quantization configuration
     pub base: QuantizationConfig,
@@ -93,7 +92,6 @@ impl ActivationQuantizationConfig {
 
 /// Quantized activation representation
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct QuantizedActivation {
     /// Quantized activation values
     pub values: Tensor,
@@ -202,7 +200,6 @@ pub trait ActivationQuantizer:
 
 /// Dynamic activation quantizer with calibration support
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct DynamicActivationQuantizer {
     config: ActivationQuantizationConfig,
     device: Device,
@@ -724,7 +721,6 @@ pub mod activation_utils {
 
 /// Activation pattern analysis results
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ActivationPatternAnalysis {
     pub global_min: f32,
     pub global_max: f32,
@@ -735,7 +731,6 @@ pub struct ActivationPatternAnalysis {
 
 /// Attention quantization parameters
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct AttentionQuantParams {
     pub scale: f32,
     pub sequence_length: usize,

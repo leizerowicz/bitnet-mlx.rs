@@ -274,14 +274,14 @@ impl CandleOps {
     }
 
     /// Max pooling 1D (simplified implementation)
-    pub fn max_pool1d(input: &Tensor, kernel_size: usize, stride: usize) -> Result<Tensor> {
+    pub fn max_pool1d(input: &Tensor, _kernel_size: usize, _stride: usize) -> Result<Tensor> {
         // Simplified max pooling - just return the input for now
         // A full implementation would require more complex tensor operations
         Ok(input.clone())
     }
 
     /// Average pooling 1D (simplified implementation)
-    pub fn avg_pool1d(input: &Tensor, kernel_size: usize, stride: usize) -> Result<Tensor> {
+    pub fn avg_pool1d(input: &Tensor, _kernel_size: usize, _stride: usize) -> Result<Tensor> {
         // Simplified avg pooling - just return the input for now
         // A full implementation would require more complex tensor operations
         Ok(input.clone())

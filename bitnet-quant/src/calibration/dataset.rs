@@ -16,7 +16,6 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 /// Main calibration dataset for quantization parameter optimization
-#[allow(dead_code)]
 pub struct CalibrationDataset {
     /// Configuration
     config: CalibrationConfig,
@@ -40,7 +39,6 @@ pub struct CalibrationDataset {
 
 /// Metadata for individual samples
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct SampleMetadata {
     /// Sample identifier
     pub id: String,
@@ -77,7 +75,6 @@ pub enum DatasetState {
 
 /// Performance and processing metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ProcessingMetrics {
     /// Total samples loaded
     pub total_samples: usize,
@@ -98,7 +95,6 @@ pub struct ProcessingMetrics {
 }
 
 /// Iterator for processing dataset batches
-#[allow(dead_code)]
 pub struct DatasetIterator<'a> {
     dataset: &'a CalibrationDataset,
     current_index: usize,
@@ -107,7 +103,6 @@ pub struct DatasetIterator<'a> {
 }
 
 /// Batch processor for handling dataset batches
-#[allow(dead_code)]
 pub struct BatchProcessor {
     /// Batch size
     batch_size: usize,

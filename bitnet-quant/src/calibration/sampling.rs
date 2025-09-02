@@ -32,7 +32,6 @@ impl Default for SamplingStrategy {
 
 /// Configuration for custom sampling strategy
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct CustomSamplingConfig {
     /// Sampling function name or identifier
     pub function_name: String,
@@ -65,7 +64,6 @@ pub trait RepresentativeSampler: Send + Sync {
 
 /// Metadata for informed sampling decisions
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SamplingMetadata {
     /// Sample indices and their importance scores
     pub importance_scores: Vec<f32>,
@@ -81,7 +79,6 @@ pub struct SamplingMetadata {
 
 /// Per-sample activation statistics
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ActivationStats {
     /// Mean activation magnitude
     pub mean_magnitude: f32,
@@ -97,7 +94,6 @@ pub struct ActivationStats {
 
 /// Statistics about the sampling process
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SamplingStatistics {
     /// Number of samples selected
     pub selected_samples: usize,
@@ -115,7 +111,6 @@ pub struct SamplingStatistics {
 
 /// Random sampling implementation
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct RandomSampler {
     rng: StdRng,
     statistics: SamplingStatistics,
@@ -196,7 +191,6 @@ impl Default for RandomSampler {
 
 /// Stratified sampling implementation
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct StratifiedSampler {
     rng: StdRng,
     statistics: SamplingStatistics,
@@ -313,7 +307,6 @@ impl Default for StratifiedSampler {
 
 /// Importance sampling implementation
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct ImportanceSampler {
     rng: StdRng,
     statistics: SamplingStatistics,
@@ -517,7 +510,6 @@ impl SamplerFactory {
 
 /// Systematic sampling implementation
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct SystematicSampler {
     statistics: SamplingStatistics,
 }

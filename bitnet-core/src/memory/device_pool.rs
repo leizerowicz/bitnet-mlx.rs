@@ -25,7 +25,6 @@ use tracing::{debug, info};
 /// - Optional memory locking for performance
 /// - NUMA-aware allocation (when available)
 /// - Memory zeroing for security
-#[allow(dead_code)]
 pub struct CpuMemoryPool {
     /// Device this pool is associated with
     device: Device,
@@ -37,7 +36,6 @@ pub struct CpuMemoryPool {
 
 /// Configuration for CPU memory pool
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CpuPoolConfig {
     /// Whether to zero memory on allocation
     pub zero_memory: bool,
@@ -51,7 +49,6 @@ pub struct CpuPoolConfig {
 
 /// Statistics for CPU memory pool
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CpuPoolStats {
     /// Total allocations
     pub allocations: u64,
@@ -318,7 +315,6 @@ impl CpuMemoryPool {
 /// - Metal Performance Shaders integration
 /// - Automatic memory synchronization
 #[cfg(feature = "metal")]
-#[allow(dead_code)]
 pub struct MetalMemoryPool {
     /// Metal device this pool is associated with
     device: Device,
@@ -333,7 +329,6 @@ pub struct MetalMemoryPool {
 /// Configuration for Metal memory pool
 #[cfg(feature = "metal")]
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MetalPoolConfig {
     /// Default storage mode for allocations
     pub default_storage_mode: metal::MTLStorageMode,
@@ -348,7 +343,6 @@ pub struct MetalPoolConfig {
 /// Statistics for Metal memory pool
 #[cfg(feature = "metal")]
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MetalPoolStats {
     /// Total allocations
     pub allocations: u64,

@@ -14,7 +14,6 @@ use std::collections::HashMap;
 
 /// Comprehensive error analysis engine
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct ErrorAnalyzer {
     device: Device,
     memory_efficient: bool,
@@ -500,7 +499,6 @@ impl MetricsCalculator for ErrorAnalyzer {
 
 /// Detailed error statistics structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ErrorStatistics {
     pub mse: f32,
     pub mae: f32,
@@ -515,7 +513,6 @@ pub struct ErrorStatistics {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ErrorPercentiles {
     pub p50: f32,
     pub p90: f32,
@@ -524,7 +521,6 @@ pub struct ErrorPercentiles {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct BitFlipAnalysis {
     pub ratio: f32,
     pub significant_flips: f32,
@@ -533,7 +529,6 @@ pub struct BitFlipAnalysis {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[allow(dead_code)]
 pub struct ErrorHistogram {
     pub bins: Vec<usize>,
     pub bin_edges: Vec<f32>,
@@ -541,7 +536,6 @@ pub struct ErrorHistogram {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ErrorPatterns {
     pub magnitude_correlation: f32,
     pub outlier_analysis: OutlierAnalysis,
@@ -549,7 +543,6 @@ pub struct ErrorPatterns {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct OutlierAnalysis {
     pub outlier_indices: Vec<usize>,
     pub outlier_threshold: f32,
@@ -558,7 +551,6 @@ pub struct OutlierAnalysis {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct SpatialPatterns {
     pub row_error_variance: f32,
     pub col_error_variance: f32,

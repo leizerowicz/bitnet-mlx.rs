@@ -11,7 +11,6 @@ use crate::quantization::utils::QuantizationError;
 use std::arch::x86_64::*;
 
 /// SIMD-optimized packing operations for ternary data
-#[allow(dead_code)]
 pub struct SimdPackingOps {
     capabilities: SimdCapabilities,
 }
@@ -244,7 +243,7 @@ impl SimdPackingOps {
     /// ARM NEON implementation for ternary packing
     #[cfg(target_arch = "aarch64")]
     #[target_feature(enable = "neon")]
-    unsafe fn pack_ternary_neon(
+    pub unsafe fn pack_ternary_neon(
         &self,
         input: &[i8],
         output: &mut [u8],
@@ -440,7 +439,7 @@ impl SimdPackingOps {
     /// ARM NEON implementation for ternary unpacking
     #[cfg(target_arch = "aarch64")]
     #[target_feature(enable = "neon")]
-    unsafe fn unpack_ternary_neon(
+    pub unsafe fn unpack_ternary_neon(
         &self,
         input: &[u8],
         output: &mut [i8],

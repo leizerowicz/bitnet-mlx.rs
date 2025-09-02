@@ -46,7 +46,6 @@ use tokenizers::Tokenizer as HfTokenizer;
 
 /// A unified tokenizer interface for BitNet
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct Tokenizer {
     inner: TokenizerType,
     vocab_size: usize,
@@ -63,7 +62,6 @@ enum TokenizerType {
 
 /// A simple BPE tokenizer implementation
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct BpeTokenizer {
     vocab: std::collections::HashMap<String, u32>,
     merges: Vec<(String, String)>,
@@ -72,7 +70,6 @@ pub struct BpeTokenizer {
 
 /// A simple word-based tokenizer for basic use cases
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SimpleTokenizer {
     vocab: std::collections::HashMap<String, u32>,
     vocab_size: usize,
@@ -242,16 +239,16 @@ pub fn load_tokenizer(path: &str) -> Result<Tokenizer> {
 /// This function loads a tokenizer from a local path that contains HuggingFace tokenizer files.
 /// For downloading from HuggingFace Hub, you would need to use external tools like `hf_hub` crate.
 /// The model_id parameter should be a path to a local tokenizer.json file.
-pub fn load_hf_tokenizer(model_id: &str) -> Result<Tokenizer> {
+pub fn load_hf_tokenizer(_model_id: &str) -> Result<Tokenizer> {
     #[cfg(feature = "tokenizers")]
     {
         // For now, treat model_id as a file path to tokenizer.json
         // In a full implementation, you might want to integrate with hf_hub crate
         // to download tokenizers from HuggingFace Hub
-        let tokenizer_path = if model_id.ends_with(".json") {
-            model_id.to_string()
+        let tokenizer_path = if _model_id.ends_with(".json") {
+            _model_id.to_string()
         } else {
-            format!("{}/tokenizer.json", model_id)
+            format!("{}/tokenizer.json", _model_id)
         };
 
         let hf_tokenizer = HfTokenizer::from_file(&tokenizer_path).map_err(|e| {
