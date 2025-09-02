@@ -133,13 +133,20 @@ bitnet-rust/
 
 BitNet-Rust uses a comprehensive agent configuration system for specialized development roles. The workflow always begins with the **orchestrator.md** file, which provides current project status, task prioritization, and agent selection guidance.
 
-### Agent Configuration Workflow
+### Agent Configuration Workflow (Hook-Enhanced)
 
 **Primary Entry Point**: `agent-config/orchestrator.md`
 - Current phase status and commercial objectives
-- Task routing matrix for specialist selection
-- Quality gates and coordination protocols
-- Sprint priorities and escalation paths
+- Task routing matrix for specialist selection with hook integration
+- Quality gates and coordination protocols enhanced with automated hooks
+- Sprint priorities and escalation paths with hook-based automation
+
+**Agent Hooks Integration**: `agent-config/agent-hooks.md`  
+- Comprehensive lifecycle management for all agent activities
+- Automated quality assurance and validation processes
+- Inter-agent coordination and seamless handoff automation
+- Error detection, escalation, and recovery coordination
+- Commercial readiness validation and customer-facing quality gates
 
 ### Available Agent Configurations
 
@@ -171,6 +178,7 @@ BitNet-Rust uses a comprehensive agent configuration system for specialized deve
 - **publishing_expert.md** - Publishing: Crate publishing, version management, distribution
 
 #### 5. Configuration & Management
+- **agent-hooks.md** - Agent Hooks System: Lifecycle management, workflow automation, event-driven coordination
 - **development_phase_tracker.md** - Phase Tracker: Project timeline, milestone tracking, progress monitoring
 - **project_commands_config.md** - Commands Config: Build commands, development workflows, tool configuration
 - **project_research.md** - Research: Innovation areas, technical exploration, future directions
@@ -212,14 +220,43 @@ For each backlog item, implement using SPARC methodology:
 - Final implementation per `SPARC_PHASE_5_COMPLETION.md`
 - Comprehensive testing and documentation
 
-#### 3. Quality Assurance Integration
+#### 3. Agent Hooks System Integration
+BitNet-Rust now includes a comprehensive Agent Hooks System (`agent-config/agent-hooks.md`) that provides automated lifecycle management and workflow coordination:
+
+**Hook-Enhanced Task Execution Flow:**
+```
+1. PRE_TASK_SETUP Hook        → Validate capability, prepare workspace
+2. Agent Selection            → Orchestrator routing with hook validation
+3. PRE_TASK_VALIDATION Hook   → Verify readiness before implementation
+4. SPARC Implementation       → Phases 1-5 with monitoring hooks
+5. COLLABORATION_SYNC Hooks   → Multi-agent coordination for complex tasks
+6. POST_TASK_VALIDATION Hook  → Quality gates and integration checks  
+7. POST_TASK_CLEANUP Hook     → Documentation and resource cleanup
+8. HANDOFF_PREPARATION Hook   → Context transfer for next phases
+```
+
+**Key Hook Categories:**
+- **Task Lifecycle Hooks**: Pre/post task setup, validation, and cleanup
+- **Inter-Agent Communication Hooks**: Seamless handoffs and collaboration
+- **Quality Assurance Hooks**: Automated validation gates and truth checking
+- **Error Handling Hooks**: Automatic detection, escalation, and recovery
+- **Workflow State Management Hooks**: SPARC phase transitions and milestones
+
+**Hook Integration Benefits:**
+- Automated quality assurance and validation processes
+- Streamlined inter-agent coordination and handoffs
+- Enhanced error detection and escalation procedures
+- Improved workflow automation and consistency
+- Better integration with commercial readiness objectives
+
+#### 4. Quality Assurance Integration
 - **truth_validator.md**: Verify completion claims against actual results
 - **test_utilities_specialist.md**: Ensure comprehensive test coverage
 - **documentation_writer.md**: Create complete documentation
 - Cross-reference with project reality and git history
 
-### Agent Task Routing System
-Based on the orchestrator configuration, tasks are routed using this matrix:
+### Agent Task Routing System (Hook-Enhanced)
+Based on the orchestrator configuration, tasks are routed using this matrix with integrated Agent Hooks System automation:
 
 ```
 Task Type                    Primary Agent                   Secondary Support
