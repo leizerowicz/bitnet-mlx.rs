@@ -166,6 +166,7 @@ The orchestrator has access to the following specialist agents for task assignme
 - **`ui_ux_development_specialist.md`** - UI/UX Development: Frontend development, user experience, interfaces
 
 #### Configuration & Management
+- **`agent-hooks.md`** - Agent Hooks System: Lifecycle management, workflow automation, event-driven coordination
 - **`development_phase_tracker.md`** - Phase Tracker: Project timeline, milestone tracking, progress monitoring
 - **`project_commands_config.md`** - Commands Config: Build commands, development workflows, tool configuration
 - **`project_research.md`** - Research: Innovation areas, technical exploration, future directions
@@ -308,21 +309,58 @@ Where:
 - **Team Satisfaction**: Positive collaboration and communication
 - **Continuous Improvement**: Process refinement based on outcomes
 
+### Agent Hooks System Integration
+
+#### Hook-Enhanced Task Execution Workflow
+The orchestrator integrates with the comprehensive **Agent Hooks System** (`agent-hooks.md`) to provide automated lifecycle management, quality assurance, and seamless coordination:
+
+```
+Enhanced Task Flow with Hooks:
+1. **PRE_TASK_SETUP Hook** → Validate agent capability and prepare workspace
+2. **Agent Selection** → Use routing matrix with hook-based validation
+3. **PRE_TASK_VALIDATION Hook** → Verify readiness before implementation
+4. **Task Execution** → Agent performs primary work with monitoring hooks
+5. **COLLABORATION_COORDINATION Hooks** → Inter-agent sync for complex tasks  
+6. **POST_TASK_VALIDATION Hook** → Comprehensive quality and integration checks
+7. **POST_TASK_CLEANUP Hook** → Resource cleanup and documentation updates
+8. **HANDOFF_PREPARATION Hook** → Prepare for next phase or agent transition
+```
+
+#### Hook-Based Quality Gates
+**Automated Quality Assurance Integration:**
+- **CODE_QUALITY_GATE**: Automated code quality validation before handoff
+- **INTEGRATION_QUALITY_GATE**: Cross-crate compatibility and performance checks
+- **TRUTH_VALIDATION_CHECK**: Evidence-based verification of completion claims
+- **COMMERCIAL_READINESS_VALIDATION**: Customer-facing feature validation
+
+#### Hook-Enhanced Agent Coordination
+**Inter-Agent Communication Automation:**
+- **AGENT_HANDOFF_PREPARE**: Automated context preparation and documentation
+- **AGENT_HANDOFF_EXECUTE**: Seamless responsibility transfer with validation
+- **COLLABORATION_INIT**: Multi-agent task coordination setup
+- **COLLABORATION_SYNC**: Regular automated synchronization and conflict resolution
+
+#### Error Handling and Escalation Hooks
+**Automated Issue Detection and Response:**
+- **ERROR_DETECTION**: Rapid identification and categorization of issues
+- **BLOCKER_ESCALATION**: Automated escalation when resolution time exceeds thresholds
+- **RECOVERY_COORDINATION**: Automated coordination of recovery efforts
+
 ### Communication & Collaboration
 
-#### Inter-Agent Coordination Protocols
-- **Task Handoffs**: Clear documentation and context transfer
-- **Progress Updates**: Regular status reporting to orchestrator
-- **Blocker Resolution**: Immediate escalation with clear problem statements
-- **Knowledge Sharing**: Documentation of solutions and learnings
-- **Quality Review**: Cross-specialist validation for critical work
+#### Inter-Agent Coordination Protocols (Hook-Enhanced)
+- **Task Handoffs**: Clear documentation and context transfer via **AGENT_HANDOFF** hooks
+- **Progress Updates**: Regular status reporting with **COLLABORATION_SYNC** hook automation
+- **Blocker Resolution**: Immediate escalation via **BLOCKER_ESCALATION** hooks with problem statements
+- **Knowledge Sharing**: Documentation of solutions via **POST_TASK_CLEANUP** hooks
+- **Quality Review**: Cross-specialist validation through **TRUTH_VALIDATION** and **CODE_QUALITY** hooks
 
-#### Daily Coordination Workflow
-1. **Morning Sync**: Review priorities, blockers, and resource allocation
-2. **Progress Monitoring**: Track task advancement and quality metrics
-3. **Blocker Resolution**: Address impediments with appropriate specialists
-4. **Evening Review**: Assess day's accomplishments and plan tomorrow
-5. **Continuous Adjustment**: Adapt plans based on emerging priorities
+#### Daily Coordination Workflow (Hook-Automated)
+1. **Morning Sync**: Review priorities with **PRE_TASK_SETUP** hook validation
+2. **Progress Monitoring**: Track advancement via **COLLABORATION_SYNC** hooks and quality metrics
+3. **Blocker Resolution**: Address impediments through **ERROR_DETECTION** and **BLOCKER_ESCALATION** hooks
+4. **Evening Review**: Assess accomplishments via **POST_TASK_VALIDATION** hooks and plan tomorrow
+5. **Continuous Adjustment**: Adapt plans via **WORKFLOW_STATE_MANAGEMENT** hooks based on priorities
 
 #### Status Reporting Framework
 **Daily Standups (Virtual):**
