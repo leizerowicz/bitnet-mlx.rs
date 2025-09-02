@@ -1,6 +1,6 @@
 # BitNet-Rust
 
-> **Revolutionary| Component | Status | Test Coverage | Description |
+ Component | Status | Test Coverage | Description |
 |-----------|--------|---------------|-------------|
 | **bitnet-core** | ✅ Production | 521/521 (100%) | Core tensor operations, memory management, device abstraction |
 | **bitnet-quant** | ✅ Production | Comprehensive | 1.58-bit quantization, BitLinear layers, QAT training |
