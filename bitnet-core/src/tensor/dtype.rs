@@ -365,6 +365,8 @@ impl BitNetDType {
             BitNetDType::F16 => Some(candle_core::DType::F16),
             BitNetDType::BF16 => Some(candle_core::DType::BF16),
             BitNetDType::I64 => Some(candle_core::DType::I64),
+            BitNetDType::I32 => Some(candle_core::DType::I64), // Promote I32 to I64
+            BitNetDType::I8 => Some(candle_core::DType::I64),  // Promote I8 to I64 (safer than U8)
             BitNetDType::U8 => Some(candle_core::DType::U8),
             BitNetDType::U32 => Some(candle_core::DType::U32),
             // BitNet-specific types don't have candle equivalents
@@ -402,8 +404,8 @@ impl BitNetDType {
             candle_core::DType::F32 => BitNetDType::F32,
             candle_core::DType::F16 => BitNetDType::F16,
             candle_core::DType::BF16 => BitNetDType::BF16,
-            candle_core::DType::I64 => BitNetDType::I64,
-            candle_core::DType::U8 => BitNetDType::U8,
+            candle_core::DType::I64 => BitNetDType::I64, // Note: Could be I32 or I64, we assume I64
+            candle_core::DType::U8 => BitNetDType::U8,   // Note: Could be I8 or U8, we assume U8
             candle_core::DType::U32 => BitNetDType::U32,
             // For unsupported types, default to F32
             _ => {

@@ -349,6 +349,60 @@ impl BitNetTensor {
                     },
                 )
             },
+            BitNetDType::I32 => unsafe {
+                // Convert I32 to I64 for candle compatibility
+                let ptr = self.storage.as_ptr() as *const i32;
+                let slice = std::slice::from_raw_parts(ptr, self.num_elements());
+                let i64_data: Vec<i64> = slice.iter().map(|&x| x as i64).collect();
+                candle_core::Tensor::from_slice(&i64_data, self.shape().dims(), self.device()).map_err(
+                    |e| TensorOpError::CandleError {
+                        operation: "to_candle".to_string(),
+                        error: e.to_string(),
+                    },
+                )
+            },
+            BitNetDType::I8 => unsafe {
+                // Convert I8 to I64 for candle compatibility
+                let ptr = self.storage.as_ptr() as *const i8;
+                let slice = std::slice::from_raw_parts(ptr, self.num_elements());
+                let i64_data: Vec<i64> = slice.iter().map(|&x| x as i64).collect();
+                candle_core::Tensor::from_slice(&i64_data, self.shape().dims(), self.device()).map_err(
+                    |e| TensorOpError::CandleError {
+                        operation: "to_candle".to_string(),
+                        error: e.to_string(),
+                    },
+                )
+            },
+            BitNetDType::U8 => unsafe {
+                let ptr = self.storage.as_ptr() as *const u8;
+                let slice = std::slice::from_raw_parts(ptr, self.num_elements());
+                candle_core::Tensor::from_slice(slice, self.shape().dims(), self.device()).map_err(
+                    |e| TensorOpError::CandleError {
+                        operation: "to_candle".to_string(),
+                        error: e.to_string(),
+                    },
+                )
+            },
+            BitNetDType::I64 => unsafe {
+                let ptr = self.storage.as_ptr() as *const i64;
+                let slice = std::slice::from_raw_parts(ptr, self.num_elements());
+                candle_core::Tensor::from_slice(slice, self.shape().dims(), self.device()).map_err(
+                    |e| TensorOpError::CandleError {
+                        operation: "to_candle".to_string(),
+                        error: e.to_string(),
+                    },
+                )
+            },
+            BitNetDType::U32 => unsafe {
+                let ptr = self.storage.as_ptr() as *const u32;
+                let slice = std::slice::from_raw_parts(ptr, self.num_elements());
+                candle_core::Tensor::from_slice(slice, self.shape().dims(), self.device()).map_err(
+                    |e| TensorOpError::CandleError {
+                        operation: "to_candle".to_string(),
+                        error: e.to_string(),
+                    },
+                )
+            },
             _ => {
                 // For other types, we'd need proper conversion
                 Err(TensorOpError::UnsupportedOperation {
@@ -385,10 +439,96 @@ impl BitNetTensor {
                     })?;
                 Self::from_vec(data, shape, BitNetDType::F32, Some(device))
             }
+            candle_core::DType::I64 => {
+                let flattened =
+                    candle_tensor
+                        .flatten_all()
+                        .map_err(|e| MemoryError::InternalError {
+                            reason: format!("Failed to flatten Candle tensor: {}", e),
+                        })?;
+
+                let data = flattened
+                    .to_vec1::<i64>()
+                    .map_err(|e| MemoryError::InternalError {
+                        reason: format!("Failed to extract I64 data from Candle tensor: {}", e),
+                    })?;
+                Self::from_vec(data, shape, BitNetDType::I64, Some(device))
+            }
+            candle_core::DType::U8 => {
+                let flattened =
+                    candle_tensor
+                        .flatten_all()
+                        .map_err(|e| MemoryError::InternalError {
+                            reason: format!("Failed to flatten Candle tensor: {}", e),
+                        })?;
+
+                let data = flattened
+                    .to_vec1::<u8>()
+                    .map_err(|e| MemoryError::InternalError {
+                        reason: format!("Failed to extract U8 data from Candle tensor: {}", e),
+                    })?;
+                Self::from_vec(data, shape, BitNetDType::U8, Some(device))
+            }
             _ => Err(MemoryError::InternalError {
                 reason: format!(
                     "Conversion from Candle dtype {:?} not yet implemented",
                     candle_tensor.dtype()
+                ),
+            }),
+        }
+    }
+
+    /// Creates a BitNetTensor from a Candle tensor with specified target dtype
+    /// This is used when we know the original type before candle conversion
+    pub fn from_candle_with_dtype(
+        candle_tensor: candle_core::Tensor,
+        device: &candle_core::Device,
+        target_dtype: BitNetDType,
+    ) -> MemoryResult<Self> {
+        let shape = candle_tensor.dims();
+        let device = device.clone();
+
+        // Extract data from Candle tensor and convert to target dtype
+        match (candle_tensor.dtype(), target_dtype) {
+            (candle_core::DType::F32, BitNetDType::F32) => {
+                let flattened = candle_tensor.flatten_all().map_err(|e| MemoryError::InternalError {
+                    reason: format!("Failed to flatten Candle tensor: {}", e),
+                })?;
+                let data = flattened.to_vec1::<f32>().map_err(|e| MemoryError::InternalError {
+                    reason: format!("Failed to extract F32 data from Candle tensor: {}", e),
+                })?;
+                Self::from_vec(data, shape, BitNetDType::F32, Some(device))
+            }
+            (candle_core::DType::I64, BitNetDType::I32) => {
+                // Convert I64 back to I32
+                let flattened = candle_tensor.flatten_all().map_err(|e| MemoryError::InternalError {
+                    reason: format!("Failed to flatten Candle tensor: {}", e),
+                })?;
+                let i64_data = flattened.to_vec1::<i64>().map_err(|e| MemoryError::InternalError {
+                    reason: format!("Failed to extract I64 data from Candle tensor: {}", e),
+                })?;
+                let i32_data: Vec<i32> = i64_data.iter().map(|&x| x as i32).collect();
+                Self::from_vec(i32_data, shape, BitNetDType::I32, Some(device))
+            }
+            (candle_core::DType::I64, BitNetDType::I8) => {
+                // Convert I64 back to I8
+                let flattened = candle_tensor.flatten_all().map_err(|e| MemoryError::InternalError {
+                    reason: format!("Failed to flatten Candle tensor: {}", e),
+                })?;
+                let i64_data = flattened.to_vec1::<i64>().map_err(|e| MemoryError::InternalError {
+                    reason: format!("Failed to extract I64 data from Candle tensor: {}", e),
+                })?;
+                let i8_data: Vec<i8> = i64_data.iter().map(|&x| x as i8).collect();
+                Self::from_vec(i8_data, shape, BitNetDType::I8, Some(device))
+            }
+            (candle_dtype, target_dtype) if BitNetDType::from_candle_dtype(candle_dtype) == target_dtype => {
+                // Direct conversion using existing method
+                Self::from_candle(candle_tensor, &device)
+            }
+            _ => Err(MemoryError::InternalError {
+                reason: format!(
+                    "Conversion from Candle dtype {:?} to target dtype {:?} not supported",
+                    candle_tensor.dtype(), target_dtype
                 ),
             }),
         }

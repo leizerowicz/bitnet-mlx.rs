@@ -15,6 +15,9 @@ use std::sync::{Arc, Mutex, RwLock};
 #[cfg(feature = "tracing")]
 use tracing::{debug, info, warn};
 
+/// Type alias for statistics callback function
+pub type StatisticsCallback = Arc<dyn Fn(u64) + Send + Sync>;
+
 /// A conversion pipeline that chains multiple operations with memory optimization
 pub struct ConversionPipeline {
     /// Pipeline configuration
@@ -27,6 +30,8 @@ pub struct ConversionPipeline {
     cache: Arc<RwLock<TensorCache>>,
     /// Memory usage tracker
     memory_tracker: Arc<Mutex<MemoryTracker>>,
+    /// Statistics callback for reporting conversions to parent engine
+    statistics_callback: Option<StatisticsCallback>,
 }
 
 impl ConversionPipeline {
@@ -42,6 +47,7 @@ impl ConversionPipeline {
             stages: Vec::new(),
             cache: Arc::new(RwLock::new(TensorCache::new())),
             memory_tracker: Arc::new(Mutex::new(MemoryTracker::new())),
+            statistics_callback: None,
         })
     }
 
@@ -79,6 +85,12 @@ impl ConversionPipeline {
             cache_intermediate: false,
         };
         self.stages.push(stage);
+        self
+    }
+
+    /// Sets a statistics callback for reporting conversions to parent engine
+    pub fn with_statistics_callback(mut self, callback: StatisticsCallback) -> Self {
+        self.statistics_callback = Some(callback);
         self
     }
 
@@ -191,6 +203,12 @@ impl ConversionPipeline {
             if idx % 10 == 9 {
                 self.cleanup_if_needed()?;
             }
+        }
+
+        // Report statistics to parent engine if callback is set
+        if let Some(callback) = &self.statistics_callback {
+            let total_conversions = inputs.len() as u64 * self.stages.len() as u64;
+            callback(total_conversions);
         }
 
         Ok(results)

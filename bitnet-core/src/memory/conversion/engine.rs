@@ -311,7 +311,15 @@ impl ConversionEngine {
 
     /// Creates a conversion pipeline for chaining multiple conversions
     pub fn create_pipeline(&self) -> ConversionResult<ConversionPipeline> {
+        let stats_callback = {
+            let stats = Arc::clone(&self.stats);
+            Arc::new(move |count: u64| {
+                stats.add_external_conversion(count);
+            }) as Arc<dyn Fn(u64) + Send + Sync>
+        };
+
         ConversionPipeline::new(self.config.clone(), self.pool.clone())
+            .map(|pipeline| pipeline.with_statistics_callback(stats_callback))
     }
 
     /// Performs zero-copy conversion (if possible)

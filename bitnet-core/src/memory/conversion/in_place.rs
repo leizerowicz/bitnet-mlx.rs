@@ -130,6 +130,7 @@ impl InPlaceConverter {
             (BitNetDType::F32, BitNetDType::F16) => true,
             (BitNetDType::F32, BitNetDType::BF16) => true,
             (BitNetDType::F32, BitNetDType::I8) => true,
+            (BitNetDType::F32, BitNetDType::I4) => true,
 
             // F16 can be converted to smaller types
             (BitNetDType::F16, BitNetDType::I8) => true,
@@ -174,6 +175,7 @@ impl InPlaceConverter {
         match (source, target) {
             // Float to integer conversions are always lossy
             (BitNetDType::F32, BitNetDType::I8) => true,
+            (BitNetDType::F32, BitNetDType::I4) => true,
             (BitNetDType::F16, BitNetDType::I8) => true,
             (BitNetDType::F16, BitNetDType::I4) => true,
             (BitNetDType::F16, BitNetDType::I2) => true,
@@ -227,6 +229,11 @@ impl InPlaceConverter {
             // F32 to I8 quantization
             (BitNetDType::F32, BitNetDType::I8) => {
                 self.convert_f32_to_i8_in_place(ptr, element_count)
+            }
+
+            // F32 to I4 quantization
+            (BitNetDType::F32, BitNetDType::I4) => {
+                self.convert_f32_to_i4_in_place(ptr, element_count)
             }
 
             // F16 to I8 quantization
@@ -316,6 +323,34 @@ impl InPlaceConverter {
                 f32_val.clamp(-128.0, 127.0).round() as i8
             };
             i8_slice[i] = i8_val;
+        }
+
+        Ok(())
+    }
+
+    unsafe fn convert_f32_to_i4_in_place(
+        &self,
+        ptr: *mut u8,
+        element_count: usize,
+    ) -> ConversionResult<()> {
+        let f32_slice = std::slice::from_raw_parts_mut(ptr as *mut f32, element_count);
+        let byte_slice = std::slice::from_raw_parts_mut(ptr, (element_count + 1) / 2);
+
+        // Pack two I4 values into each byte
+        for i in 0..element_count {
+            let f32_val = f32_slice[i];
+            let i4_val = if f32_val.is_nan() {
+                0u8
+            } else {
+                ((f32_val.clamp(-8.0, 7.0).round() as i8).clamp(-8, 7) & 0x0F) as u8
+            };
+
+            let byte_idx = i / 2;
+            if i % 2 == 0 {
+                byte_slice[byte_idx] = i4_val;
+            } else {
+                byte_slice[byte_idx] |= i4_val << 4;
+            }
         }
 
         Ok(())

@@ -66,6 +66,8 @@ pub mod pressure;
 pub mod profiler;
 pub mod timeline;
 pub mod tracker;
+pub mod optimized_metadata;
+pub mod optimized_tracker;
 
 // Re-exports
 pub use config::{PressureThresholds, TrackingConfig, TrackingLevel};
@@ -74,6 +76,8 @@ pub use pressure::{MemoryPressureDetector, MemoryPressureLevel, PressureCallback
 pub use profiler::{LeakReport, MemoryProfiler, ProfilingReport};
 pub use timeline::{AllocationEvent, AllocationTimeline, TimelineEntry};
 pub use tracker::{DetailedMemoryMetrics, MemoryTracker};
+pub use optimized_metadata::{OptimizedAllocationMetadata, AdaptiveSamplingController};
+pub use optimized_tracker::{OptimizedMemoryTracker, OptimizedMemoryMetrics};
 
 /// Errors that can occur during memory tracking operations
 #[derive(Error, Debug)]

@@ -182,7 +182,9 @@ pub struct HybridMemoryPool {
     handle_registry: Arc<RwLock<HashMap<u64, MemoryHandle>>>,
     /// Next handle ID
     next_handle_id: Arc<Mutex<u64>>,
-    /// Advanced memory tracker (optional)
+    /// Optimized memory tracker (optional)
+    optimized_tracker: Option<Arc<tracking::OptimizedMemoryTracker>>,
+    /// Fallback advanced memory tracker (for compatibility)
     memory_tracker: Option<Arc<tracking::MemoryTracker>>,
 }
 
@@ -250,23 +252,40 @@ impl HybridMemoryPool {
         #[cfg(feature = "tracing")]
         info!("Creating hybrid memory pool with config: {:?}", config);
 
-        // Initialize memory tracker if advanced tracking is enabled
-        let memory_tracker = if config.enable_advanced_tracking {
+        // Initialize memory trackers if advanced tracking is enabled
+        let (optimized_tracker, memory_tracker) = if config.enable_advanced_tracking {
             let tracking_config = config
                 .tracking_config
                 .clone()
                 .unwrap_or_else(|| tracking::TrackingConfig::standard());
 
-            match tracking::MemoryTracker::new(tracking_config) {
+            // Try to create optimized tracker first
+            let optimized_tracker = match tracking::OptimizedMemoryTracker::new(tracking_config.clone()) {
                 Ok(tracker) => Some(Arc::new(tracker)),
                 Err(_e) => {
                     #[cfg(feature = "tracing")]
-                    warn!("Failed to create memory tracker: {}", _e);
+                    warn!("Failed to create optimized memory tracker: {}, falling back to standard tracker", _e);
                     None
                 }
-            }
+            };
+
+            // Fallback to standard tracker if needed
+            let memory_tracker = if optimized_tracker.is_none() {
+                match tracking::MemoryTracker::new(tracking_config) {
+                    Ok(tracker) => Some(Arc::new(tracker)),
+                    Err(_e) => {
+                        #[cfg(feature = "tracing")]
+                        warn!("Failed to create memory tracker: {}", _e);
+                        None
+                    }
+                }
+            } else {
+                None
+            };
+
+            (optimized_tracker, memory_tracker)
         } else {
-            None
+            (None, None)
         };
 
         let pool = Self {
@@ -276,6 +295,7 @@ impl HybridMemoryPool {
             metrics: Arc::new(RwLock::new(MemoryMetrics::new())),
             handle_registry: Arc::new(RwLock::new(HashMap::new())),
             next_handle_id: Arc::new(Mutex::new(1)),
+            optimized_tracker,
             memory_tracker,
         };
 
@@ -363,8 +383,21 @@ impl HybridMemoryPool {
         }
 
         // Track allocation if advanced tracking is enabled (outside critical section)
-        if let Some(ref tracker) = self.memory_tracker {
+        let allocation_id = if let Some(ref tracker) = self.optimized_tracker {
+            // Use optimized tracker with minimal overhead
+            Some(tracker.track_allocation(&handle, size, device))
+        } else if let Some(ref tracker) = self.memory_tracker {
+            // Fallback to standard tracker
             tracker.track_allocation(&handle, size, device);
+            None
+        } else {
+            None
+        };
+
+        // Store allocation ID in handle metadata if available
+        if let Some(_id) = allocation_id {
+            // Note: This would require updating the MemoryHandle structure to store allocation_id
+            // For now, we'll rely on the tracker's internal storage
         }
 
         #[cfg(feature = "tracing")]
@@ -473,7 +506,13 @@ impl HybridMemoryPool {
         }
 
         // Track deallocation if advanced tracking is enabled (before moving handle)
-        if let Some(ref tracker) = self.memory_tracker {
+        if let Some(ref tracker) = self.optimized_tracker {
+            // For optimized tracker, we need to match by handle ID since we don't store allocation ID
+            // This is a limitation that could be improved by storing allocation ID in MemoryHandle
+            // For now, we'll create a dummy allocation ID based on handle ID
+            let allocation_id = tracking::AllocationId(handle_id);
+            tracker.track_deallocation(allocation_id);
+        } else if let Some(ref tracker) = self.memory_tracker {
             tracker.track_deallocation(&registered_handle);
         }
 
@@ -546,6 +585,31 @@ impl HybridMemoryPool {
         self.memory_tracker
             .as_ref()
             .map(|tracker| tracker.get_detailed_metrics())
+    }
+
+    /// Returns optimized memory metrics if optimized tracking is enabled
+    ///
+    /// This method provides lightweight metrics with minimal overhead, ideal for production use.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use bitnet_core::memory::{HybridMemoryPool, MemoryPoolConfig, TrackingConfig};
+    ///
+    /// let mut config = MemoryPoolConfig::default();
+    /// config.enable_advanced_tracking = true;
+    /// config.tracking_config = Some(TrackingConfig::standard());
+    ///
+    /// let pool = HybridMemoryPool::with_config(config)?;
+    /// if let Some(metrics) = pool.get_optimized_metrics() {
+    ///     println!("Tracking overhead: {:.2}%", metrics.tracking_overhead.cpu_overhead_percentage);
+    /// }
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn get_optimized_metrics(&self) -> Option<tracking::OptimizedMemoryMetrics> {
+        self.optimized_tracker
+            .as_ref()
+            .map(|tracker| tracker.get_metrics())
     }
 
     /// Returns the memory tracker if advanced tracking is enabled

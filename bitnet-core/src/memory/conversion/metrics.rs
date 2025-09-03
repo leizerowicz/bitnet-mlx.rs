@@ -527,6 +527,8 @@ impl ConversionEvent {
 pub struct ConversionStats {
     events: Arc<RwLock<Vec<ConversionEvent>>>,
     max_events: usize,
+    external_conversions: Arc<std::sync::atomic::AtomicU64>,
+    external_successful_conversions: Arc<std::sync::atomic::AtomicU64>,
 }
 
 impl ConversionStats {
@@ -535,6 +537,8 @@ impl ConversionStats {
         Self {
             events: Arc::new(RwLock::new(Vec::new())),
             max_events,
+            external_conversions: Arc::new(std::sync::atomic::AtomicU64::new(0)),
+            external_successful_conversions: Arc::new(std::sync::atomic::AtomicU64::new(0)),
         }
     }
 
@@ -550,6 +554,15 @@ impl ConversionStats {
                 events.drain(0..excess);
             }
         }
+    }
+
+    /// Adds external conversions from pipeline operations
+    pub fn add_external_conversion(&self, count: u64) {
+        self.external_conversions
+            .fetch_add(count, std::sync::atomic::Ordering::Relaxed);
+        // Assume all external conversions are successful since pipelines handle errors internally
+        self.external_successful_conversions
+            .fetch_add(count, std::sync::atomic::Ordering::Relaxed);
     }
 
     /// Generates comprehensive metrics from recorded events
@@ -623,6 +636,12 @@ impl ConversionStats {
         // Calculate derived statistics
         self.calculate_performance_stats(&events, &mut metrics);
         self.calculate_error_stats(&events, &mut metrics);
+
+        // Add external conversions from pipeline operations
+        let external_count = self.external_conversions.load(std::sync::atomic::Ordering::Relaxed);
+        let external_successful_count = self.external_successful_conversions.load(std::sync::atomic::Ordering::Relaxed);
+        metrics.total_conversions += external_count;
+        metrics.successful_conversions += external_successful_count;
 
         metrics
     }

@@ -17,22 +17,48 @@ use bitnet_core::tensor::{BitNetDType, BitNetTensor};
 mod arithmetic_tests {
     use super::*;
 
-    fn setup_memory_pool() -> Result<(), Box<dyn std::error::Error>> {
+    /// RAII context for isolated test memory pool management
+    /// Automatically cleans up global pool state when dropped
+    struct TestMemoryContext {
+        /// The isolated memory pool for this test
+        /// Keeping this Arc alive ensures pool remains valid during test
+        _pool: std::sync::Arc<HybridMemoryPool>,
+    }
+
+    impl Drop for TestMemoryContext {
+        fn drop(&mut self) {
+            // Don't clear the global pool - just let it be
+            // Each test will set its own isolated pool anyway
+            // Clearing it causes "Global memory pool not available" errors
+        }
+    }
+
+    /// Setup isolated memory pool for a single test
+    /// Returns context that automatically cleans up on drop
+    fn setup_isolated_memory_pool() -> Result<TestMemoryContext, Box<dyn std::error::Error>> {
+        // Create identical memory pool configuration as original
         let tracking_config = TrackingConfig::detailed();
         let mut config = bitnet_core::memory::MemoryPoolConfig::default();
         config.enable_advanced_tracking = true;
         config.tracking_config = Some(tracking_config);
 
+        // Create isolated memory pool instance for this test
         let memory_pool = std::sync::Arc::new(HybridMemoryPool::with_config(config)?);
-        bitnet_core::tensor::memory_integration::set_global_memory_pool(std::sync::Arc::downgrade(
-            &memory_pool,
-        ));
-        Ok(())
+        
+        // Set this isolated pool as the global pool for test duration
+        bitnet_core::tensor::memory_integration::set_global_memory_pool(
+            std::sync::Arc::downgrade(&memory_pool)
+        );
+        
+        // Return context that keeps pool alive and manages cleanup
+        Ok(TestMemoryContext {
+            _pool: memory_pool,
+        })
     }
 
     #[test]
     fn test_basic_addition() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let a = BitNetTensor::ones(&[2, 3], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[2, 3], BitNetDType::F32, None)?;
@@ -48,7 +74,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_basic_subtraction() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let a = BitNetTensor::ones(&[3, 2], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[3, 2], BitNetDType::F32, None)?;
@@ -63,7 +89,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_basic_multiplication() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let a = BitNetTensor::ones(&[4, 4], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[4, 4], BitNetDType::F32, None)?;
@@ -79,7 +105,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_basic_division() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let a = BitNetTensor::ones(&[2, 2], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[2, 2], BitNetDType::F32, None)?;
@@ -94,7 +120,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_basic_remainder() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let a = BitNetTensor::ones(&[3, 3], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[3, 3], BitNetDType::F32, None)?;
@@ -109,7 +135,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_power_operation() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let base = BitNetTensor::ones(&[2, 2], BitNetDType::F32, None)?;
         let exponent = BitNetTensor::ones(&[2, 2], BitNetDType::F32, None)?;
@@ -124,7 +150,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_broadcasting_addition() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let a = BitNetTensor::ones(&[3, 4], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[1, 4], BitNetDType::F32, None)?;
@@ -143,7 +169,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_complex_broadcasting() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let a = BitNetTensor::ones(&[2, 3, 1], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[1, 1, 4], BitNetDType::F32, None)?;
@@ -162,7 +188,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_scalar_broadcasting() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let tensor = BitNetTensor::ones(&[3, 3], BitNetDType::F32, None)?;
         let scalar = BitNetTensor::ones(&[1, 1], BitNetDType::F32, None)?;
@@ -177,7 +203,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_inplace_addition() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let mut a = BitNetTensor::ones(&[2, 3], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[2, 3], BitNetDType::F32, None)?;
@@ -196,7 +222,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_inplace_broadcasting() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let mut a = BitNetTensor::ones(&[3, 4], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[1, 4], BitNetDType::F32, None)?;
@@ -210,7 +236,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_all_inplace_operations() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let mut tensor = BitNetTensor::ones(&[2, 2], BitNetDType::F32, None)?;
         let operand = BitNetTensor::ones(&[2, 2], BitNetDType::F32, None)?;
@@ -237,7 +263,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_scalar_operations() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let tensor = BitNetTensor::ones(&[3, 3], BitNetDType::F32, None)?;
 
@@ -259,7 +285,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_inplace_scalar_operations() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let mut tensor = BitNetTensor::ones(&[2, 3], BitNetDType::F32, None)?;
         let original_shape = tensor.shape().dims().to_vec();
@@ -283,7 +309,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_operator_overloading() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let a = BitNetTensor::ones(&[2, 2], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[2, 2], BitNetDType::F32, None)?;
@@ -313,7 +339,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_different_data_types() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         // Test F32
         let f32_a = BitNetTensor::ones(&[2, 2], BitNetDType::F32, None)?;
@@ -338,7 +364,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_data_type_mismatch_error() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let f32_tensor = BitNetTensor::ones(&[2, 2], BitNetDType::F32, None)?;
         let i32_tensor = BitNetTensor::ones(&[2, 2], BitNetDType::I32, None)?;
@@ -351,7 +377,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_broadcasting_incompatible_error() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let a = BitNetTensor::ones(&[2, 3], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[4, 2], BitNetDType::F32, None)?;
@@ -370,7 +396,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_division_by_zero_error() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let tensor = BitNetTensor::ones(&[2, 2], BitNetDType::F32, None)?;
 
@@ -389,7 +415,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_inplace_shape_mismatch_error() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let mut a = BitNetTensor::ones(&[2, 2], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[3, 3], BitNetDType::F32, None)?;
@@ -406,7 +432,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_power_unsupported_dtype_error() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let base = BitNetTensor::ones(&[2, 2], BitNetDType::I32, None)?;
         let exp = BitNetTensor::ones(&[2, 2], BitNetDType::I32, None)?;
@@ -422,7 +448,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_broadcast_analysis() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let a = BitNetTensor::ones(&[3, 1, 4], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[1, 2, 4], BitNetDType::F32, None)?;
@@ -441,7 +467,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_memory_efficiency() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         // Test with larger tensors to verify memory efficiency
         let large_a = BitNetTensor::ones(&[100, 100], BitNetDType::F32, None)?;
@@ -463,7 +489,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_chained_operations() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let a = BitNetTensor::ones(&[2, 3], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[2, 3], BitNetDType::F32, None)?;
@@ -481,7 +507,7 @@ mod arithmetic_tests {
 
     #[test]
     fn test_complex_broadcasting_chains() -> Result<(), Box<dyn std::error::Error>> {
-        setup_memory_pool()?;
+        let _context = setup_isolated_memory_pool()?;
 
         let a = BitNetTensor::ones(&[2, 1, 3], BitNetDType::F32, None)?;
         let b = BitNetTensor::ones(&[1, 4, 1], BitNetDType::F32, None)?;

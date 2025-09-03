@@ -36,6 +36,7 @@
 use super::broadcasting::{can_broadcast, prepare_elementwise_broadcast};
 use super::{TensorOpError, TensorOpResult};
 use crate::tensor::core::BitNetTensor;
+use crate::tensor::BitNetDType;
 use std::ops::{Add, Div, Mul, Rem, Sub};
 
 #[cfg(feature = "tracing")]
@@ -85,8 +86,9 @@ pub fn add(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTenso
             error: e.to_string(),
         })?;
 
-    // Convert back to BitNetTensor
-    BitNetTensor::from_candle(result_candle, &lhs.device()).map_err(|e| {
+    // Convert back to BitNetTensor with the original dtype
+    let result_dtype = lhs.dtype(); // Both tensors should have the same dtype at this point
+    BitNetTensor::from_candle_with_dtype(result_candle, &lhs.device(), result_dtype).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create result tensor: {}", e),
         }
@@ -126,7 +128,9 @@ pub fn sub(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTenso
             error: e.to_string(),
         })?;
 
-    BitNetTensor::from_candle(result_candle, &lhs.device()).map_err(|e| {
+    // Convert back to BitNetTensor with the original dtype
+    let result_dtype = lhs.dtype();
+    BitNetTensor::from_candle_with_dtype(result_candle, &lhs.device(), result_dtype).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create result tensor: {}", e),
         }
@@ -166,7 +170,9 @@ pub fn mul(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTenso
             error: e.to_string(),
         })?;
 
-    BitNetTensor::from_candle(result_candle, &lhs.device()).map_err(|e| {
+    // Convert back to BitNetTensor with the original dtype
+    let result_dtype = lhs.dtype();
+    BitNetTensor::from_candle_with_dtype(result_candle, &lhs.device(), result_dtype).map_err(|e| {
         TensorOpError::InternalError {
             reason: format!("Failed to create result tensor: {}", e),
         }
@@ -276,6 +282,7 @@ pub fn rem(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTenso
 /// Element-wise power of two tensors with broadcasting support
 pub fn pow(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<BitNetTensor> {
     validate_binary_operation(lhs, rhs, "pow")?;
+    validate_power_operation(lhs, rhs)?;
 
     if !can_broadcast(lhs, rhs)? {
         return Err(TensorOpError::BroadcastError {
@@ -571,6 +578,35 @@ fn validate_binary_operation(
     // For now, allow cross-device operations (Candle will handle device migration)
     // In the future, we might want to enforce same-device operations for performance
 
+    Ok(())
+}
+
+/// Validate that tensors have supported data types for power operations
+fn validate_power_operation(lhs: &BitNetTensor, rhs: &BitNetTensor) -> TensorOpResult<()> {
+    // Power operations only support floating-point types in Candle
+    // Integer types cause Candle to panic with "not yet implemented" error
+    match lhs.dtype() {
+        BitNetDType::I8 | BitNetDType::I16 | BitNetDType::I32 | BitNetDType::I64 
+        | BitNetDType::U8 | BitNetDType::U32 => {
+            return Err(TensorOpError::UnsupportedOperation {
+                operation: "pow".to_string(),
+                dtype: lhs.dtype(),
+            });
+        }
+        _ => {} // Floating-point types are supported
+    }
+    
+    match rhs.dtype() {
+        BitNetDType::I8 | BitNetDType::I16 | BitNetDType::I32 | BitNetDType::I64 
+        | BitNetDType::U8 | BitNetDType::U32 => {
+            return Err(TensorOpError::UnsupportedOperation {
+                operation: "pow".to_string(),
+                dtype: rhs.dtype(),
+            });
+        }
+        _ => {} // Floating-point types are supported
+    }
+    
     Ok(())
 }
 
