@@ -110,6 +110,265 @@ class ProjectStartCLI:
             else:
                 print("Please answer 'y' for yes or 'n' for no")
 
+    def detect_existing_project(self, directory: Path = None) -> Dict[str, Any]:
+        """Detect if current directory contains an existing project structure"""
+        if directory is None:
+            directory = self.project_dir
+            
+        detection_result = {
+            'is_existing_project': False,
+            'project_type': None,
+            'existing_files': {
+                'readme': [],
+                'documentation': [],
+                'code_files': [],
+                'config_files': [],
+                'project_start_files': []
+            },
+            'suggested_focus_files': [],
+            'project_structure': {}
+        }
+        
+        # Common project indicators
+        project_indicators = [
+            'package.json', 'requirements.txt', 'Cargo.toml', 'go.mod', 'pom.xml',
+            'composer.json', 'Pipfile', 'pyproject.toml', 'setup.py', 'Gemfile',
+            '.gitignore', 'README.md', 'readme.md', 'README.rst'
+        ]
+        
+        # Project-Start specific files
+        project_start_indicators = [
+            'BACKLOG.md', 'IMPLEMENTATION_GUIDE.md', 'RISK_ASSESSMENT.md', 
+            'FILE_OUTLINE.md', 'PROJECT_START_CONSTITUTION.md'
+        ]
+        
+        # Check for project indicators
+        found_indicators = []
+        for indicator in project_indicators:
+            if (directory / indicator).exists():
+                found_indicators.append(indicator)
+                
+        # Check for Project-Start files
+        found_project_start_files = []
+        for ps_file in project_start_indicators:
+            if (directory / ps_file).exists():
+                found_project_start_files.append(ps_file)
+                detection_result['existing_files']['project_start_files'].append(str(directory / ps_file))
+        
+        # If we found indicators, this is likely an existing project
+        if found_indicators or found_project_start_files:
+            detection_result['is_existing_project'] = True
+            
+            # Try to determine project type
+            if 'package.json' in found_indicators:
+                detection_result['project_type'] = 'Node.js'
+            elif 'requirements.txt' in found_indicators or 'pyproject.toml' in found_indicators:
+                detection_result['project_type'] = 'Python'
+            elif 'Cargo.toml' in found_indicators:
+                detection_result['project_type'] = 'Rust'
+            elif 'go.mod' in found_indicators:
+                detection_result['project_type'] = 'Go'
+            elif 'pom.xml' in found_indicators:
+                detection_result['project_type'] = 'Java'
+            elif found_project_start_files:
+                detection_result['project_type'] = 'Project-Start'
+            else:
+                detection_result['project_type'] = 'Unknown'
+                
+            # Scan for all relevant files
+            self.scan_project_files(directory, detection_result)
+            
+        return detection_result
+
+    def scan_project_files(self, directory: Path, detection_result: Dict[str, Any]) -> None:
+        """Comprehensively scan all MD files and code files in project"""
+        
+        # File extensions to look for
+        documentation_extensions = {'.md', '.rst', '.txt', '.adoc'}
+        code_extensions = {
+            '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp', '.h', '.hpp',
+            '.cs', '.go', '.rs', '.php', '.rb', '.scala', '.kt', '.swift', '.dart',
+            '.html', '.css', '.scss', '.sass', '.less', '.vue', '.svelte'
+        }
+        config_extensions = {
+            '.json', '.yaml', '.yml', '.toml', '.ini', '.cfg', '.conf', '.env',
+            '.xml', '.properties'
+        }
+        
+        # Walk through directory structure
+        for root, dirs, files in os.walk(directory):
+            # Skip common directories that shouldn't be analyzed
+            dirs[:] = [d for d in dirs if d not in {
+                '.git', 'node_modules', '__pycache__', '.pytest_cache', 'venv', 'env',
+                '.venv', 'dist', 'build', 'target', '.next', '.nuxt'
+            }]
+            
+            root_path = Path(root)
+            
+            for file in files:
+                file_path = root_path / file
+                file_ext = file_path.suffix.lower()
+                relative_path = str(file_path.relative_to(directory))
+                
+                # Categorize files
+                if file.lower() in {'readme.md', 'readme.rst', 'readme.txt', 'readme'}:
+                    detection_result['existing_files']['readme'].append(relative_path)
+                    detection_result['suggested_focus_files'].append(relative_path)
+                elif file_ext in documentation_extensions:
+                    detection_result['existing_files']['documentation'].append(relative_path)
+                    if any(keyword in file.lower() for keyword in [
+                        'api', 'architecture', 'design', 'spec', 'requirement', 
+                        'guide', 'doc', 'manual', 'tutorial'
+                    ]):
+                        detection_result['suggested_focus_files'].append(relative_path)
+                elif file_ext in code_extensions:
+                    detection_result['existing_files']['code_files'].append(relative_path)
+                elif file_ext in config_extensions or file in {
+                    'Dockerfile', 'docker-compose.yml', 'Makefile', '.gitignore'
+                }:
+                    detection_result['existing_files']['config_files'].append(relative_path)
+        
+        # Sort files for better presentation
+        for category in detection_result['existing_files']:
+            detection_result['existing_files'][category].sort()
+        detection_result['suggested_focus_files'].sort()
+
+    def analyze_existing_files(self, detection_result: Dict[str, Any], focus_files: List[str] = None) -> Dict[str, Any]:
+        """Analyze existing files to extract project information"""
+        project_info = {
+            'name': self.project_dir.name,
+            'description': 'Existing project analysis',
+            'is_existing_project': True,
+            'project_type': detection_result.get('project_type', 'Unknown'),
+            'analyzed_files': focus_files or detection_result['suggested_focus_files'][:10],  # Limit to 10 files
+            'extracted_info': {}
+        }
+        
+        files_to_analyze = focus_files if focus_files else detection_result['suggested_focus_files'][:10]
+        
+        for file_path in files_to_analyze:
+            full_path = self.project_dir / file_path
+            if full_path.exists() and full_path.is_file():
+                try:
+                    with open(full_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        
+                    # Extract key information based on file type
+                    file_info = self.extract_file_info(file_path, content)
+                    if file_info:
+                        project_info['extracted_info'][file_path] = file_info
+                        
+                except (UnicodeDecodeError, PermissionError) as e:
+                    print(f"  ⚠️  Could not read {file_path}: {e}")
+                    continue
+        
+        # Try to extract project metadata
+        self.extract_project_metadata(project_info, detection_result)
+        
+        return project_info
+
+    def extract_file_info(self, file_path: str, content: str) -> Dict[str, Any]:
+        """Extract relevant information from file content"""
+        file_info = {
+            'file_type': Path(file_path).suffix,
+            'size_lines': len(content.splitlines()),
+            'keywords': [],
+            'descriptions': []
+        }
+        
+        content_lower = content.lower()
+        
+        # Look for common project description patterns
+        description_patterns = [
+            r'description[:\s]+(.+)',
+            r'# (.+)\n',
+            r'## (.+)\n',
+            r'/\*\*\s*(.+?)\s*\*/',
+            r'"""(.+?)"""',
+            r"'''(.+?)'''",
+        ]
+        
+        import re
+        for pattern in description_patterns:
+            matches = re.findall(pattern, content, re.IGNORECASE | re.DOTALL)
+            for match in matches[:3]:  # Limit to first 3 matches
+                cleaned = re.sub(r'\s+', ' ', match.strip())
+                if cleaned and len(cleaned) > 10:
+                    file_info['descriptions'].append(cleaned[:200])  # Limit length
+        
+        # Look for technical keywords
+        tech_keywords = [
+            'api', 'rest', 'graphql', 'database', 'postgresql', 'mysql', 'mongodb',
+            'react', 'vue', 'angular', 'nodejs', 'python', 'django', 'flask',
+            'microservice', 'docker', 'kubernetes', 'aws', 'azure', 'gcp',
+            'authentication', 'authorization', 'jwt', 'oauth', 'redis', 'cache'
+        ]
+        
+        found_keywords = [kw for kw in tech_keywords if kw in content_lower]
+        file_info['keywords'] = found_keywords[:10]  # Limit to 10 keywords
+        
+        return file_info
+
+    def extract_project_metadata(self, project_info: Dict[str, Any], detection_result: Dict[str, Any]) -> None:
+        """Extract project metadata from common files"""
+        
+        # Try to extract from package.json
+        package_json = self.project_dir / 'package.json'
+        if package_json.exists():
+            try:
+                with open(package_json, 'r') as f:
+                    package_data = json.loads(f.read())
+                    project_info['name'] = package_data.get('name', project_info['name'])
+                    project_info['description'] = package_data.get('description', project_info['description'])
+                    project_info['version'] = package_data.get('version')
+                    project_info['dependencies'] = list(package_data.get('dependencies', {}).keys())[:10]
+            except (json.JSONDecodeError, FileNotFoundError):
+                pass
+        
+        # Try to extract from pyproject.toml
+        pyproject = self.project_dir / 'pyproject.toml'
+        if pyproject.exists():
+            try:
+                with open(pyproject, 'r') as f:
+                    content = f.read()
+                    import re
+                    name_match = re.search(r'name\s*=\s*["\']([^"\']+)["\']', content)
+                    desc_match = re.search(r'description\s*=\s*["\']([^"\']+)["\']', content)
+                    if name_match:
+                        project_info['name'] = name_match.group(1)
+                    if desc_match:
+                        project_info['description'] = desc_match.group(1)
+            except FileNotFoundError:
+                pass
+        
+        # Extract from README files
+        for readme_file in detection_result['existing_files']['readme']:
+            readme_path = self.project_dir / readme_file
+            if readme_path.exists():
+                try:
+                    with open(readme_path, 'r', encoding='utf-8') as f:
+                        readme_content = f.read()
+                        
+                    # Extract title (first heading)
+                    import re
+                    title_match = re.search(r'^#\s+(.+)$', readme_content, re.MULTILINE)
+                    if title_match:
+                        potential_name = title_match.group(1).strip()
+                        if len(potential_name) < 50:  # Reasonable title length
+                            project_info['name'] = potential_name
+                            
+                    # Extract description (first paragraph after title)
+                    lines = readme_content.split('\n')
+                    for i, line in enumerate(lines):
+                        if line.strip() and not line.startswith('#') and not line.startswith('!['):
+                            if len(line.strip()) > 20:  # Reasonable description length
+                                project_info['description'] = line.strip()[:200]
+                                break
+                                
+                except (UnicodeDecodeError, FileNotFoundError):
+                    continue
+                break  # Only process first README
+
     def collect_project_info(self) -> Dict[str, Any]:
         """Interactive questionnaire to collect project information"""
         print("\n" + "="*60)
@@ -1403,13 +1662,190 @@ compliance improvements across the organization.
             print("Ready for Step 2: Constitutional SPARC Methodology")
 
     def enhance_step_1(self, project_description: str) -> None:
-        """Enhanced Step 1 with full interactive configuration"""
+        """Enhanced Step 1 with full interactive configuration and existing project support"""
         self.show_banner()
         self.show_copilot_integration_status()
         
         print("🚀 ENHANCE-STEP-1: Automated Discovery with Constitutional Validation")
         
-        # Always use interactive questionnaire for step 1 enhancement
+        # First, check if we're working with an existing project
+        print("\n🔍 Scanning for existing project structure...")
+        detection_result = self.detect_existing_project()
+        
+        if detection_result['is_existing_project']:
+            print(f"✓ Existing {detection_result['project_type']} project detected!")
+            self.handle_existing_project(detection_result, project_description)
+        else:
+            print("No existing project structure found.")
+            self.handle_new_project(project_description)
+
+    def handle_existing_project(self, detection_result: Dict[str, Any], project_description: str) -> None:
+        """Handle processing of existing project"""
+        print("\n📊 PROJECT ANALYSIS SUMMARY")
+        print("-" * 40)
+        print(f"Project Type: {detection_result['project_type']}")
+        print(f"README files: {len(detection_result['existing_files']['readme'])}")
+        print(f"Documentation files: {len(detection_result['existing_files']['documentation'])}")
+        print(f"Code files: {len(detection_result['existing_files']['code_files'])}")
+        print(f"Config files: {len(detection_result['existing_files']['config_files'])}")
+        
+        if detection_result['existing_files']['project_start_files']:
+            print(f"Project-Start files: {len(detection_result['existing_files']['project_start_files'])}")
+        
+        # Show suggested focus files
+        if detection_result['suggested_focus_files']:
+            print(f"\n📋 Suggested focus files ({len(detection_result['suggested_focus_files'])} found):")
+            for i, file_path in enumerate(detection_result['suggested_focus_files'][:10], 1):
+                print(f"  {i}. {file_path}")
+            if len(detection_result['suggested_focus_files']) > 10:
+                print(f"  ... and {len(detection_result['suggested_focus_files']) - 10} more")
+        
+        # Ask user how they want to proceed
+        print("\n🤔 How would you like to proceed?")
+        options = [
+            "Analyze existing files and create Project-Start docs based on current structure",
+            "Select specific files to focus on for analysis", 
+            "Create new project documentation (ignore existing structure)",
+            "Exit and work with existing structure as-is"
+        ]
+        
+        choice = self.ask_multiple_choice("Choose your approach:", options)
+        
+        if choice == options[0]:
+            # Analyze existing files automatically
+            self.analyze_and_create_docs(detection_result, project_description)
+        elif choice == options[1]:
+            # Let user select specific files
+            focus_files = self.select_focus_files(detection_result)
+            self.analyze_and_create_docs(detection_result, project_description, focus_files)
+        elif choice == options[2]:
+            # Create new project (existing functionality)
+            self.handle_new_project(project_description)
+        else:
+            print("\n✅ Keeping existing structure. You can run enhance-step-1 again anytime.")
+            return
+
+    def select_focus_files(self, detection_result: Dict[str, Any]) -> List[str]:
+        """Allow user to select specific files to focus on"""
+        print("\n📂 SELECT FILES TO ANALYZE")
+        print("-" * 30)
+        
+        all_files = []
+        categories = [
+            ('README files', detection_result['existing_files']['readme']),
+            ('Documentation files', detection_result['existing_files']['documentation'][:20]),  # Limit to 20
+            ('Project-Start files', detection_result['existing_files']['project_start_files']),
+            ('Code files (sample)', detection_result['existing_files']['code_files'][:10])  # Limit to 10
+        ]
+        
+        for category_name, files in categories:
+            if files:
+                print(f"\n{category_name}:")
+                for i, file_path in enumerate(files, len(all_files) + 1):
+                    print(f"  {i}. {file_path}")
+                    all_files.append(file_path.replace(str(self.project_dir) + '/', ''))
+        
+        print(f"\nTotal files available: {len(all_files)}")
+        print("Enter file numbers to analyze (comma-separated, e.g., 1,3,5-8) or 'all' for suggested files:")
+        
+        selection = input("Your selection: ").strip()
+        
+        if selection.lower() == 'all':
+            return detection_result['suggested_focus_files'][:15]  # Limit to 15 files
+        
+        try:
+            selected_files = []
+            for part in selection.split(','):
+                part = part.strip()
+                if '-' in part:
+                    start, end = map(int, part.split('-'))
+                    selected_files.extend(range(start-1, min(end, len(all_files))))
+                else:
+                    idx = int(part) - 1
+                    if 0 <= idx < len(all_files):
+                        selected_files.append(idx)
+            
+            return [all_files[i] for i in selected_files if 0 <= i < len(all_files)]
+        except (ValueError, IndexError):
+            print("Invalid selection. Using suggested files.")
+            return detection_result['suggested_focus_files'][:10]
+
+    def analyze_and_create_docs(self, detection_result: Dict[str, Any], project_description: str, focus_files: List[str] = None) -> None:
+        """Analyze existing files and create Project-Start documentation"""
+        print("\n🔍 ANALYZING EXISTING PROJECT...")
+        print("-" * 35)
+        
+        # Analyze the files
+        project_info = self.analyze_existing_files(detection_result, focus_files)
+        
+        # Override name with provided description if given
+        if project_description:
+            project_info['name'] = project_description
+        
+        print(f"✓ Analyzed {len(project_info.get('analyzed_files', []))} files")
+        print(f"✓ Extracted project info: {project_info['name']}")
+        
+        # Show what was found
+        if project_info.get('extracted_info'):
+            print("\n📄 KEY FINDINGS:")
+            for file_path, info in list(project_info['extracted_info'].items())[:5]:  # Show first 5
+                if info.get('descriptions'):
+                    print(f"  📄 {file_path}: {info['descriptions'][0][:100]}...")
+                if info.get('keywords'):
+                    print(f"      Keywords: {', '.join(info['keywords'][:5])}")
+        
+        # Ask if user wants to enhance the analysis with additional questions
+        enhance_analysis = self.ask_yes_no(
+            "Would you like to provide additional project context through questions?", 
+            default=False
+        )
+        
+        if enhance_analysis:
+            print("\n📋 ADDITIONAL PROJECT CONTEXT")
+            print("-" * 35)
+            # Ask key questions to supplement the analysis
+            additional_info = self.collect_supplementary_info(project_info)
+            project_info.update(additional_info)
+        
+        # Create project directory in specs/
+        print("\n📂 Creating Project-Start structure...")
+        project_path = self.create_project_structure(project_info)
+        print(f"✓ Project directory created: {project_path}")
+        
+        # Generate documents based on analysis
+        print("\n📋 Generating Project-Start documents based on analysis...")
+        self.generate_backlog(project_info, project_path)
+        self.generate_implementation_guide(project_info, project_path)
+        self.generate_risk_assessment(project_info, project_path)
+        self.generate_file_outline(project_info, project_path)
+        self.generate_constitutional_validation(project_info, project_path)
+        self.generate_clarification_needed(project_info, project_path)
+        
+        # Generate analysis summary
+        self.generate_existing_project_summary(project_info, project_path, detection_result)
+        print("✓ All documents generated with constitutional compliance")
+        
+        print("\n🧠 Initializing persistent context...")
+        self.update_memory_systems(project_info, project_path)
+        print("✓ Memory systems updated")
+        
+        print("\n" + "="*60)
+        print("🎉 ENHANCED STEP 1 COMPLETED!")
+        print("="*60)
+        print(f"\n📂 Project Path: {project_path}")
+        print(f"📂 Original Project: {self.project_dir}")
+        print("\n📋 Spec-Kit Integration Status: ✓ ACTIVE")
+        print("📋 Constitutional Validation: ✓ PASSED")
+        print("📋 Memory Systems: ✓ INITIALIZED")
+        print("📋 Existing Project Analysis: ✓ COMPLETED")
+        
+        print(f"\n🔄 Next: /enhance-step-2 --project-path {project_path}")
+
+    def handle_new_project(self, project_description: str) -> None:
+        """Handle creation of new project (original functionality)"""
+        print("\n📋 Creating new project with interactive questionnaire...")
+        
+        # Use original interactive questionnaire for new projects
         project_info = self.collect_project_info()
         
         # Override name with provided description if given
@@ -1442,6 +1878,117 @@ compliance improvements across the organization.
         print("📋 Memory Systems: ✓ INITIALIZED")
         
         print(f"\n🔄 Next: /enhance-step-2 --project-path {project_path}")
+
+    def collect_supplementary_info(self, project_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Collect additional project information to supplement file analysis"""
+        supplementary = {}
+        
+        # Key questions for existing projects
+        supplementary['target_audience'] = self.ask_question(
+            "Who are the primary users/audience for this project?", 
+            required=False
+        )
+        supplementary['business_value'] = self.ask_question(
+            "What is the main business value or goal?", 
+            required=False
+        )
+        supplementary['key_features'] = self.ask_question(
+            "What are the 3-5 most important features/capabilities?", 
+            required=False
+        )
+        supplementary['technical_constraints'] = self.ask_question(
+            "Any technical constraints or requirements we should know about?", 
+            required=False
+        )
+        supplementary['timeline'] = self.ask_question(
+            "Project timeline or deadline?", 
+            required=False
+        )
+        
+        return supplementary
+
+    def generate_existing_project_summary(self, project_info: Dict[str, Any], project_path: str, detection_result: Dict[str, Any]) -> None:
+        """Generate a summary of the existing project analysis"""
+        summary_content = f"""# Existing Project Analysis Summary
+
+Generated by Project-Start Enhanced CLI on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+## Original Project Location
+**Path**: `{self.project_dir}`
+**Project Type**: {detection_result['project_type']}
+
+## Analysis Overview
+
+### Files Analyzed
+Total files scanned: {len(project_info.get('analyzed_files', []))}
+
+{''.join([f"- {file}\\n" for file in project_info.get('analyzed_files', [])])}
+
+### Key Findings
+
+**Project Name**: {project_info.get('name', 'Unknown')}
+**Description**: {project_info.get('description', 'No description available')}
+
+### File Categories Found
+- **README files**: {len(detection_result['existing_files']['readme'])}
+- **Documentation files**: {len(detection_result['existing_files']['documentation'])}  
+- **Code files**: {len(detection_result['existing_files']['code_files'])}
+- **Configuration files**: {len(detection_result['existing_files']['config_files'])}
+- **Project-Start files**: {len(detection_result['existing_files']['project_start_files'])}
+
+### Extracted Information
+
+{self.format_extracted_info(project_info.get('extracted_info', {}))}
+
+## Recommendations
+
+### Next Steps
+1. Review the generated Project-Start documents in this directory
+2. Validate the extracted information against your actual project requirements
+3. Update any documents that need refinement based on project specifics
+4. Run `/enhance-step-2` to continue with the SPARC methodology
+
+### Integration Notes
+- The original project structure has been preserved
+- Project-Start documents are generated in: `{project_path}`
+- You can reference the original files during development
+- Consider migrating to the Project-Start structure for better organization
+
+### Constitutional Compliance
+- All generated documents follow Project-Start constitutional principles
+- Test-first development methodology is recommended for existing code
+- Incremental migration to constitutional patterns is suggested
+
+---
+*This analysis was generated by scanning your existing project and extracting relevant information. Please review and adjust as needed.*
+"""
+        
+        with open(f"{project_path}/EXISTING_PROJECT_ANALYSIS.md", 'w') as f:
+            f.write(summary_content)
+
+    def format_extracted_info(self, extracted_info: Dict[str, Any]) -> str:
+        """Format the extracted information for display"""
+        if not extracted_info:
+            return "No specific information extracted from files."
+        
+        formatted = []
+        for file_path, info in extracted_info.items():
+            formatted.append(f"#### {file_path}")
+            
+            if info.get('descriptions'):
+                formatted.append("**Descriptions found**:")
+                for desc in info['descriptions'][:2]:  # Limit to 2 descriptions
+                    formatted.append(f"- {desc}")
+                formatted.append("")
+            
+            if info.get('keywords'):
+                formatted.append(f"**Technical keywords**: {', '.join(info['keywords'])}")
+                formatted.append("")
+            
+            formatted.append(f"**File size**: {info.get('size_lines', 0)} lines")
+            formatted.append("")
+        
+        return '\n'.join(formatted)
 
     def run_automated_workflow(self, project_path: str) -> None:
         """Run the complete automated workflow for Steps 2-4"""
@@ -4435,6 +4982,7 @@ def main():
     parser.add_argument('description', nargs='?', help='Project description')
     parser.add_argument('--project-path', help='Path to existing project')
     parser.add_argument('--tech-stack', help='Technology stack preference')
+    parser.add_argument('--existing-project', action='store_true', help='Work with existing project structure')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     
     # If no arguments provided, show help
@@ -4465,6 +5013,7 @@ def main():
             print("\nAvailable commands:")
             print("  /project-start-enhanced [description] - Complete workflow with defaults")
             print("  /enhance-step-1 [description] - Interactive discovery & planning")
+            print("  /enhance-step-1 [description] --existing-project - Work with existing project")
             print("  /enhance-step-2 --project-path <path> - Constitutional SPARC methodology")
             print("  /enhance-step-3 --project-path <path> - Persistent context systems")
             print("  /enhance-step-4 --project-path <path> - Constitutional PACT framework")

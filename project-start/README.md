@@ -27,15 +27,28 @@ cd project-start
 - **Persistent memory systems** for multi-agent coordination
 - **Quality gates** preventing architectural drift
 - **Enhanced README reading** - CLI reads from Step 1-4 READMEs for context-aware generation
+- **🆕 Existing Project Support** - Works with established architecture and codebases
 
 ## 🔧 Enhanced CLI Capabilities
 
-The CLI now reads contextual information from all step README files to generate more comprehensive and accurate documentation:
+The CLI now includes powerful existing project support alongside its traditional new project creation:
 
+### New Project Creation
 - **Step 1**: Reads `step_1/README.md` for project discovery context and brutally honest market validation
 - **Step 2**: Reads `step_2/sparc_methodology_guide.md` for SPARC methodology principles and implementation guidance  
 - **Step 3**: Reads `step_3/README.md` for agentic system integration and expert context
 - **Step 4**: Reads `step_4/` templates for PACT framework implementation details
+
+### 🆕 Existing Project Support
+- **Project Detection**: Automatically scans for existing project structure and type
+- **Comprehensive File Analysis**: Analyzes MD files, code files, and configuration files
+- **Smart Categorization**: Identifies key files and suggests focus areas for analysis
+- **Multiple Analysis Modes**: 
+  - Automatic analysis based on file discovery
+  - User-guided file selection for focused analysis
+  - Hybrid approach with supplementary context gathering
+- **Preservation of Structure**: Maintains original project organization while adding Project-Start documentation
+- **Constitutional Integration**: Applies Project-Start principles to existing codebases
 
 This ensures all generated documents are informed by the complete framework methodology rather than using generic templates.
 

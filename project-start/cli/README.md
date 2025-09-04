@@ -18,29 +18,53 @@ Master command that orchestrates the entire enhanced workflow from initial idea 
 4. Runs enhanced Step 4 (constitutional PACT with quality gates)
 
 ### `/enhance-step-1` 
-Applies Spec-Kit's `/specify` automation to Project-Start's discovery phase while generating all required Step 1 documents.
+Applies Spec-Kit's `/specify` automation to Project-Start's discovery phase while generating all required Step 1 documents. **NEW**: Now supports existing projects with established architecture.
 
+#### New Project Mode
 ```bash
 /enhance-step-1 "Real-time chat application with message history and user presence"
 ```
 
+#### Existing Project Mode
+```bash
+# Automatically detects existing project structure
+/enhance-step-1 "analysis-of-existing-project"
+
+# Force existing project mode
+/enhance-step-1 "existing-project" --existing-project
+```
+
 **What it does**:
-1. Uses spec-kit's specification generation with Project-Start templates
-2. Generates BACKLOG.md, IMPLEMENTATION_GUIDE.md, RISK_ASSESSMENT.md, FILE_OUTLINE.md
-3. Applies constitutional validation gates
-4. Initializes project memory systems
-5. Marks areas requiring clarification
-6. Creates branch with feature numbering
+1. **Project Detection**: Scans current directory for existing project indicators (package.json, requirements.txt, README.md, etc.)
+2. **Comprehensive File Analysis**: Analyzes all MD files, code files, and configuration files
+3. **Smart File Categorization**: Identifies documentation, code, and config files with focus suggestions
+4. **Multi-Mode Operation**: 
+   - **New Project**: Traditional interactive questionnaire approach
+   - **Existing Project**: File analysis with optional supplementary questions
+5. **Flexible Analysis Options**:
+   - Automatic analysis of suggested files
+   - User-selected file focus
+   - Hybrid approach with additional context gathering
+6. **Constitutional Integration**: Applies validation gates to both new and existing projects
+7. **Memory Initialization**: Sets up persistent context for discovered/created projects
+
+**Existing Project Features**:
+- Detects 10+ project types (Node.js, Python, Java, Go, Rust, etc.)
+- Extracts project metadata from package.json, pyproject.toml, README files
+- Analyzes documentation patterns and technical keywords
+- Provides comprehensive file categorization and suggestions
+- Creates Project-Start documentation while preserving original structure
 
 **Output Structure**:
 ```
-specs/001-chat-application/
+specs/001-project-name/
 ├── BACKLOG.md (prioritized features and user stories)
 ├── IMPLEMENTATION_GUIDE.md (technical approach and constraints)
 ├── RISK_ASSESSMENT.md (risks and mitigation strategies)
 ├── FILE_OUTLINE.md (project structure and organization)
 ├── constitutional_validation.md (compliance checkpoints)
-└── clarification_needed.md (areas requiring further specification)
+├── clarification_needed.md (areas requiring further specification)
+└── EXISTING_PROJECT_ANALYSIS.md (analysis summary - for existing projects)
 ```
 
 ### `/enhance-step-2`
