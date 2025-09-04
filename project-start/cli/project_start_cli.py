@@ -8,6 +8,7 @@ import os
 import sys
 import json
 import argparse
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -207,7 +208,7 @@ class ProjectStartCLI:
             else:
                 print("Please answer 'y' for yes or 'n' for no")
 
-    def detect_existing_project(self, directory: Path = None) -> Dict[str, Any]:
+    def detect_existing_project(self, directory: Optional[Path] = None) -> Dict[str, Any]:
         """Detect if current directory contains an existing project structure"""
         if directory is None:
             directory = self.project_dir
@@ -330,7 +331,7 @@ class ProjectStartCLI:
             detection_result['existing_files'][category].sort()
         detection_result['suggested_focus_files'].sort()
 
-    def analyze_existing_files(self, detection_result: Dict[str, Any], focus_files: List[str] = None) -> Dict[str, Any]:
+    def analyze_existing_files(self, detection_result: Dict[str, Any], focus_files: Optional[List[str]] = None) -> Dict[str, Any]:
         """Analyze existing files to extract project information"""
         project_info = {
             'name': self.project_dir.name,
@@ -385,7 +386,6 @@ class ProjectStartCLI:
             r"'''(.+?)'''",
         ]
         
-        import re
         for pattern in description_patterns:
             matches = re.findall(pattern, content, re.IGNORECASE | re.DOTALL)
             for match in matches[:3]:  # Limit to first 3 matches
@@ -428,7 +428,6 @@ class ProjectStartCLI:
             try:
                 with open(pyproject, 'r') as f:
                     content = f.read()
-                    import re
                     name_match = re.search(r'name\s*=\s*["\']([^"\']+)["\']', content)
                     desc_match = re.search(r'description\s*=\s*["\']([^"\']+)["\']', content)
                     if name_match:
@@ -447,7 +446,6 @@ class ProjectStartCLI:
                         readme_content = f.read()
                         
                     # Extract title (first heading)
-                    import re
                     title_match = re.search(r'^#\s+(.+)$', readme_content, re.MULTILINE)
                     if title_match:
                         potential_name = title_match.group(1).strip()
@@ -2025,27 +2023,61 @@ compliance improvements across the organization.
             print("\n✅ Keeping existing structure. You can run enhance-step-1 again anytime.")
             return
 
+    def scan_all_md_files(self) -> List[str]:
+        """Scan the entire project directory for all .md files"""
+        md_files = []
+        
+        # Walk through the entire project directory
+        for root, dirs, files in os.walk(self.project_dir):
+            # Skip common directories that shouldn't be analyzed
+            dirs[:] = [d for d in dirs if d not in {
+                '.git', 'node_modules', '__pycache__', '.pytest_cache', 'venv', 'env',
+                '.venv', 'dist', 'build', 'target', '.next', '.nuxt', '.idea', '.vscode'
+            }]
+            
+            root_path = Path(root)
+            
+            for file in files:
+                if file.lower().endswith('.md'):
+                    file_path = root_path / file
+                    relative_path = str(file_path.relative_to(self.project_dir))
+                    md_files.append(relative_path)
+        
+        # Sort files for better presentation
+        md_files.sort()
+        print(f"🔍 Found {len(md_files)} Markdown files in the entire project!")
+        return md_files
+
     def select_focus_files(self, detection_result: Dict[str, Any]) -> List[str]:
         """Allow user to select specific files to focus on"""
         print("\n📂 SELECT FILES TO ANALYZE")
         print("-" * 30)
         
+        # Get ALL markdown files from the entire project
+        all_md_files = self.scan_all_md_files()
+        
         all_files = []
         categories = [
             ('README files', detection_result['existing_files']['readme']),
-            ('Documentation files', detection_result['existing_files']['documentation'][:20]),  # Limit to 20
+            ('All Markdown files in project', all_md_files),
             ('Project-Start files', detection_result['existing_files']['project_start_files']),
+            ('Other documentation files', [f for f in detection_result['existing_files']['documentation'] if not f.endswith('.md')]),
             ('Code files (sample)', detection_result['existing_files']['code_files'][:10])  # Limit to 10
         ]
         
         for category_name, files in categories:
             if files:
-                print(f"\n{category_name}:")
+                print(f"\n{category_name} ({len(files)} files):")
                 for i, file_path in enumerate(files, len(all_files) + 1):
-                    print(f"  {i}. {file_path}")
-                    all_files.append(file_path.replace(str(self.project_dir) + '/', ''))
+                    # Clean up file path display
+                    display_path = file_path
+                    if isinstance(file_path, str) and file_path.startswith(str(self.project_dir)):
+                        display_path = file_path.replace(str(self.project_dir) + '/', '')
+                    print(f"  {i}. {display_path}")
+                    all_files.append(display_path)
         
         print(f"\nTotal files available: {len(all_files)}")
+        print("💡 All .md files in the entire project are now available for selection!")
         print("Enter file numbers to analyze (comma-separated, e.g., 1,3,5-8) or 'all' for suggested files:")
         
         selection = input("Your selection: ").strip()
@@ -2070,7 +2102,7 @@ compliance improvements across the organization.
             print("Invalid selection. Using suggested files.")
             return detection_result['suggested_focus_files'][:10]
 
-    def analyze_and_create_docs(self, detection_result: Dict[str, Any], project_description: str, focus_files: List[str] = None) -> None:
+    def analyze_and_create_docs(self, detection_result: Dict[str, Any], project_description: str, focus_files: Optional[List[str]] = None) -> None:
         """Analyze existing files and create Project-Start documentation"""
         print("\n🔍 ANALYZING EXISTING PROJECT...")
         print("-" * 35)
@@ -2214,7 +2246,7 @@ Generated by Project-Start Enhanced CLI on {datetime.now().strftime('%Y-%m-%d %H
 ### Files Analyzed
 Total files scanned: {len(project_info.get('analyzed_files', []))}
 
-{''.join([f"- {file}\\n" for file in project_info.get('analyzed_files', [])])}
+{chr(10).join([f"- {file}" for file in project_info.get('analyzed_files', [])])}
 
 ### Key Findings
 
@@ -4014,7 +4046,6 @@ The constitutional SPARC implementation establishes a foundation for continuous 
                 content = f.read()
                 # Extract key information from project memory
                 if "Project Name" in content or "name" in content:
-                    import re
                     name_match = re.search(r'"name":\s*"([^"]+)"', content)
                     if name_match:
                         memory_content["project_name"] = name_match.group(1)
@@ -4033,7 +4064,6 @@ The constitutional SPARC implementation establishes a foundation for continuous 
             with open(const_memory_path, 'r') as f:
                 content = f.read()
                 if "Constitutional Adherence" in content:
-                    import re
                     score_match = re.search(r'Constitutional Adherence.*?(\d+)%', content)
                     if score_match:
                         memory_content["compliance_score"] = int(score_match.group(1))
@@ -4050,7 +4080,6 @@ The constitutional SPARC implementation establishes a foundation for continuous 
             with open(impl_guide_path, 'r') as f:
                 content = f.read()
                 if "Technology Stack" in content:
-                    import re
                     tech_match = re.search(r'Technology Stack.*?:\s*(.+)', content, re.IGNORECASE)
                     if tech_match:
                         memory_content["tech_stack"] = tech_match.group(1).strip()
