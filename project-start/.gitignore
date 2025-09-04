@@ -19,3 +19,6 @@ Thumbs.db
 
 # Generated specs (user projects)
 specs/
+
+# Project-Start configuration files (user-specific)
+.project-start-config

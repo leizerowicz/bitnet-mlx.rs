@@ -1,9 +1,53 @@
 #!/bin/bash
 # Common functions and variables for project-start scripts
 
-# Get repository root
+# Get repository root with configuration support
 get_repo_root() {
-    git rev-parse --show-toplevel 2>/dev/null || pwd
+    # Get the directory where common.sh is located (scripts directory)
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local project_start_dir="$(dirname "$script_dir")"
+    local config_file="$project_start_dir/.project-start-config"
+    
+    # Check if configuration file exists and load it
+    if [[ -f "$config_file" ]]; then
+        # Parse config file properly
+        while IFS='=' read -r key value; do
+            # Skip comments and empty lines
+            [[ "$key" =~ ^[[:space:]]*# ]] && continue
+            [[ -z "$key" ]] && continue
+            
+            if [[ "$key" == "TARGET_PROJECT_ROOT" ]]; then
+                # Remove any whitespace and quotes
+                value=$(echo "$value" | xargs)
+                if [[ -n "$value" ]] && [[ -d "$value" ]]; then
+                    echo "$value"
+                    return 0
+                fi
+            fi
+        done < "$config_file"
+    fi
+    
+    # Fallback: Auto-detect if we're in a nested scenario
+    local parent_dir="$(dirname "$project_start_dir")"
+    
+    # Check if parent directory looks like a project root and we're nested
+    if [[ "$project_start_dir" != "$parent_dir" ]]; then
+        # Look for common project indicators in parent
+        if [[ -d "$parent_dir/.git" ]] || 
+           [[ -f "$parent_dir/package.json" ]] || 
+           [[ -f "$parent_dir/requirements.txt" ]] || 
+           [[ -f "$parent_dir/go.mod" ]] || 
+           [[ -f "$parent_dir/Cargo.toml" ]] || 
+           [[ -f "$parent_dir/pom.xml" ]] || 
+           [[ -f "$parent_dir/build.gradle" ]] || 
+           [[ -f "$parent_dir/Makefile" ]]; then
+            echo "$parent_dir"
+            return 0
+        fi
+    fi
+    
+    # Original behavior: use git root or current directory
+    git rev-parse --show-toplevel 2>/dev/null || echo "$project_start_dir"
 }
 
 # Get current branch  

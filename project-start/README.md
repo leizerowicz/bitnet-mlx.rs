@@ -14,6 +14,22 @@ Project-Start now includes full VS Code integration for an enhanced development 
 
 **Get Started**: `code project-start.code-workspace` or see [VSCODE_INTEGRATION.md](VSCODE_INTEGRATION.md) for full details.
 
+## 📂 Drag & Drop Support
+
+**NEW**: Project-Start now supports being dragged/copied into existing projects! When you drag the project-start folder into another project, it can automatically detect and configure itself to work with the parent project.
+
+### Quick Setup for Nested Projects
+```bash
+# After dragging project-start into your existing project
+cd my-existing-project/project-start
+python3 cli/project_start_cli.py /configure-project-root
+
+# Follow the prompts - it will auto-detect the parent project
+# Your project files will be created in my-existing-project/specs/
+```
+
+📖 **Full Guide**: See [DRAG_DROP_SETUP.md](DRAG_DROP_SETUP.md) for complete instructions and examples.
+
 ## 🚀 Quick Start
 
 ```bash

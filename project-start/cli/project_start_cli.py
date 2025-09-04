@@ -51,8 +51,47 @@ class ProjectStartCLI:
         return any(vscode_indicators)
     
     def _detect_project_root(self) -> Path:
-        """Detect the project root directory, with VS Code workspace support"""
+        """Detect the project root directory, with VS Code workspace support and configuration override"""
         current_dir = Path.cwd()
+        
+        # Get the directory where this script is located (cli directory)
+        cli_dir = Path(__file__).parent
+        project_start_dir = cli_dir.parent
+        config_file = project_start_dir / ".project-start-config"
+        
+        # Check if configuration file exists and load it
+        if config_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith('TARGET_PROJECT_ROOT=') and not line.startswith('#'):
+                            target_root = line.split('=', 1)[1].strip()
+                            if target_root and Path(target_root).exists():
+                                return Path(target_root)
+            except Exception:
+                pass  # Ignore config file errors and continue with auto-detection
+        
+        # Auto-detect if we're in a nested scenario
+        parent_dir = project_start_dir.parent
+        
+        # Check if parent directory looks like a project root and we're nested
+        if project_start_dir != parent_dir:
+            # Look for common project indicators in parent
+            project_indicators = [
+                ".git",
+                "package.json", 
+                "requirements.txt",
+                "go.mod",
+                "Cargo.toml", 
+                "pom.xml",
+                "build.gradle",
+                "Makefile"
+            ]
+            
+            for indicator in project_indicators:
+                if (parent_dir / indicator).exists():
+                    return parent_dir
         
         # Check if we're in a VS Code workspace by looking for workspace file
         workspace_indicators = [
@@ -2417,6 +2456,122 @@ Total files scanned: {len(project_info.get('analyzed_files', []))}
         
         print("\n🎉 ALL STEPS COMPLETED!")
         print("✅ Full workflow implementation ready")
+
+    def configure_project_root(self) -> None:
+        """Configure project-start to work with a target project (drag-and-drop scenario)"""
+        print("\n🚀 PROJECT-START CONFIGURATION WIZARD")
+        print("======================================")
+        print()
+        print("This wizard will configure project-start to work with your target project.")
+        print("Use this when you've dragged/copied project-start into another project.")
+        print()
+
+        # Get current project-start directory
+        cli_dir = Path(__file__).parent
+        project_start_dir = cli_dir.parent
+        config_file = project_start_dir / ".project-start-config"
+        
+        print("📍 Current Detection:")
+        print(f"  Project-Start Directory: {project_start_dir}")
+        print(f"  Current Working Directory: {Path.cwd()}")
+        
+        # Auto-detect if we're in a nested scenario
+        parent_dir = project_start_dir.parent
+        print(f"  Parent Directory: {parent_dir}")
+        print()
+        
+        # Check if we're likely in a nested scenario
+        nested_detected = False
+        project_indicators = [".git", "package.json", "requirements.txt", "go.mod", "Cargo.toml", "pom.xml", "build.gradle", "Makefile"]
+        
+        if project_start_dir != parent_dir:
+            for indicator in project_indicators:
+                if (parent_dir / indicator).exists():
+                    nested_detected = True
+                    break
+        
+        if nested_detected:
+            print("🎯 NESTED SCENARIO DETECTED!")
+            print("  It looks like project-start is inside another project.")
+            print("  Parent directory appears to be a valid project root.")
+            print()
+            
+            use_parent = input("Would you like to configure project-start to work with the parent project? (Y/n): ").strip() or "Y"
+            
+            if use_parent.lower().startswith('y'):
+                target_root = parent_dir
+            else:
+                target_root = Path(input("Please enter the target project root path: ").strip())
+        else:
+            print("No nested scenario detected. Please enter the target project root manually.")
+            target_root = Path(input("Target project root path: ").strip())
+        
+        # Validate the target root
+        if not target_root.exists():
+            print(f"❌ Error: Target directory does not exist: {target_root}")
+            return
+        
+        # Make path absolute
+        target_root = target_root.resolve()
+        
+        print()
+        print("📋 Configuration Summary:")
+        print(f"  Target Project Root: {target_root}")
+        print(f"  Project-Start Location: {project_start_dir}")
+        print(f"  Config File: {config_file}")
+        print()
+        
+        # Optional project name
+        project_name = input("Enter a name for this project (optional): ").strip()
+        
+        # Confirm
+        confirm = input("\nSave this configuration? (Y/n): ").strip() or "Y"
+        
+        if not confirm.lower().startswith('y'):
+            print("Configuration cancelled.")
+            return
+        
+        # Create configuration file
+        config_content = f"""# Project-Start Configuration
+# Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+# Target project root - where project-start should operate
+TARGET_PROJECT_ROOT={target_root}
+
+# Project name (optional)
+PROJECT_NAME={project_name}
+
+# Nested mode - project-start is within another project
+NESTED_MODE=true
+
+# Project-start directory location
+PROJECT_START_DIR={project_start_dir}
+"""
+        
+        with open(config_file, 'w') as f:
+            f.write(config_content)
+        
+        print()
+        print("✅ Configuration saved successfully!")
+        print()
+        print("🎯 Next Steps:")
+        print(f"  1. Your project-start commands will now operate on: {target_root}")
+        print(f"  2. Project files will be created in: {target_root}/specs/")
+        print("  3. Test the configuration by running:")
+        print(f"     cd {project_start_dir}/scripts")
+        print("     ./get-project-paths.sh")
+        print()
+        print(f"💡 To reset configuration, delete: {config_file}")
+        print()
+        
+        # Test the configuration
+        print("🧪 Testing configuration...")
+        try:
+            # Run a simple test by creating a new CLI instance which will use the new config
+            test_cli = ProjectStartCLI()
+            print(f"✅ Configuration test successful! Detected project root: {test_cli.project_dir}")
+        except Exception as e:
+            print(f"⚠️  Configuration test had issues: {e}")
 
     def generate_sparc_specification(self, project_path: str) -> None:
         """Generate SPARC Specification document (Phase 1) with Step 2 methodology integration"""
@@ -5261,6 +5416,8 @@ def main():
             cli.enhance_step_3(args.project_path)
         elif args.command == '/enhance-step-4':
             cli.enhance_step_4(args.project_path)
+        elif args.command == '/configure-project-root':
+            cli.configure_project_root()
         else:
             print(f"❌ Unknown command: {args.command}")
             print("\nAvailable commands:")
@@ -5270,6 +5427,7 @@ def main():
             print("  /enhance-step-2 --project-path <path> - Constitutional SPARC methodology")
             print("  /enhance-step-3 --project-path <path> - Persistent context systems")
             print("  /enhance-step-4 --project-path <path> - Constitutional PACT framework")
+            print("  /configure-project-root - Configure project-start for drag-and-drop scenarios")
             print("\n💰 CLI now optimized to use single AI requests to save on copilot usage costs!")
             
     except KeyboardInterrupt:

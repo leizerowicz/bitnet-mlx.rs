@@ -1,0 +1,13 @@
+# Project-Start Configuration
+# This file configures project-start to work with a specific target project
+# when project-start is nested within another project (e.g., drag-and-drop scenario)
+
+# TARGET_PROJECT_ROOT: Absolute path to the root of the target project
+# If not set, project-start will auto-detect based on current location
+# TARGET_PROJECT_ROOT=/path/to/your/main/project
+
+# PROJECT_NAME: Optional name for the target project
+# PROJECT_NAME=my-awesome-project
+
+# NESTED_MODE: Set to true when project-start is nested within another project
+# NESTED_MODE=true
