@@ -2,6 +2,18 @@
 
 A proven 4-step framework for agentic engineering projects with constitutional governance principles and automated specification generation.
 
+## 🎯 VS Code Integration
+
+Project-Start now includes full VS Code integration for an enhanced development experience:
+
+- **🚀 Quick Start**: Open `project-start.code-workspace` for optimized workspace
+- **⚡ Command Palette**: Access all CLI commands via `Ctrl+Shift+P` → "Tasks: Run Task"  
+- **📁 Auto-Detection**: Project root and paths automatically detected in VS Code
+- **🛠️ Pre-configured Tasks**: All workflow steps available as VS Code tasks
+- **🐛 Debug Support**: Built-in debugging configurations for CLI commands
+
+**Get Started**: `code project-start.code-workspace` or see [VSCODE_INTEGRATION.md](VSCODE_INTEGRATION.md) for full details.
+
 ## 🚀 Quick Start
 
 ```bash

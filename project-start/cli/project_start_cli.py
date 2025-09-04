@@ -34,10 +34,56 @@ TAGLINE = "Specification-Driven Development with AI Agent Collaboration"
 
 class ProjectStartCLI:
     def __init__(self):
-        self.project_dir = Path.cwd()
+        self.project_dir = self._detect_project_root()
         self.config_dir = self.project_dir / "agent_config"
         self.specs_dir = self.project_dir / "specs"
         self.memory_dir = self.project_dir / "memory"
+        self.vscode_detected = self._detect_vscode_environment()
+    
+    def _detect_vscode_environment(self) -> bool:
+        """Detect if running within VS Code environment"""
+        # Check environment variables that VS Code sets
+        vscode_indicators = [
+            os.environ.get("VSCODE_PID"),
+            os.environ.get("TERM_PROGRAM") == "vscode",
+            os.environ.get("PROJECT_START_VSCODE") == "true"
+        ]
+        return any(vscode_indicators)
+    
+    def _detect_project_root(self) -> Path:
+        """Detect the project root directory, with VS Code workspace support"""
+        current_dir = Path.cwd()
+        
+        # Check if we're in a VS Code workspace by looking for workspace file
+        workspace_indicators = [
+            "project-start.code-workspace",
+            ".vscode/settings.json"
+        ]
+        
+        # Start from current directory and walk up
+        search_dir = current_dir
+        for _ in range(5):  # Limit search depth
+            for indicator in workspace_indicators:
+                if (search_dir / indicator).exists():
+                    return search_dir
+            
+            # Also check for project-start specific files
+            project_start_indicators = [
+                "cli/project_start_cli.py",
+                "PROJECT_START_CONSTITUTION.md",
+                "SPEC_KIT_INTEGRATION_GUIDE.md"
+            ]
+            
+            for indicator in project_start_indicators:
+                if (search_dir / indicator).exists():
+                    return search_dir
+                    
+            parent = search_dir.parent
+            if parent == search_dir:  # Reached filesystem root
+                break
+            search_dir = parent
+        
+        return current_dir
     
     def show_banner(self):
         """Display the ASCII art banner for Agentic Engineering"""
@@ -51,11 +97,23 @@ class ProjectStartCLI:
         print("=" * 80 + "\n")
     
     def show_copilot_integration_status(self):
-        """Show GitHub Copilot integration status"""
+        """Show GitHub Copilot and VS Code integration status"""
         print("🤖 GitHub Copilot Integration: ✅ ENABLED")
         print("   • Constitutional AI governance active")
         print("   • Multi-agent coordination protocols ready")
         print("   • Persistent context management initialized")
+        
+        if self.vscode_detected:
+            print("🎯 VS Code Integration: ✅ DETECTED")
+            print("   • Project root auto-detected")
+            print("   • Tasks and commands available in Command Palette")
+            print("   • Workspace configuration optimized")
+        else:
+            print("🎯 VS Code Integration: ℹ️  NOT DETECTED")
+            print("   • For enhanced experience, open project in VS Code")
+            print("   • Tasks and debugging available in .vscode/ configuration")
+        
+        print(f"📁 Project Root: {self.project_dir}")
         print()
         
     def ask_question(self, question: str, default: str = "", required: bool = True) -> str:
