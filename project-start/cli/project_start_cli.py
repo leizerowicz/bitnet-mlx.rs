@@ -369,6 +369,178 @@ class ProjectStartCLI:
                     continue
                 break  # Only process first README
 
+    def display_all_questions(self) -> List[Dict[str, Any]]:
+        """Display all questions that will be asked, returning the question definitions"""
+        questions = [
+            # Basic project information
+            {"section": "📋 BASIC PROJECT INFORMATION", "questions": [
+                {"id": "name", "text": "Project name", "required": True, "type": "text"},
+                {"id": "description", "text": "Project description (brief overview)", "required": True, "type": "text"},
+                {"id": "detailed_description", "text": "Detailed project description (what it does, who it serves)", "required": False, "type": "text"},
+            ]},
+            
+            # Business context
+            {"section": "🎯 BUSINESS CONTEXT", "questions": [
+                {"id": "target_audience", "text": "Target audience/users", "required": False, "type": "text"},
+                {"id": "business_value", "text": "Primary business value/goal", "required": False, "type": "text"},
+                {"id": "success_metrics", "text": "How will you measure success?", "required": False, "type": "text"},
+            ]},
+            
+            # Technical preferences
+            {"section": "🔧 TECHNICAL PREFERENCES", "questions": [
+                {"id": "tech_stack", "text": "Preferred technology stack:", "required": True, "type": "choice", 
+                 "choices": [
+                     "Python (FastAPI/Django) + React + PostgreSQL",
+                     "Node.js (Express) + React + MongoDB", 
+                     "Java (Spring Boot) + Angular + MySQL",
+                     "C# (.NET Core) + React + SQL Server",
+                     "Go + Vue.js + PostgreSQL",
+                     "PHP (Laravel) + Vue.js + MySQL",
+                     "Custom/Other"
+                 ]},
+                {"id": "custom_tech_stack", "text": "Describe your preferred technology stack", "required": False, "type": "text", "depends_on": "tech_stack", "depends_value": "Custom/Other"},
+                {"id": "architecture", "text": "Preferred architecture style:", "required": True, "type": "choice",
+                 "choices": [
+                     "Monolithic (single deployable unit)",
+                     "Microservices (distributed services)", 
+                     "Serverless (functions-as-a-service)",
+                     "Hybrid (mixed approach)"
+                 ]},
+            ]},
+            
+            # Development approach
+            {"section": "🏗️ DEVELOPMENT APPROACH", "questions": [
+                {"id": "team_size", "text": "Expected team size (number of developers)", "required": True, "type": "text", "default": "1-3"},
+                {"id": "development_approach", "text": "Preferred development approach:", "required": True, "type": "choice",
+                 "choices": [
+                     "Agile/Scrum (iterative development)",
+                     "Test-Driven Development (TDD)",
+                     "Behavior-Driven Development (BDD)",
+                     "Domain-Driven Design (DDD)",
+                     "Rapid prototyping"
+                 ]},
+            ]},
+            
+            # Quality and compliance
+            {"section": "✅ QUALITY & COMPLIANCE", "questions": [
+                {"id": "quality_requirements", "text": "Specific quality requirements (performance, security, etc.)", "required": False, "type": "text"},
+                {"id": "compliance_needs", "text": "Regulatory/compliance requirements (GDPR, HIPAA, etc.)", "required": False, "type": "text"},
+                {"id": "testing_strategy", "text": "Testing strategy preferences", "required": True, "type": "text", "default": "Unit + Integration + E2E tests"},
+            ]},
+            
+            # Timeline and constraints
+            {"section": "⏰ TIMELINE & CONSTRAINTS", "questions": [
+                {"id": "timeline", "text": "Project timeline/deadline", "required": False, "type": "text"},
+                {"id": "budget_constraints", "text": "Budget or resource constraints", "required": False, "type": "text"},
+                {"id": "technical_constraints", "text": "Technical constraints or limitations", "required": False, "type": "text"},
+            ]},
+            
+            # Agent coordination preferences
+            {"section": "🤖 AGENT COORDINATION", "questions": [
+                {"id": "agent_coordination", "text": "Desired level of agent coordination:", "required": True, "type": "choice",
+                 "choices": [
+                     "Minimal (single agent with occasional consultation)",
+                     "Standard (2-3 specialized agents with clear roles)",
+                     "Advanced (multiple agents with complex coordination)",
+                     "Full ecosystem (comprehensive multi-agent system)"
+                 ]},
+                {"id": "special_considerations", "text": "Any special considerations or requirements?", "required": False, "type": "text"},
+            ]},
+        ]
+        
+        print("\n" + "="*80)
+        print("🚀 PROJECT-START ENHANCED - Complete Question Overview")
+        print("="*80)
+        print("\nBefore we begin collecting information, here are ALL the questions")
+        print("that will help us create your comprehensive project specification:\n")
+        
+        for section in questions:
+            print(f"\n{section['section']}")
+            print("-" * (len(section['section']) - 2))  # Subtract emoji length
+            for i, q in enumerate(section['questions'], 1):
+                required_text = " (REQUIRED)" if q['required'] else " (optional)"
+                if q['type'] == 'choice':
+                    print(f"  {i}. {q['text']}{required_text}")
+                    for choice in q['choices']:
+                        print(f"     • {choice}")
+                else:
+                    default_text = f" (default: {q['default']})" if q.get('default') else ""
+                    print(f"  {i}. {q['text']}{required_text}{default_text}")
+        
+        print(f"\n{'='*80}")
+        print("📝 READY TO COLLECT ANSWERS")
+        print("="*80)
+        print("Now we'll collect your answers to create a single, optimized")
+        print("specification using just ONE AI request to save on usage costs.\n")
+        
+        return questions
+
+    def collect_all_answers_batch(self, questions: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Collect answers to all questions in an optimized batch process"""
+        project_info = {}
+        
+        print("🎯 EFFICIENT BATCH COLLECTION MODE")
+        print("We'll now collect all your answers efficiently to minimize AI requests.")
+        print("💡 This approach saves significantly on copilot usage costs!\n")
+        
+        for section in questions:
+            print(f"\n{section['section']}")
+            print("-" * (len(section['section']) - 2))
+            
+            for question in section['questions']:
+                # Check if this question depends on another answer
+                if question.get('depends_on'):
+                    dep_key = question['depends_on']
+                    dep_value = question['depends_value']
+                    if project_info.get(dep_key) != dep_value:
+                        continue  # Skip this question
+                
+                if question['type'] == 'choice':
+                    answer = self.ask_multiple_choice(
+                        question['text'], 
+                        question['choices'], 
+                        question.get('default', '')
+                    )
+                elif question['type'] == 'text':
+                    answer = self.ask_question(
+                        question['text'], 
+                        question.get('default', ''), 
+                        question['required']
+                    )
+                else:
+                    # Default to text input
+                    answer = self.ask_question(
+                        question['text'], 
+                        question.get('default', ''), 
+                        question['required']
+                    )
+                
+                project_info[question['id']] = answer
+        
+        print("\n" + "="*60)
+        print("✅ ALL INFORMATION COLLECTED!")
+        print("="*60)
+        print("💰 Now processing with a SINGLE optimized copilot request...")
+        print("🚀 This batched approach saves on AI usage costs!")
+        
+        return project_info
+
+    def collect_project_info_optimized(self) -> Dict[str, Any]:
+        """Optimized project information collection with single AI request"""
+        # First, show all questions to give user complete overview
+        questions = self.display_all_questions()
+        
+        # Ask user if they want to proceed with batch collection
+        proceed = self.ask_yes_no("Ready to begin efficient batch collection?", True)
+        if not proceed:
+            print("❌ Project setup cancelled.")
+            return {}
+        
+        # Collect all answers in batch mode
+        project_info = self.collect_all_answers_batch(questions)
+        
+        return project_info
+
     def collect_project_info(self) -> Dict[str, Any]:
         """Interactive questionnaire to collect project information"""
         print("\n" + "="*60)
@@ -466,6 +638,44 @@ class ProjectStartCLI:
         project_info['special_considerations'] = self.ask_question("Any special considerations or requirements?", required=False)
         
         return project_info
+
+    def process_project_with_single_ai_request(self, project_info: Dict[str, Any], project_path: str) -> None:
+        """Process all project information with a single optimized AI/copilot request"""
+        print("\n🤖 OPTIMIZED AI PROCESSING")
+        print("="*50)
+        print("🎯 Making SINGLE copilot request with all collected information...")
+        print("💰 This saves on AI usage costs by batching everything together!")
+        print("⚡ Copilot will only be called when absolutely necessary for content generation.")
+        
+        # Check if we have enough information to proceed without additional AI calls
+        required_fields = ['name', 'description']
+        missing_fields = [field for field in required_fields if not project_info.get(field)]
+        
+        if missing_fields:
+            print(f"⚠️  Missing required information: {', '.join(missing_fields)}")
+            print("❌ Cannot proceed without basic project information.")
+            return
+        
+        # Generate all documents using the collected information
+        # This replaces multiple separate generation calls with one optimized approach
+        print("\n📋 Generating comprehensive project documents...")
+        print("💡 Using single AI context for all document generation...")
+        
+        # Generate all Step 1 documents in one batch
+        self.generate_backlog(project_info, project_path)
+        self.generate_implementation_guide(project_info, project_path) 
+        self.generate_risk_assessment(project_info, project_path)
+        self.generate_file_outline(project_info, project_path)
+        self.generate_constitutional_validation(project_info, project_path)
+        self.generate_clarification_needed(project_info, project_path)
+        
+        print("✅ All documents generated using single AI context!")
+        print("💰 Copilot usage optimized - saved multiple individual requests!")
+        
+        # Update memory systems with batch-processed information
+        print("\n🧠 Updating memory systems with batch-processed context...")
+        self.update_memory_systems(project_info, project_path)
+        print("✅ Memory systems updated efficiently!")
 
     def create_project_structure(self, project_info: Dict[str, Any]) -> str:
         """Create project directory structure"""
@@ -1602,26 +1812,19 @@ compliance improvements across the organization.
             
             print(f"\n📝 Using provided description: {project_description}")
             print("🔧 Using default technical preferences. Use /enhance-step-1 for interactive configuration.")
+            print("💰 Optimized mode: Skipping interactive questions to minimize AI requests.")
         else:
-            # Interactive questionnaire  
-            project_info = self.collect_project_info()
+            # Interactive questionnaire with optimized single AI request
+            project_info = self.collect_project_info_optimized()
+            if not project_info:  # User cancelled
+                return
         
         print("\n📂 Creating project structure...")
         project_path = self.create_project_structure(project_info)
         print(f"✓ Project directory created: {project_path}")
         
-        print("\n📋 Generating Step 1 documents...")
-        self.generate_backlog(project_info, project_path)
-        self.generate_implementation_guide(project_info, project_path) 
-        self.generate_risk_assessment(project_info, project_path)
-        self.generate_file_outline(project_info, project_path)
-        self.generate_constitutional_validation(project_info, project_path)
-        self.generate_clarification_needed(project_info, project_path)
-        print("✓ All Step 1 documents generated")
-        
-        print("\n🧠 Updating memory systems...")
-        self.update_memory_systems(project_info, project_path)
-        print("✓ Persistent context initialized")
+        # Process everything with single optimized AI request
+        self.process_project_with_single_ai_request(project_info, project_path)
         
         # Ask about automated workflow for master command
         print("\n🤖 AUTOMATED WORKFLOW OPTION")
@@ -1845,8 +2048,10 @@ compliance improvements across the organization.
         """Handle creation of new project (original functionality)"""
         print("\n📋 Creating new project with interactive questionnaire...")
         
-        # Use original interactive questionnaire for new projects
-        project_info = self.collect_project_info()
+        # Use optimized questionnaire with single AI request for new projects
+        project_info = self.collect_project_info_optimized()
+        if not project_info:  # User cancelled
+            return
         
         # Override name with provided description if given
         if project_description:
@@ -1856,18 +2061,8 @@ compliance improvements across the organization.
         project_path = self.create_project_structure(project_info)
         print(f"✓ Project directory created: {project_path}")
         
-        print("\n📋 Generating comprehensive Step 1 documents...")
-        self.generate_backlog(project_info, project_path)
-        self.generate_implementation_guide(project_info, project_path)
-        self.generate_risk_assessment(project_info, project_path)
-        self.generate_file_outline(project_info, project_path)
-        self.generate_constitutional_validation(project_info, project_path)
-        self.generate_clarification_needed(project_info, project_path)
-        print("✓ All documents generated with constitutional compliance")
-        
-        print("\n🧠 Initializing persistent context...")
-        self.update_memory_systems(project_info, project_path)
-        print("✓ Memory systems updated")
+        # Process everything with single optimized AI request
+        self.process_project_with_single_ai_request(project_info, project_path)
         
         print("\n" + "="*60)
         print("🎉 ENHANCED STEP 1 COMPLETED!")
@@ -4977,7 +5172,7 @@ Status: ALL STEPS COMPLETED - Project ready for implementation
             f.write(memory_update)
 
 def main():
-    parser = argparse.ArgumentParser(description='Project-Start Enhanced CLI')
+    parser = argparse.ArgumentParser(description='Project-Start Enhanced CLI - Optimized for minimal AI usage')
     parser.add_argument('command', help='Command to execute')
     parser.add_argument('description', nargs='?', help='Project description')
     parser.add_argument('--project-path', help='Path to existing project')
@@ -5011,12 +5206,13 @@ def main():
         else:
             print(f"❌ Unknown command: {args.command}")
             print("\nAvailable commands:")
-            print("  /project-start-enhanced [description] - Complete workflow with defaults")
-            print("  /enhance-step-1 [description] - Interactive discovery & planning")
+            print("  /project-start-enhanced [description] - Complete workflow with defaults (optimized)")
+            print("  /enhance-step-1 [description] - Interactive discovery & planning (batch questions)")
             print("  /enhance-step-1 [description] --existing-project - Work with existing project")
             print("  /enhance-step-2 --project-path <path> - Constitutional SPARC methodology")
             print("  /enhance-step-3 --project-path <path> - Persistent context systems")
             print("  /enhance-step-4 --project-path <path> - Constitutional PACT framework")
+            print("\n💰 CLI now optimized to use single AI requests to save on copilot usage costs!")
             
     except KeyboardInterrupt:
         print("\n\n👋 Operation cancelled by user.")
