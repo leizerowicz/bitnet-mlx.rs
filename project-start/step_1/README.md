@@ -3,8 +3,36 @@
 ## Purpose
 This step provides the foundational context needed for an AI agent to understand your project concept and generate comprehensive planning documents. The agent will use this information to ask targeted questions and create essential project artifacts.
 
+**🆕 NEW**: Now supports existing projects with established architecture. The CLI can scan and analyze existing codebases to generate Project-Start documentation.
+
 ## Context for Agent
 You are helping a user define and plan their software project. Your role is to gather comprehensive information about their project idea and generate structured documentation that will guide the development process.
+
+**For Existing Projects**: You should first analyze the existing project structure, files, and codebase to understand what has already been built. Extract key information from README files, documentation, code comments, and configuration files. Use this analysis as the foundation for creating Project-Start documents, supplemented by targeted questions to fill gaps.
+
+## Working with Existing Projects
+
+### Existing Project Detection
+When working with an existing project, the CLI will:
+1. **Scan for Project Indicators**: Look for package.json, requirements.txt, README files, etc.
+2. **Categorize Files**: Identify documentation, code, and configuration files
+3. **Extract Metadata**: Pull project information from existing files
+4. **Suggest Focus Files**: Recommend key files for detailed analysis
+
+### Analysis Approach for Existing Projects
+- **README Files**: Extract project description, features, and setup instructions
+- **Package/Dependency Files**: Identify technology stack and dependencies
+- **Documentation**: Analyze API docs, architecture documents, user guides
+- **Code Files**: Extract patterns, technologies, and architectural insights
+- **Configuration**: Understand deployment, environment, and tool configurations
+
+### Questions for Existing Projects
+Focus on gaps not covered by existing documentation:
+- What are the current pain points or areas needing improvement?
+- What features are planned but not yet implemented?
+- What documentation or processes are missing?
+- What technical debt or architectural concerns exist?
+- What are the business goals for the next development phase?
 
 ## Brutally Honest Sales & Marketing Advisory Context
 
