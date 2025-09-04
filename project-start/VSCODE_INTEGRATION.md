@@ -1,8 +1,41 @@
-# VS Code Integration Guide
+# VS Code AI Integration Guide
 
 ## Overview
 
-The Project-Start CLI is now fully integrated with Visual Studio Code to provide a seamless development experience. This integration eliminates the need to manually specify project directories and makes all CLI functions easily accessible through VS Code's interface.
+The Project-Start CLI now provides enhanced VS Code integration with multi-AI assistant support following the GitHub Spec-Kit pattern. This integration offers seamless development experience with intelligent document generation.
+
+## AI Assistant Integration
+
+### GitHub Copilot (Recommended for VS Code)
+When running in VS Code with Copilot enabled:
+- **Native Integration**: Direct Copilot integration for document enhancement
+- **Prompt Files**: Creates temporary files with rich context for Copilot processing
+- **Enhanced Templates**: Copilot-ready templates for intelligent expansion
+- **Auto-Detection**: Automatic VS Code environment detection
+
+### Multi-AI Support
+The CLI supports multiple AI assistants:
+- **GitHub Copilot**: Default choice for VS Code users
+- **Claude Code**: Alternative AI assistant option
+- **Gemini CLI**: Google AI integration
+- **Intelligent Fallback**: Smart templates when AI unavailable
+
+## Environment Detection
+
+### Automatic VS Code Detection
+The CLI automatically detects VS Code environment through:
+```bash
+VSCODE_PID=12345        # Set automatically by VS Code
+TERM_PROGRAM=vscode     # Terminal program identifier
+PROJECT_START_VSCODE=true  # Manual override flag
+```
+
+### Enhanced Integration Features
+When VS Code is detected:
+- ✅ **Enhanced AI Integration**: Better Copilot integration support
+- ✅ **Prompt File Generation**: Rich context files for AI enhancement
+- ✅ **Template Optimization**: VS Code-optimized document templates
+- ✅ **Environment Feedback**: Clear status about integration capabilities
 
 ## Features
 

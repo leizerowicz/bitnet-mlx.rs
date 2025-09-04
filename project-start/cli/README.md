@@ -1,6 +1,31 @@
 # Project-Start Enhanced CLI Commands
 
-This directory contains CLI commands that integrate Spec-Kit automation with the Project-Start workflow while maintaining project-start as the primary development framework.
+This directory contains CLI commands that integrate AI-powered automation with the Project-Start workflow following the **GitHub Spec-Kit pattern** for intelligent document generation.
+
+## 🤖 AI Integration Features
+
+The CLI now supports multiple AI assistants following the GitHub Spec-Kit pattern:
+
+- **🤖 GitHub Copilot**: Native VS Code integration for intelligent document generation
+- **🧠 Claude Code**: Command-line integration with Claude for enhanced specifications  
+- **✨ Gemini CLI**: Google Gemini integration for comprehensive project planning
+- **🎯 Fallback Generation**: Intelligent templates when AI tools are unavailable
+
+### AI Assistant Selection
+
+```bash
+# Use GitHub Copilot (default)
+python3 project_start_cli.py start "My Project" --ai copilot
+
+# Use Claude Code
+python3 project_start_cli.py start "My Project" --ai claude
+
+# Use Gemini CLI
+python3 project_start_cli.py start "My Project" --ai gemini
+
+# Interactive selection
+python3 project_start_cli.py start "My Project"
+```
 
 ## Core Commands
 
