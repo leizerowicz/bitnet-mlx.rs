@@ -1,0 +1,6 @@
+#!/bin/bash
+# Project-Start Enhanced - Master orchestration command
+# Usage: /project-start-enhanced "Your project description"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+python3 "$SCRIPT_DIR/project_start_cli.py" "/project-start-enhanced" "$@"

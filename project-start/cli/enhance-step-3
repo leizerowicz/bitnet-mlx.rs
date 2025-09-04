@@ -1,0 +1,6 @@
+#!/bin/bash
+# Enhanced Step 3 - Persistent context systems (placeholder)
+# Usage: /enhance-step-3
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+python3 "$SCRIPT_DIR/project_start_cli.py" "/enhance-step-3" "$@"

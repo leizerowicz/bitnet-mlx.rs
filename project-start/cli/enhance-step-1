@@ -1,0 +1,6 @@
+#!/bin/bash
+# Enhanced Step 1 - Automated discovery with constitutional validation
+# Usage: /enhance-step-1 "Project description"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+python3 "$SCRIPT_DIR/project_start_cli.py" "/enhance-step-1" "$@"
