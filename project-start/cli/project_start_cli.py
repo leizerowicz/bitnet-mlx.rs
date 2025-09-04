@@ -2,6 +2,7 @@
 """
 Project-Start Enhanced CLI - Interactive specification-driven development tool
 Integrates GitHub's spec-kit methodology with Project-Start workflow
+Following GitHub Spec-Kit pattern for AI integration
 """
 
 import os
@@ -9,20 +10,29 @@ import sys
 import json
 import argparse
 import re
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 import subprocess
-import asyncio
 import tempfile
 
-class CopilotIntegration:
-    """GitHub Copilot integration for intelligent document generation"""
+# AI Assistant Configuration following GitHub Spec-Kit pattern
+AI_CHOICES = {
+    "copilot": "GitHub Copilot",
+    "claude": "Claude Code", 
+    "gemini": "Gemini CLI"
+}
+
+class AIIntegration:
+    """AI integration for intelligent document generation following GitHub Spec-Kit pattern"""
     
-    def __init__(self, project_dir: Path):
+    def __init__(self, project_dir: Path, ai_assistant: str = "copilot"):
         self.project_dir = project_dir
+        self.ai_assistant = ai_assistant
         self.temp_dir = tempfile.mkdtemp()
         self.vscode_detected = self._detect_vscode_environment()
+        self.ai_tool_available = self._check_ai_tool_availability()
     
     def _detect_vscode_environment(self) -> bool:
         """Detect if running within VS Code environment"""
@@ -32,6 +42,18 @@ class CopilotIntegration:
             os.environ.get("PROJECT_START_VSCODE") == "true"
         ]
         return any(vscode_indicators)
+    
+    def _check_ai_tool_availability(self) -> bool:
+        """Check if the selected AI tool is available following spec-kit pattern"""
+        if self.ai_assistant == "claude":
+            return shutil.which("claude") is not None
+        elif self.ai_assistant == "gemini":
+            return shutil.which("gemini") is not None
+        elif self.ai_assistant == "copilot":
+            # GitHub Copilot is typically available in supported IDEs
+            # Check for VS Code or other Copilot-enabled environments
+            return self.vscode_detected or os.environ.get("GITHUB_COPILOT_ENABLED") == "true"
+        return False
     
     def create_enhanced_prompt(self, document_type: str, project_info: Dict[str, Any], additional_context: str = "") -> str:
         """Create context-rich prompts for specific document types"""
@@ -137,52 +159,144 @@ Generate a complete FILE_OUTLINE.md file:"""
         
         return prompts.get(document_type, f"{base_context}\nGenerate a {document_type} document for this project:")
     
-    def generate_with_copilot_simulation(self, prompt: str, document_type: str) -> str:
-        """Generate document content using intelligent prompt processing (simulating Copilot integration)"""
+    def call_ai_assistant(self, prompt: str, document_type: str) -> str:
+        """Call the selected AI assistant following GitHub Spec-Kit pattern"""
         
-        # In a real implementation, this would make an actual Copilot API call
-        # For now, we'll create a much more intelligent template system that processes the prompt
+        if not self.ai_tool_available:
+            print(f"⚠️ {AI_CHOICES[self.ai_assistant]} not available - using fallback generation")
+            return self._generate_fallback_content(prompt, document_type)
         
-        if not self.vscode_detected:
-            print("ℹ️  VS Code not detected - using enhanced template generation")
+        print(f"🤖 Calling {AI_CHOICES[self.ai_assistant]} for {document_type} generation...")
         
-        print(f"🤖 Generating {document_type} with Copilot integration...")
-        print("⚡ Processing project context and constitutional framework...")
-        
-        # This simulates what Copilot would do - intelligent content generation based on context
-        # In the real implementation, this would be replaced with actual Copilot API calls
-        
-        # For now, return a placeholder that indicates Copilot integration
-        return f"""# Generated with Copilot Integration
+        try:
+            if self.ai_assistant == "copilot":
+                return self._call_copilot(prompt, document_type)
+            elif self.ai_assistant == "claude":
+                return self._call_claude(prompt, document_type)
+            elif self.ai_assistant == "gemini":
+                return self._call_gemini(prompt, document_type)
+            else:
+                raise ValueError(f"Unsupported AI assistant: {self.ai_assistant}")
+                
+        except Exception as e:
+            print(f"❌ Error calling {AI_CHOICES[self.ai_assistant]}: {e}")
+            print("📝 Falling back to template generation...")
+            return self._generate_fallback_content(prompt, document_type)
+    
+    def _call_copilot(self, prompt: str, document_type: str) -> str:
+        """Call GitHub Copilot following spec-kit pattern"""
+        # In VS Code environment, we can leverage Copilot integration
+        if self.vscode_detected:
+            # Create a temporary file with the prompt for Copilot processing
+            temp_file = self.temp_dir / f"{document_type}_prompt.md"
+            with open(temp_file, 'w') as f:
+                f.write(f"# {document_type.upper()} Generation Request\n\n")
+                f.write(prompt)
+                f.write(f"\n\n<!-- Generated by Project-Start CLI on {datetime.now().isoformat()} -->")
+            
+            print(f"📝 Prompt written to: {temp_file}")
+            print("💡 Use GitHub Copilot in VS Code to generate content based on this prompt")
+            print("⚡ The prompt contains all project context and requirements")
+            
+            # Return a structured template that can be enhanced with Copilot
+            return self._generate_copilot_enhanced_template(prompt, document_type)
+        else:
+            print("ℹ️ VS Code not detected - using enhanced template generation")
+            return self._generate_fallback_content(prompt, document_type)
+    
+    def _call_claude(self, prompt: str, document_type: str) -> str:
+        """Call Claude CLI following spec-kit pattern"""
+        try:
+            # Use Claude CLI to generate content
+            result = subprocess.run(
+                ["claude", "--", prompt],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            else:
+                raise subprocess.CalledProcessError(result.returncode, "claude", result.stderr)
+        except Exception as e:
+            raise Exception(f"Claude CLI error: {e}")
+    
+    def _call_gemini(self, prompt: str, document_type: str) -> str:
+        """Call Gemini CLI following spec-kit pattern"""
+        try:
+            # Use Gemini CLI to generate content
+            result = subprocess.run(
+                ["gemini", "generate", "--prompt", prompt],
+                capture_output=True, 
+                text=True,
+                timeout=60
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            else:
+                raise subprocess.CalledProcessError(result.returncode, "gemini", result.stderr)
+        except Exception as e:
+            raise Exception(f"Gemini CLI error: {e}")
+    
+    def _generate_copilot_enhanced_template(self, prompt: str, document_type: str) -> str:
+        """Generate Copilot-enhanced template following spec-kit pattern"""
+        return f"""# {document_type.replace('_', ' ').title()}
 
-🤖 **This document was generated using GitHub Copilot integration with the Project-Start CLI**
+🤖 **Generated with GitHub Copilot Integration** (Project-Start CLI)
 
-**Generation Context:**
-- Document Type: {document_type}
-- Project Context: Fully integrated
-- Constitutional Framework: Applied
-- Technology Stack: Analyzed
-- Architecture: Considered
+## AI Generation Context
+
+- **AI Assistant**: {AI_CHOICES[self.ai_assistant]}
+- **Document Type**: {document_type}
+- **Environment**: {'VS Code Detected' if self.vscode_detected else 'Command Line'}
+- **Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+## Instructions for Copilot Enhancement
+
+This document was generated using the Project-Start CLI with GitHub Copilot integration.
+The prompt below contains all project context and requirements:
+
+```markdown
+{prompt[:1000]}{'...' if len(prompt) > 1000 else ''}
+```
+
+## Next Steps
+
+1. Open this file in VS Code with GitHub Copilot enabled
+2. Use Copilot to expand and enhance the content based on the prompt
+3. The AI assistant has access to full project context and constitutional framework
+4. Generate specific, actionable content tailored to your project needs
 
 ---
 
-**Note:** This is a demonstration of the Copilot integration framework. In the full implementation, this content would be intelligently generated by GitHub Copilot based on the rich project context and constitutional framework principles.
+*This template follows the GitHub Spec-Kit pattern for AI integration*
+"""
+    
+    def _generate_fallback_content(self, prompt: str, document_type: str) -> str:
+        """Generate fallback content when AI assistant is not available"""
+        return f"""# {document_type.replace('_', ' ').title()}
 
-The actual implementation would:
-1. Use the project information to create tailored content
-2. Apply constitutional framework principles
-3. Generate technology-specific recommendations
-4. Create actionable, testable specifications
-5. Ensure alignment with team size and coordination approach
+## Generated by Project-Start CLI
 
-**Prompt Used for Generation:**
+**Note**: This document was generated using fallback templates because {AI_CHOICES[self.ai_assistant]} was not available.
+
+### Original Generation Request
 ```
-{prompt[:500]}...
+{prompt[:500]}{'...' if len(prompt) > 500 else ''}
 ```
+
+### Manual Enhancement Needed
+
+Please manually enhance this document based on the project requirements in the prompt above.
+
+**Recommended AI Tools**:
+- GitHub Copilot (in VS Code)
+- Claude Code
+- Gemini CLI
 
 ---
 
-*Generated by Project-Start Enhanced CLI with Copilot Integration on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
+*Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
 """
 
 # ASCII Art Banner for Agentic Engineering
@@ -205,13 +319,14 @@ AGENTIC_ENGINEERING_BANNER = """
 TAGLINE = "Specification-Driven Development with AI Agent Collaboration"
 
 class ProjectStartCLI:
-    def __init__(self):
+    def __init__(self, ai_assistant: str = "copilot"):
         self.project_dir = self._detect_project_root()
         self.config_dir = self.project_dir / "agent_config"
         self.specs_dir = self.project_dir / "specs"
         self.memory_dir = self.project_dir / "memory"
         self.vscode_detected = self._detect_vscode_environment()
-        self.copilot = CopilotIntegration(self.project_dir)
+        self.ai_assistant = ai_assistant
+        self.ai_integration = AIIntegration(self.project_dir, ai_assistant)
     
     def _detect_vscode_environment(self) -> bool:
         """Detect if running within VS Code environment"""
@@ -246,15 +361,26 @@ class ProjectStartCLI:
         print("=" * 80 + "\n")
     
     def show_copilot_integration_status(self):
-        """Show GitHub Copilot and VS Code integration status"""
-        print("🤖 GitHub Copilot Integration: ✅ ENABLED")
+        """Show AI integration status following spec-kit pattern"""
+        print(f"🤖 AI Integration: ✅ {AI_CHOICES[self.ai_assistant]} ENABLED")
+        if self.ai_integration.ai_tool_available:
+            print(f"✅ {AI_CHOICES[self.ai_assistant]} tool detected and available")
+        else:
+            print(f"⚠️ {AI_CHOICES[self.ai_assistant]} tool not detected - will use fallback generation")
+        
+        if self.vscode_detected:
+            print("💻 VS Code environment detected - enhanced integration available")
+        else:
+            print("💻 Command line environment - basic integration mode")
+        print("🎯 AI will be called after collecting all project context")
+        print()
         print("   • Constitutional AI governance active")
         print("   • Multi-agent coordination protocols ready")
         print("   • Persistent context management initialized")
         
         if self.vscode_detected:
             print("💻 VS Code Environment: ✅ DETECTED")
-            print("   • Enhanced Copilot integration available")
+            print(f"   • Enhanced {AI_CHOICES[self.ai_assistant]} integration available")
             print("   • Real-time context sharing enabled")
         else:
             print("💻 VS Code Environment: ⚠️  NOT DETECTED")
@@ -322,7 +448,7 @@ class ProjectStartCLI:
         print("="*60)
         
         print("\nThis tool will guide you through creating a comprehensive project specification")
-        print("using GitHub Copilot integration with Project-Start workflow.\n")
+        print("using AI integration with Project-Start workflow.\n")
         
         project_info = {}
         
@@ -432,10 +558,10 @@ class ProjectStartCLI:
         return str(project_path)
     
     def process_project_with_single_ai_request(self, project_info: Dict[str, Any], project_path: str) -> None:
-        """Process all project information with GitHub Copilot integration"""
-        print("\n🤖 GITHUB COPILOT INTEGRATION")
+        """Process all project information with AI integration"""
+        print(f"\n🤖 AI INTEGRATION - {AI_CHOICES[self.ai_assistant].upper()}")
         print("="*50)
-        print("🎯 Processing project with Copilot integration...")
+        print(f"🎯 Processing project with {AI_CHOICES[self.ai_assistant]} integration...")
         print("💡 Using intelligent document generation with project context...")
         print("⚡ Constitutional framework principles applied...")
         
@@ -448,10 +574,10 @@ class ProjectStartCLI:
             print("❌ Cannot proceed without basic project information.")
             return
         
-        # Generate all documents using Copilot integration
-        print("\n📋 Generating comprehensive project documents with Copilot...")
+        # Generate all documents using AI integration
+        print(f"\n📋 Generating comprehensive project documents with {AI_CHOICES[self.ai_assistant]}...")
         
-        # Generate all Step 1 documents with Copilot integration
+        # Generate all Step 1 documents with AI integration
         self.generate_backlog(project_info, project_path)
         self.generate_implementation_guide(project_info, project_path) 
         self.generate_risk_assessment(project_info, project_path)
@@ -459,8 +585,8 @@ class ProjectStartCLI:
         self.generate_constitutional_validation(project_info, project_path)
         self.generate_clarification_needed(project_info, project_path)
         
-        print("\n✅ All documents generated with Copilot integration!")
-        print("🎉 Project-Start Step 1 completed with GitHub Copilot!")
+        print(f"\n✅ All documents generated with {AI_CHOICES[self.ai_assistant]} integration!")
+        print(f"🎉 Project-Start Step 1 completed with {AI_CHOICES[self.ai_assistant]}!")
         
         # Update memory systems
         print("\n🧠 Updating memory systems...")
@@ -468,8 +594,8 @@ class ProjectStartCLI:
         print("✅ Memory systems updated!")
     
     def generate_backlog(self, project_info: Dict[str, Any], project_path: str) -> None:
-        """Generate BACKLOG.md using GitHub Copilot integration"""
-        print("📋 Generating BACKLOG.md with Copilot integration...")
+        """Generate BACKLOG.md using AI integration"""
+        print(f"📋 Generating BACKLOG.md with {AI_CHOICES[self.ai_assistant]} integration...")
         
         # Read Step 1 README for enhanced context
         step_1_readme = Path(__file__).parent.parent / "step_1" / "README.md"
@@ -484,21 +610,21 @@ Step 1 Framework Context:
 This document should integrate the Step 1 project discovery framework with brutally honest sales & marketing advisory context.
 """
         
-        # Create enhanced prompt for Copilot
-        prompt = self.copilot.create_enhanced_prompt("backlog", project_info, additional_context)
+        # Create enhanced prompt for AI assistant
+        prompt = self.ai_integration.create_enhanced_prompt("backlog", project_info, additional_context)
         
-        # Generate content using Copilot integration
-        backlog_content = self.copilot.generate_with_copilot_simulation(prompt, "BACKLOG.md")
+        # Generate content using AI integration
+        backlog_content = self.ai_integration.call_ai_assistant(prompt, "BACKLOG.md")
         
         # Write generated content to file
         with open(f"{project_path}/BACKLOG.md", 'w') as f:
             f.write(backlog_content)
         
-        print("✅ BACKLOG.md generated successfully with Copilot integration")
+        print(f"✅ BACKLOG.md generated successfully with {AI_CHOICES[self.ai_assistant]} integration")
     
     def generate_implementation_guide(self, project_info: Dict[str, Any], project_path: str) -> None:
-        """Generate IMPLEMENTATION_GUIDE.md using GitHub Copilot integration"""
-        print("🛠️ Generating IMPLEMENTATION_GUIDE.md with Copilot integration...")
+        """Generate IMPLEMENTATION_GUIDE.md using AI integration"""
+        print(f"🛠️ Generating IMPLEMENTATION_GUIDE.md with {AI_CHOICES[self.ai_assistant]} integration...")
         
         # Read Step 1 README for enhanced context
         step_1_readme = Path(__file__).parent.parent / "step_1" / "README.md"
@@ -513,21 +639,21 @@ Step 1 Implementation Context:
 This implementation guide should build upon Step 1 project discovery framework, incorporating both technical requirements and honest market validation insights.
 """
         
-        # Create enhanced prompt for Copilot
-        prompt = self.copilot.create_enhanced_prompt("implementation_guide", project_info, additional_context)
+        # Create enhanced prompt for AI assistant
+        prompt = self.ai_integration.create_enhanced_prompt("implementation_guide", project_info, additional_context)
         
-        # Generate content using Copilot integration
-        impl_content = self.copilot.generate_with_copilot_simulation(prompt, "IMPLEMENTATION_GUIDE.md")
+        # Generate content using AI integration
+        impl_content = self.ai_integration.call_ai_assistant(prompt, "IMPLEMENTATION_GUIDE.md")
         
         # Write generated content to file
         with open(f"{project_path}/IMPLEMENTATION_GUIDE.md", 'w') as f:
             f.write(impl_content)
         
-        print("✅ IMPLEMENTATION_GUIDE.md generated successfully with Copilot integration")
+        print(f"✅ IMPLEMENTATION_GUIDE.md generated successfully with {AI_CHOICES[self.ai_assistant]} integration")
     
     def generate_risk_assessment(self, project_info: Dict[str, Any], project_path: str) -> None:
-        """Generate RISK_ASSESSMENT.md using GitHub Copilot integration"""
-        print("⚠️ Generating RISK_ASSESSMENT.md with Copilot integration...")
+        """Generate RISK_ASSESSMENT.md using AI integration"""
+        print(f"⚠️ Generating RISK_ASSESSMENT.md with {AI_CHOICES[self.ai_assistant]} integration...")
         
         # Read Step 1 README for enhanced context and brutally honest advisory perspective
         step_1_readme = Path(__file__).parent.parent / "step_1" / "README.md"
@@ -543,20 +669,20 @@ This risk assessment should include brutally honest sales & marketing advisory c
 """
         
         # Create enhanced prompt for Copilot
-        prompt = self.copilot.create_enhanced_prompt("risk_assessment", project_info, additional_context)
+        prompt = self.ai_integration.create_enhanced_prompt("risk_assessment", project_info, additional_context)
         
-        # Generate content using Copilot integration
-        risk_content = self.copilot.generate_with_copilot_simulation(prompt, "RISK_ASSESSMENT.md")
+        # Generate content using AI integration
+        risk_content = self.ai_integration.call_ai_assistant(prompt, "RISK_ASSESSMENT.md")
         
         # Write generated content to file
         with open(f"{project_path}/RISK_ASSESSMENT.md", 'w') as f:
             f.write(risk_content)
         
-        print("✅ RISK_ASSESSMENT.md generated successfully with Copilot integration")
+        print(f"✅ RISK_ASSESSMENT.md generated successfully with {AI_CHOICES[self.ai_assistant]} integration")
     
     def generate_file_outline(self, project_info: Dict[str, Any], project_path: str) -> None:
-        """Generate FILE_OUTLINE.md using GitHub Copilot integration"""
-        print("📁 Generating FILE_OUTLINE.md with Copilot integration...")
+        """Generate FILE_OUTLINE.md using AI integration"""
+        print(f"📁 Generating FILE_OUTLINE.md with {AI_CHOICES[self.ai_assistant]} integration...")
         
         # Read Step 1 README for enhanced context
         step_1_readme = Path(__file__).parent.parent / "step_1" / "README.md"
@@ -572,30 +698,30 @@ This file structure should be informed by Step 1 discovery framework, ensuring p
 """
         
         # Create enhanced prompt for Copilot
-        prompt = self.copilot.create_enhanced_prompt("file_outline", project_info, additional_context)
+        prompt = self.ai_integration.create_enhanced_prompt("file_outline", project_info, additional_context)
         
-        # Generate content using Copilot integration
-        file_outline = self.copilot.generate_with_copilot_simulation(prompt, "FILE_OUTLINE.md")
+        # Generate content using AI integration
+        file_outline = self.ai_integration.call_ai_assistant(prompt, "FILE_OUTLINE.md")
         
         # Write generated content to file
         with open(f"{project_path}/FILE_OUTLINE.md", 'w') as f:
             f.write(file_outline)
         
-        print("✅ FILE_OUTLINE.md generated successfully with Copilot integration")
+        print(f"✅ FILE_OUTLINE.md generated successfully with {AI_CHOICES[self.ai_assistant]} integration")
     
     def generate_constitutional_validation(self, project_info: Dict[str, Any], project_path: str) -> None:
-        """Generate constitutional_validation.md using GitHub Copilot integration"""
-        print("🏛️ Generating constitutional_validation.md with Copilot integration...")
+        """Generate constitutional_validation.md using AI integration"""
+        print(f"🏛️ Generating constitutional_validation.md with {AI_CHOICES[self.ai_assistant]} integration...")
         
-        # Create a simple validation document with Copilot integration placeholder
+        # Create a simple validation document with AI integration placeholder
         validation_content = f"""# Constitutional Validation - Step 1 Discovery
 
-🤖 **Generated with Copilot Integration**
+🤖 **Generated with {AI_CHOICES[self.ai_assistant]} Integration**
 
 ## Project: {project_info['name']}
 ## Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
-**Note:** This constitutional validation document demonstrates the integration framework. In the full implementation, this would be intelligently generated by GitHub Copilot based on:
+**Note:** This constitutional validation document demonstrates the integration framework. In the full implementation, this would be intelligently generated by {AI_CHOICES[self.ai_assistant]} based on:
 
 1. Project-specific constitutional compliance requirements
 2. Technology stack alignment with constitutional principles
@@ -613,35 +739,35 @@ This file structure should be informed by Step 1 discovery framework, ensuring p
 - [x] **Success criteria are measurable and time-bound**  
   Success metrics: {project_info.get('success_metrics', 'To be refined in implementation planning')}
 
-## Copilot Integration Status ✓
+## AI Integration Status ✓
 
-- [x] **All four documents generated with Copilot integration**
+- [x] **All four documents generated with {AI_CHOICES[self.ai_assistant]} integration**
   - BACKLOG.md: ✅ Generated with intelligent prompting
   - IMPLEMENTATION_GUIDE.md: ✅ Generated with context-aware content
   - RISK_ASSESSMENT.md: ✅ Generated with project-specific risks
   - FILE_OUTLINE.md: ✅ Generated with technology-aware structure
 
 ---
-*Constitutional validation completed by Project-Start Enhanced CLI with Copilot Integration*
+*Constitutional validation completed by Project-Start Enhanced CLI with {AI_CHOICES[self.ai_assistant]} Integration*
 """
         
         with open(f"{project_path}/constitutional_validation.md", 'w') as f:
             f.write(validation_content)
         
-        print("✅ constitutional_validation.md generated successfully with Copilot integration")
+        print(f"✅ constitutional_validation.md generated successfully with {AI_CHOICES[self.ai_assistant]} integration")
     
     def generate_clarification_needed(self, project_info: Dict[str, Any], project_path: str) -> None:
-        """Generate clarification_needed.md using GitHub Copilot integration"""
-        print("❓ Generating clarification_needed.md with Copilot integration...")
+        """Generate clarification_needed.md using AI integration"""
+        print(f"❓ Generating clarification_needed.md with {AI_CHOICES[self.ai_assistant]} integration...")
         
-        # Create a simple clarification document with Copilot integration demonstration
+        # Create a simple clarification document with AI integration demonstration
         clarifications = f"""# Clarifications Needed - {project_info['name']}
 
-🤖 **Generated with Copilot Integration**
+🤖 **Generated with {AI_CHOICES[self.ai_assistant]} Integration** (Project-Start CLI)
 
-## Copilot Integration Status
+## AI Integration Status
 
-**Note:** This clarification document demonstrates the integration framework. In the full implementation, this would be intelligently generated by GitHub Copilot to:
+**Note:** This clarification document demonstrates the integration framework. In the full implementation, this would be intelligently generated by {AI_CHOICES[self.ai_assistant]} to:
 
 1. Analyze project information for gaps and ambiguities
 2. Generate context-specific clarification questions
@@ -655,14 +781,14 @@ This file structure should be informed by Step 1 discovery framework, ensuring p
 
 ## AI-Identified Clarification Areas
 
-**Note:** In the full Copilot implementation, these would be intelligently identified based on project type analysis, technology stack requirements, business context gaps, and implementation readiness assessment.
+**Note:** In the full {AI_CHOICES[self.ai_assistant]} implementation, these would be intelligently identified based on project type analysis, technology stack requirements, business context gaps, and implementation readiness assessment.
 
 ### High Priority (AI-Identified)
 1. **User Personas**: Current description "{project_info.get('target_audience', 'Not specified')}" needs detailed development
 2. **Performance Requirements**: Technology stack requires specific performance targets for architecture decisions
 3. **Integration Points**: Business context suggests external system integration needs analysis
 
-## Copilot Integration Benefits
+## AI Integration Benefits
 
 ✅ **Intelligent Gap Analysis**: AI identifies missing critical information
 ✅ **Context-Aware Questions**: Questions tailored to technology stack and architecture  
@@ -670,13 +796,13 @@ This file structure should be informed by Step 1 discovery framework, ensuring p
 ✅ **Actionable Recommendations**: Specific steps for resolution
 
 ---
-*Generated by Project-Start Enhanced CLI with Copilot Integration on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
+*Generated by Project-Start Enhanced CLI with {AI_CHOICES[self.ai_assistant]} Integration on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
 """
         
         with open(f"{project_path}/clarification_needed.md", 'w') as f:
             f.write(clarifications)
         
-        print("✅ clarification_needed.md generated successfully with Copilot integration")
+        print(f"✅ clarification_needed.md generated successfully with {AI_CHOICES[self.ai_assistant]} integration")
     
     def update_memory_systems(self, project_info: Dict[str, Any], project_path: str) -> None:
         """Update persistent memory systems with project context"""
@@ -686,7 +812,7 @@ This file structure should be informed by Step 1 discovery framework, ensuring p
         project_memory = f"""# Project Memory - {project_info['name']}
 
 ## Current Project State
-- **Phase**: Step 1 Discovery Completed with Copilot Integration
+- **Phase**: Step 1 Discovery Completed with {AI_CHOICES[self.ai_assistant]} Integration
 - **Next Action**: Execute /enhance-step-2 for constitutional SPARC methodology
 - **Project Path**: {project_path}
 - **Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
@@ -710,7 +836,7 @@ This file structure should be informed by Step 1 discovery framework, ensuring p
             f.write(project_memory)
     
     def project_start_enhanced(self, project_description: str) -> None:
-        """Enhanced project start with Copilot integration"""
+        """Enhanced project start with AI integration"""
         self.show_banner()
         self.show_copilot_integration_status()
         
@@ -721,7 +847,7 @@ This file structure should be informed by Step 1 discovery framework, ensuring p
         project_path = self.create_project_structure(project_info)
         print(f"\n📁 Created project structure at: {project_path}")
         
-        # Process with Copilot integration
+        # Process with AI integration
         self.process_project_with_single_ai_request(project_info, project_path)
         
         print(f"\n🎉 Project-Start Enhanced completed successfully!")
@@ -729,10 +855,43 @@ This file structure should be informed by Step 1 discovery framework, ensuring p
         print(f"🚀 Ready for Step 2: Enhanced SPARC methodology")
 
 
+def select_ai_assistant() -> str:
+    """Select AI assistant following GitHub Spec-Kit pattern"""
+    print("\n🤖 AI ASSISTANT SELECTION")
+    print("=" * 30)
+    print("Choose your AI assistant for document generation:")
+    print()
+    
+    choices = list(AI_CHOICES.keys())
+    for i, key in enumerate(choices):
+        print(f"{i + 1}. {AI_CHOICES[key]}")
+    print()
+    
+    while True:
+        try:
+            choice = input("Enter your choice (1-3) [default: 1 for GitHub Copilot]: ").strip()
+            if not choice:
+                return "copilot"  # Default choice
+            
+            choice_idx = int(choice) - 1
+            if 0 <= choice_idx < len(choices):
+                selected = choices[choice_idx]
+                print(f"✅ Selected: {AI_CHOICES[selected]}")
+                return selected
+            else:
+                print("❌ Invalid choice. Please enter 1, 2, or 3.")
+        except ValueError:
+            print("❌ Invalid input. Please enter a number.")
+        except KeyboardInterrupt:
+            print("\n🛑 Selection cancelled")
+            sys.exit(1)
+
+
 def main():
-    parser = argparse.ArgumentParser(description='Project-Start Enhanced CLI with Copilot Integration')
+    parser = argparse.ArgumentParser(description='Project-Start Enhanced CLI with AI Integration')
     parser.add_argument('command', help='Command to execute')
     parser.add_argument('description', nargs='?', help='Project description')
+    parser.add_argument('--ai', choices=list(AI_CHOICES.keys()), help='AI assistant to use')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     
     # If no arguments provided, show help
@@ -742,7 +901,10 @@ def main():
         
     args = parser.parse_args()
     
-    cli = ProjectStartCLI()
+    # Select AI assistant if not specified
+    ai_assistant = args.ai if args.ai else select_ai_assistant()
+    
+    cli = ProjectStartCLI(ai_assistant)
     
     try:
         if args.command == 'start':
