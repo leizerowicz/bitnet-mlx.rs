@@ -18,6 +18,7 @@ import subprocess
 import shutil
 import json
 from pathlib import Path
+from typing import Union, Optional
 
 # ASCII Art Banner
 BANNER = """
@@ -86,7 +87,7 @@ Please provide a detailed, professional {document_type} that can serve as a foun
             print(f"  ✅ Generated {document_type} using Gemini CLI")
             return True
         else:
-            print(f"  ⚠️  Gemini CLI failed, falling back to template")
+            print("  ⚠️  Gemini CLI failed, falling back to template")
 
     # Fallback to template
     if template_path.exists():
@@ -133,7 +134,7 @@ class ProjectStartCLI:
         config_file = current / ".project-start-config"
         if config_file.exists():
             try:
-                with open(config_file, "r") as f:
+                with open(config_file, "r", encoding="utf-8") as f:
                     for line in f:
                         if line.startswith("TARGET_PROJECT_ROOT="):
                             return Path(line.split("=", 1)[1].strip())
@@ -215,6 +216,8 @@ class ProjectStartCLI:
         print("Choose an action:")
         print()
         print("1. 📋 Step 1: Discovery & Specification Generation")
+        print("   └── Supports both new and existing projects")
+        print("   └── Smart file analysis and selection for existing codebases")
         print("2. 🎯 Step 2: SPARC Planning Methodology")
         print("3. 🧠 Step 3: Context Systems Creation")
         print("4. 🤝 Step 4: PACT Framework Deployment")
@@ -264,13 +267,61 @@ class ProjectStartCLI:
         print("\n📋 STEP 1: DISCOVERY & SPECIFICATION GENERATION")
         print("=" * 55)
 
+        # Ask if this is for an existing project first
+        existing = self.ask_yes_no("Is this for an existing project?", default=False)
+
+        if existing:
+            self._handle_existing_project_step_1()
+        else:
+            self._handle_new_project_step_1()
+
+    def _handle_new_project_step_1(self) -> None:
+        """Handle Step 1 for new projects"""
+        print("\n🆕 NEW PROJECT - DISCOVERY & SPECIFICATION")
+        print("=" * 50)
+
         description = self.ask_question(
             "Enter a brief project description", required=True
         )
 
-        existing = self.ask_yes_no("Is this for an existing project?", default=False)
+        self._run_step_command("/enhance-step-1", description, False)
 
-        self._run_step_command("/enhance-step-1", description, existing)
+    def _handle_existing_project_step_1(self) -> None:
+        """Handle Step 1 for existing projects"""
+        print("\n📂 EXISTING PROJECT - ANALYSIS & ENHANCEMENT")
+        print("=" * 50)
+
+        # Get project path
+        project_path = self.ask_question(
+            "Enter the path to your existing project",
+            default=str(self.project_root),
+            required=True,
+        )
+
+        # Validate project path exists
+        if not Path(project_path).exists():
+            print(f"❌ Project path does not exist: {project_path}")
+            return
+
+        # Ask for project description
+        description = self.ask_question(
+            "Enter a brief description of your existing project", required=True
+        )
+
+        # Ask about file selection approach
+        file_approach = self.ask_multiple_choice(
+            "How would you like to analyze your codebase?",
+            [
+                "Analyze all files (automatic detection)",
+                "Select specific files/directories",
+                "Focus on configuration files only",
+                "Manual specification (skip file analysis)",
+            ],
+            default="Analyze all files (automatic detection)",
+        )
+
+        # Handle existing project analysis
+        self.enhance_step_1_existing(description, project_path, file_approach)
 
     def _handle_step_2(self) -> None:
         """Handle Step 2: SPARC Planning"""
@@ -336,11 +387,24 @@ class ProjectStartCLI:
         print()
         print("🔧 Available Commands:")
         print("  /enhance-step-1          - Discovery and specification generation")
+        print("                           - Supports both new and existing projects")
+        print("                           - Smart file analysis and selection")
         print("  /enhance-step-2          - SPARC planning methodology")
         print("  /enhance-step-3          - Context systems creation")
         print("  /enhance-step-4          - PACT framework deployment")
         print("  /project-start-enhanced  - Complete 4-step workflow")
         print("  /configure-project-root  - Configure project root")
+        print()
+        print("📂 Existing Project Features:")
+        print("  • Automatic technology stack detection")
+        print("  • Smart project type identification")
+        print("  • Flexible file analysis approaches:")
+        print("    - Analyze all files (automatic detection)")
+        print("    - Select specific files/directories")
+        print("    - Focus on configuration files only")
+        print("    - Manual specification (skip file analysis)")
+        print("  • Enhancement-focused specifications")
+        print("  • Preserve existing architecture patterns")
         print()
         print("📚 Documentation:")
         print("  • README.md files in each step directory")
@@ -359,9 +423,12 @@ class ProjectStartCLI:
         print("  • Intelligent document generation with constitutional compliance")
         print("  • Fallback templates when AI tools unavailable")
         print("  • Context-aware multi-agent coordination")
+        print("  • Existing project analysis and enhancement")
         print()
         print("📋 Generated Documents:")
         print("  Step 1: BACKLOG.md, IMPLEMENTATION_GUIDE.md, RISK_ASSESSMENT.md")
+        print("          FILE_OUTLINE.md, constitutional_validation.md")
+        print("          + Existing project analysis (when applicable)")
         print("  Step 2: SPARC_*.md documents with methodology framework")
         print("  Step 3: copilot-instructions.md, expert_files/, agent_coordination.md")
         print("  Step 4: PACT framework documents for multi-agent testing")
@@ -401,7 +468,7 @@ class ProjectStartCLI:
             print("=" * 50)
 
             # Run the command
-            result = subprocess.run(cmd, cwd=self.project_root)
+            result = subprocess.run(cmd, cwd=self.project_root, check=False)
 
             if result.returncode == 0:
                 print(f"\n✅ {command} completed successfully!")
@@ -424,17 +491,516 @@ class ProjectStartCLI:
                 "Enter a brief project description", required=True
             )
 
-        # Generate project context
-        project_context = self._gather_project_context(description, existing_project)
+        if existing_project:
+            # Handle existing project workflow
+            project_path = self.ask_question(
+                "Enter the path to your existing project",
+                default=str(self.project_root),
+                required=True,
+            )
 
-        # Create project directory
+            if not Path(project_path).exists():
+                print(f"❌ Project path does not exist: {project_path}")
+                return
+
+            file_approach = self.ask_multiple_choice(
+                "How would you like to analyze your codebase?",
+                [
+                    "Analyze all files (automatic detection)",
+                    "Select specific files/directories",
+                    "Focus on configuration files only",
+                    "Manual specification (skip file analysis)",
+                ],
+                default="Analyze all files (automatic detection)",
+            )
+
+            self.enhance_step_1_existing(description, project_path, file_approach)
+        else:
+            # Handle new project workflow
+            project_context = self._gather_project_context(
+                description, existing_project
+            )
+            project_dir = self._create_project_directory(
+                project_context["project_name"]
+            )
+            self._generate_specification_documents(project_dir, project_context)
+
+            print("\n✅ Step 1 completed successfully!")
+            print(f"📁 Project specs created in: {project_dir}")
+
+    def enhance_step_1_existing(
+        self, description: str, project_path: str, file_approach: str
+    ) -> None:
+        """Enhanced Step 1 for existing projects"""
+        print("🔍 Starting Enhanced Step 1: Existing Project Analysis")
+        print("=" * 60)
+
+        project_path_obj = Path(project_path)
+        if not project_path_obj.exists():
+            print(f"❌ Project path does not exist: {project_path}")
+            return
+
+        # Analyze existing project structure
+        project_context = self._analyze_existing_project(
+            description, project_path_obj, file_approach
+        )
+
+        # Create project directory for specifications
         project_dir = self._create_project_directory(project_context["project_name"])
 
-        # Generate specification documents
+        # Add existing project analysis to context
+        project_context["existing_analysis"] = self._get_existing_project_analysis(
+            project_path_obj, file_approach
+        )
+
+        # Generate specification documents with existing project context
         self._generate_specification_documents(project_dir, project_context)
 
-        print(f"\n✅ Step 1 completed successfully!")
-        print(f"📁 Project specs created in: {project_dir}")
+        print("\n✅ Existing project analysis completed!")
+        print(f"📁 Enhanced specs created in: {project_dir}")
+        print(f"🔗 Original project: {project_path}")
+
+    def _analyze_existing_project(
+        self, description: str, project_path: Path, file_approach: str
+    ) -> dict:
+        """Analyze existing project and gather context using VS Code workspace detection"""
+        print("\n📊 ANALYZING EXISTING PROJECT WITH VS CODE WORKSPACE DETECTION")
+        print("=" * 65)
+
+        # Use VS Code workspace if available, otherwise use provided path
+        workspace_path = self._detect_vscode_workspace() or project_path
+        print(f"🔍 Analyzing workspace: {workspace_path}")
+
+        # Basic project info from existing structure
+        project_name = self.ask_question(
+            "Project name for specifications",
+            default=workspace_path.name.lower().replace(" ", "-"),
+            required=True,
+        )
+
+        # Enhanced analysis using VS Code workspace context
+        workspace_analysis = self._analyze_vscode_workspace(
+            workspace_path, file_approach
+        )
+
+        # Try to detect technology stack from existing files
+        detected_tech = workspace_analysis.get(
+            "detected_tech", self._detect_technology_stack(workspace_path)
+        )
+        tech_stack = self.ask_question(
+            "Technology stack", default=detected_tech, required=True
+        )
+
+        # Try to detect project type
+        detected_type = workspace_analysis.get(
+            "detected_type", self._detect_project_type(workspace_path)
+        )
+        project_type = self.ask_question(
+            "Project type", default=detected_type, required=True
+        )
+
+        # Gather additional context
+        target_audience = self.ask_question(
+            "Target audience/users", default="Existing users"
+        )
+
+        # Ask for enhancement goals instead of key features
+        enhancement_goals = self.ask_question(
+            "What improvements/enhancements do you want to achieve?", required=True
+        )
+
+        constraints = self.ask_question(
+            "Current technical constraints or limitations", required=False
+        )
+
+        success_criteria = self.ask_question(
+            "Success criteria for the enhancement", required=False
+        )
+
+        return {
+            "project_name": project_name,
+            "description": description,
+            "tech_stack": tech_stack,
+            "project_type": project_type,
+            "target_audience": target_audience,
+            "key_features": enhancement_goals,  # Repurposed for enhancement goals
+            "constraints": constraints,
+            "success_criteria": success_criteria,
+            "existing_project": True,
+            "original_path": str(workspace_path),
+            "workspace_path": str(workspace_path),
+            "file_approach": file_approach,
+            "workspace_analysis": workspace_analysis,
+            "timestamp": subprocess.run(
+                ["date"], capture_output=True, text=True, check=False
+            ).stdout.strip(),
+        }
+
+    def _detect_vscode_workspace(self) -> Optional[Path]:
+        """Detect VS Code workspace directory"""
+        # Check if running in VS Code environment
+        if self.vscode_env:
+            # Try to get workspace folder from environment
+            workspace_folders = os.environ.get("VSCODE_WORKSPACE_FOLDER")
+            if workspace_folders:
+                return Path(workspace_folders)
+
+            # Fall back to current working directory if in VS Code
+            return Path.cwd()
+
+        # Not in VS Code, return None to use provided path
+        return None
+
+    def _analyze_vscode_workspace(
+        self, workspace_path: Path, file_approach: str
+    ) -> dict:
+        """Analyze VS Code workspace using file system inspection and VS Code-like analysis"""
+        analysis = {
+            "detected_tech": "Multiple/Other",
+            "detected_type": "Other",
+            "workspace_structure": {},
+            "key_files": [],
+            "config_files": [],
+            "source_files": [],
+            "documentation_files": [],
+            "technologies_detected": [],
+        }
+
+        try:
+            print("  🔍 Scanning workspace structure...")
+
+            # Enhanced file analysis with VS Code-like categorization
+            file_categories = self._categorize_workspace_files(workspace_path)
+            analysis.update(file_categories)
+
+            # Technology detection based on file patterns
+            analysis["detected_tech"] = self._detect_technology_from_files(
+                file_categories
+            )
+            analysis["detected_type"] = self._detect_project_type_from_structure(
+                file_categories
+            )
+
+            # Apply file approach filtering
+            if file_approach == "Select specific files/directories":
+                analysis["selected_files"] = self._select_workspace_files(
+                    file_categories
+                )
+            elif file_approach == "Focus on configuration files only":
+                analysis["focus_files"] = file_categories["config_files"]
+            elif file_approach == "Manual specification (skip file analysis)":
+                analysis["manual_mode"] = True
+
+        except PermissionError:
+            analysis["error"] = "Permission denied accessing workspace files"
+        except Exception as e:
+            analysis["error"] = f"Error analyzing workspace: {str(e)}"
+
+        return analysis
+
+    def _categorize_workspace_files(self, workspace_path: Path) -> dict:
+        """Categorize files in workspace like VS Code would"""
+        categories = {
+            "source_files": [],
+            "config_files": [],
+            "documentation_files": [],
+            "test_files": [],
+            "build_files": [],
+            "asset_files": [],
+            "workspace_structure": {
+                "directories": [],
+                "total_files": 0,
+                "file_types": {},
+            },
+        }
+
+        # File extension mappings
+        source_extensions = {
+            ".py",
+            ".js",
+            ".ts",
+            ".jsx",
+            ".tsx",
+            ".java",
+            ".cs",
+            ".go",
+            ".rs",
+            ".cpp",
+            ".c",
+            ".h",
+        }
+        config_extensions = {
+            ".json",
+            ".yaml",
+            ".yml",
+            ".toml",
+            ".ini",
+            ".config",
+            ".env",
+        }
+        doc_extensions = {".md", ".rst", ".txt", ".adoc"}
+        test_patterns = {"test", "spec", "__tests__", "tests"}
+
+        try:
+            for item in workspace_path.rglob("*"):
+                if item.is_file() and not any(
+                    part.startswith(".")
+                    for part in item.parts[len(workspace_path.parts) :]
+                ):
+                    rel_path = str(item.relative_to(workspace_path))
+                    categories["workspace_structure"]["total_files"] += 1
+
+                    # Track file extensions
+                    ext = item.suffix.lower()
+                    categories["workspace_structure"]["file_types"][ext] = (
+                        categories["workspace_structure"]["file_types"].get(ext, 0) + 1
+                    )
+
+                    # Categorize files
+                    if ext in source_extensions:
+                        categories["source_files"].append(rel_path)
+                    elif ext in config_extensions or item.name.startswith("."):
+                        categories["config_files"].append(rel_path)
+                    elif ext in doc_extensions:
+                        categories["documentation_files"].append(rel_path)
+                    elif any(pattern in item.name.lower() for pattern in test_patterns):
+                        categories["test_files"].append(rel_path)
+                    elif item.name in [
+                        "Makefile",
+                        "Dockerfile",
+                        "docker-compose.yml",
+                        "CMakeLists.txt",
+                    ]:
+                        categories["build_files"].append(rel_path)
+                    elif ext in {".png", ".jpg", ".svg", ".css", ".scss", ".less"}:
+                        categories["asset_files"].append(rel_path)
+
+                elif item.is_dir() and not item.name.startswith("."):
+                    rel_path = str(item.relative_to(workspace_path))
+                    categories["workspace_structure"]["directories"].append(rel_path)
+
+        except PermissionError:
+            categories["error"] = "Permission denied accessing some files"
+
+        # Limit lists to reasonable sizes for display
+        for key in [
+            "source_files",
+            "config_files",
+            "documentation_files",
+            "test_files",
+        ]:
+            categories[key] = categories[key][:20]
+
+        return categories
+
+    def _detect_technology_from_files(self, file_categories: dict) -> str:
+        """Detect technology stack from categorized files"""
+        detections = []
+        config_files = [f.lower() for f in file_categories.get("config_files", [])]
+        source_files = file_categories.get("source_files", [])
+
+        # Check for specific technology indicators
+        if any("package.json" in f for f in config_files):
+            if any(f.endswith((".ts", ".tsx")) for f in source_files):
+                detections.append("TypeScript")
+            else:
+                detections.append("JavaScript")
+
+        if any(
+            f in ["requirements.txt", "pyproject.toml", "setup.py", "poetry.lock"]
+            for f in config_files
+        ):
+            detections.append("Python")
+
+        if any(
+            f in ["pom.xml", "build.gradle", "gradle.properties"] for f in config_files
+        ):
+            detections.append("Java")
+
+        if any("cargo.toml" in f for f in config_files):
+            detections.append("Rust")
+
+        if any("go.mod" in f for f in config_files):
+            detections.append("Go")
+
+        if any(f.endswith(".csproj") for f in config_files) or any(
+            f.endswith(".cs") for f in source_files
+        ):
+            detections.append("C#")
+
+        # Check for web frameworks
+        if any("next.config" in f or "nuxt.config" in f for f in config_files):
+            detections.append("Web Framework")
+
+        return ", ".join(detections) if detections else "Multiple/Other"
+
+    def _detect_project_type_from_structure(self, file_categories: dict) -> str:
+        """Detect project type from file structure"""
+        directories = file_categories.get("workspace_structure", {}).get(
+            "directories", []
+        )
+        config_files = [f.lower() for f in file_categories.get("config_files", [])]
+
+        # Web application indicators
+        web_indicators = ["src/components", "public", "static", "assets", "styles"]
+        if any(
+            indicator in " ".join(directories).lower() for indicator in web_indicators
+        ):
+            return "Web Application"
+
+        # API/Backend indicators
+        api_indicators = ["api", "routes", "controllers", "models", "services"]
+        if any(
+            indicator in " ".join(directories).lower() for indicator in api_indicators
+        ):
+            return "API/Backend"
+
+        # CLI tool indicators
+        if any("bin" in d or "cli" in d for d in directories):
+            return "CLI Tool"
+
+        # Library indicators
+        if any("lib" in d or "src/lib" in d for d in directories):
+            return "Library/Package"
+
+        # Desktop app indicators
+        if any("electron" in f or "tauri" in f for f in config_files):
+            return "Desktop App"
+
+        return "Other"
+
+    def _select_workspace_files(self, file_categories: dict) -> list:
+        """Interactive workspace file selection with VS Code-like categorization"""
+        print("\n📂 WORKSPACE FILE CATEGORIES:")
+        print("=" * 40)
+
+        # Show categorized files
+        categories_to_show = [
+            ("Source Files", file_categories.get("source_files", [])),
+            ("Configuration Files", file_categories.get("config_files", [])),
+            ("Documentation", file_categories.get("documentation_files", [])),
+            ("Test Files", file_categories.get("test_files", [])),
+            ("Build Files", file_categories.get("build_files", [])),
+        ]
+
+        for category_name, files in categories_to_show:
+            if files:
+                print(f"\n{category_name}:")
+                for i, file in enumerate(files[:10], 1):  # Show first 10
+                    print(f"  {i:2}. {file}")
+                if len(files) > 10:
+                    print(f"     ... and {len(files) - 10} more")
+
+        # Show key directories
+        directories = file_categories.get("workspace_structure", {}).get(
+            "directories", []
+        )
+        if directories:
+            print("\nKey Directories:")
+            for i, dir_path in enumerate(directories[:10], 1):
+                print(f"  {i:2}. {dir_path}/")
+
+        selected_items = self.ask_question(
+            "Enter file/directory names to analyze (comma-separated)", required=False
+        )
+
+        return [item.strip() for item in selected_items.split(",") if item.strip()]
+
+    def _detect_technology_stack(self, project_path: Path) -> str:
+        """Detect technology stack from project files"""
+        detections = []
+
+        # Check for common files
+        if (project_path / "package.json").exists():
+            detections.append("JavaScript/TypeScript")
+        if (project_path / "requirements.txt").exists() or (
+            project_path / "pyproject.toml"
+        ).exists():
+            detections.append("Python")
+        if (project_path / "pom.xml").exists() or (
+            project_path / "build.gradle"
+        ).exists():
+            detections.append("Java")
+        if (project_path / "Cargo.toml").exists():
+            detections.append("Rust")
+        if (project_path / "go.mod").exists():
+            detections.append("Go")
+        if (project_path / "Program.cs").exists() or list(
+            project_path.glob("*.csproj")
+        ):
+            detections.append("C#")
+
+        return ", ".join(detections) if detections else "Multiple/Other"
+
+    def _detect_project_type(self, project_path: Path) -> str:
+        """Detect project type from structure"""
+        # Check for web application indicators
+        if (project_path / "src" / "components").exists() or (
+            project_path / "public"
+        ).exists():
+            return "Web Application"
+
+        # Check for CLI indicators
+        if (project_path / "bin").exists() or (project_path / "cli").exists():
+            return "CLI Tool"
+
+        # Check for API indicators
+        if any(
+            path.name in ["api", "routes", "controllers"]
+            for path in project_path.iterdir()
+            if path.is_dir()
+        ):
+            return "API/Backend"
+
+        # Check for library indicators
+        if (project_path / "lib").exists() or (project_path / "src" / "lib").exists():
+            return "Library/Package"
+
+        return "Other"
+
+    def _get_existing_project_analysis(
+        self, project_path: Path, file_approach: str
+    ) -> dict:
+        """Get detailed analysis of existing project files using VS Code workspace context"""
+        analysis = {
+            "approach": file_approach,
+            "workspace_analysis": {},
+            "potential_improvements": [],
+        }
+
+        # Use VS Code workspace analysis if available
+        workspace_path = self._detect_vscode_workspace() or project_path
+        workspace_analysis = self._analyze_vscode_workspace(
+            workspace_path, file_approach
+        )
+        analysis["workspace_analysis"] = workspace_analysis
+
+        # Generate improvement suggestions based on analysis
+        if workspace_analysis.get("source_files"):
+            analysis["potential_improvements"].append(
+                "Code organization and structure optimization"
+            )
+        if workspace_analysis.get("config_files"):
+            analysis["potential_improvements"].append(
+                "Configuration management enhancement"
+            )
+        if not workspace_analysis.get("test_files"):
+            analysis["potential_improvements"].append("Test coverage implementation")
+        if not workspace_analysis.get("documentation_files"):
+            analysis["potential_improvements"].append("Documentation improvement")
+
+        # Legacy compatibility with original structure
+        analysis.update(
+            {
+                "project_structure": workspace_analysis.get("workspace_structure", {}),
+                "key_files": workspace_analysis.get("source_files", [])[:10],
+                "config_files": workspace_analysis.get("config_files", [])[:10],
+                "selected_files": workspace_analysis.get("selected_files", []),
+                "focus_files": workspace_analysis.get("focus_files", []),
+            }
+        )
+
+        return analysis
 
     def _gather_project_context(self, description: str, existing_project: bool) -> dict:
         """Gather comprehensive project context through questionnaire"""
@@ -572,10 +1138,29 @@ class ProjectStartCLI:
         """Create a basic document if AI and templates fail"""
         print(f"  📝 Creating basic {filename}...")
 
+        # Handle existing project context
+        existing_section = ""
+        if context.get("existing_project"):
+            existing_analysis = context.get("existing_analysis", {})
+            existing_section = f"""
+
+## Existing Project Analysis
+
+**Original Project Path:** {context.get('original_path', 'N/A')}
+**Analysis Approach:** {existing_analysis.get('approach', 'N/A')}
+
+### Project Structure Summary
+{self._format_existing_analysis(existing_analysis)}
+
+### Enhancement Focus
+This document focuses on improving and extending the existing codebase rather than building from scratch.
+"""
+
         basic_content = f"""# {filename.replace('.md', '').replace('_', ' ').title()}
 
 **Project:** {context['project_name']}
 **Description:** {context['description']}
+**Project Type:** {'Existing Project Enhancement' if context.get('existing_project') else 'New Project'}
 **Generated:** {context['timestamp']}
 
 ## Project Context
@@ -584,16 +1169,22 @@ class ProjectStartCLI:
 - **Project Type:** {context['project_type']}
 - **Target Audience:** {context['target_audience']}
 - **Key Features:** {context['key_features']}
+{existing_section}
 
 ## Document Content
 
 *This document was auto-generated as a placeholder. Please enhance with specific content for {filename.replace('.md', '')}.*
 
+{'### Enhancement Strategy' if context.get('existing_project') else '### Implementation Strategy'}
+
+{'This section should focus on how to improve and extend the existing codebase.' if context.get('existing_project') else 'This section should outline the implementation approach for the new project.'}
+
 ## Next Steps
 
 1. Review and enhance this document content
-2. Validate against Project-Start constitutional framework
-3. Coordinate with development team for implementation
+2. {'Analyze existing codebase patterns and architecture' if context.get('existing_project') else 'Define detailed requirements and specifications'}
+3. Validate against Project-Start constitutional framework
+4. Coordinate with development team for implementation
 
 ---
 *Generated by Project-Start Enhanced CLI*
@@ -605,6 +1196,51 @@ class ProjectStartCLI:
             print(f"  ✅ Created fallback {filename}")
         except Exception as e:
             print(f"  ❌ Failed to create {filename}: {e}")
+
+    def _format_existing_analysis(self, analysis: dict) -> str:
+        """Format existing project analysis for document inclusion"""
+        if not analysis:
+            return "No detailed analysis available."
+
+        formatted = []
+
+        if "project_structure" in analysis:
+            structure = analysis["project_structure"]
+            if structure.get("total_files"):
+                formatted.append(f"- **Total Files:** {structure['total_files']}")
+            if structure.get("directories"):
+                formatted.append(
+                    f"- **Key Directories:** {', '.join(structure['directories'][:5])}"
+                )
+            if structure.get("file_types"):
+                top_types = sorted(
+                    structure["file_types"].items(), key=lambda x: x[1], reverse=True
+                )[:3]
+                formatted.append(
+                    f"- **Main File Types:** {', '.join([f'{ext} ({count})' for ext, count in top_types])}"
+                )
+
+        if "key_files" in analysis:
+            if analysis["key_files"]:
+                formatted.append(
+                    f"- **Key Files:** {', '.join(analysis['key_files'][:5])}"
+                )
+
+        if "config_files" in analysis:
+            if analysis["config_files"]:
+                formatted.append(
+                    f"- **Configuration Files:** {', '.join(analysis['config_files'][:5])}"
+                )
+
+        if "selected_files" in analysis:
+            if analysis["selected_files"]:
+                formatted.append(
+                    f"- **Selected Files:** {', '.join(analysis['selected_files'])}"
+                )
+
+        return (
+            "\n".join(formatted) if formatted else "Basic project structure detected."
+        )
 
     def enhance_step_2(self, project_path: str = "") -> None:
         """Enhanced Step 2: SPARC Planning"""
@@ -1225,15 +1861,15 @@ The PACT framework provides:
                     latest_project = max(project_dirs, key=lambda x: x.stat().st_mtime)
                     project_path = str(latest_project)
 
-                    print(f"\n🎯 STEP 2: SPARC Planning Methodology")
+                    print("\n🎯 STEP 2: SPARC Planning Methodology")
                     print("=" * 45)
                     self.enhance_step_2(project_path)
 
-                    print(f"\n🧠 STEP 3: Context Systems Creation")
+                    print("\n🧠 STEP 3: Context Systems Creation")
                     print("=" * 40)
                     self.enhance_step_3(project_path)
 
-                    print(f"\n🤝 STEP 4: PACT Framework Deployment")
+                    print("\n🤝 STEP 4: PACT Framework Deployment")
                     print("=" * 40)
                     self.enhance_step_4(project_path)
 
