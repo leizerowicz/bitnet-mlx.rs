@@ -1,53 +1,293 @@
-# Project-Start Enhanced CLI Commands
+# Project-Start CLI Commands
 
-This directory contains CLI commands that integrate AI-powered automation with the Project-Start workflow following the **GitHub Spec-Kit pattern** for intelligent document generation.
+This directory contains the consolidated CLI implementation for Project-Start's specification-driven development framework with AI integration.
 
-## 🤖 AI Integration Features
+## 🤖 AI Integration
 
-The CLI now supports multiple AI assistants following the GitHub Spec-Kit pattern:
+The CLI supports multiple AI assistants with intelligent fallbacks:
 
 - **🤖 GitHub Copilot**: Native VS Code integration for intelligent document generation
-- **🧠 Claude Code**: Command-line integration with Claude for enhanced specifications  
-- **✨ Gemini CLI**: Google Gemini integration for comprehensive project planning
+- **✨ Gemini CLI**: Google Gemini integration (recommended for command line)
 - **🎯 Fallback Generation**: Intelligent templates when AI tools are unavailable
 
 ### AI Assistant Selection
 
 ```bash
-# Use GitHub Copilot (default)
-python3 project_start_cli.py start "My Project" --ai copilot
+# Use Gemini CLI (default and recommended)
+python3 project_start_cli.py start "My Project"
 
-# Use Claude Code
-python3 project_start_cli.py start "My Project" --ai claude
-
-# Use Gemini CLI
+# With specific AI selection
 python3 project_start_cli.py start "My Project" --ai gemini
 
-# Interactive selection
-python3 project_start_cli.py start "My Project"
+# Interactive mode with project details
+python3 project_start_cli.py start "My Project" --debug
 ```
 
-## Core Commands
+## 📁 File Structure
 
-### `/project-start-enhanced`
-Master command that orchestrates the entire enhanced workflow from initial idea to deployment-ready system.
+```text
+cli/
+├── project_start_cli.py              # Main consolidated CLI (production ready)
+├── project_start_cli_consolidated.py # Backup of working version
+├── enhance-step-1                    # Interactive Step 1 discovery
+├── enhance-step-2                    # SPARC methodology implementation
+├── enhance-step-3                    # Context systems creation
+├── enhance-step-4                    # PACT framework deployment
+├── project-start-enhanced            # Master workflow command
+└── archive/                          # Legacy CLI files
+    ├── project_start_cli_copilot.py
+    ├── project_start_cli_backup.py
+    └── project_start_cli_broken.py
+```
+
+## 🚀 Main Commands
+
+### 1. `python3 project_start_cli.py start`
+
+Main command for creating new projects with AI-powered document generation.
 
 ```bash
-/project-start-enhanced "Build a task management system with real-time collaboration"
+# Basic usage
+python3 project_start_cli.py start "Task management app with real-time sync"
+
+# With debug output
+python3 project_start_cli.py start "My project" --debug
+
+# Help
+python3 project_start_cli.py --help
 ```
 
-**What it does**:
+**What it generates:**
+- 6 comprehensive specification documents
+- Constitutional compliance validation
+- Project structure recommendations
+- Risk assessment and mitigation strategies
+
+### 2. `./enhance-step-1` - Interactive Discovery
+
+Enhanced Step 1 with comprehensive questionnaire and AI-powered document generation.
+
+```bash
+# New project mode
+./enhance-step-1 "Real-time chat application with message history"
+
+# Existing project mode
+./enhance-step-1 "Enhance my existing Node.js API" --existing-project
+
+# With specific project path
+./enhance-step-1 "My project" --project-path /path/to/existing/project
+```
+
+**Generated documents:**
+- `BACKLOG.md` - User stories and feature prioritization
+- `IMPLEMENTATION_GUIDE.md` - Technology-specific development guidance
+- `RISK_ASSESSMENT.md` - Project-specific risk analysis
+- `FILE_OUTLINE.md` - Intelligent file structure recommendations
+- `constitutional_validation.md` - Compliance verification
+- `clarification_needed.md` - Gap analysis and stakeholder questions
+
+### 3. `./enhance-step-2` - SPARC Methodology
+
+Constitutional SPARC methodology implementation for specification-driven development.
+
+```bash
+./enhance-step-2 --project-path specs/001-your-project
+```
+
+**Generated documents:**
+- `sparc/SPARC_SPECIFICATION.md` - Formal requirements with constitutional compliance
+- `sparc/SPARC_PSEUDOCODE.md` - Algorithm design and logic flow
+- `sparc/SPARC_ARCHITECTURE.md` - System design and component interactions
+- `sparc/SPARC_REFINEMENT.md` - Testing strategy and quality improvements
+- `sparc/SPARC_COMPLETION.md` - Deployment and maintenance procedures
+
+### 4. `./enhance-step-3` - Context Systems
+
+Creates persistent context systems for multi-agent coordination.
+
+```bash
+./enhance-step-3 --project-path specs/001-your-project
+```
+
+**Generated documents:**
+- `.github/copilot-instructions.md` - Comprehensive autonomous agent context
+- `expert_files/architecture_expert.md` - Architecture and design expert context
+- `expert_files/tech_stack_expert.md` - Technology stack expert context
+- `expert_files/methodology_expert.md` - Development methodology expert context
+- `agent_coordination.md` - Multi-agent coordination protocols
+- `agentic_framework_experts.md` - Multi-agent coordination framework
+- `agent_hooks.md` - Workflow automation system
+
+### 5. `./enhance-step-4` - PACT Framework
+
+Constitutional PACT framework for testing and deployment.
+
+```bash
+./enhance-step-4 --project-path specs/001-your-project
+```
+
+**Generated documents:**
+- `AGENT_ECOSYSTEM_DESIGN.md` - Multi-agent system architecture
+- `COORDINATION_STRATEGY.md` - Agent coordination strategies
+- `COLLABORATIVE_WORKFLOWS.md` - Multi-agent workflow definitions
+- `AGENTIC_TESTING_FRAMEWORK.md` - Testing strategies for agent systems
+- `PACT_SPARC_INTEGRATION.md` - Integration with SPARC methodology
+- `EMERGENT_ARCHITECTURE_GUIDE.md` - Adaptive architecture principles
+- `AGENT_COMMUNICATION_PROTOCOLS.md` - Inter-agent communication standards
+- `QUALITY_ASSURANCE_FRAMEWORK.md` - Quality gates and validation
+
+### 6. `./project-start-enhanced` - Master Workflow
+
+Complete 4-step workflow with intelligent defaults.
+
+```bash
+./project-start-enhanced "Build a task management system with real-time collaboration"
+```
+
+**What it does:**
 1. Runs enhanced Step 1 (automated discovery with constitutional validation)
 2. Runs enhanced Step 2 (constitutional SPARC with test-first planning)
 3. Runs enhanced Step 3 (persistent context with automated memory)
 4. Runs enhanced Step 4 (constitutional PACT with quality gates)
 
-### `/enhance-step-1` 
-Applies Spec-Kit's `/specify` automation to Project-Start's discovery phase while generating all required Step 1 documents. **NEW**: Now supports existing projects with established architecture.
+## 🔧 Configuration Commands
 
-#### New Project Mode
+### Project Root Configuration
+
+For nested projects (when project-start is dragged into another project):
+
 ```bash
-/enhance-step-1 "Real-time chat application with message history and user presence"
+# Auto-configure for parent project
+python3 project_start_cli.py /configure-project-root
+
+# Manual configuration
+echo "TARGET_PROJECT_ROOT=/path/to/parent/project" > .project-start-config
+```
+
+### Environment Detection
+
+```bash
+# Check current environment and tool availability
+python3 project_start_cli.py --version
+
+# Test AI integration status
+python3 project_start_cli.py start "test" --debug
+```
+
+## 📊 Command Options
+
+### Global Options
+
+- `--debug`: Enable debug output and verbose logging
+- `--ai {gemini}`: Specify AI assistant (currently supports gemini)
+- `--help`: Show help information
+- `--version`: Show version information
+
+### Step-Specific Options
+
+- `--project-path PATH`: Specify target project directory
+- `--existing-project`: Enable existing project analysis mode
+- `--force`: Overwrite existing files without prompting
+- `--output-dir DIR`: Specify custom output directory
+
+## 🧪 Testing Commands
+
+### CLI Validation
+
+```bash
+# Test CLI imports and basic functionality
+python3 ../test_consolidated_cli.py
+
+# Verify CLI help output
+python3 ../verify_cli.py
+```
+
+### Integration Testing
+
+```bash
+# Test with Gemini CLI (if installed)
+python3 project_start_cli.py start "test project" --debug
+
+# Test fallback mode (without AI tools)
+GEMINI_UNAVAILABLE=1 python3 project_start_cli.py start "test project"
+```
+
+## 📋 Generated Project Structure
+
+When you run any command, it creates a comprehensive specification in the `specs/` directory:
+
+```text
+specs/001-your-project/
+├── BACKLOG.md
+├── IMPLEMENTATION_GUIDE.md
+├── RISK_ASSESSMENT.md
+├── FILE_OUTLINE.md
+├── constitutional_validation.md
+├── clarification_needed.md
+├── sparc/
+│   ├── SPARC_SPECIFICATION.md
+│   ├── SPARC_PSEUDOCODE.md
+│   ├── SPARC_ARCHITECTURE.md
+│   ├── SPARC_REFINEMENT.md
+│   └── SPARC_COMPLETION.md
+├── expert_files/
+│   ├── architecture_expert.md
+│   ├── tech_stack_expert.md
+│   └── methodology_expert.md
+├── AGENT_ECOSYSTEM_DESIGN.md
+├── COORDINATION_STRATEGY.md
+├── COLLABORATIVE_WORKFLOWS.md
+├── AGENTIC_TESTING_FRAMEWORK.md
+└── [additional PACT framework files]
+```
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+**Import Error:**
+```bash
+# Ensure you're in the correct directory
+cd /path/to/project-start/cli
+python3 project_start_cli.py --help
+```
+
+**AI Tool Not Found:**
+```bash
+# Install Gemini CLI
+npm install -g @google-ai/gemini-cli
+
+# Verify installation
+gemini --version
+```
+
+**Permission Errors:**
+```bash
+# Make scripts executable
+chmod +x enhance-step-*
+chmod +x project-start-enhanced
+```
+
+**Configuration Issues:**
+```bash
+# Reset configuration
+rm -f .project-start-config
+
+# Reconfigure
+python3 project_start_cli.py /configure-project-root
+```
+
+## 🎯 Best Practices
+
+1. **Start with Step 1**: Always begin with `./enhance-step-1` for comprehensive discovery
+2. **Use VS Code**: Best experience with VS Code tasks and Copilot integration
+3. **Enable AI**: Install Gemini CLI for enhanced document generation
+4. **Review Output**: Always review generated documents before proceeding
+5. **Constitutional Compliance**: Ensure all changes align with framework principles
+
+---
+
+*All commands follow the Project-Start constitutional framework and maintain specification-driven development principles.*
 ```
 
 #### Existing Project Mode
@@ -63,7 +303,7 @@ Applies Spec-Kit's `/specify` automation to Project-Start's discovery phase whil
 1. **Project Detection**: Scans current directory for existing project indicators (package.json, requirements.txt, README.md, etc.)
 2. **Comprehensive File Analysis**: Analyzes all MD files, code files, and configuration files
 3. **Smart File Categorization**: Identifies documentation, code, and config files with focus suggestions
-4. **Multi-Mode Operation**: 
+4. **Multi-Mode Operation**:
    - **New Project**: Traditional interactive questionnaire approach
    - **Existing Project**: File analysis with optional supplementary questions
 5. **Flexible Analysis Options**:
@@ -213,7 +453,7 @@ Validates integrity of persistent memory systems.
 
 # The system will:
 # 1. Generate comprehensive specifications (Step 1)
-# 2. Create constitutional implementation plans (Step 2)  
+# 2. Create constitutional implementation plans (Step 2)
 # 3. Establish persistent context systems (Step 3)
 # 4. Deploy governed multi-agent coordination (Step 4)
 ```
