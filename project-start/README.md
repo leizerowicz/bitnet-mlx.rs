@@ -1,16 +1,13 @@
 # Project-Start: Specification-Driven Development Framework
 
-A constitutional framework for agentic software development that emphasizes specification-driven development, test-first methodologies, and AI-agent collaboration. Now with comprehensive AI integration supporting multiple assistants and environments.
+A constitutional framework for agentic software development that emphasizes specification-driven development, test-first methodologies, and AI-agent collaboration.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- **Python 3.11+**
-- **AI Assistant** (optional - smart fallbacks provided):
-  - **Gemini CLI**: `npm install -g @google-ai/gemini-cli` (recommended)
-  - **GitHub Copilot**: Available in VS Code
-  - **Claude Code**: Available via Anthropic CLI
+- **Python 3.6+**
+- **Optional**: Gemini CLI for enhanced AI generation
 
 ### Installation
 
@@ -19,132 +16,99 @@ A constitutional framework for agentic software development that emphasizes spec
 git clone https://github.com/username/project-start.git
 cd project-start
 
-# Optional: Install Gemini CLI for enhanced AI generation
-npm install -g @google-ai/gemini-cli
+# Make scripts executable
+chmod +x cli/enhance-step-*
+chmod +x cli/project-start-enhanced
 ```
 
 ### Basic Usage
 
 ```bash
-# Start a new project with AI-powered document generation
-python3 cli/project_start_cli.py start "My AI-powered project"
+# Interactive menu (recommended)
+python3 cli/project_start_cli.py
 
-# Interactive 4-step workflow (recommended)
-./cli/enhance-step-1 "Your project description"
-
-# Complete workflow with defaults
-./cli/project-start-enhanced "Your project description"
-
-# With debug output
-python3 cli/project_start_cli.py start "My project" --debug
+# Direct commands
+python3 cli/project_start_cli.py /enhance-step-1 "My project description"
+python3 cli/project_start_cli.py /project-start-enhanced "Complete workflow"
 ```
 
-## ✨ Latest Features (September 2025)
+## ✨ Latest Features
 
-### 🔧 CLI Consolidation & AI Integration
+### 🔧 Simplified CLI Interface
 
-- **Multi-AI Support**: GitHub Copilot, Claude Code, Gemini CLI with intelligent selection
-- **Production Ready**: All lint errors resolved, proper type hints, comprehensive documentation
-- **Smart Fallbacks**: Works perfectly even without AI tools installed
-- **Clean Architecture**: Consolidated multiple CLI files into single, maintainable implementation
-- **Enhanced Error Handling**: Robust fallback mechanisms and graceful degradation
+- **Interactive Menu**: User-friendly interface for all commands
+- **Direct Command Support**: Run specific steps without interaction
+- **Clean Architecture**: Simplified, maintainable implementation
+- **Enhanced Error Handling**: Robust fallback mechanisms
 
-### 🎯 AI-Powered Features
+### 🎯 Core Features
 
-- **Intelligent Document Generation**: 20+ documents per project with AI assistance
-- **Constitutional Compliance**: AI-assisted validation against framework principles
-- **Context-Aware Templates**: Smart fallbacks when AI unavailable
-- **Multi-Environment Support**: VS Code, command line, and nested project scenarios
+- **Specification-Driven Development**: Requirements lead implementation
+- **Constitutional Compliance**: Framework governance principles
+- **4-Step Workflow**: Discovery → SPARC → Context → PACT
+- **AI Integration**: Optional Gemini CLI support with fallbacks
 
 ## 🎯 VS Code Integration
 
-Project-Start includes full VS Code integration for an enhanced development experience:
+Project-Start includes VS Code integration through task configuration:
 
-- **🚀 Quick Start**: Open `project-start.code-workspace` for optimized workspace
-- **⚡ Command Palette**: Access all CLI commands via `Ctrl+Shift+P` → "Tasks: Run Task"
-- **📁 Auto-Detection**: Project root and paths automatically detected in VS Code
-- **🛠️ Pre-configured Tasks**: All workflow steps available as VS Code tasks
-- **🐛 Debug Support**: Built-in debugging configurations for CLI commands
-
-**Get Started**: `code project-start.code-workspace` for full VS Code integration.
+- **⚡ Command Tasks**: All workflow steps available as VS Code tasks
+- **📁 Auto-Detection**: Project paths automatically detected
+- **🛠️ Quick Access**: Run tasks via Command Palette
 
 ### Available VS Code Tasks
 
 Access via Command Palette (`Ctrl+Shift+P`) → "Tasks: Run Task":
 
-- **Project Start: Enhanced Workflow** - Complete workflow with auto-detection
+- **Project Start: Enhanced Workflow** - Complete workflow
 - **Project Start: Step 1 - Discovery** - Interactive project discovery
-- **Project Start: Step 1 - Existing Project** - Enhance existing projects
 - **Project Start: Step 2 - SPARC Planning** - Constitutional methodology
-- **Project Start: Step 3 - Context Systems** - Persistent agent context
+- **Project Start: Step 3 - Context Systems** - Agent context creation
 - **Project Start: Step 4 - PACT Framework** - Multi-agent coordination
-
-## 📂 Drag & Drop Support
-
-Project-Start supports being dragged/copied into existing projects! When you drag the project-start folder into another project, it automatically detects and configures itself to work with the parent project.
-
-### Quick Setup for Nested Projects
-
-```bash
-# After dragging project-start into your existing project
-cd my-existing-project/project-start
-python3 cli/project_start_cli.py /configure-project-root
-
-# Follow the prompts - it will auto-detect the parent project
-# Your project files will be created in my-existing-project/specs/
-```
 
 ## � Interactive Workflow
 
 ```bash
-# Interactive project discovery (recommended)
-cd project-start
-./cli/enhance-step-1 "Your project description"
+# Interactive menu (recommended)
+python3 cli/project_start_cli.py
 
-# Complete 4-step workflow
-./cli/enhance-step-2 --project-path specs/001-your-project
-./cli/enhance-step-3 --project-path specs/001-your-project
-./cli/enhance-step-4 --project-path specs/001-your-project
+# Step-by-step workflow
+python3 cli/project_start_cli.py /enhance-step-1 "Your project description"
+python3 cli/project_start_cli.py /enhance-step-2 --project-path specs/001-your-project
+python3 cli/project_start_cli.py /enhance-step-3 --project-path specs/001-your-project
+python3 cli/project_start_cli.py /enhance-step-4 --project-path specs/001-your-project
 
-# Or use master command with defaults
-./cli/project-start-enhanced "Your project description"
+# Complete workflow
+python3 cli/project_start_cli.py /project-start-enhanced "Your project description"
 ```
 
-## ✅ Production Ready Features
+## ✅ Core Features
 
 - **Interactive CLI** with comprehensive questionnaire system
-- **Automated document generation** (20+ documents per project)
+- **Automated document generation** with optional AI enhancement
 - **Constitutional compliance** validation from inception
 - **4-step development workflow** fully implemented
 - **Persistent memory systems** for multi-agent coordination
 - **Quality gates** preventing architectural drift
-- **Enhanced README reading** - CLI reads from Step 1-4 READMEs for context-aware generation
-- **🆕 Existing Project Support** - Works with established architecture and codebases
+- **Existing project support** - enhance established codebases
 
-## 🔧 Enhanced CLI Capabilities
+## 🔧 CLI Capabilities
 
-The CLI includes powerful existing project support alongside its traditional new project creation:
+The Project-Start CLI provides comprehensive project management:
 
 ### New Project Creation
 
-- **Step 1**: Reads `step_1/README.md` for project discovery context and brutally honest market validation
-- **Step 2**: Reads `step_2/sparc_methodology_guide.md` for SPARC methodology principles and implementation guidance
-- **Step 3**: Reads `step_3/README.md` for agentic system integration and expert context
-- **Step 4**: Reads `step_4/` templates for PACT framework implementation details
+- **Step 1**: Project discovery and specification generation
+- **Step 2**: SPARC methodology implementation
+- **Step 3**: Context systems for AI agent coordination
+- **Step 4**: PACT framework for testing and deployment
 
-### 🆕 Existing Project Support
+### Existing Project Enhancement
 
-- **Project Detection**: Automatically scans for existing project structure and type
-- **Comprehensive File Analysis**: Analyzes MD files, code files, and configuration files
-- **Smart Categorization**: Identifies key files and suggests focus areas for analysis
-- **Multiple Analysis Modes**:
-  - Automatic analysis based on file discovery
-  - User-guided file selection for focused analysis
-  - Hybrid approach with supplementary context gathering
-- **Preservation of Structure**: Maintains original project organization while adding Project-Start documentation
+- **Project Detection**: Automatically scans existing project structure
+- **File Analysis**: Analyzes documentation, code, and configuration files
+- **Structure Preservation**: Maintains original organization while adding framework
 - **Constitutional Integration**: Applies Project-Start principles to existing codebases
-
-This ensures all generated documents are informed by the complete framework methodology rather than using generic templates.
 
 ## 🏗️ Framework Overview
 
@@ -179,34 +143,21 @@ project-start/
 
 ## 🎯 Generated Output
 
-Each project creates:
+Each project creates comprehensive documentation:
 
-- 6 comprehensive specification documents
-- Constitutional compliance validation
-- Persistent memory systems
-- Multi-agent coordination protocols
-- Complete testing & deployment strategies
+- **Specification documents** (backlog, implementation guide, risk assessment)
+- **Constitutional compliance** validation
+- **Persistent memory systems** for agent coordination
+- **Multi-agent coordination protocols**
+- **Complete testing & deployment strategies**
 
-## 🔧 AI Integration
+## 🤖 Optional AI Integration
 
-### Multi-AI Assistant Support
+Project-Start works with or without AI tools:
 
-```bash
-# Use GitHub Copilot (default for VS Code)
-python3 cli/project_start_cli.py start "My Project" --ai copilot
-
-# Use Gemini CLI (recommended for command line)
-python3 cli/project_start_cli.py start "My Project" --ai gemini
-
-# Interactive selection
-python3 cli/project_start_cli.py start "My Project"
-```
-
-### Smart Fallbacks
-
-- Works perfectly even without AI tools installed
-- Generates intelligent templates with context for manual AI enhancement
-- Provides clear guidance for using templates with any AI assistant
+- **Gemini CLI**: Enhanced document generation when available
+- **Smart Fallbacks**: Intelligent templates when AI unavailable
+- **Manual Enhancement**: Generated templates work with any AI assistant
 
 ## 🧪 Testing & Validation
 
