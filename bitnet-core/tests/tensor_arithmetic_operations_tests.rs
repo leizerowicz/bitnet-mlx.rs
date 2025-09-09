@@ -12,6 +12,10 @@ use bitnet_core::memory::{HybridMemoryPool, TrackingConfig};
 use bitnet_core::tensor::ops::arithmetic::*;
 use bitnet_core::tensor::ops::broadcasting::*;
 use bitnet_core::tensor::{BitNetDType, BitNetTensor};
+use std::sync::Mutex;
+
+// Global mutex to prevent race conditions in memory pool tests
+static MEMORY_POOL_MUTEX: Mutex<()> = Mutex::new(());
 
 #[cfg(test)]
 mod arithmetic_tests {
@@ -23,6 +27,8 @@ mod arithmetic_tests {
         /// The isolated memory pool for this test
         /// Keeping this Arc alive ensures pool remains valid during test
         _pool: std::sync::Arc<HybridMemoryPool>,
+        /// Mutex guard to prevent race conditions between tests
+        _guard: std::sync::MutexGuard<'static, ()>,
     }
 
     impl Drop for TestMemoryContext {
@@ -30,12 +36,19 @@ mod arithmetic_tests {
             // Don't clear the global pool - just let it be
             // Each test will set its own isolated pool anyway
             // Clearing it causes "Global memory pool not available" errors
+            // The mutex guard will be automatically released
         }
     }
 
     /// Setup isolated memory pool for a single test
     /// Returns context that automatically cleans up on drop
     fn setup_isolated_memory_pool() -> Result<TestMemoryContext, Box<dyn std::error::Error>> {
+        // Acquire mutex to prevent race conditions between tests
+        let guard = MEMORY_POOL_MUTEX.lock().unwrap();
+        
+        // Clear any existing global pool first to avoid conflicts
+        bitnet_core::tensor::memory_integration::clear_global_memory_pool();
+        
         // Create identical memory pool configuration as original
         let tracking_config = TrackingConfig::detailed();
         let mut config = bitnet_core::memory::MemoryPoolConfig::default();
@@ -50,9 +63,15 @@ mod arithmetic_tests {
             std::sync::Arc::downgrade(&memory_pool)
         );
         
+        // Verify the global pool was set successfully
+        if bitnet_core::tensor::memory_integration::get_global_memory_pool().is_none() {
+            return Err("Failed to set global memory pool".into());
+        }
+        
         // Return context that keeps pool alive and manages cleanup
         Ok(TestMemoryContext {
             _pool: memory_pool,
+            _guard: guard, // This keeps the mutex locked for the duration of the test
         })
     }
 

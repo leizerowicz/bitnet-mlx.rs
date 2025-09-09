@@ -8,6 +8,9 @@
 //!
 //! - **Straight-Through Estimator (STE)**: Multiple variants for quantization-aware training
 //! - **Custom Autograd**: Integration with candle-core's autograd system
+
+// Allow dead code for work-in-progress training implementations
+#![allow(dead_code, unused_variables, unused_imports)]
 //! - **QAT Loss Functions**: Specialized loss functions for quantized training
 //! - **QAT Optimizers**: Quantization-aware Adam/AdamW optimizers
 //! - **Progressive Quantization**: Layer-wise and phase-based quantization scheduling

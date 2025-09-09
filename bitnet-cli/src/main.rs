@@ -3,6 +3,9 @@
 //! Command-line interface for BitNet operations including model management,
 //! inference, training, benchmarking, and production operations support.
 
+// Allow dead code for work-in-progress CLI implementations
+#![allow(dead_code, unused_variables, unused_imports)]
+
 use clap::{Parser, Subcommand};
 use std::process;
 

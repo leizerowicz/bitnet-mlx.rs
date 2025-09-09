@@ -8,6 +8,9 @@
 //! - **High Performance**: 300K+ operations/second on Apple Silicon
 //! - **GPU Acceleration**: Metal/MLX compute shader optimization
 //! - **Memory Efficient**: <50MB base memory footprint
+
+// Allow dead code for work-in-progress inference implementations
+#![allow(dead_code, unused_variables, unused_imports)]
 //! - **Low Latency**: <1ms inference for small models
 //! - **Production Ready**: Comprehensive error handling and monitoring
 //!

@@ -49,7 +49,7 @@ pub struct CacheFriendlyTensor {
     /// Memory layout used
     layout: MemoryLayout,
     /// Memory handle for explicit memory management
-    memory_handle: Option<MemoryHandle>,
+    _memory_handle: Option<MemoryHandle>,
     /// Whether the tensor data has been optimized for access patterns
     is_optimized: bool,
     /// Original shape before layout optimization
@@ -68,7 +68,7 @@ impl CacheFriendlyTensor {
         Ok(Self {
             tensor,
             layout,
-            memory_handle: None,
+            _memory_handle: None,
             is_optimized: false,
             original_shape,
             cache_line_size: 64, // Typical cache line size
@@ -88,7 +88,7 @@ impl CacheFriendlyTensor {
         Ok(Self {
             tensor: optimized_tensor,
             layout,
-            memory_handle: None,
+            _memory_handle: None,
             is_optimized: true,
             original_shape,
             cache_line_size: 64,
@@ -351,7 +351,7 @@ pub struct AccessPatternAnalyzer {
     /// Historical access patterns
     access_history: Vec<(usize, usize)>, // (offset, size) pairs
     /// Cache line size
-    cache_line_size: usize,
+    _cache_line_size: usize,
     /// Analysis window size
     window_size: usize,
 }
@@ -361,7 +361,7 @@ impl AccessPatternAnalyzer {
     pub fn new(cache_line_size: usize, window_size: usize) -> Self {
         Self {
             access_history: Vec::new(),
-            cache_line_size,
+            _cache_line_size: cache_line_size,
             window_size,
         }
     }

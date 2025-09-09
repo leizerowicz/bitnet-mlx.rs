@@ -4,6 +4,9 @@
 //! including tensor operations, quantization utilities, mixed precision support,
 //! and fundamental data structures.
 
+// Allow dead code for work-in-progress implementations  
+#![allow(dead_code, unused_variables, unused_imports)]
+
 pub mod device;
 pub mod error;
 pub mod execution;

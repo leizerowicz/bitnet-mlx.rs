@@ -1,7 +1,7 @@
 //! Memory Efficiency Validation Tests for BitNet Tensors
 //!
 //! This module provides comprehensive memory efficiency testing for the BitNet tensor system,
-//! following existing patterns from memory_tracking_tests.rs
+//! following existing patterns from memory_tracking_tests.rs and adding Task 1.1.3 optimizations
 
 use std::sync::Arc;
 use std::thread;
@@ -10,6 +10,8 @@ use std::time::{Duration, Instant};
 use bitnet_core::device::get_cpu_device;
 use bitnet_core::memory::{
     HybridMemoryPool, MemoryPoolConfig, MemoryPressureLevel, TrackingConfig, TrackingLevel,
+    TensorMemoryPool, TensorPoolConfig, TensorSizeCategory, TensorLifecycleMetadata,
+    DeallocationPriority, TensorDeallocationManager, BatchConfig,
 };
 use bitnet_core::tensor::{BitNetDType, BitNetTensor};
 
@@ -636,4 +638,224 @@ fn test_memory_performance_tradeoff() {
         "Memory ratio: {:.2}",
         small_usage as f64 / large_usage as f64
     );
+}
+
+// =============================================================================
+// Task 1.1.3 - Tensor Memory Efficiency Optimization Tests
+// =============================================================================
+
+#[test]
+fn test_tensor_size_category_classification() {
+    assert_eq!(TensorSizeCategory::from_size(1024), TensorSizeCategory::VerySmall);
+    assert_eq!(TensorSizeCategory::from_size(32768), TensorSizeCategory::Small);
+    assert_eq!(TensorSizeCategory::from_size(512 * 1024), TensorSizeCategory::Medium);
+    assert_eq!(TensorSizeCategory::from_size(8 * 1024 * 1024), TensorSizeCategory::Large);
+    assert_eq!(TensorSizeCategory::from_size(32 * 1024 * 1024), TensorSizeCategory::VeryLarge);
+}
+
+#[test]
+fn test_tensor_size_category_properties() {
+    let category = TensorSizeCategory::Medium;
+    assert_eq!(category.target_pool_size(), 32 * 1024 * 1024);
+    assert_eq!(category.alignment(), 32);
+}
+
+#[test]
+fn test_tensor_pool_creation() -> Result<(), Box<dyn std::error::Error>> {
+    let hybrid_pool = Arc::new(HybridMemoryPool::new()?);
+    let config = TensorPoolConfig::default();
+    let tensor_pool = TensorMemoryPool::with_config(hybrid_pool, config)?;
+    
+    // Basic functionality test
+    let stats = tensor_pool.get_tensor_pool_stats()?;
+    assert_eq!(stats.active_tensors, 0);
+    assert_eq!(stats.total_tensors_allocated, 0);
+    
+    Ok(())
+}
+
+#[test]
+fn test_tensor_allocation_and_tracking() -> Result<(), Box<dyn std::error::Error>> {
+    let hybrid_pool = Arc::new(HybridMemoryPool::new()?);
+    let tensor_pool = Arc::new(TensorMemoryPool::new(hybrid_pool)?);
+    let device = get_cpu_device();
+    
+    // Allocate a medium-sized tensor
+    let tensor_id = 1;
+    let size_bytes = 256 * 1024; // 256KB - Medium category
+    let handle = tensor_pool.allocate_tensor(
+        tensor_id,
+        size_bytes,
+        &device,
+        false, // not a model weight
+        false, // not temporary
+    )?;
+    
+    assert_eq!(handle.size(), size_bytes);
+    
+    // Check statistics
+    let stats = tensor_pool.get_tensor_pool_stats()?;
+    assert_eq!(stats.active_tensors, 1);
+    assert_eq!(stats.total_tensors_allocated, 1);
+    assert_eq!(stats.current_memory_used, size_bytes);
+    
+    // Record access
+    tensor_pool.record_tensor_access(tensor_id)?;
+    
+    // Deallocate
+    tensor_pool.deallocate_tensor(tensor_id, handle)?;
+    
+    // Check final statistics
+    let final_stats = tensor_pool.get_tensor_pool_stats()?;
+    assert_eq!(final_stats.active_tensors, 0);
+    assert_eq!(final_stats.total_tensors_deallocated, 1);
+    assert_eq!(final_stats.current_memory_used, 0);
+    
+    Ok(())
+}
+
+#[test]
+fn test_tensor_lifecycle_metadata() {
+    let device = get_cpu_device();
+    let mut metadata = TensorLifecycleMetadata::new(
+        1,
+        1024,
+        &device,
+        false,
+        true,
+    );
+    
+    assert_eq!(metadata.tensor_id, 1);
+    assert_eq!(metadata.size_bytes, 1024);
+    assert_eq!(metadata.access_count, 0);
+    assert_eq!(metadata.ref_count, 1);
+    assert_eq!(metadata.size_category, TensorSizeCategory::VerySmall);
+    assert_eq!(metadata.is_temporary, true);
+    assert_eq!(metadata.is_model_weight, false);
+    
+    // Test access recording
+    metadata.record_access();
+    assert_eq!(metadata.access_count, 1);
+    
+    // Test staleness check
+    let stale = metadata.is_stale(Duration::from_millis(1));
+    assert!(!stale); // Should not be stale immediately
+}
+
+#[test]
+fn test_memory_pressure_handling() -> Result<(), Box<dyn std::error::Error>> {
+    let hybrid_pool = Arc::new(HybridMemoryPool::new()?);
+    let tensor_pool = Arc::new(TensorMemoryPool::new(hybrid_pool)?);
+    
+    // Test pressure detection
+    let pressure_level = tensor_pool.get_memory_pressure();
+    // Should start with low or no pressure
+    assert!(matches!(pressure_level, MemoryPressureLevel::None | MemoryPressureLevel::Low));
+    
+    // Test stale tensor cleanup
+    let cleanup_count = tensor_pool.cleanup_stale_tensors()?;
+    assert_eq!(cleanup_count, 0); // No tensors allocated yet
+    
+    Ok(())
+}
+
+#[test]
+fn test_deallocation_manager() -> Result<(), Box<dyn std::error::Error>> {
+    let hybrid_pool = Arc::new(HybridMemoryPool::new()?);
+    let tensor_pool = Arc::new(TensorMemoryPool::new(hybrid_pool.clone())?);
+    let deallocation_manager = TensorDeallocationManager::new(tensor_pool.clone());
+    
+    let device = get_cpu_device();
+    
+    // Create a test handle
+    let handle = hybrid_pool.allocate(1024, 16, &device)?;
+    
+    // Request deallocation with normal priority
+    deallocation_manager.request_deallocation(
+        1,
+        handle,
+        DeallocationPriority::Normal,
+        false,
+    )?;
+    
+    // Process pending deallocations
+    let processed = deallocation_manager.process_pending()?;
+    assert!(processed > 0);
+    
+    // Check statistics
+    let stats = deallocation_manager.get_stats()?;
+    assert_eq!(stats.total_requests, 1);
+    
+    Ok(())
+}
+
+#[test]
+fn test_category_specific_allocation() -> Result<(), Box<dyn std::error::Error>> {
+    let hybrid_pool = Arc::new(HybridMemoryPool::new()?);
+    let config = TensorPoolConfig {
+        enable_category_pooling: true,
+        enable_lifecycle_tracking: true,
+        enable_pressure_management: false, // Disable for predictable testing
+        ..Default::default()
+    };
+    let tensor_pool = Arc::new(TensorMemoryPool::with_config(hybrid_pool, config)?);
+    let device = get_cpu_device();
+    
+    // Allocate tensors of different sizes
+    let sizes = vec![
+        (1, 2048, TensorSizeCategory::VerySmall),
+        (2, 32768, TensorSizeCategory::Small),
+        (3, 512 * 1024, TensorSizeCategory::Medium),
+        (4, 8 * 1024 * 1024, TensorSizeCategory::Large),
+    ];
+    
+    let mut handles = Vec::new();
+    for (tensor_id, size_bytes, expected_category) in &sizes {
+        let handle = tensor_pool.allocate_tensor(
+            *tensor_id,
+            *size_bytes,
+            &device,
+            false,
+            false,
+        )?;
+        handles.push((*tensor_id, handle));
+        
+        // Verify category classification
+        assert_eq!(TensorSizeCategory::from_size(*size_bytes), *expected_category);
+    }
+    
+    // Check statistics by category
+    let stats = tensor_pool.get_tensor_pool_stats()?;
+    assert_eq!(stats.active_tensors, sizes.len() as u64);
+    assert!(stats.category_stats.len() > 0);
+    
+    // Deallocate all tensors
+    for (tensor_id, handle) in handles {
+        tensor_pool.deallocate_tensor(tensor_id, handle)?;
+    }
+    
+    // Verify cleanup
+    let final_stats = tensor_pool.get_tensor_pool_stats()?;
+    assert_eq!(final_stats.active_tensors, 0);
+    
+    Ok(())
+}
+
+#[test]
+fn test_tensor_pool_configuration() {
+    let config = TensorPoolConfig::default();
+    assert!(config.enable_category_pooling);
+    assert!(config.enable_lifecycle_tracking);
+    assert!(config.enable_pressure_management);
+    assert_eq!(config.lru_cache_size, 1000);
+    assert_eq!(config.pressure_cleanup_threshold, 0.8);
+}
+
+#[test]
+fn test_batch_deallocation_config() {
+    let config = BatchConfig::default();
+    assert_eq!(config.max_batch_size, 100);
+    assert_eq!(config.max_batch_memory, 64 * 1024 * 1024);
+    assert_eq!(config.min_batch_size, 5);
+    assert_eq!(config.batch_timeout, Duration::from_millis(100));
 }

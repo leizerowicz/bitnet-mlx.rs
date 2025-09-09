@@ -61,6 +61,8 @@ pub mod large_block;
 pub mod metrics;
 pub mod small_block;
 pub mod tensor;
+pub mod tensor_pool;
+pub mod tensor_deallocation;
 pub mod tracking;
 
 // Re-exports
@@ -79,6 +81,14 @@ pub use large_block::LargeBlockPool;
 pub use metrics::MemoryMetrics;
 pub use small_block::SmallBlockPool;
 pub use tensor::{BitNetDType, BitNetTensor, TensorHandle, TensorMetadata};
+pub use tensor_pool::{
+    TensorMemoryPool, TensorPoolConfig, TensorPoolStats, TensorSizeCategory, 
+    TensorLifecycleMetadata, CategoryStats
+};
+pub use tensor_deallocation::{
+    TensorDeallocationManager, DeallocationPriority, DeallocationStrategy, 
+    BatchConfig, DeallocationStats
+};
 pub use tracking::{
     AllocationTimeline, DetailedMemoryMetrics, LeakReport, MemoryPressureDetector,
     MemoryPressureLevel, MemoryProfiler, MemoryTracker, PatternAnalyzer, PressureCallback,
@@ -269,18 +279,15 @@ impl HybridMemoryPool {
                 }
             };
 
-            // Fallback to standard tracker if needed
-            let memory_tracker = if optimized_tracker.is_none() {
-                match tracking::MemoryTracker::new(tracking_config) {
-                    Ok(tracker) => Some(Arc::new(tracker)),
-                    Err(_e) => {
-                        #[cfg(feature = "tracing")]
-                        warn!("Failed to create memory tracker: {}", _e);
-                        None
-                    }
+            // Always create standard tracker when advanced tracking is enabled
+            // This ensures get_memory_tracker() returns Some even when optimized tracker is used
+            let memory_tracker = match tracking::MemoryTracker::new(tracking_config) {
+                Ok(tracker) => Some(Arc::new(tracker)),
+                Err(_e) => {
+                    #[cfg(feature = "tracing")]
+                    warn!("Failed to create memory tracker: {}", _e);
+                    None
                 }
-            } else {
-                None
             };
 
             (optimized_tracker, memory_tracker)
@@ -383,13 +390,13 @@ impl HybridMemoryPool {
         }
 
         // Track allocation if advanced tracking is enabled (outside critical section)
-        let allocation_id = if let Some(ref tracker) = self.optimized_tracker {
-            // Use optimized tracker with minimal overhead
-            Some(tracker.track_allocation(&handle, size, device))
-        } else if let Some(ref tracker) = self.memory_tracker {
-            // Fallback to standard tracker
+        let allocation_id = if let Some(ref tracker) = self.memory_tracker {
+            // Use standard tracker first to ensure detailed metrics work
             tracker.track_allocation(&handle, size, device);
             None
+        } else if let Some(ref tracker) = self.optimized_tracker {
+            // Use optimized tracker only if standard tracker is not available
+            Some(tracker.track_allocation(&handle, size, device))
         } else {
             None
         };
@@ -506,14 +513,14 @@ impl HybridMemoryPool {
         }
 
         // Track deallocation if advanced tracking is enabled (before moving handle)
-        if let Some(ref tracker) = self.optimized_tracker {
+        if let Some(ref tracker) = self.memory_tracker {
+            tracker.track_deallocation(&registered_handle);
+        } else if let Some(ref tracker) = self.optimized_tracker {
             // For optimized tracker, we need to match by handle ID since we don't store allocation ID
             // This is a limitation that could be improved by storing allocation ID in MemoryHandle
             // For now, we'll create a dummy allocation ID based on handle ID
             let allocation_id = tracking::AllocationId(handle_id);
             tracker.track_deallocation(allocation_id);
-        } else if let Some(ref tracker) = self.memory_tracker {
-            tracker.track_deallocation(&registered_handle);
         }
 
         // Update metrics in single operation
@@ -582,9 +589,14 @@ impl HybridMemoryPool {
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn get_detailed_metrics(&self) -> Option<tracking::DetailedMemoryMetrics> {
-        self.memory_tracker
-            .as_ref()
-            .map(|tracker| tracker.get_detailed_metrics())
+        // Use standard tracker first since it provides full detailed metrics
+        if let Some(ref tracker) = self.memory_tracker {
+            Some(tracker.get_detailed_metrics())
+        } else {
+            // If only optimized tracker is available, we can't provide detailed metrics
+            // in the same format, so return None
+            None
+        }
     }
 
     /// Returns optimized memory metrics if optimized tracking is enabled
@@ -619,6 +631,15 @@ impl HybridMemoryPool {
     /// Reference to the memory tracker or None if tracking is disabled
     pub fn get_memory_tracker(&self) -> Option<&Arc<tracking::MemoryTracker>> {
         self.memory_tracker.as_ref()
+    }
+
+    /// Returns whether any memory tracker is available (optimized or standard)
+    ///
+    /// # Returns
+    ///
+    /// True if either optimized or standard memory tracker is available
+    pub fn has_memory_tracker(&self) -> bool {
+        self.optimized_tracker.is_some() || self.memory_tracker.is_some()
     }
 
     /// Registers a memory pressure callback if advanced tracking is enabled

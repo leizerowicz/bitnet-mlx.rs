@@ -99,7 +99,7 @@ pub struct BitLinear {
     memory_pool: Arc<HybridMemoryPool>,
 
     /// Memory optimizer for advanced memory management
-    memory_optimizer: Option<Arc<Mutex<BitLinearMemoryOptimizer>>>,
+    _memory_optimizer: Option<Arc<Mutex<BitLinearMemoryOptimizer>>>,
 
     /// Target device
     device: Device,
@@ -172,7 +172,7 @@ impl BitLinear {
             quantizer,
             cache,
             memory_pool,
-            memory_optimizer,
+            _memory_optimizer: memory_optimizer,
             device,
             layer_name,
         })

@@ -8,6 +8,9 @@
 //!
 //! - **Complete Metal Integration**: Production-ready Metal device and command buffer management
 //! - **BitNet Compute Shaders**: Specialized GPU kernels for 1.58-bit quantization operations
+
+// Allow dead code for work-in-progress Metal implementations
+#![allow(dead_code, unused_variables, unused_imports)]
 //! - **Dynamic Shader Compilation**: Runtime shader compilation with caching and optimization
 //! - **Apple Silicon Optimization**: Unified memory architecture and Metal Performance Shaders integration
 //! - **Memory Management**: High-performance buffer pooling with automatic lifecycle management

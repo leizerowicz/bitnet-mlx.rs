@@ -143,8 +143,8 @@ impl MemoryTracker {
         // Initialize pressure detector if enabled
         let pressure_detector = if config.enable_pressure_monitoring {
             Some(Arc::new(MemoryPressureDetector::new(
-                config.pressure_thresholds.clone(),
-            )?))
+                config.pressure_thresholds.high_pressure_threshold,
+            )))
         } else {
             None
         };

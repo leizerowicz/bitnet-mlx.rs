@@ -49,6 +49,23 @@ pub struct PressureEvent {
     pub time_since_last_event: Option<Duration>,
 }
 
+/// Tensor-specific pressure information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TensorPressureInfo {
+    /// Number of active tensors
+    pub active_tensor_count: u64,
+    /// Total memory used by tensors
+    pub tensor_memory_usage: u64,
+    /// Number of temporary tensors that can be cleaned up
+    pub temporary_tensor_count: u64,
+    /// Memory used by temporary tensors
+    pub temporary_memory_usage: u64,
+    /// Number of stale tensors identified
+    pub stale_tensor_count: u64,
+    /// Memory used by stale tensors
+    pub stale_memory_usage: u64,
+}
+
 /// Memory pressure detector with configurable thresholds and callbacks
 pub struct MemoryPressureDetector {
     /// Pressure detection thresholds
@@ -102,7 +119,41 @@ pub struct PressureStatistics {
 }
 
 impl MemoryPressureDetector {
-    /// Creates a new memory pressure detector
+    /// Creates a new memory pressure detector with custom threshold
+    ///
+    /// # Arguments
+    ///
+    /// * `threshold` - Single threshold value (0.0 to 1.0)
+    ///
+    /// # Returns
+    ///
+    /// A new detector instance
+    pub fn new(threshold: f64) -> Self {
+        let thresholds = PressureThresholds {
+            low_pressure_threshold: threshold * 0.6,
+            medium_pressure_threshold: threshold * 0.75,
+            high_pressure_threshold: threshold * 0.85,
+            critical_pressure_threshold: threshold * 0.95,
+            notification_cooldown: Duration::from_secs(30),
+        };
+
+        // Create detector with simplified initialization
+        Self {
+            thresholds,
+            current_level: Arc::new(RwLock::new(MemoryPressureLevel::None)),
+            callbacks: Arc::new(Mutex::new(Vec::new())),
+            event_history: Arc::new(Mutex::new(VecDeque::new())),
+            last_notification: Arc::new(Mutex::new(None)),
+            usage_history: Arc::new(Mutex::new(VecDeque::new())),
+            system_memory: Arc::new(RwLock::new(SystemMemoryInfo {
+                total_memory: 8 * 1024 * 1024 * 1024, // Default 8GB
+                available_memory: 4 * 1024 * 1024 * 1024, // Default 4GB available
+                last_updated: Instant::now(),
+            })),
+        }
+    }
+
+    /// Creates a new memory pressure detector with full configuration
     ///
     /// # Arguments
     ///
@@ -118,10 +169,10 @@ impl MemoryPressureDetector {
     /// use bitnet_core::memory::tracking::pressure::{MemoryPressureDetector, PressureThresholds};
     ///
     /// let thresholds = PressureThresholds::default();
-    /// let detector = MemoryPressureDetector::new(thresholds)?;
+    /// let detector = MemoryPressureDetector::with_thresholds(thresholds)?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn new(thresholds: PressureThresholds) -> TrackingResult<Self> {
+    pub fn with_thresholds(thresholds: PressureThresholds) -> TrackingResult<Self> {
         #[cfg(feature = "tracing")]
         info!(
             "Creating memory pressure detector with thresholds: {:?}",
@@ -226,6 +277,25 @@ impl MemoryPressureDetector {
     /// ```
     pub fn get_current_level(&self) -> MemoryPressureLevel {
         self.current_level.read().unwrap().clone()
+    }
+
+    /// Detect memory pressure level based on current usage and capacity
+    ///
+    /// # Arguments
+    ///
+    /// * `current_usage` - Current memory usage in bytes
+    /// * `total_capacity` - Total memory capacity in bytes
+    ///
+    /// # Returns
+    ///
+    /// Detected memory pressure level
+    pub fn detect_pressure(&self, current_usage: usize, total_capacity: usize) -> MemoryPressureLevel {
+        if total_capacity == 0 {
+            return MemoryPressureLevel::Critical;
+        }
+
+        let usage_percentage = current_usage as f64 / total_capacity as f64;
+        self.calculate_pressure_level(usage_percentage)
     }
 
     /// Registers a callback for pressure level changes
@@ -667,16 +737,14 @@ mod tests {
 
     #[test]
     fn test_pressure_detector_creation() {
-        let thresholds = PressureThresholds::default();
-        let detector = MemoryPressureDetector::new(thresholds).unwrap();
+        let detector = MemoryPressureDetector::new(0.8);
 
         assert_eq!(detector.get_current_level(), MemoryPressureLevel::None);
     }
 
     #[test]
     fn test_pressure_level_calculation() {
-        let thresholds = PressureThresholds::default();
-        let detector = MemoryPressureDetector::new(thresholds).unwrap();
+        let detector = MemoryPressureDetector::new(0.8);
 
         // Test different usage levels
         assert_eq!(
@@ -703,8 +771,7 @@ mod tests {
 
     #[test]
     fn test_callback_registration() {
-        let thresholds = PressureThresholds::default();
-        let detector = MemoryPressureDetector::new(thresholds).unwrap();
+        let detector = MemoryPressureDetector::new(0.8);
 
         let callback_called = Arc::new(Mutex::new(false));
         let callback_called_clone = callback_called.clone();
@@ -722,8 +789,7 @@ mod tests {
 
     #[test]
     fn test_usage_trend_calculation() {
-        let thresholds = PressureThresholds::default();
-        let detector = MemoryPressureDetector::new(thresholds).unwrap();
+        let detector = MemoryPressureDetector::new(0.8);
 
         // Add some usage samples
         detector.record_usage_sample(1024 * 1024 * 1024); // 1GB
@@ -738,8 +804,7 @@ mod tests {
 
     #[test]
     fn test_pressure_statistics() {
-        let thresholds = PressureThresholds::default();
-        let detector = MemoryPressureDetector::new(thresholds).unwrap();
+        let detector = MemoryPressureDetector::new(0.8);
 
         let stats = detector.get_statistics();
         assert_eq!(stats.current_level, MemoryPressureLevel::None);

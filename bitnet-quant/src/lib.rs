@@ -23,6 +23,9 @@
 //! let weight_config = WeightQuantizationConfig::default();
 //! let weight_quantizer = QuantizerFactory::create_weight_quantizer(weight_config);
 //!
+
+// Allow dead code for work-in-progress implementations
+#![allow(dead_code, unused_variables, unused_imports)]
 //! // Create an activation quantizer
 //! let activation_config = ActivationQuantizationConfig::default();
 //! let activation_quantizer = QuantizerFactory::create_activation_quantizer(activation_config);
