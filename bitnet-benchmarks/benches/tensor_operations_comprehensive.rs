@@ -41,6 +41,8 @@ impl Default for TensorOpsBenchmarkConfig {
             enable_debug_logging: false,
             enable_advanced_tracking: true,
             tracking_config: Some(bitnet_core::memory::tracking::TrackingConfig::default()),
+            enable_fragmentation_prevention: false,
+            fragmentation_config: None,
         };
 
         Self {
@@ -546,7 +548,7 @@ fn bench_performance_regression(c: &mut Criterion) {
     group.measurement_time(config.measurement_time);
 
     // Baseline performance targets (operations per second)
-    let performance_targets = std::collections::HashMap::from([
+    let _performance_targets = std::collections::HashMap::from([
         ("small_vector_add", 1_000_000.0), // 1M ops/sec for small vectors
         ("medium_vector_add", 100_000.0),  // 100K ops/sec for medium vectors
         ("large_vector_add", 10_000.0),    // 10K ops/sec for large vectors
@@ -587,7 +589,7 @@ fn bench_performance_regression(c: &mut Criterion) {
 // ============================================================================
 
 fn bench_comprehensive_performance(c: &mut Criterion) {
-    let config = TensorOpsBenchmarkConfig::default();
+    let _config = TensorOpsBenchmarkConfig::default();
     let device = get_cpu_device();
 
     let mut group = c.benchmark_group("tensor_comprehensive_performance");

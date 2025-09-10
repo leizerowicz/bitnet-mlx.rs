@@ -383,10 +383,10 @@ monitored_test! {
         let time_no_tracking = start_time.elapsed();
         println!("⏱️  No tracking time: {:.2}ms", time_no_tracking.as_millis());
 
-        // Test with tracking with comprehensive error handling
+        // Test with optimized tracking for Task 1.4.1 performance target (15-20% overhead)
         let mut config = MemoryPoolConfig::default();
         config.enable_advanced_tracking = true;
-        config.tracking_config = Some(TrackingConfig::minimal()); // Changed to minimal for optimal performance
+        config.tracking_config = Some(TrackingConfig::minimal()); // Use minimal tracking for optimal performance
 
         let pool_with_tracking = match HybridMemoryPool::with_config(config) {
             Ok(pool) => pool,
@@ -434,31 +434,43 @@ monitored_test! {
 
         println!("📈 Performance overhead: {overhead_percentage:.2}%");
 
-        // Validate that overhead is under 150% with detailed error reporting (adjusted to realistic performance with minimal tracking - deeper optimization needed for 15-20% target)
-        if overhead_percentage >= 150.0 {
-            eprintln!("❌ Tracking overhead ({overhead_percentage:.2}%) exceeds 150% threshold");
+        // Validate Task 1.4.1 target: overhead should be under 20% with optimized implementation
+        if overhead_percentage >= 20.0 {
+            eprintln!("❌ Tracking overhead ({overhead_percentage:.2}%) exceeds 20% target for Task 1.4.1");
             eprintln!("   No tracking: {:.2}ms", time_no_tracking.as_millis());
             eprintln!("   With tracking: {:.2}ms", time_with_tracking.as_millis());
         }
         assert!(
-            overhead_percentage < 150.0,
-            "Tracking overhead ({overhead_percentage:.2}%) exceeds 150% threshold"
+            overhead_percentage < 20.0,
+            "Task 1.4.1 target: Tracking overhead ({overhead_percentage:.2}%) should be under 20% with optimized implementation"
         );
 
-        // Also check the tracking system's own overhead reporting
-        if let Some(metrics) = pool_with_tracking.get_detailed_metrics() {
-            println!("🔍 Self-reported CPU overhead: {:.2}%", metrics.tracking_overhead.cpu_overhead_percentage);
-            if metrics.tracking_overhead.cpu_overhead_percentage >= 150.0 {
-                eprintln!("❌ Self-reported CPU overhead ({:.2}%) exceeds 150% threshold", 
+        // Also check the tracking system's own overhead reporting for Task 1.4.1 compliance
+        if let Some(metrics) = pool_with_tracking.get_optimized_metrics() {
+            println!("🔍 Optimized tracker CPU overhead: {:.2}%", metrics.tracking_overhead.cpu_overhead_percentage);
+            if metrics.tracking_overhead.cpu_overhead_percentage >= 20.0 {
+                eprintln!("❌ Optimized tracker CPU overhead ({:.2}%) exceeds 20% Task 1.4.1 target", 
                          metrics.tracking_overhead.cpu_overhead_percentage);
             }
             assert!(
-                metrics.tracking_overhead.cpu_overhead_percentage < 150.0,
-                "Self-reported CPU overhead ({:.2}%) exceeds 150% threshold",
+                metrics.tracking_overhead.cpu_overhead_percentage < 20.0,
+                "Task 1.4.1 target: Optimized tracker CPU overhead ({:.2}%) should be under 20%",
+                metrics.tracking_overhead.cpu_overhead_percentage
+            );
+        } else if let Some(metrics) = pool_with_tracking.get_detailed_metrics() {
+            println!("🔍 Fallback tracker CPU overhead: {:.2}%", metrics.tracking_overhead.cpu_overhead_percentage);
+            // Fallback to detailed metrics if optimized metrics not available
+            if metrics.tracking_overhead.cpu_overhead_percentage >= 20.0 {
+                eprintln!("❌ Fallback tracker CPU overhead ({:.2}%) exceeds 20% Task 1.4.1 target", 
+                         metrics.tracking_overhead.cpu_overhead_percentage);
+            }
+            assert!(
+                metrics.tracking_overhead.cpu_overhead_percentage < 20.0,
+                "Task 1.4.1 target: Fallback tracker CPU overhead ({:.2}%) should be under 20%",
                 metrics.tracking_overhead.cpu_overhead_percentage
             );
         } else {
-            eprintln!("⚠️  Warning: Detailed metrics not available for overhead validation");
+            eprintln!("⚠️  Warning: No metrics available for overhead validation");
         }
 
         println!("✅ Performance overhead validation completed successfully");
@@ -482,16 +494,27 @@ fn test_tracking_memory_usage() {
         handles.push(handle);
     }
 
-    // Check tracking overhead
-    if let Some(metrics) = pool.get_detailed_metrics() {
+    // Check tracking overhead for Task 1.4.1 target (15-20% overhead)
+    if let Some(metrics) = pool.get_optimized_metrics() {
+        let tracking_memory = metrics.tracking_overhead.memory_overhead_bytes;
+        let actual_memory = metrics.estimated_memory_usage;
+
+        // Tracking memory should be reasonable compared to actual memory usage for Task 1.4.1
+        let overhead_ratio = tracking_memory as f64 / actual_memory as f64;
+        assert!(
+            overhead_ratio < 0.15, // Less than 15% memory overhead (Task 1.4.1 target range)
+            "Task 1.4.1: Memory tracking overhead ({:.2}%) should be under 15%",
+            overhead_ratio * 100.0
+        );
+    } else if let Some(metrics) = pool.get_detailed_metrics() {
         let tracking_memory = metrics.tracking_overhead.memory_overhead_bytes;
         let actual_memory = metrics.current_memory_usage;
 
-        // Tracking memory should be reasonable compared to actual memory usage
+        // Fallback to detailed metrics if optimized not available
         let overhead_ratio = tracking_memory as f64 / actual_memory as f64;
         assert!(
-            overhead_ratio < 0.20, // Less than 20% memory overhead (optimized to meet target range)
-            "Memory tracking overhead ({:.2}%) is too high",
+            overhead_ratio < 0.15, // Less than 15% memory overhead (Task 1.4.1 target range)
+            "Task 1.4.1: Memory tracking overhead ({:.2}%) should be under 15%",
             overhead_ratio * 100.0
         );
     }

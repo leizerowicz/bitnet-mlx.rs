@@ -601,3 +601,46 @@ mod tests {
         }
     }
 }
+
+impl MemoryHandle {
+    /// Creates a mock memory handle for testing purposes
+    /// 
+    /// # Arguments
+    /// 
+    /// * `size` - Size of the mock allocation
+    /// * `id` - Unique identifier for the handle
+    /// 
+    /// # Safety
+    /// 
+    /// This creates a mock handle that doesn't point to real allocated memory.
+    /// Only use for testing optimized pool structures.
+    #[cfg(test)]
+    pub fn new_mock(size: usize, id: u64) -> Self {
+        use std::alloc::{alloc, Layout};
+        use candle_core::Device;
+        
+        let layout = Layout::from_size_align(size, 8).unwrap();
+        let ptr = unsafe { alloc(layout) };
+        let non_null_ptr = NonNull::new(ptr).unwrap();
+        
+        let metadata = Arc::new(MemoryMetadata {
+            cpu: Some(CpuMemoryMetadata {
+                page_aligned: false,
+                locked: false,
+                numa_node: None,
+            }),
+            #[cfg(feature = "metal")]
+            metal: None,
+        });
+
+        Self {
+            id,
+            ptr: non_null_ptr,
+            size,
+            alignment: 8,
+            device: Device::Cpu,
+            pool_type: PoolType::SmallBlock,
+            metadata,
+        }
+    }
+}
