@@ -168,8 +168,23 @@
 #[cfg(all(target_os = "macos", feature = "metal"))]
 pub mod metal;
 
+#[cfg(all(target_os = "macos", feature = "mps"))]
+pub mod mps;
+
 // Re-export Metal module for external use
 pub use metal::*;
+
+// Re-export MPS module for external use (specific exports to avoid ambiguity)
+#[cfg(all(target_os = "macos", feature = "mps"))]
+pub use mps::{
+    BitNetMPSManager, MPSSystemInfo,
+    MPSFramework, MPSCapabilities, MPSOptimizationSettings,
+    MPSMatrixOperations, MPSMatrixMultiplication, MPSQuantizedGEMM,
+    MPSNeuralNetworkLayers, BitLinearConfig, QuantizationConfig, ActivationType,
+    MPSComputerVision, ImageProcessingConfig, ConvolutionConfig, AttentionConfig,
+    ANEIntegration, ANECapabilities, ANEExecutionStats, OptimizationTarget, PowerTarget,
+    UnifiedMemoryManager, UnifiedAllocation, MemoryUsageHint, SharingMode, BandwidthOptimization,
+};
 
 /// The version of this crate
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

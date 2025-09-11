@@ -1,10 +1,12 @@
 # BitNet-Rust Development Phase Tracker
 
+> **⚠️ MANDATORY ORCHESTRATOR ROUTING**: Before executing any work from this specialist config, **ALWAYS consult `agent-config/orchestrator.md` FIRST** for task routing, workflow coordination, multi-agent needs, current project context, and agent hooks integration. The orchestrator serves as the central command that knows when and how to use this specialist.
+
 > **Last Updated**: September 9, 2025 - **Foundation Complete Phase** ✅ with excellent stability achieved (99.6% test success rate - 530/532 tests passing), inference-ready infrastructure operational, synchronized with COMPREHENSIVE_TODO.md priorities
 
 ## Development Phase Overview
 
-BitNet-Rust has achieved **excellent technical foundation stability** with **99.6% test success rate (530/532 tests passing)** indicating robust core functionality across all components. The project is now **inference-ready** and positioned for practical ML workflow implementation following the COMPREHENSIVE_TODO.md roadmap.
+BitNet-Rust has achieved **excellent technical foundation stability** with **99.6% test success rate (530/532 tests passing)** indicating robust core functionality across all components. The project is now **inference-ready** and positioned for practical ML workflow implementation following the COMPREHENSIVE_TODO.md roadmap. **All phase management and coordination activities are managed through the orchestrator** (`agent-config/orchestrator.md`).
 
 **✅ FOUNDATION COMPLETE - INFERENCE READY PHASE ACTIVE**:
 - ✅ **Core System Status**: All 7 crates compile with excellent functional stability

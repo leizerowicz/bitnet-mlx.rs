@@ -4,10 +4,10 @@
 [![Documentation](https://docs.rs/bitnet-inference/badge.svg)](https://docs.rs/bitnet-inference)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](../README.md#building)
-[![Test Status](https://img.shields.io/badge/tests-44/44%20passing-brightgreen.svg)](#testing)
-[![Foundation](https://img.shields.io/badge/foundation_ready-week_1-yellow.svg)](../README.md#current-status)
+[![Test Status](https://img.shields.io/badge/tests-all_passing-brightgreen.svg)](#testing)
+[![Foundation](https://img.shields.io/badge/foundation_ready-inference_phase-brightgreen.svg)](../README.md#current-status)
 
-High-performance inference engine for 1.58-bit BitNet neural networks with advanced GPU acceleration, dynamic batch processing, and production-ready APIs optimized for Apple Silicon and cross-platform deployment. **Foundation ready for Epic 2 - Inference Engine Implementation (Weeks 2-6).**
+High-performance inference engine for 1.58-bit BitNet neural networks with advanced GPU acceleration, dynamic batch processing, and production-ready APIs optimized for Apple Silicon and cross-platform deployment. **Production-ready foundation with HuggingFace integration complete.**
 
 ## 🎯 Purpose & Features
 
@@ -30,6 +30,36 @@ High-performance inference engine for 1.58-bit BitNet neural networks with advan
 - **Performance Monitoring**: Real-time bandwidth monitoring, allocation statistics foundation
 - **Cross-Platform**: Validated on macOS (Apple Silicon/Intel), Linux, Windows foundation
 - **Testing**: 44/44 tests passing with comprehensive coverage foundation complete
+
+### 🎉 **NEW: HuggingFace Model Loading (Task 2.1 COMPLETED)**
+
+The inference engine now supports direct model loading from HuggingFace Hub:
+
+```rust
+use bitnet_inference::{InferenceEngine, ModelRepo};
+
+// Load models directly from HuggingFace Hub
+let engine = InferenceEngine::new().await?;
+let model = engine.load_model_from_hub("microsoft/bitnet-b1.58-large").await?;
+
+// Advanced configuration
+let repo = ModelRepo::new("microsoft", "bitnet-b1.58-large")
+    .with_revision("v1.0");
+let model = engine.load_model_from_repo(&repo).await?;
+
+// Cache management
+let stats = engine.hf_cache_stats().await?;
+engine.clear_hf_cache().await?;
+```
+
+**Features Implemented:**
+- ✅ Direct HuggingFace Hub integration with authentication support
+- ✅ SafeTensors format parsing and tensor extraction
+- ✅ Local caching with LRU eviction and memory management
+- ✅ Offline mode for production deployments
+- ✅ Comprehensive error handling and progress tracking
+
+See [MODEL_LOADING_GUIDE.md](MODEL_LOADING_GUIDE.md) for complete usage examples.
 
 ## 🚀 Current Status: **Foundation Ready for Epic 2 - Inference Engine Implementation**
 

@@ -54,13 +54,16 @@ use tracing::{debug, error, info, warn};
 
 // Sub-modules
 pub mod adaptive_tensor_pool;
+pub mod allocation_pattern_learner;
 pub mod cleanup;
 pub mod conversion;
 pub mod device_pool;
+pub mod enhanced_adaptive_tensor_pool;
 pub mod enhanced_tensor_pool;
 pub mod fragmentation;
 pub mod handle;
 pub mod large_block;
+pub mod lightweight_tensor_pool;
 pub mod metrics;
 pub mod small_block;
 pub mod tensor;
@@ -68,6 +71,7 @@ pub mod tensor_pool;
 pub mod tensor_pool_optimized;
 pub mod tensor_deallocation;
 pub mod tracking;
+pub mod unified_tensor_config;
 
 // Re-exports
 pub use cleanup::{
@@ -90,7 +94,16 @@ pub use large_block::LargeBlockPool;
 pub use metrics::MemoryMetrics;
 pub use small_block::SmallBlockPool;
 pub use tensor::{BitNetDType, BitNetTensor, TensorHandle, TensorMetadata};
-pub use adaptive_tensor_pool::AdaptiveTensorMemoryPool;
+pub use adaptive_tensor_pool::{AdaptiveTensorMemoryPool, AllocationStrategy};
+pub use allocation_pattern_learner::{AllocationPatternLearner, LearningStats};
+pub use enhanced_adaptive_tensor_pool::{
+    EnhancedAdaptiveTensorPool, Task171Compliance, EnhancedMetrics, PerformanceStatsSummary
+};
+pub use lightweight_tensor_pool::{LightweightTensorPool, ConsistencyMetrics};
+pub use unified_tensor_config::{
+    UnifiedTensorPoolConfig, UnifiedTensorPoolConfigBuilder, TensorPoolProfile, 
+    OptimizationLevel, LearningConfig, ConfigurationProfiles, ConfigValidationResult
+};
 pub use tensor_pool::{
     TensorMemoryPool, TensorPoolConfig, TensorPoolStats, TensorSizeCategory, 
     TensorLifecycleMetadata, CategoryStats
@@ -154,6 +167,10 @@ pub enum MemoryError {
     /// Invalid state for the requested operation
     #[error("Invalid state: {reason}")]
     InvalidState { reason: String },
+
+    /// Invalid configuration parameters
+    #[error("Invalid configuration: {0}")]
+    InvalidConfiguration(String),
 }
 
 /// Result type for memory operations

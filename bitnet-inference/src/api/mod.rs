@@ -10,6 +10,7 @@ pub use streaming::{InferenceStream, StreamingConfig};
 use crate::{Result, InferenceError};
 use crate::engine::{InferenceBackend, InferenceContext, OptimizationLevel, Model, CpuInferenceBackend, DeviceSelector, SelectionStrategy};
 use crate::cache::{ModelCache, CacheConfig};
+use crate::huggingface::{HuggingFaceLoader, ModelRepo, HuggingFaceConfig};
 use bitnet_core::{Device, Tensor};
 use std::sync::Arc;
 use std::path::Path;
@@ -20,6 +21,7 @@ pub struct InferenceEngine {
     context: InferenceContext,
     model_cache: Arc<ModelCache>,
     config: EngineConfig,
+    hf_loader: HuggingFaceLoader,
 }
 
 /// Configuration for the inference engine.
@@ -78,11 +80,15 @@ impl InferenceEngine {
             Arc::new(ModelCache::new(1, 64 * 1024 * 1024)) // 64MB minimal cache
         };
 
+        let hf_loader = HuggingFaceLoader::new()
+            .map_err(|e| InferenceError::model_load(format!("Failed to create HuggingFace loader: {}", e)))?;
+
         Ok(Self {
             backend,
             context,
             model_cache,
             config,
+            hf_loader,
         })
     }
 
@@ -140,6 +146,133 @@ impl InferenceEngine {
         };
 
         Ok(Arc::new(model))
+    }
+
+    /// Load a model from HuggingFace Hub by repository identifier.
+    /// 
+    /// # Arguments
+    /// * `repo_id` - HuggingFace repository identifier (e.g., "microsoft/bitnet-b1.58-large")
+    /// 
+    /// # Example
+    /// ```no_run
+    /// # use bitnet_inference::InferenceEngine;
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let engine = InferenceEngine::new().await?;
+    /// let model = engine.load_model_from_hub("microsoft/bitnet-b1.58-large").await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn load_model_from_hub(&self, repo_id: &str) -> Result<Arc<Model>> {
+        let repo = self.parse_repo_id(repo_id)?;
+        self.load_model_from_repo(&repo).await
+    }
+
+    /// Load a model from HuggingFace Hub with a specific revision.
+    /// 
+    /// # Arguments
+    /// * `repo_id` - HuggingFace repository identifier
+    /// * `revision` - Specific revision (branch, tag, or commit)
+    pub async fn load_model_from_hub_with_revision(&self, repo_id: &str, revision: &str) -> Result<Arc<Model>> {
+        let repo = self.parse_repo_id(repo_id)?
+            .with_revision(revision);
+        self.load_model_from_repo(&repo).await
+    }
+
+    /// Load a model from a ModelRepo specification.
+    pub async fn load_model_from_repo(&self, repo: &ModelRepo) -> Result<Arc<Model>> {
+        let model_key = format!("hf:{}", repo.repo_id());
+        
+        // Load using the cache's get_or_load method
+        let cached_model = self.model_cache.get_or_load(&model_key, || {
+            // This closure will be called only if the model is not in cache
+            futures::executor::block_on(async {
+                self.hf_loader.load_model(repo).await
+            })
+        })?;
+
+        // Convert to inference Model format
+        let model = self.convert_loaded_model_to_model(cached_model.model)?;
+        Ok(Arc::new(model))
+    }
+
+    /// Download a model from HuggingFace Hub to local cache.
+    /// This is useful for pre-downloading models without loading them into memory.
+    pub async fn download_model(&self, repo_id: &str) -> Result<std::path::PathBuf> {
+        let repo = self.parse_repo_id(repo_id)?;
+        self.hf_loader.download_model(&repo).await
+    }
+
+    /// Get HuggingFace cache statistics.
+    pub async fn hf_cache_stats(&self) -> Result<crate::huggingface::CacheStats> {
+        self.hf_loader.cache_stats().await
+    }
+
+    /// Clear HuggingFace model cache.
+    pub async fn clear_hf_cache(&self) -> Result<()> {
+        self.hf_loader.clear_cache().await
+    }
+
+    /// Parse a repository ID string into owner and name components.
+    fn parse_repo_id(&self, repo_id: &str) -> Result<ModelRepo> {
+        let parts: Vec<&str> = repo_id.split('/').collect();
+        if parts.len() != 2 {
+            return Err(InferenceError::model_load(
+                format!("Invalid repository ID '{}'. Expected format: 'owner/name'", repo_id)
+            ));
+        }
+        Ok(ModelRepo::new(parts[0], parts[1]))
+    }
+
+    /// Convert a LoadedModel to the inference Model format.
+    fn convert_loaded_model_to_model(&self, loaded_model: crate::engine::model_loader::LoadedModel) -> Result<Model> {
+        // Convert the loaded model metadata to the inference model format
+        let model = Model {
+            name: loaded_model.metadata.name.clone(),
+            version: loaded_model.metadata.version.clone(),
+            input_dim: loaded_model.metadata.input_shape.get(1).copied().unwrap_or(512),
+            output_dim: loaded_model.metadata.output_shape.get(1).copied().unwrap_or(30000),
+            architecture: crate::engine::ModelArchitecture::BitLinear {
+                layers: loaded_model.architecture.layers.into_iter().map(|layer| {
+                    crate::engine::LayerConfig {
+                        id: layer.id,
+                        layer_type: match layer.layer_type {
+                            crate::engine::model_loader::LayerType::BitLinear => crate::engine::LayerType::BitLinear,
+                            crate::engine::model_loader::LayerType::RMSNorm => crate::engine::LayerType::RMSNorm,
+                            crate::engine::model_loader::LayerType::SwiGLU => crate::engine::LayerType::SwiGLU,
+                            crate::engine::model_loader::LayerType::Embedding => crate::engine::LayerType::Embedding,
+                            crate::engine::model_loader::LayerType::OutputProjection => crate::engine::LayerType::Linear, // Map to Linear
+                        },
+                        input_shape: layer.input_dims.clone(),
+                        output_shape: layer.output_dims.clone(),
+                        parameters: match layer.parameters {
+                            crate::engine::model_loader::LayerParameters::BitLinear { weight_bits, activation_bits } => {
+                                crate::engine::LayerParameters::BitLinear { weight_bits, activation_bits }
+                            },
+                            crate::engine::model_loader::LayerParameters::RMSNorm { eps } => {
+                                crate::engine::LayerParameters::RMSNorm { eps }
+                            },
+                            crate::engine::model_loader::LayerParameters::SwiGLU { hidden_dim } => {
+                                crate::engine::LayerParameters::SwiGLU { hidden_dim }
+                            },
+                            crate::engine::model_loader::LayerParameters::Embedding { vocab_size, embedding_dim } => {
+                                crate::engine::LayerParameters::Embedding { vocab_size, embedding_dim }
+                            },
+                            crate::engine::model_loader::LayerParameters::OutputProjection { vocab_size: _ } => {
+                                crate::engine::LayerParameters::Linear { 
+                                    bias: true,
+                                }
+                            },
+                        },
+                    }
+                }).collect(),
+                attention_heads: Some(8), // Default value, should be inferred from config
+                hidden_dim: loaded_model.metadata.input_shape.get(1).copied().unwrap_or(512),
+            },
+            parameter_count: loaded_model.metadata.parameter_count,
+            quantization_config: crate::engine::QuantizationConfig::default(),
+        };
+
+        Ok(model)
     }
 
     /// Run inference on a single input tensor.

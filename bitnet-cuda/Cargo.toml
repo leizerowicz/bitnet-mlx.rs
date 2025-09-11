@@ -1,0 +1,46 @@
+[package]
+name = "bitnet-cuda"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+description = "CUDA GPU acceleration backend for BitNet operations"
+keywords = ["bitnet", "cuda", "gpu", "acceleration", "quantization"]
+categories = ["science", "algorithms"]
+
+[features]
+default = []
+cuda = ["cudarc", "half"]
+profiling = ["dep:tracing"]
+
+[dependencies]
+# Core dependencies
+bitnet-core = { path = "../bitnet-core", version = "1.0.0" }
+anyhow.workspace = true
+thiserror.workspace = true
+
+# CUDA dependencies
+cudarc = { version = "0.12", optional = true, features = ["f16", "cuda-12030"] }
+half = { version = "2.3", optional = true, features = ["std", "serde"] }
+
+# Performance and utility
+bytemuck = { version = "1.14", features = ["derive"] }
+num-traits = "0.2"
+
+# Tracing (optional)
+tracing = { version = "0.1", optional = true }
+
+[dev-dependencies]
+criterion = { workspace = true }
+proptest = { workspace = true }
+approx = "0.5"
+
+[build-dependencies]
+cc = "1.0"
+
+[[example]]
+name = "w2a8_gemv_demo"
+required-features = ["cuda"]

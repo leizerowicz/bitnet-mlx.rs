@@ -4,6 +4,7 @@ members = [
     "bitnet-core",
     "bitnet-quant",
     "bitnet-metal",
+    "bitnet-cuda",
     "bitnet-inference",
     "bitnet-training",
     "bitnet-cli",

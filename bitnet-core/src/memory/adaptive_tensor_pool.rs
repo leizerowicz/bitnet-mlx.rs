@@ -56,7 +56,7 @@ impl AdaptiveStats {
 }
 
 /// Adaptive strategy for tensor allocation
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AllocationStrategy {
     /// Use standard tensor pool (low overhead for small tensors)
     Standard,

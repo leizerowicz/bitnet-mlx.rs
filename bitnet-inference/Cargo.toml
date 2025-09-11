@@ -68,6 +68,13 @@ memmap2 = "0.9"
 crossbeam-channel = "0.5"
 serde_json = "1.0"
 
+# HuggingFace Hub and model format support
+hf-hub = "0.3"
+safetensors = "0.4"
+reqwest = { version = "0.11", features = ["json", "stream"] }
+bytes = "1.5"
+dirs = "5.0"
+
 # Streaming dependencies
 async-stream = "0.3"
 futures = "0.3"
