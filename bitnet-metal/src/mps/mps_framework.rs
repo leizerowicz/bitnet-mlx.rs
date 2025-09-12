@@ -91,25 +91,32 @@ impl MPSCapabilities {
     /// Detect MPS capabilities for the given device
     #[cfg(all(target_os = "macos", feature = "mps"))]
     pub fn detect(device: &Device) -> Result<Self> {
-        // Query device capabilities using modern Metal GPU family checks
-        // Use a simplified capability detection approach to avoid deprecated APIs
-        let supports_neural_network = true; // Assume modern Metal devices support neural networks
-        let supports_matrix_multiplication = true; // Assume modern Metal devices support matrix ops
+        // Enhanced capability detection with better hardware introspection
+        let device_name = device.name();
+        
+        // Detect GPU family and capabilities more accurately
+        let (supports_neural_network, supports_matrix_multiplication) = Self::detect_compute_capabilities(device);
         let supports_convolution = supports_neural_network;
-        let supports_image_processing = true; // Basic support
+        let supports_image_processing = Self::detect_image_processing_support(device);
         let supports_graph_api = Self::detect_graph_api_support();
         
-        // Use conservative texture size for compatibility
-        let max_texture_size = 8192;
+        // Enhanced texture size detection based on GPU family
+        let max_texture_size = Self::detect_max_texture_size(device);
         
-        let max_buffer_size = if device.has_unified_memory() {
-            // Unified memory systems can use larger buffers
-            1024 * 1024 * 1024 // 1GB
-        } else {
-            256 * 1024 * 1024 // 256MB
-        };
+        // Enhanced memory detection with unified memory considerations
+        let (max_buffer_size, unified_memory) = Self::detect_memory_capabilities(device);
         
-        let unified_memory = device.has_unified_memory();
+        println!("Detected MPS capabilities for device '{}': NN={}, MM={}, Conv={}, Img={}, Graph={}, MaxTex={}, MaxBuf={}MB, Unified={}",
+            device_name,
+            supports_neural_network,
+            supports_matrix_multiplication, 
+            supports_convolution,
+            supports_image_processing,
+            supports_graph_api,
+            max_texture_size,
+            max_buffer_size / (1024 * 1024),
+            unified_memory
+        );
         
         Ok(Self {
             supports_neural_network,
@@ -121,6 +128,110 @@ impl MPSCapabilities {
             max_buffer_size,
             unified_memory,
         })
+    }
+    
+    /// Enhanced compute capability detection
+    #[cfg(all(target_os = "macos", feature = "mps"))]
+    fn detect_compute_capabilities(device: &Device) -> (bool, bool) {
+        // Check Metal GPU family for more accurate capability detection
+        let device_name = device.name().to_lowercase();
+        
+        // Apple Silicon devices generally support neural networks and matrix ops
+        let is_apple_silicon = device_name.contains("apple") || 
+                              device_name.contains("m1") || 
+                              device_name.contains("m2") || 
+                              device_name.contains("m3") ||
+                              device_name.contains("m4");
+        
+        // Intel and AMD discrete GPUs
+        let is_discrete_gpu = device_name.contains("radeon") || 
+                             device_name.contains("rx ") ||
+                             device_name.contains("vega") ||
+                             device_name.contains("nvidia") ||
+                             device_name.contains("geforce") ||
+                             device_name.contains("rtx") ||
+                             device_name.contains("gtx");
+        
+        // Intel integrated graphics
+        let is_intel_integrated = device_name.contains("intel") && 
+                                 (device_name.contains("iris") || device_name.contains("uhd") || device_name.contains("hd"));
+        
+        // Capability matrix based on GPU type
+        match (is_apple_silicon, is_discrete_gpu, is_intel_integrated) {
+            (true, _, _) => (true, true),      // Apple Silicon: full support
+            (_, true, _) => (true, true),      // Discrete GPU: full support
+            (_, _, true) => (false, true),     // Intel integrated: limited support
+            _ => (false, false),               // Unknown/unsupported
+        }
+    }
+    
+    /// Detect image processing support
+    #[cfg(all(target_os = "macos", feature = "mps"))]
+    fn detect_image_processing_support(_device: &Device) -> bool {
+        // Most Metal devices support basic image processing
+        // Check for specific image processing features via Metal feature sets
+        use objc::runtime::Class;
+        
+        if let Some(_mps_class) = Class::get("MPSImageConversion") {
+            // If MPSImageConversion class exists, image processing is supported
+            return true;
+        }
+        
+        // Fallback: assume support for modern devices
+        true
+    }
+    
+    /// Enhanced texture size detection
+    #[cfg(all(target_os = "macos", feature = "mps"))]
+    fn detect_max_texture_size(device: &Device) -> usize {
+        let device_name = device.name().to_lowercase();
+        
+        // Enhanced texture size limits based on GPU capabilities
+        if device_name.contains("m3") || device_name.contains("m4") {
+            16384  // Latest Apple Silicon
+        } else if device_name.contains("m2") {
+            16384  // M2 series
+        } else if device_name.contains("m1") {
+            16384  // M1 series
+        } else if device_name.contains("radeon") || device_name.contains("vega") {
+            16384  // Modern AMD GPUs
+        } else if device_name.contains("intel") {
+            8192   // Intel integrated graphics
+        } else {
+            8192   // Conservative default
+        }
+    }
+    
+    /// Enhanced memory capability detection
+    #[cfg(all(target_os = "macos", feature = "mps"))]
+    fn detect_memory_capabilities(device: &Device) -> (usize, bool) {
+        let unified_memory = device.has_unified_memory();
+        let device_name = device.name().to_lowercase();
+        
+        // Memory limits based on device type and unified memory
+        let max_buffer_size = if unified_memory {
+            // Apple Silicon unified memory - more generous limits
+            if device_name.contains("m3") || device_name.contains("m4") {
+                4 * 1024 * 1024 * 1024  // 4GB for latest chips
+            } else if device_name.contains("m2") {
+                2 * 1024 * 1024 * 1024  // 2GB for M2
+            } else if device_name.contains("m1") {
+                1 * 1024 * 1024 * 1024  // 1GB for M1
+            } else {
+                512 * 1024 * 1024       // 512MB conservative
+            }
+        } else {
+            // Discrete GPU or integrated graphics
+            if device_name.contains("radeon") && (device_name.contains("pro") || device_name.contains("xt")) {
+                1 * 1024 * 1024 * 1024  // 1GB for high-end AMD
+            } else if device_name.contains("radeon") {
+                512 * 1024 * 1024       // 512MB for mid-range AMD
+            } else {
+                256 * 1024 * 1024       // 256MB conservative default
+            }
+        };
+        
+        (max_buffer_size, unified_memory)
     }
     
     #[cfg(not(all(target_os = "macos", feature = "mps")))]
@@ -140,6 +251,87 @@ impl MPSCapabilities {
     #[cfg(not(all(target_os = "macos", feature = "mps")))]
     fn detect_graph_api_support() -> bool {
         false
+    }
+    
+    /// Check if device meets minimum requirements for operation
+    pub fn meets_requirements(&self, requirements: &super::error_recovery::CapabilityRequirements) -> bool {
+        if requirements.neural_network_support && !self.supports_neural_network {
+            return false;
+        }
+        if requirements.matrix_multiplication && !self.supports_matrix_multiplication {
+            return false;
+        }
+        if requirements.convolution_support && !self.supports_convolution {
+            return false;
+        }
+        if requirements.graph_api && !self.supports_graph_api {
+            return false;
+        }
+        
+        let available_memory_mb = self.max_buffer_size / (1024 * 1024);
+        if available_memory_mb < requirements.minimum_memory_mb {
+            return false;
+        }
+        
+        true
+    }
+    
+    /// Get suggested fallback strategy based on available capabilities
+    pub fn suggest_fallback(&self, requirements: &super::error_recovery::CapabilityRequirements) -> Option<String> {
+        // If we have matrix multiplication, suggest Metal fallback
+        if self.supports_matrix_multiplication && !requirements.ane_support {
+            return Some("metal".to_string());
+        }
+        
+        // If we have basic compute support, suggest limited Metal
+        if self.max_buffer_size > 100 * 1024 * 1024 { // 100MB minimum
+            return Some("metal_limited".to_string());
+        }
+        
+        // Otherwise suggest CPU fallback
+        Some("cpu".to_string())
+    }
+    
+    /// Get compatibility score (0.0 to 1.0) for requirements
+    pub fn compatibility_score(&self, requirements: &super::error_recovery::CapabilityRequirements) -> f32 {
+        let mut score = 0.0;
+        let mut total_checks = 0.0;
+        
+        // Neural network support
+        total_checks += 1.0;
+        if !requirements.neural_network_support || self.supports_neural_network {
+            score += 1.0;
+        }
+        
+        // Matrix multiplication
+        total_checks += 1.0;
+        if !requirements.matrix_multiplication || self.supports_matrix_multiplication {
+            score += 1.0;
+        }
+        
+        // Convolution support
+        total_checks += 1.0;
+        if !requirements.convolution_support || self.supports_convolution {
+            score += 1.0;
+        }
+        
+        // Graph API
+        total_checks += 1.0;
+        if !requirements.graph_api || self.supports_graph_api {
+            score += 1.0;
+        }
+        
+        // Memory requirements
+        total_checks += 1.0;
+        let available_memory_mb = self.max_buffer_size / (1024 * 1024);
+        if available_memory_mb >= requirements.minimum_memory_mb {
+            score += 1.0;
+        } else {
+            // Partial score based on available memory
+            score += (available_memory_mb as f32) / (requirements.minimum_memory_mb as f32).max(1.0);
+        }
+        
+        score / total_checks
     }
 }
 

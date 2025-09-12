@@ -54,6 +54,7 @@ use tracing::{debug, error, info, warn};
 
 // Sub-modules
 pub mod adaptive_tensor_pool;
+pub mod advanced_gpu_memory;
 pub mod allocation_pattern_learner;
 pub mod cleanup;
 pub mod conversion;
@@ -80,8 +81,14 @@ pub use cleanup::{
     CompactionResult, CpuCleanup, DeviceCleanupOps, MetalCleanup,
 };
 pub use conversion::{
-    BatchConverter, ConversionConfig, ConversionEngine, ConversionEvent, ConversionMetrics,
-    ConversionPipeline, ConversionStats, InPlaceConverter, StreamingConverter, ZeroCopyConverter,
+    BatchConfig, BatchConverter, ConversionConfig, ConversionEngine, ConversionEvent,
+    ConversionMetrics, ConversionPipeline, ConversionQuality, ConversionStats, 
+    ConversionStrategy, ConversionStrategyInfo, InPlaceConverter, PerformanceConfig,
+    PipelineStats, StreamingConfig, StreamingConverter, TensorView, ZeroCopyConverter,
+};
+pub use advanced_gpu_memory::{
+    AdvancedGpuMemoryManager, AdvancedMemoryConfig, DeviceId, AllocationHint,
+    AdvancedAllocation, AdvancedMemoryStats, OptimizationResult
 };
 pub use device_pool::CpuMemoryPool;
 pub use fragmentation::{
@@ -118,7 +125,7 @@ pub use enhanced_tensor_pool::{
 };
 pub use tensor_deallocation::{
     TensorDeallocationManager, DeallocationPriority, DeallocationStrategy, 
-    BatchConfig, DeallocationStats
+    BatchConfig as DeallocationBatchConfig, DeallocationStats
 };
 pub use tracking::{
     AllocationTimeline, DetailedMemoryMetrics, LeakReport, MemoryPressureDetector,

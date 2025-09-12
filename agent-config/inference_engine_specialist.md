@@ -2,7 +2,7 @@
 
 > **⚠️ MANDATORY ORCHESTRATOR ROUTING**: Before executing any work from this specialist config, **ALWAYS consult `agent-config/orchestrator.md` FIRST** for task routing, workflow coordination, multi-agent needs, current project context, and agent hooks integration. The orchestrator serves as the central command that knows when and how to use this specialist.
 
-> **Last Updated**: September 11, 2025 - **Inference Ready Phase** - Enhanced with agent intersection framework and Epic 2 focus
+> **Last Updated**: September 12, 2025 - **ROAD_TO_INFERENCE Phase 2** - GGUF model loading and inference engine implementation focus
 
 ## Specialist Role & Niche
 
@@ -106,48 +106,50 @@ if task.involves("model_loading") ||
 - **Integration Testing**: End-to-end ML workflow testing required
 - **Documentation**: ML usage guides and examples required
 
-### 🎯 **Epic 2 Roadmap: Inference Engine Implementation (Weeks 2-6)**
+### 🎯 **Phase 2 Roadmap: GGUF Model Loading & Inference Engine (ROAD_TO_INFERENCE.md)**
 
-**Your primary responsibility as outlined in COMPREHENSIVE_TODO.md:**
+**Your primary responsibility as outlined in ROAD_TO_INFERENCE.md Phase 2:**
 
-#### **Epic 2.1: Model Loading and Management (2-3 weeks)**
-- **HuggingFace Model Loading**: Direct model download and loading from HuggingFace Hub
-  - **Collaboration**: `api_development_specialist.md` for Hub API integration, `code.md` for implementation
-- **SafeTensors Support**: Complete SafeTensors format integration
-  - **Collaboration**: `performance_engineering_specialist.md` for efficient parsing, `rust_best_practices_specialist.md` for safe handling
-- **Model Conversion Pipeline**: PyTorch/ONNX → BitNet-Rust conversion
-  - **Collaboration**: `architect.md` for conversion architecture, `code.md` for implementation
-- **Model Caching**: Local model storage and management
-  - **Collaboration**: `performance_engineering_specialist.md` for efficient caching, `code.md` for implementation
+#### **Epic 2.1: GGUF Model Loading Implementation (Week 2-3) - CRITICAL PRIORITY**
+- **Target Model**: `microsoft/bitnet-b1.58-2B-4T-gguf` (2B parameters, 4T training tokens)
+- **GGUF Format Support**: Binary format parsing, metadata extraction, tensor data loading
+  - **Collaboration**: `code.md` for parser implementation, `performance_engineering_specialist.md` for efficient parsing
+- **Model Architecture Mapping**: GGUF tensors → BitNet-Rust tensor structures, BitLinear layers
+  - **Collaboration**: `architect.md` for architecture mapping, `code.md` for implementation
+- **Integration with HuggingFace**: Extend existing `bitnet-inference/src/huggingface.rs` for GGUF support
+  - **Collaboration**: `api_development_specialist.md` for Hub integration, `code.md` for implementation
+- **Model Validation**: Successful loading, architecture validation, weight verification
+  - **Collaboration**: `test_utilities_specialist.md` for validation testing, `truth_validator.md` for accuracy
 
-#### **Epic 2.2: Practical Inference Features (1-2 weeks)**
-- **Text Generation**: Complete text generation with proper tokenization
-  - **Collaboration**: `code.md` for implementation, `performance_engineering_specialist.md` for optimization
-- **Batch Inference**: Efficient batch processing for multiple inputs
-  - **Collaboration**: `performance_engineering_specialist.md` for batch optimization, `architect.md` for scaling design
-- **Streaming Generation**: Real-time streaming text generation
-  - **Collaboration**: `api_development_specialist.md` for streaming APIs, `performance_engineering_specialist.md` for real-time optimization
-- **Temperature and Sampling**: Advanced sampling strategies (top-k, top-p, temperature)
-  - **Collaboration**: `code.md` for algorithm implementation, `test_utilities_specialist.md` for validation
+#### **Epic 2.2: Core Inference Engine Enhancement (Week 3-4)**
+- **Ternary Weight Operations**: Efficient {-1, 0, +1} arithmetic for W1.58A8 operations
+  - **Collaboration**: `performance_engineering_specialist.md` for SIMD optimization, `code.md` for implementation
+- **BitLinear Layer Implementation**: Ternary linear transformations with quantized operations
+  - **Collaboration**: `code.md` for layer implementation, `performance_engineering_specialist.md` for optimization
+- **Transformer Components**: RoPE positional embeddings, ReLU² activation, SubLN normalization
+  - **Collaboration**: `code.md` for component implementation, `test_utilities_specialist.md` for validation
+- **Mixed Precision Handling**: W1.58A8 operations (ternary weights, 8-bit activations)
+  - **Collaboration**: `performance_engineering_specialist.md` for optimization, `rust_best_practices_specialist.md` for safety
 
-#### **Epic 2.3: CLI Inference Tools (1 week)**
-- **Interactive Chat**: Command-line chat interface
-  - **Collaboration**: `ui_ux_development_specialist.md` for CLI UX, `code.md` for implementation
-- **File Processing**: Batch processing of text files
-  - **Collaboration**: `performance_engineering_specialist.md` for file processing optimization
-- **Model Benchmarking**: Performance testing and validation
-  - **Collaboration**: `performance_engineering_specialist.md` for benchmarking, `test_utilities_specialist.md` for validation
-- **Export Capabilities**: Export results in various formats
-  - **Collaboration**: `api_development_specialist.md` for format design, `documentation_writer.md` for format guides
+#### **Epic 3: Text Generation Implementation (Week 4-5) - UPCOMING**
+- **LLaMA 3 Tokenizer Integration**: 128,256 vocab tokenizer, chat templates, special tokens
+  - **Collaboration**: `api_development_specialist.md` for tokenizer APIs, `code.md` for implementation
+- **Autoregressive Generation**: Token-by-token generation, KV cache, early stopping
+  - **Collaboration**: `performance_engineering_specialist.md` for generation optimization, `code.md` for implementation
+- **Sampling Strategies**: Temperature, top-k, top-p sampling for controllable generation
+  - **Collaboration**: `code.md` for sampling algorithms, `test_utilities_specialist.md` for validation
+- **Memory Management**: Efficient generation memory usage, KV cache optimization
+  - **Collaboration**: `performance_engineering_specialist.md` for memory optimization
 
 ## Current Project Context
-BitNet-Rust has **achieved excellent technical foundation** with **99.8% test success rate (530/531 tests passing)**. The project is now positioned for **practical inference implementation** following the COMPREHENSIVE_TODO.md roadmap for Weeks 2-6.
+BitNet-Rust has **achieved excellent technical foundation** with **99.17% test success rate (952/960 tests passing)**. The project is now positioned for **Phase 2 inference implementation** following the ROAD_TO_INFERENCE.md roadmap and COMPREHENSIVE_TODO.md Epic 2.
 
-**🎯 COMPREHENSIVE_TODO.md INFERENCE READY PRIORITIES**:
+**🎯 ROAD_TO_INFERENCE.md PHASE 2 PRIORITIES (CURRENT FOCUS)**:
 
-- **✅ Foundation Status**: Excellent stability with robust technical infrastructure (530/531 tests)
-- **🎯 Task 1.0**: Fix final memory tracking test for 100% test success (1-2 hours)
-- **📋 Epic 2 (Weeks 2-6)**: **Inference Ready Implementation** - Your primary focus
+- **✅ Foundation Status**: Excellent stability with robust technical infrastructure (952/960 tests)
+- **✅ Phase 1 Nearly Complete**: Memory management, NEON optimization (1.33x-2.02x achieved), Metal integration complete
+- **🎯 Task 1.0.5**: Fix device migration tests for 100% test success (2-4 hours)
+- **📋 Phase 2 (Weeks 2-3)**: **GGUF Model Loading & Inference Engine** - Your primary focus
 - **📋 Epic 3 (Weeks 7-12)**: Training & Fine-tuning capabilities
 - **📋 Epic 4 (Weeks 13+)**: Performance optimization and hardware acceleration
 

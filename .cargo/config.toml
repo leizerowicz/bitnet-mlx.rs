@@ -1,8 +1,18 @@
-[build]
-rustflags = ["-C", "embed-bitcode=no"]
+[target.aarch64-apple-darwin]
+rustflags = [
+    "-C", "target-cpu=native",
+    "-C", "target-feature=+neon"
+]
+
+[target.x86_64-apple-darwin]
+rustflags = [
+    "-C", "target-cpu=native", 
+    "-C", "target-feature=+avx2,+fma"
+]
 
 [profile.dev]
 lto = false
 
 [profile.release]
-lto = false
+lto = true
+opt-level = 3

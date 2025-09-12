@@ -7,6 +7,7 @@
 // Allow dead code for work-in-progress implementations  
 #![allow(dead_code, unused_variables, unused_imports)]
 
+pub mod cpu;
 pub mod device;
 pub mod error;
 pub mod execution;
@@ -39,16 +40,16 @@ pub use execution::*;
 #[cfg(feature = "metal")]
 pub use memory::MetalMemoryPool;
 pub use memory::{
-    AllocationTimeline, BatchConverter, CleanupConfig, CleanupId, CleanupManager, CleanupMetrics,
+    AllocationTimeline, CleanupConfig, CleanupId, CleanupManager, CleanupMetrics,
     CleanupOperationMetrics, CleanupPriority, CleanupResult, CleanupScheduler, CleanupStrategy,
-    CleanupStrategyType, CompactionResult, ConversionConfig, ConversionEngine, ConversionEvent,
-    ConversionMetrics, ConversionPipeline, ConversionStats, CpuCleanup, CpuMemoryPool,
-    DetailedMemoryMetrics, DeviceCleanupOps, HybridMemoryPool, InPlaceConverter, LargeBlockPool,
+    CleanupStrategyType, CompactionResult, CpuCleanup, CpuMemoryPool,
+    DetailedMemoryMetrics, DeviceCleanupOps, HybridMemoryPool, LargeBlockPool,
     LeakReport, MemoryError, MemoryHandle, MemoryMetrics, MemoryPoolConfig, MemoryPressureDetector,
     MemoryPressureLevel, MemoryProfiler, MemoryResult, MemoryTracker, MetalCleanup,
     PatternAnalyzer, PressureCallback, PressureThresholds, ProfilingReport, SmallBlockPool,
-    StreamingConverter, TensorHandle, TensorMetadata, TrackingConfig, TrackingLevel,
-    ZeroCopyConverter,
+    TensorHandle, TensorMetadata, TrackingConfig, TrackingLevel,
+    AdvancedGpuMemoryManager, AdvancedMemoryConfig, DeviceId, AllocationHint,
+    AdvancedAllocation, AdvancedMemoryStats, OptimizationResult,
 };
 
 // Export mixed precision with explicit validation aliasing  

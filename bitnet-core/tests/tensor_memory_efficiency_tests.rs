@@ -11,7 +11,7 @@ use bitnet_core::device::get_cpu_device;
 use bitnet_core::memory::{
     HybridMemoryPool, MemoryPoolConfig, MemoryPressureLevel, TrackingConfig, TrackingLevel,
     TensorMemoryPool, TensorPoolConfig, TensorSizeCategory, TensorLifecycleMetadata,
-    DeallocationPriority, TensorDeallocationManager, BatchConfig,
+    DeallocationPriority, TensorDeallocationManager, DeallocationBatchConfig,
 };
 use bitnet_core::tensor::{BitNetDType, BitNetTensor};
 
@@ -853,7 +853,7 @@ fn test_tensor_pool_configuration() {
 
 #[test]
 fn test_batch_deallocation_config() {
-    let config = BatchConfig::default();
+    let config = DeallocationBatchConfig::default();
     assert_eq!(config.max_batch_size, 100);
     assert_eq!(config.max_batch_memory, 64 * 1024 * 1024);
     assert_eq!(config.min_batch_size, 5);

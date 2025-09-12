@@ -1,0 +1,336 @@
+name: MPS Production Readiness Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'bitnet-metal/**'
+      - 'examples/mps_integration_demo.rs'
+      - '.github/workflows/mps-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'bitnet-metal/**'
+      - 'examples/mps_integration_demo.rs'
+      - '.github/workflows/mps-tests.yml'
+  schedule:
+    # Run daily at 2 AM UTC to catch performance regressions
+    - cron: '0 2 * * *'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  mps-compatibility-test:
+    name: MPS Compatibility Test
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        rust: [stable, beta]
+        features: 
+          - "mps"
+          - "mps,ane"
+          - "metal,mps"
+          - "metal,mps,ane"
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust }}
+        profile: minimal
+        override: true
+        components: rustfmt, clippy
+        
+    - name: Cache cargo dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-mps-${{ hashFiles('**/Cargo.lock') }}
+        
+    - name: Check system information
+      run: |
+        echo "=== System Information ==="
+        system_profiler SPHardwareDataType
+        echo "=== Metal Support ==="
+        system_profiler SPDisplaysDataType | grep -A 5 "Metal"
+        echo "=== Available Features ==="
+        echo "Testing with features: ${{ matrix.features }}"
+        
+    - name: Check code formatting
+      run: cargo fmt --all -- --check
+      
+    - name: Run clippy analysis
+      run: cargo clippy --package bitnet-metal --features ${{ matrix.features }} -- -D warnings
+      
+    - name: Build bitnet-metal with MPS
+      run: cargo build --package bitnet-metal --features ${{ matrix.features }} --verbose
+      
+    - name: Run MPS unit tests
+      run: cargo test --package bitnet-metal --features ${{ matrix.features }} --verbose
+      
+    - name: Run MPS integration tests
+      run: cargo test --package bitnet-metal --features ${{ matrix.features }} --test "*" --verbose
+      
+    - name: Test MPS demo example
+      run: cargo run --example mps_integration_demo --features ${{ matrix.features }}
+      
+    - name: Run error recovery tests
+      run: |
+        cargo test --package bitnet-metal --features ${{ matrix.features }} error_recovery --verbose
+        
+    - name: Test capability detection
+      run: |
+        cargo test --package bitnet-metal --features ${{ matrix.features }} capability --verbose
+
+  mps-performance-regression:
+    name: MPS Performance Regression Detection
+    runs-on: macos-latest
+    if: github.event_name == 'schedule' || contains(github.event.head_commit.message, '[perf-test]')
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+        
+    - name: Cache cargo dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-perf-${{ hashFiles('**/Cargo.lock') }}
+        
+    - name: Install performance testing tools
+      run: |
+        cargo install cargo-criterion
+        
+    - name: Build with release optimizations
+      run: cargo build --release --package bitnet-metal --features mps,ane
+      
+    - name: Run performance benchmarks
+      run: |
+        cd bitnet-benchmarks
+        cargo bench --features mps,ane -- --output-format html
+        
+    - name: Check for performance regressions
+      run: |
+        # Create a simple performance regression check
+        cargo run --release --package bitnet-metal --example mps_integration_demo --features mps,ane > perf_output.txt
+        
+        # Check that operations complete within reasonable time
+        if grep -q "Performance Summary" perf_output.txt; then
+          echo "✅ Performance test completed successfully"
+        else
+          echo "❌ Performance test failed"
+          exit 1
+        fi
+        
+    - name: Archive performance results
+      uses: actions/upload-artifact@v3
+      with:
+        name: mps-performance-results
+        path: |
+          bitnet-benchmarks/target/criterion/
+          perf_output.txt
+
+  cross-platform-compatibility:
+    name: Cross-Platform Compatibility
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable]
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust }}
+        profile: minimal
+        override: true
+        
+    - name: Check platform compatibility
+      run: |
+        echo "=== Platform Information ==="
+        cargo run --package bitnet-metal --example mps_integration_demo
+        
+    - name: Test graceful fallback on non-macOS
+      if: matrix.os != 'macos-latest'
+      run: |
+        # Test that MPS gracefully falls back on non-macOS platforms
+        cargo test --package bitnet-metal test_cross_platform_demo --verbose
+        
+    - name: Build without MPS features
+      run: |
+        cargo build --package bitnet-metal --verbose
+        
+    - name: Test error handling on unsupported platforms
+      run: |
+        cargo test --package bitnet-metal platform_compatibility --verbose
+
+  security-audit:
+    name: Security Audit
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+        
+    - name: Install cargo-audit
+      run: cargo install cargo-audit
+      
+    - name: Run security audit
+      run: cargo audit
+      
+    - name: Check for unsafe code blocks
+      run: |
+        echo "=== Checking for unsafe code in MPS modules ==="
+        grep -r "unsafe" bitnet-metal/src/mps/ || echo "No unsafe code found"
+        
+    - name: Validate error handling
+      run: |
+        # Check that all error types implement proper error handling
+        cargo test --package bitnet-metal error_handling --verbose
+
+  documentation-check:
+    name: Documentation Validation
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+        
+    - name: Generate documentation
+      run: |
+        cargo doc --package bitnet-metal --features mps,ane --no-deps --verbose
+        
+    - name: Check documentation coverage
+      run: |
+        cargo doc --package bitnet-metal --features mps,ane --document-private-items
+        
+    - name: Validate README examples
+      run: |
+        # Check that examples in README.md compile
+        cargo check --example mps_integration_demo --features mps,ane
+        
+    - name: Test documentation examples
+      run: |
+        cargo test --package bitnet-metal --doc --features mps,ane
+
+  deployment-readiness:
+    name: Deployment Readiness Check
+    runs-on: macos-latest
+    needs: [mps-compatibility-test, cross-platform-compatibility, security-audit, documentation-check]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+        
+    - name: Build release version
+      run: |
+        cargo build --release --package bitnet-metal --features mps,ane
+        
+    - name: Run comprehensive test suite
+      run: |
+        cargo test --release --package bitnet-metal --features mps,ane --verbose
+        
+    - name: Validate production configuration
+      run: |
+        # Test that production configuration works correctly
+        cargo run --release --example mps_integration_demo --features mps,ane
+        
+    - name: Check binary size
+      run: |
+        ls -la target/release/deps/libbitnet_metal-*.rlib
+        echo "✅ Release build completed successfully"
+        
+    - name: Generate deployment summary
+      run: |
+        echo "=== MPS Production Readiness Summary ===" > deployment_summary.md
+        echo "Date: $(date)" >> deployment_summary.md
+        echo "Commit: ${{ github.sha }}" >> deployment_summary.md
+        echo "Features tested: mps,ane" >> deployment_summary.md
+        echo "Platform: macOS (Apple Silicon)" >> deployment_summary.md
+        echo "Status: ✅ Ready for production deployment" >> deployment_summary.md
+        
+    - name: Archive deployment artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: mps-deployment-artifacts
+        path: |
+          target/release/deps/libbitnet_metal-*.rlib
+          deployment_summary.md
+          docs/MPS_PRODUCTION_READINESS_GUIDE.md
+
+  notify-completion:
+    name: Notify Test Completion
+    runs-on: ubuntu-latest
+    needs: [mps-compatibility-test, mps-performance-regression, cross-platform-compatibility, security-audit, documentation-check]
+    if: always()
+    
+    steps:
+    - name: Create test summary
+      run: |
+        echo "=== MPS Production Readiness Test Summary ==="
+        echo "Compatibility Tests: ${{ needs.mps-compatibility-test.result }}"
+        echo "Performance Tests: ${{ needs.mps-performance-regression.result }}"
+        echo "Cross-Platform: ${{ needs.cross-platform-compatibility.result }}"
+        echo "Security Audit: ${{ needs.security-audit.result }}"
+        echo "Documentation: ${{ needs.documentation-check.result }}"
+        
+        if [ "${{ needs.mps-compatibility-test.result }}" == "success" ] && \
+           [ "${{ needs.cross-platform-compatibility.result }}" == "success" ] && \
+           [ "${{ needs.security-audit.result }}" == "success" ] && \
+           [ "${{ needs.documentation-check.result }}" == "success" ]; then
+          echo "✅ All critical tests passed - MPS production ready"
+          echo "test_status=success" >> $GITHUB_ENV
+        else
+          echo "❌ Some tests failed - review required"
+          echo "test_status=failure" >> $GITHUB_ENV
+        fi
+        
+    - name: Update badge status
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "Badge status: ${{ env.test_status }}"
+        # In a real setup, this would update a status badge

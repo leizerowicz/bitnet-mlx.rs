@@ -171,8 +171,28 @@ pub mod metal;
 #[cfg(all(target_os = "macos", feature = "mps"))]
 pub mod mps;
 
+// Task 4.1.2.1 - MPS Performance Testing & Validation
+#[cfg(all(target_os = "macos", feature = "mps"))]
+pub mod mps_performance_tests;
+
+// Task 4.1.2.3 - Advanced MPS Optimization Features
+#[cfg(all(target_os = "macos", feature = "metal"))]
+pub mod advanced_kernels;
+
+// Task 4.1.2.3 - Advanced MPS Optimization Testing
+#[cfg(all(target_os = "macos", feature = "metal"))]
+pub mod advanced_mps_tests;
+
 // Re-export Metal module for external use
 pub use metal::*;
+
+// Re-export Advanced Kernels for Task 4.1.2.3
+#[cfg(all(target_os = "macos", feature = "metal"))]
+pub use advanced_kernels::*;
+
+// Re-export Advanced MPS Tests for Task 4.1.2.3
+#[cfg(all(target_os = "macos", feature = "metal"))]
+pub use advanced_mps_tests::*;
 
 // Re-export MPS module for external use (specific exports to avoid ambiguity)
 #[cfg(all(target_os = "macos", feature = "mps"))]
@@ -184,6 +204,11 @@ pub use mps::{
     MPSComputerVision, ImageProcessingConfig, ConvolutionConfig, AttentionConfig,
     ANEIntegration, ANECapabilities, ANEExecutionStats, OptimizationTarget, PowerTarget,
     UnifiedMemoryManager, UnifiedAllocation, MemoryUsageHint, SharingMode, BandwidthOptimization,
+    
+    // Advanced MPS Optimization features (Task 4.1.2.3)
+    DynamicLoadBalancer, LoadBalancingStrategy, WorkloadCharacteristics, WorkloadType,
+    ModelPartitioner, ComputeUnit, PerformanceMetrics,
+    MLXIntegration, MLXDataType, MLXModel, MLXModelParameters, MLXPerformanceStats,
 };
 
 /// The version of this crate
@@ -303,7 +328,7 @@ mod tests {
         // Test that we can attempt to initialize Metal context
         // This may fail on systems without Metal, but should not panic
         match initialize_metal_context() {
-            Ok((device, _command_queue, _library)) => {
+            Ok((device, command_queue, library)) => {
                 println!("Successfully initialized Metal on: {}", device.name());
                 println!(
                     "Device type: {}",
@@ -313,6 +338,11 @@ mod tests {
                         "Discrete"
                     }
                 );
+                // Test that command queue is usable
+                assert!(!command_queue.device().name().is_empty());
+                // Prevent the library from being dropped to avoid null pointer issues
+                // This is a workaround for Metal library destruction issues in tests
+                std::mem::forget(library);
             }
             Err(e) => {
                 println!("Metal initialization failed (expected on some systems): {e}");
@@ -341,7 +371,7 @@ mod tests {
             return;
         }
 
-        if let Ok((device, command_queue, _)) = initialize_metal_context() {
+        if let Ok((device, command_queue, library)) = initialize_metal_context() {
             let manager = create_command_buffer_manager(&device, &command_queue);
 
             // Test creating a command buffer
@@ -360,6 +390,9 @@ mod tests {
             // Test getting statistics
             let stats = manager.get_stats();
             println!("Command buffer pool stats: {stats:?}");
+            
+            // Prevent library destruction issues
+            std::mem::forget(library);
         }
     }
 
@@ -384,7 +417,7 @@ mod tests {
             return;
         }
 
-        if let Ok((device, _, _)) = initialize_metal_context() {
+        if let Ok((device, _, library)) = initialize_metal_context() {
             let buffer_pool = create_buffer_pool(&device);
 
             // Test buffer allocation - using fully qualified metal crate path to avoid namespace conflict
@@ -403,6 +436,9 @@ mod tests {
             // Test pool statistics
             let stats = buffer_pool.get_stats();
             println!("Buffer pool stats: {stats:?}");
+            
+            // Prevent library destruction issues
+            std::mem::forget(library);
         }
     }
 
@@ -428,7 +464,7 @@ mod tests {
         }
 
         match initialize_metal_context() {
-            Ok((device, _, _)) => {
+            Ok((device, _, library)) => {
                 // Try to create shaders but expect potential failures
                 match BitNetShaders::new(device.clone()) {
                     Ok(_shaders) => {
@@ -441,6 +477,8 @@ mod tests {
                         println!("This is expected in some environments (CI, virtualized systems, etc.)");
                     }
                 }
+                // Prevent library destruction issues
+                std::mem::forget(library);
             }
             Err(e) => {
                 println!("Failed to initialize Metal context: {e}");
@@ -471,7 +509,7 @@ mod tests {
         }
 
         match initialize_metal_context() {
-            Ok((device, _, _)) => {
+            Ok((device, _, library)) => {
                 let test_data = vec![1.0f32, 2.0, 3.0, 4.0, 5.0];
 
                 // Test buffer creation
@@ -490,6 +528,8 @@ mod tests {
                     }
                     Err(e) => println!("Failed to create buffer: {e}"),
                 }
+                // Prevent library destruction issues
+                std::mem::forget(library);
             }
             Err(e) => {
                 println!("Failed to initialize Metal context: {e}");

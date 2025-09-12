@@ -372,20 +372,46 @@ pub struct ANECapabilities {
 impl ANECapabilities {
     #[cfg(all(target_os = "macos", feature = "ane"))]
     pub fn detect() -> Self {
-        // Simplified ANE detection
-        // Real implementation would query system capabilities
+        // Enhanced ANE detection with detailed capability analysis
         let is_available = Self::detect_ane_availability();
+        let version = ANEVersion::detect();
+        
+        // Capability matrix based on ANE version
+        let (max_ops_per_second, max_model_size) = match version {
+            ANEVersion::Gen6 => (15_800_000_000_000, 256), // M3/A16 - 15.8 TOPS, 256MB
+            ANEVersion::Gen5 => (11_500_000_000_000, 192), // M2/A15 - 11.5 TOPS, 192MB
+            ANEVersion::Gen4 => (10_900_000_000_000, 128), // M1/A14 - 10.9 TOPS, 128MB
+            ANEVersion::Gen3 => (5_800_000_000_000, 64),   // A13 - 5.8 TOPS, 64MB
+            ANEVersion::Gen2 => (600_000_000_000, 32),     // A12 - 600 GOPS, 32MB
+            ANEVersion::Gen1 => (100_000_000_000, 16),     // A11 - 100 GOPS, 16MB
+            ANEVersion::Unknown => (0, 0),
+        };
+        
+        let supported_data_types = if is_available {
+            match version {
+                ANEVersion::Gen5 | ANEVersion::Gen6 => vec![
+                    ANEDataType::Float16,
+                    ANEDataType::Int8,
+                    ANEDataType::Int16,
+                    ANEDataType::UInt8,
+                ],
+                ANEVersion::Gen3 | ANEVersion::Gen4 => vec![
+                    ANEDataType::Float16,
+                    ANEDataType::Int8,
+                    ANEDataType::Int16,
+                ],
+                _ => vec![ANEDataType::Float16],
+            }
+        } else {
+            vec![]
+        };
         
         Self {
             is_available,
-            version: ANEVersion::detect(),
-            max_operations_per_second: if is_available { 15_800_000_000_000 } else { 0 }, // 15.8 TOPS
-            supported_data_types: vec![
-                ANEDataType::Float16,
-                ANEDataType::Int8,
-                ANEDataType::Int16,
-            ],
-            max_model_size_mb: 128,
+            version,
+            max_operations_per_second: max_ops_per_second,
+            supported_data_types,
+            max_model_size_mb: max_model_size,
         }
     }
     
@@ -404,8 +430,132 @@ impl ANECapabilities {
     fn detect_ane_availability() -> bool {
         use objc::runtime::Class;
         
-        // Check for ANE-related classes
-        Class::get("_ANEModel").is_some() || Class::get("ANECompiler").is_some()
+        // Check for ANE-related classes and frameworks
+        if Class::get("_ANEModel").is_some() ||
+           Class::get("_ANEClient").is_some() ||
+           Class::get("_ANEDeviceInfo").is_some() {
+            return true;
+        }
+        
+        // Check system information for Apple Silicon indicators
+        let result = std::process::Command::new("sysctl")
+            .args(&["-n", "machdep.cpu.brand_string"])
+            .output();
+            
+        if let Ok(output) = result {
+            let cpu_info = String::from_utf8_lossy(&output.stdout).to_lowercase();
+            
+            // Check for Apple Silicon indicators
+            if cpu_info.contains("apple") || 
+               cpu_info.contains("m1") || 
+               cpu_info.contains("m2") || 
+               cpu_info.contains("m3") ||
+               cpu_info.contains("m4") {
+                return true;
+            }
+        }
+        
+        false
+    }
+    
+    #[cfg(not(all(target_os = "macos", feature = "ane")))]
+    fn detect_ane_availability() -> bool {
+        false
+    }
+    
+    /// Check if ANE meets specific operation requirements
+    pub fn meets_requirements(&self, required_ops_per_second: u64, required_data_types: &[ANEDataType], required_model_size_mb: usize) -> bool {
+        if !self.is_available {
+            return false;
+        }
+        
+        if self.max_operations_per_second < required_ops_per_second {
+            return false;
+        }
+        
+        if self.max_model_size_mb < required_model_size_mb {
+            return false;
+        }
+        
+        // Check if all required data types are supported
+        for required_type in required_data_types {
+            if !self.supported_data_types.contains(required_type) {
+                return false;
+            }
+        }
+        
+        true
+    }
+    
+    /// Get detailed mismatch information for debugging
+    pub fn get_requirement_mismatch(&self, required_ops_per_second: u64, required_data_types: &[ANEDataType], required_model_size_mb: usize) -> Vec<String> {
+        let mut mismatches = Vec::new();
+        
+        if !self.is_available {
+            mismatches.push("ANE not available on this device".to_string());
+            return mismatches;
+        }
+        
+        if self.max_operations_per_second < required_ops_per_second {
+            mismatches.push(format!(
+                "Insufficient compute performance: available {} TOPS, required {} TOPS",
+                self.max_operations_per_second / 1_000_000_000_000,
+                required_ops_per_second / 1_000_000_000_000
+            ));
+        }
+        
+        if self.max_model_size_mb < required_model_size_mb {
+            mismatches.push(format!(
+                "Insufficient model memory: available {} MB, required {} MB",
+                self.max_model_size_mb,
+                required_model_size_mb
+            ));
+        }
+        
+        for required_type in required_data_types {
+            if !self.supported_data_types.contains(required_type) {
+                mismatches.push(format!("Unsupported data type: {:?}", required_type));
+            }
+        }
+        
+        mismatches
+    }
+    
+    /// Get compatibility score (0.0 to 1.0) for given requirements
+    pub fn compatibility_score(&self, required_ops_per_second: u64, required_data_types: &[ANEDataType], required_model_size_mb: usize) -> f32 {
+        if !self.is_available {
+            return 0.0;
+        }
+        
+        let mut score = 0.0;
+        let mut total_checks = 0.0;
+        
+        // Performance score
+        total_checks += 1.0;
+        if self.max_operations_per_second >= required_ops_per_second {
+            score += 1.0;
+        } else {
+            score += (self.max_operations_per_second as f32) / (required_ops_per_second as f32).max(1.0);
+        }
+        
+        // Memory score
+        total_checks += 1.0;
+        if self.max_model_size_mb >= required_model_size_mb {
+            score += 1.0;
+        } else {
+            score += (self.max_model_size_mb as f32) / (required_model_size_mb as f32).max(1.0);
+        }
+        
+        // Data type support score
+        if !required_data_types.is_empty() {
+            total_checks += 1.0;
+            let supported_count = required_data_types.iter()
+                .filter(|dt| self.supported_data_types.contains(dt))
+                .count();
+            score += (supported_count as f32) / (required_data_types.len() as f32);
+        }
+        
+        score / total_checks
     }
 }
 
@@ -436,7 +586,7 @@ impl ANEVersion {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ANEDataType {
     Float16,
     Int8,

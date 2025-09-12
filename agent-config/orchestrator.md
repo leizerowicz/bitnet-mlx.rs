@@ -48,60 +48,72 @@ The orchestrator serves as the central command that knows when and how to use th
 ## Project Context
 BitNet-Rust has achieved excellent foundation stability and is now positioned for practical inference and training implementation following the COMPREHENSIVE_TODO.md roadmap.
 
-**Current Status**: ✅ **INFERENCE READY PHASE** - Foundation Complete, Practical Implementation Focus (September 9, 2025)
+**Current Status**: 🎯 **ROAD_TO_INFERENCE EXECUTION** - CPU Inference Implementation (September 2025)
 
-- **Technical Foundation**: ✅ All 7 crates compile successfully with excellent stability (99.8% test success rate)
-- **Test Reality**: ✅ **530/531 tests passing** - Only 1 memory tracking integration test failing (Task 1.0.1)
-- **Core Stability**: ✅ Robust tensor operations, memory management, quantization, training systems operational
-- **Error Handling**: ✅ Production error management system operational (2,300+ lines)
-- **Build Status**: ✅ All workspace crates compile successfully with minimal warnings
-- **Development Phase**: ✅ **INFERENCE READY** - Ready for practical ML workflow implementation
-- **Priority Focus**: COMPREHENSIVE_TODO.md Task 1.0 (fix final test) → Epic 2 (Inference Ready)
+**PRIMARY WORKFLOW**: **ROAD_TO_INFERENCE.md** - CPU inference capability for Microsoft BitNet b1.58 2B4T model
+**Technical Foundation**: 99.17% test success rate (952/960 tests) across 7 crates
+**Performance Status**: ARM64 NEON optimization achieving 1.33x-2.02x speedup (2/3 Microsoft parity targets)
+**Current Priority**: ROAD_TO_INFERENCE.md Phase 1 CPU performance recovery completion
 
-## Current Phase: Inference Ready Development - Practical Implementation (September 9, 2025)
-**Current Progress**: **Foundation Complete - Inference Implementation Priority** ✅
+**ROAD_TO_INFERENCE.md Progress Summary**:
+- **Phase 1 (Week 1-2)**: CPU Performance Recovery - 🔄 **IN PROGRESS**
+  - ✅ Epic 1.1: ARM64 NEON optimization achieved 1.33x-2.02x speedup (2/3 targets)
+  - 🔄 Task 1.1.2.1: Large array optimization (16K+ elements) - need 1.37x final target
+  - ⚠️ Task 1.1.3: I2S kernel NEON optimization still needed
+- **Phase 2 (Week 2-3)**: Inference Foundation - 🔄 **READY TO START**
+  - 🎯 Epic 2.1: GGUF model loading for `microsoft/bitnet-b1.58-2B-4T-gguf`
+  - 🎯 Epic 2.2: Core inference engine enhancement with ternary operations
+- **Phase 3 (Week 3-4)**: Text Generation Implementation - ⏳ **PLANNED**
+- **Phase 4 (Week 4-5)**: CLI Interface & UX - ⏳ **PLANNED**
+- **Phase 5 (Week 5-6)**: Integration & Validation - ⏳ **PLANNED**
 
-**✅ FOUNDATION ACHIEVEMENT**:
+**Current Week Focus (ROAD_TO_INFERENCE.md Phase 1 Completion)**:
+- 🎯 Complete large array optimization for final Microsoft parity target (1.37x)
+- 🎯 Implement I2S kernel NEON optimization using same successful patterns
+- 🎯 Prepare Phase 2 GGUF model loading implementation
 
-- ✅ **Core Infrastructure**: 530/531 tests passing (99.8% success rate) - excellent foundation stability
-- ✅ **Test Reality**: Robust functional systems across all components with minimal issues
-- ✅ **Functional Status**: Tensor operations, memory management, quantization systems fully operational
-- ✅ **Cross-Platform Support**: Metal/GPU backends operational with good test coverage
-- ✅ **Commercial Readiness**: Strong technical foundation ready for practical implementation
-- 🎯 **Task 1.0**: Fix final memory tracking test (1-2 hours) for 100% test success
+## Current Phase: ROAD_TO_INFERENCE Execution - CPU Inference Implementation (September 2025)
 
-**🎯 COMPREHENSIVE_TODO.md PRIORITIES**:
+**PRIMARY WORKFLOW**: **ROAD_TO_INFERENCE.md** - CPU-based inference for Microsoft BitNet b1.58 2B4T model
 
-- **Week 1 (Current)**: Task 1.0 - Fix final memory tracking test for 100% test success
-- **Weeks 2-6**: Epic 2 - Inference Ready implementation (model loading, text generation, CLI tools)
-- **Weeks 7-12**: Epic 3 - Training & Fine-tuning capabilities (training loops, LoRA, QAT)
-- **Weeks 13+**: Performance optimization and advanced features
+**✅ PHASE 1 CPU PERFORMANCE RECOVERY (NEARLY COMPLETE)**:
 
-**Priority Matrix (INFERENCE READY FOCUS)**:
-1. **Immediate**: 🎯 Task 1.0.1 - Fix memory pool tracking integration test
-2. **High**: Epic 2 - Practical inference features (HuggingFace model loading, text generation)
-3. **Medium**: Epic 3 - Training and fine-tuning capabilities
-4. **Future**: Hardware optimization and Microsoft parity features
+- ✅ **Epic 1.1 ARM64 NEON**: Major success - 1.33x-2.02x speedup achieved (2/3 Microsoft parity targets)  
+- 🔄 **Task 1.1.2.1**: Large array optimization for final 1.37x Microsoft parity target (4-6 hours)
+- 🔄 **Task 1.1.3**: I2S kernel NEON optimization using proven ARM64 patterns (4-6 hours)
+- ✅ **Foundation**: 99.17% test success rate (952/960 tests) providing solid base
 
-#### Inference Ready Development Summary ✅
-**Current Status**: Foundation Complete, Inference Implementation Priority ✅
+**🎯 PHASE 2 INFERENCE FOUNDATION (READY TO START)**:
 
-- ✅ **Technical Foundation**: Excellent stability with robust functional systems
-- ✅ **Test Foundation**: 99.8% test success rate - minimal stabilization needed
-- 🎯 **Current Focus**: COMPREHENSIVE_TODO.md implementation for practical ML workflows
-- ⚠️ **Epic 1 Reality**: Major multi-component stabilization effort, not minor fixes
-- ⚠️ **Performance Status**: Cannot benchmark performance until core operations are functional
-- ⚠️ **Commercial Readiness**: 6+ months of development required before customer-facing features
-- 🎯 **Foundation Development**: Core system stabilization and test reliability as primary focus
-- 🎯 **Realistic Timeline**: Technical foundation completion required before any commercial planning
+- **Week 2-3**: Epic 2.1 - GGUF model loading for `microsoft/bitnet-b1.58-2B-4T-gguf`
+- **Week 2-3**: Epic 2.2 - Core inference engine enhancement (ternary operations, transformer layers)  
+- **Week 3-4**: Epic 3.1 - Tokenization & text processing (LLaMA 3 tokenizer)
+- **Week 3-4**: Epic 3.2 - Generation engine (autoregressive generation, KV cache)
+- **Week 4-5**: Epic 4.1 - CLI interface and user experience
 
-**Technical Foundation Phase Achievement Requirements**:
-- **Technical Status**: ⚠️ Major stabilization work required across all core components
-- **Test Reliability**: ⚠️ Need >95% success rate minimum before beta consideration
-- **Functional Foundation**: ⚠️ Basic tensor operations, memory management, quantization must work reliably  
-- **Development Focus**: ⚠️ Core functionality over features, stability over speed
-- ⚠️ Extensive technical foundation development required before market readiness
-- ⚠️ Multi-month development timeline for basic operational stability
+**ROAD_TO_INFERENCE Priority Matrix**:
+1. **Immediate**: 🎯 Task 1.1.2.1 - Large array optimization (final Microsoft parity)
+2. **Next**: 🎯 Task 1.1.3 - I2S kernel NEON optimization  
+3. **High**: Epic 2.1 - GGUF model loading (Phase 2 foundation)
+4. **High**: Epic 2.2 - Inference engine enhancement (ternary operations)
+5. **Medium**: Epic 3 - Text generation implementation
+
+#### ROAD_TO_INFERENCE Development Summary ✅
+**Current Status**: Phase 1 Completing, Phase 2 Ready to Start ✅
+
+- ✅ **CPU Performance Foundation**: ARM64 NEON achieving 1.33x-2.02x speedup (2/3 Microsoft targets)
+- ✅ **Technical Foundation**: 99.17% test success rate providing solid inference foundation
+- 🎯 **Current Focus**: ROAD_TO_INFERENCE.md execution for practical CPU inference capability
+- ✅ **Phase 1 Success**: Major ARM64 optimization breakthrough achieved  
+- ✅ **Performance Validation**: Continuous benchmarking confirming Microsoft parity progress
+- 🎯 **Phase 2 Readiness**: GGUF infrastructure prepared, inference engine foundation ready
+- 🎯 **Timeline Target**: 4-6 weeks for complete CPU inference capability
+
+**ROAD_TO_INFERENCE Phase 1 Completion Requirements**:
+- **Performance Target**: ✅ Achieve 1.37x-3.20x speedup (currently: 1.33x-2.02x, need final 1.37x)
+- **I2S Optimization**: 🔄 Apply successful ARM64 NEON patterns to I2S kernel
+- **Microsoft Parity**: 🎯 Complete 3/3 performance targets (currently: 2/3)
+- **Foundation Stability**: ✅ 99.17% test success rate maintained during optimization
 - ⚠️ Test-driven development approach to address 192 failing tests systematically
 - ⚠️ Component-by-component stabilization with rigorous validation at each stage
 
@@ -109,46 +121,55 @@ BitNet-Rust has achieved excellent foundation stability and is now positioned fo
 
 #### Current Development Priorities
 
-**🎯 Technical Foundation Phase - Critical Stabilization Tasks (IMMEDIATE PRIORITY)**
-1. ⚠️ **Epic 1 Tensor Operations Stabilization**: Core arithmetic and memory system fixes
-   - Owner: Debug Specialist + Code Developer + Test Utilities Specialist
-   - Timeline: 2-4 weeks (25 failing arithmetic tests, 20+ memory management failures)
-   - Dependencies: ⚠️ Requires systematic debugging across bitnet-core tensor operations
-   - Success criteria: >95% success rate in tensor arithmetic and memory management tests
+**🎯 Phase 2: Inference Implementation (CURRENT PRIORITY)**
 
-2. **Epic 1 Quantization System Reliability**: Mathematical correctness and algorithm stability
-   - Owner: Code Developer + Error Handling Specialist + Performance Engineering  
-   - Timeline: 2-3 weeks (13 correctness failures, mixed precision issues)
-   - Dependencies: Tensor operations stability (parallel development possible)
-   - Success criteria: Quantization algorithms produce mathematically correct results
+1. **Epic 2.1 GGUF Model Loading**: ROAD_TO_INFERENCE.md Phase 2 priority
+   - Owner: Inference Engine Specialist + API Development + Code
+   - Timeline: 1 week (10-12 hours effort)
+   - Dependencies: ✅ HuggingFace infrastructure complete
+   - Success criteria: `microsoft/bitnet-b1.58-2B-4T-gguf` model loads successfully
 
-**🎯 Technical Foundation Phase - Secondary Stabilization (HIGH PRIORITY)**
-1. **Epic 1 Training System Stabilization**: Optimizer integration and state management
-   - Owner: Code Developer + Training Systems Specialist
-   - Timeline: 2-3 weeks (5 optimizer failures, state tracking issues)
-   - Dependencies: Core tensor operations and quantization systems stable
-   - Success criteria: QAT training workflows operational with proper convergence
+2. **Epic 2.2 Core Inference Engine Enhancement**: Ternary operations and transformer layers
+   - Owner: Inference Engine + Performance Engineering + Code
+   - Timeline: 1 week (8-10 hours effort)
+   - Dependencies: GGUF model loading complete
+   - Success criteria: Functional ternary weight operations and BitLinear layers
 
-2. **Epic 2 GPU/Metal System Fixes**: Platform acceleration stability  
-   - Owner: Performance Engineering Specialist + GPU Systems Team
-   - Timeline: 3-4 weeks (Metal panics, GPU memory allocation failures)
-   - Dependencies: Core system stability for proper GPU integration testing
-   - Success criteria: Stable GPU acceleration without crashes or memory leaks
+**🎯 Phase 1: Final Foundation Tasks (COMPLETING)**
 
-**🎯 Technical Foundation Phase - Infrastructure (MEDIUM PRIORITY)**
-1. **Enhanced CLI Systems**: Advanced features dependent on core stability
-   - Owner: Code Developer + Documentation Writer
-   - Timeline: 1-2 weeks after core stabilization
-   - Dependencies: ✅ Basic CLI operational, requires stable core for advanced features
-   - Success criteria: Full CLI feature set operational with reliable core system support
+1. **Task 1.0.5 Device Migration Test Fixes**: 8 failing device tests (99.17% → 100% test success)
+   - Owner: Debug Specialist + Test Utilities + Code
+   - Timeline: 2-4 hours investigation and fix
+   - Dependencies: None - can be done immediately
+   - Success criteria: All 960 tests passing (100% test success rate)
 
-**⚡ Current Sprint Status (Technical Foundation Phase)**
-- ⚠️ **Core Systems**: Major stabilization work required across tensor, memory, quantization systems
-- ⚠️ **Test Status**: 91.3% success rate - 192 failing tests need systematic resolution  
-- ⚠️ **Epic 1 Reality**: Multi-week effort across multiple subsystems, not minor fixes
-- 🎯 **Focus**: Core functionality stability before any feature development
-- 🎯 **Timeline**: 6-8 weeks minimum for basic operational stability
-- 🎯 **Commercial Timeline**: 6+ months development required before beta customer consideration
+2. **Task 1.1.2.1 Large Array NEON Optimization**: Final Microsoft parity target (1.33x → 1.37x)
+   - Owner: Performance Engineering + Rust Best Practices  
+   - Timeline: 4-6 hours (memory bandwidth analysis, streaming optimizations)
+   - Dependencies: None - parallel with inference work
+   - Success criteria: 3/3 Microsoft parity targets achieved
+
+**🎯 Phase 3: Text Generation (UPCOMING)**
+
+1. **Epic 3.1 Tokenization & Text Processing**: LLaMA 3 tokenizer integration
+   - Owner: Inference Engine + API Development
+   - Timeline: 1 week after Epic 2 completion
+   - Dependencies: Core inference engine operational
+   - Success criteria: Functional tokenization for text input/output
+
+2. **Epic 3.2 Generation Engine**: Autoregressive text generation
+   - Owner: Inference Engine + Performance Engineering
+   - Timeline: 1 week after tokenization complete
+   - Dependencies: Tokenization working
+   - Success criteria: Coherent text generation from model
+
+**⚡ Current Sprint Status (Inference Implementation Phase)**
+
+- ✅ **Foundation Status**: 99.17% test success, memory management complete, Metal optimization complete
+- ✅ **Performance Status**: 2/3 Microsoft parity targets achieved (1.33x-2.02x speedup)
+- 🎯 **Current Focus**: GGUF model loading implementation (ROAD_TO_INFERENCE.md Phase 2)
+- 🎯 **Timeline**: 4-6 weeks for complete inference capability
+- 🎯 **Next Milestone**: Functional text generation with BitNet-1.58 2B model
 
 ### Workflow Management
 
@@ -257,46 +278,53 @@ Note: Every step is automatically enhanced with corresponding agent hooks:
 - **`variable_matcher.md`** - **Code Consistency**: Naming conventions, pattern matching, consistency enforcement
   - **Intersects with**: `rust_best_practices_specialist.md` (conventions), `code.md` (implementation), `project_rules_config.md` (standards)
 
-### 🎯 ORCHESTRATOR WORKFLOW: Primary Decision Matrix
+### 🎯 ORCHESTRATOR WORKFLOW: ROAD_TO_INFERENCE Primary Decision Matrix
 
-**When receiving ANY request, the orchestrator follows this decision process:**
+**ROAD_TO_INFERENCE.md Priority Override**: All task routing prioritizes CPU inference implementation
 
-#### 1. **Request Analysis & Classification**
+#### 1. **Request Analysis & Classification (ROAD_TO_INFERENCE Context)**
 ```
-- Identify request type (development, debug, architecture, documentation, etc.)
-- Assess complexity level (simple, medium, complex, cross-cutting)
-- Determine required expertise domains
-- Identify dependencies and integration points
-```
-
-#### 2. **Primary Agent Selection**
-```
-- Route to specialist with primary domain expertise
-- Consider current workload and availability
-- Factor in recent performance and success rates
-- Account for learning opportunities and knowledge distribution
+- PRIORITY: Identify ROAD_TO_INFERENCE.md alignment (Phase 1 completion, Phase 2 implementation)
+- CPU Performance: Route ARM64 NEON and Microsoft parity tasks to performance_engineering_specialist.md
+- GGUF Implementation: Route model loading and format support to inference_engine_specialist.md  
+- Inference Architecture: Route ternary operations and transformer layers to architect.md + inference_engine_specialist.md
+- Foundation: Route test fixes and stability to debug.md + test_utilities_specialist.md
 ```
 
-#### 3. **Support Team Assembly**  
+#### 2. **ROAD_TO_INFERENCE Primary Agent Selection**
 ```
-- Identify secondary specialists for cross-domain requirements
-- Include quality assurance (truth_validator.md) for critical tasks
-- Add documentation support for user-facing features
-- Include security review for sensitive components
-```
-
-#### 4. **Coordination Strategy Selection**
-```
-- Simple tasks: Single specialist with orchestrator oversight
-- Medium tasks: 2-3 specialists with regular coordination
-- Complex tasks: Multi-agent coordination with daily sync
-- Critical tasks: Full team coordination with escalation protocols
+- Phase 1 CPU Performance → performance_engineering_specialist.md (Task 1.1.2.1, Task 1.1.3)
+- Phase 2 GGUF Loading → inference_engine_specialist.md (Epic 2.1)
+- Phase 2 Inference Engine → architect.md + inference_engine_specialist.md (Epic 2.2)
+- Phase 3 Text Generation → inference_engine_specialist.md + api_development_specialist.md (Epic 3)
+- Foundation Support → debug.md + test_utilities_specialist.md
+- Documentation → documentation_writer.md (ROAD_TO_INFERENCE focused)
 ```
 
-#### 5. **Agent Hooks Integration**
+#### 3. **ROAD_TO_INFERENCE Support Team Assembly**  
 ```
-- Apply appropriate hooks for lifecycle management
-- Set up quality gates and validation checkpoints
+- CPU Performance: code.md + rust_best_practices_specialist.md for NEON optimization
+- GGUF Implementation: api_development_specialist.md for model loading interfaces
+- Inference Testing: test_utilities_specialist.md + truth_validator.md for accuracy validation
+- Architecture Decisions: security_reviewer.md for inference security patterns
+- Documentation: ask.md for ROAD_TO_INFERENCE user guidance
+```
+
+#### 4. **ROAD_TO_INFERENCE Coordination Strategy**
+```
+- Phase 1 Completion: performance_engineering_specialist.md lead with code.md support
+- Phase 2 Foundation: inference_engine_specialist.md + architect.md coordination
+- Cross-Phase Tasks: Multi-agent coordination with ROAD_TO_INFERENCE milestone tracking
+- Critical Path: Full team coordination for Microsoft parity and GGUF implementation
+```
+
+#### 5. **ROAD_TO_INFERENCE Agent Hooks Integration**
+```
+- Apply ROAD_TO_INFERENCE milestone validation checkpoints
+- Set up CPU performance regression prevention
+- Configure GGUF model loading validation gates
+- Enable inference accuracy and performance monitoring
+```
 - Configure handoff procedures and documentation requirements
 - Establish monitoring and escalation triggers
 ```

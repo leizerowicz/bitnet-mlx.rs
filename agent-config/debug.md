@@ -2,7 +2,7 @@
 
 > **⚠️ MANDATORY ORCHESTRATOR ROUTING**: Before executing any work from this specialist config, **ALWAYS consult `agent-config/orchestrator.md` FIRST** for task routing, workflow coordination, multi-agent needs, current project context, and agent hooks integration. The orchestrator serves as the central command that knows when and how to use this specialist.
 
-> **Last Updated**: September 11, 2025 - **Inference Ready Phase** - Enhanced with agent intersection framework and systematic debugging
+> **Last Updated**: September 12, 2025 - **ROAD_TO_INFERENCE Phase 1** - Supporting CPU performance optimization and foundation stability
 
 ## Specialist Role & Niche
 
@@ -105,49 +105,55 @@ if task.involves("test_failure") ||
 - **Memory Issues**: `debug.md` → `rust_best_practices_specialist.md` → safe implementation
 - **Critical Production Bug**: `debug.md` → immediate escalation → full team coordination
 
-### 🎯 **Current Focus: Task 1.0.1 - Memory Pool Tracking Integration**
+### 🎯 **Current Focus: ROAD_TO_INFERENCE Phase 1 Support**
 
-**Immediate Priority**: Fix single failing memory tracking integration test to achieve 100% test success
+**PRIMARY WORKFLOW**: **ROAD_TO_INFERENCE.md** - Supporting CPU inference implementation for Microsoft BitNet b1.58 2B4T model
 
-#### **Issue Analysis:**
-- **Location**: `bitnet-core/tests/memory_tracking_tests.rs:106`
-- **Problem**: `assertion failed: pool.get_memory_tracker().is_some()`
-- **Root Cause Area**: Memory pool tracking integration not properly configured
-- **Impact**: Blocking 100% test success rate achievement (currently 99.8% - 530/531 tests passing)
+**Immediate Priority**: Support ROAD_TO_INFERENCE.md Phase 1 completion (CPU performance recovery)
+
+#### **ROAD_TO_INFERENCE Support Priorities:**
+- **Performance Optimization Debug**: Support Task 1.1.2.1 (large array optimization for final 1.37x Microsoft parity)
+- **I2S Kernel Debug**: Assist Task 1.1.3 (I2S kernel NEON optimization) debugging if needed
+- **Foundation Stability**: Maintain 99.17% test success rate during CPU optimization work
+- **Performance Validation**: Debug any performance regression issues during NEON optimization
+- **Phase 2 Preparation**: Ensure foundation remains stable for upcoming GGUF implementation
+- **Memory Management**: Debug any memory-related issues during performance optimization
+- **Cross-Platform Support**: Debug any platform-specific issues during ARM64 NEON work
 
 #### **Investigation Strategy:**
-1. **Test Context Analysis**: Examine test setup and memory pool initialization
-2. **Tracking Integration Review**: Verify memory tracker attachment during pool creation
-3. **Configuration Validation**: Check if tracking features are properly enabled
-4. **Dependency Analysis**: Ensure all memory tracking dependencies are linked correctly
+1. **Device Abstraction Analysis**: Examine device selection and creation failures
+2. **Tensor Creation Review**: Verify device-specific tensor creation paths
+3. **Memory Management Investigation**: Check device memory allocation patterns
+4. **Concurrent Operation Analysis**: Investigate thread-safety in device operations
 
-#### **Collaboration Plan for Task 1.0.1:**
-- **Primary Investigation**: `debug.md` (this specialist)
-- **Implementation Support**: `code.md` for fix implementation
-- **Quality Validation**: `test_utilities_specialist.md` for comprehensive testing
-- **Memory Pattern Review**: `rust_best_practices_specialist.md` if memory safety concerns
+#### **Collaboration Plan for Task 1.0.5:**
+- **Primary Investigation**: `debug.md` (this specialist) 
+- **Implementation Support**: `code.md` for device layer fixes
+- **Testing Validation**: `test_utilities_specialist.md` for device test infrastructure
+- **Device Architecture**: `architect.md` if device abstraction design issues found
 - **Final Validation**: `truth_validator.md` for 100% test success confirmation
 
 ## Project Context
-BitNet-Rust has achieved excellent foundation stability with **99.8% test success rate (530/531 tests passing)**. Your role is to resolve the final test failure and support practical inference implementation.
+BitNet-Rust has achieved excellent foundation stability with **99.17% test success rate (952/960 tests passing)**. Your role is to resolve the final device migration test failures and support Phase 2 inference implementation.
 
-**Current Status**: ✅ **INFERENCE READY PHASE** - Foundation Complete with Minimal Stabilization (September 9, 2025)
+**Current Status**: ✅ **INFERENCE READY PHASE** - Foundation Complete with Device Migration Issues (September 12, 2025)
 
-- **Build Status**: ✅ All 7 crates compile successfully with excellent functional stability
-- **Test Status**: ✅ 99.8% success rate (530/531 tests passing) - **1 memory tracking test requires fix**
-- **Critical Task**: 🎯 **Task 1.0.1** - Fix single memory pool tracking integration test (2-4 hours effort)
-- **Debug Priority**: Focused resolution of memory tracking test for 100% test success
+- **Build Status**: ✅ All 7 crates compile successfully with excellent stability
+- **Test Status**: ✅ 99.17% success rate (952/960 tests passing) - **8 device migration tests require fix**
+- **Foundation Complete**: ✅ Memory management, performance optimization, Metal integration complete
+- **Critical Task**: 🎯 **Task 1.0.5** - Fix device migration tests (2-4 hours effort)
+- **Debug Priority**: Focused resolution of device abstraction issues for 100% test success
 
-## Current Debugging Focus (Task 1.0.1) 🎯
+## Current Debugging Focus (Task 1.0.5) 🎯
 
-### ⚠️ IMMEDIATE PRIORITY: Memory Pool Tracking Integration Test
-**Single Test Failure Requiring Resolution**:
+### ⚠️ IMMEDIATE PRIORITY: Device Migration Test Resolution
+**8 Test Failures Requiring Investigation**:
 
-#### Test Failure Analysis (September 9, 2025):
-- **Location**: `bitnet-core/tests/memory_tracking_tests.rs:106`
-- **Issue**: `assertion failed: pool.get_memory_tracker().is_some()`
-- **Root Cause**: Memory pool tracking integration not properly configured
-- **Impact**: Blocking 100% test success rate achievement
+#### Test Failure Analysis (September 12, 2025):
+- **Location**: `bitnet-core/tests/tensor_device_migration_tests.rs`
+- **Issues**: Device selection, tensor creation, memory management, concurrent operations
+- **Root Cause**: Device abstraction layer integration and device capability detection
+- **Impact**: Final 0.83% test success needed for 100% stability
 - **Effort**: 2-4 hours for proper integration fix
 - **Success Criteria**: 531/531 tests passing (100% success rate)
 

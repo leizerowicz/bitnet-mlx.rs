@@ -55,6 +55,7 @@ mach = "0.3"
 criterion.workspace = true
 proptest.workspace = true
 tempfile = "3.0"
+rand = "0.8"
 
 # macOS-specific dependencies (now compatible with resolved cocoa versions)
 [target.'cfg(target_os = "macos")'.dependencies]
