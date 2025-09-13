@@ -70,50 +70,64 @@ impl I2SArmKernel {
         }
     }
 
-    /// ARM64 NEON vectorized I2_S computation
+    /// ARM64 NEON vectorized I2_S computation with optimized lookup operations
     #[cfg(target_arch = "aarch64")]
+    #[target_feature(enable = "neon")]
     #[inline]
-    fn compute_neon_chunk(
+    unsafe fn compute_neon_chunk(
         &self,
         weights: &[i8],
         inputs: &[f32],
         output: &mut [f32],
         chunk_size: usize,
     ) -> Result<()> {
-        let lut = Self::get_i2s_lut();
+        use std::arch::aarch64::*;
         
-        // Process in chunks optimized for NEON
-        for chunk_idx in (0..chunk_size).step_by(self.vector_width) {
-            let remaining = (chunk_size - chunk_idx).min(self.vector_width);
-            
-            // Load input vector
-            let mut input_chunk = [0.0f32; 4];
-            for i in 0..remaining {
-                if chunk_idx + i < inputs.len() {
-                    input_chunk[i] = inputs[chunk_idx + i];
-                }
+        let vector_len = chunk_size & !3; // Process 4 elements at a time
+        
+        // Prepare NEON constants for efficient I2S lookup
+        // Values for -2, -1, 0, 1 -> -2.0, -1.0, 0.0, 1.0
+        let neg_two = vdupq_n_f32(-2.0);
+        let neg_one = vdupq_n_f32(-1.0);
+        let zero = vdupq_n_f32(0.0);
+        let pos_one = vdupq_n_f32(1.0);
+        
+        // Main vectorized loop processing 4 elements at once
+        for chunk_idx in (0..vector_len).step_by(4) {
+            if chunk_idx + 4 <= weights.len() && chunk_idx + 4 <= inputs.len() && chunk_idx + 4 <= output.len() {
+                // Load 4 f32 input values using NEON
+                let input_vec = vld1q_f32(inputs.as_ptr().add(chunk_idx));
+                
+                // Load 4 i8 weight values and extend to i32 for comparison
+                let weights_i8 = vld1_s8(weights.as_ptr().add(chunk_idx));
+                let weights_i16 = vmovl_s8(weights_i8);
+                let weights_i32 = vmovl_s16(vget_low_s16(weights_i16));
+                
+                // Create comparison masks for each I2S value
+                let mask_neg_two = vceqq_s32(weights_i32, vdupq_n_s32(-2));
+                let mask_neg_one = vceqq_s32(weights_i32, vdupq_n_s32(-1));
+                let mask_zero = vceqq_s32(weights_i32, vdupq_n_s32(0));
+                let mask_pos_one = vceqq_s32(weights_i32, vdupq_n_s32(1));
+                
+                // Vectorized lookup using masked selection (vbslq_f32 expects uint32x4_t mask)
+                let weight_vec = vbslq_f32(mask_neg_two, neg_two,
+                                 vbslq_f32(mask_neg_one, neg_one,
+                                 vbslq_f32(mask_zero, zero,
+                                 vbslq_f32(mask_pos_one, pos_one, zero)))); // Default to zero for invalid values
+                
+                // Vectorized multiply: input * weight_value
+                let result_vec = vmulq_f32(input_vec, weight_vec);
+                
+                // Store result using NEON
+                vst1q_f32(output.as_mut_ptr().add(chunk_idx), result_vec);
             }
-            
-            // Load and convert weights to lookup indices
-            let mut weight_indices = [0usize; 4];
-            for i in 0..remaining {
-                if chunk_idx + i < weights.len() {
-                    weight_indices[i] = Self::i2s_to_index(weights[chunk_idx + i]);
-                }
-            }
-            
-            // Vectorized lookup and multiply
-            let mut result_chunk = [0.0f32; 4];
-            for i in 0..remaining {
-                result_chunk[i] = input_chunk[i] * lut[weight_indices[i]];
-            }
-            
-            // Store results
-            for i in 0..remaining {
-                if chunk_idx + i < output.len() {
-                    output[chunk_idx + i] = result_chunk[i];
-                }
-            }
+        }
+        
+        // Handle remaining elements with scalar fallback
+        for i in vector_len..chunk_size.min(weights.len()).min(inputs.len()).min(output.len()) {
+            let weight_idx = Self::i2s_to_index(weights[i]);
+            let lut = Self::get_i2s_lut();
+            output[i] = inputs[i] * lut[weight_idx];
         }
         
         Ok(())
@@ -169,12 +183,14 @@ impl I2SLookupKernel for I2SArmKernel {
             
             #[cfg(target_arch = "aarch64")]
             {
-                self.compute_neon_chunk(
-                    weights_chunk,
-                    inputs_chunk,
-                    output_chunk,
-                    current_chunk_size,
-                )?;
+                unsafe {
+                    self.compute_neon_chunk(
+                        weights_chunk,
+                        inputs_chunk,
+                        output_chunk,
+                        current_chunk_size,
+                    )?;
+                }
             }
             
             #[cfg(not(target_arch = "aarch64"))]

@@ -88,7 +88,7 @@ impl Tl1Arm64Kernel {
         result
     }
 
-    /// ARM64 NEON vectorized ternary lookup computation with ultra-aggressive optimizations
+    /// Check memory alignment for optimal vs fallback path
     #[cfg(target_arch = "aarch64")]
     #[inline]
     fn compute_neon_chunk(
@@ -106,7 +106,11 @@ impl Tl1Arm64Kernel {
             let output_aligned = (output.as_ptr() as usize) % 16 == 0;
             let use_optimal_path = inputs_aligned && output_aligned && chunk_size >= 64;
             
-            if use_optimal_path {
+            // Special handling for very large arrays on Apple Silicon unified memory
+            if chunk_size >= 32768 {
+                // For arrays >= 128KB, use parallel processing to leverage unified memory bandwidth
+                self.compute_parallel_apple_silicon(weights, inputs, output, chunk_size)?;
+            } else if use_optimal_path {
                 // Ultra-optimized path for aligned memory and large chunks
                 self.compute_ultra_optimized_neon(weights, inputs, output, chunk_size)?;
             } else {
@@ -114,6 +118,91 @@ impl Tl1Arm64Kernel {
                 self.compute_standard_neon(weights, inputs, output, chunk_size)?;
             }
         }
+        
+        Ok(())
+    }
+    
+    /// Apple Silicon unified memory optimized processing for very large arrays
+    #[cfg(target_arch = "aarch64")]
+    #[inline]
+    fn compute_parallel_apple_silicon(
+        &self,
+        weights: &[i8],
+        inputs: &[f32],
+        output: &mut [f32],
+        chunk_size: usize,
+    ) -> Result<()> {
+        // For very large arrays on Apple Silicon, use optimized memory access patterns
+        // to leverage the unified memory architecture effectively
+        
+        #[cfg(feature = "parallel")]
+        {
+            // Use parallel processing when enabled for maximum performance
+            if chunk_size >= 65536 {
+                return self.compute_rayon_parallel(weights, inputs, output, chunk_size);
+            }
+        }
+        
+        // Use smaller cache chunks and more aggressive prefetching for large arrays
+        let apple_silicon_chunk_size = 8 * 1024; // 8KB chunks for better cache locality
+        
+        for chunk_start in (0..chunk_size).step_by(apple_silicon_chunk_size) {
+            let chunk_end = (chunk_start + apple_silicon_chunk_size).min(chunk_size);
+            let current_chunk_size = chunk_end - chunk_start;
+            
+            let safe_end_weights = chunk_end.min(weights.len());
+            let safe_end_inputs = chunk_end.min(inputs.len());
+            let safe_end_output = chunk_end.min(output.len());
+            
+            let weights_chunk = &weights[chunk_start..safe_end_weights];
+            let inputs_chunk = &inputs[chunk_start..safe_end_inputs];
+            let output_chunk = &mut output[chunk_start..safe_end_output];
+            
+            unsafe {
+                self.compute_ultra_optimized_neon(
+                    weights_chunk,
+                    inputs_chunk,
+                    output_chunk,
+                    current_chunk_size,
+                )?;
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Rayon-based parallel processing for maximum performance on very large arrays
+    #[cfg(all(target_arch = "aarch64", feature = "parallel"))]
+    #[inline]
+    fn compute_rayon_parallel(
+        &self,
+        weights: &[i8],
+        inputs: &[f32],
+        output: &mut [f32],
+        chunk_size: usize,
+    ) -> Result<()> {
+        use rayon::prelude::*;
+        
+        // Use optimal chunk size for Apple Silicon cores (8-16KB per thread)
+        let optimal_chunk_size = 8 * 1024; // 8KB chunks for cache optimization
+        let num_threads = rayon::current_num_threads().min(8); // Max 8 threads for Apple Silicon
+        let chunk_per_thread = (chunk_size + num_threads - 1) / num_threads;
+        let final_chunk_size = chunk_per_thread.max(optimal_chunk_size);
+        
+        output
+            .par_chunks_mut(final_chunk_size)
+            .zip(weights.par_chunks(final_chunk_size))
+            .zip(inputs.par_chunks(final_chunk_size))
+            .try_for_each(|((output_chunk, weights_chunk), inputs_chunk)| -> Result<()> {
+                unsafe {
+                    self.compute_ultra_optimized_neon(
+                        weights_chunk,
+                        inputs_chunk,
+                        output_chunk,
+                        output_chunk.len(),
+                    )
+                }
+            })?;
         
         Ok(())
     }
@@ -130,8 +219,15 @@ impl Tl1Arm64Kernel {
     ) -> Result<()> {
         use std::arch::aarch64::*;
         
-        // Process in 32KB chunks for optimal L1 cache usage on Apple Silicon
-        let cache_chunk_size = 32 * 1024 / 4; // 32KB / sizeof(f32)
+        // Dynamic cache chunk sizing for large arrays to reduce memory bandwidth pressure
+        let cache_chunk_size = if chunk_size >= 16384 {
+            // For very large arrays (16K+ elements), use smaller cache chunks
+            // to reduce memory bandwidth pressure and improve cache hit rates
+            16 * 1024 / 4  // 16KB chunks for better memory locality
+        } else {
+            32 * 1024 / 4  // 32KB chunks for medium arrays
+        };
+        
         let mut global_offset = 0;
         
         while global_offset < chunk_size {
@@ -141,18 +237,33 @@ impl Tl1Arm64Kernel {
             let unrolled_chunks = current_chunk_size / 32;
             let mut offset = global_offset;
             
-            // Prefetch the entire cache chunk
+            // Prefetch the entire cache chunk with optimized patterns for large arrays
             if current_chunk_size > 128 {
-                for prefetch_offset in (0..current_chunk_size).step_by(128) {
+                let prefetch_distance = if chunk_size >= 16384 { 256 } else { 128 };
+                for prefetch_offset in (0..current_chunk_size).step_by(prefetch_distance) {
                     let prefetch_addr = offset + prefetch_offset;
-                    if prefetch_addr + 128 <= inputs.len() {
-                        std::arch::asm!(
-                            "prfm pldl1keep, [{input_ptr}]",
-                            "prfm pldl1keep, [{weights_ptr}]",
-                            input_ptr = in(reg) inputs.as_ptr().add(prefetch_addr),
-                            weights_ptr = in(reg) weights.as_ptr().add(prefetch_addr),
-                            options(nostack, readonly)
-                        );
+                    if prefetch_addr + prefetch_distance <= inputs.len() {
+                        // Use streaming prefetch for large arrays
+                        if chunk_size >= 16384 {
+                            std::arch::asm!(
+                                "prfm pstl1strm, [{output_ptr}]",  // Streaming prefetch for output
+                                "prfm pldl1strm, [{input_ptr}]",   // Streaming prefetch for input
+                                "prfm pldl1strm, [{weights_ptr}]", // Streaming prefetch for weights
+                                input_ptr = in(reg) inputs.as_ptr().add(prefetch_addr),
+                                weights_ptr = in(reg) weights.as_ptr().add(prefetch_addr),
+                                output_ptr = in(reg) output.as_mut_ptr().add(prefetch_addr),
+                                options(nostack, readonly)
+                            );
+                        } else {
+                            // Standard keep prefetch for smaller arrays
+                            std::arch::asm!(
+                                "prfm pldl1keep, [{input_ptr}]",
+                                "prfm pldl1keep, [{weights_ptr}]",
+                                input_ptr = in(reg) inputs.as_ptr().add(prefetch_addr),
+                                weights_ptr = in(reg) weights.as_ptr().add(prefetch_addr),
+                                options(nostack, readonly)
+                            );
+                        }
                     }
                 }
             }
@@ -195,15 +306,37 @@ impl Tl1Arm64Kernel {
                 let result_vec7 = vmulq_f32(input_vec7, weight_vec7);
                 let result_vec8 = vmulq_f32(input_vec8, weight_vec8);
                 
-                // Store all results with write-through cache optimization
-                vst1q_f32(output.as_mut_ptr().add(offset), result_vec1);
-                vst1q_f32(output.as_mut_ptr().add(offset + 4), result_vec2);
-                vst1q_f32(output.as_mut_ptr().add(offset + 8), result_vec3);
-                vst1q_f32(output.as_mut_ptr().add(offset + 12), result_vec4);
-                vst1q_f32(output.as_mut_ptr().add(offset + 16), result_vec5);
-                vst1q_f32(output.as_mut_ptr().add(offset + 20), result_vec6);
-                vst1q_f32(output.as_mut_ptr().add(offset + 24), result_vec7);
-                vst1q_f32(output.as_mut_ptr().add(offset + 28), result_vec8);
+                // Use non-temporal stores for very large arrays to reduce memory bandwidth pressure
+                if chunk_size >= 16384 {
+                    // Non-temporal stores (streaming stores) to bypass cache for large arrays
+                    // This reduces memory bandwidth contention and improves performance
+                    std::arch::asm!(
+                        "stnp {val1:q}, {val2:q}, [{addr}]",
+                        "stnp {val3:q}, {val4:q}, [{addr}, #32]",
+                        "stnp {val5:q}, {val6:q}, [{addr}, #64]",
+                        "stnp {val7:q}, {val8:q}, [{addr}, #96]",
+                        val1 = in(vreg) result_vec1,
+                        val2 = in(vreg) result_vec2,
+                        val3 = in(vreg) result_vec3,
+                        val4 = in(vreg) result_vec4,
+                        val5 = in(vreg) result_vec5,
+                        val6 = in(vreg) result_vec6,
+                        val7 = in(vreg) result_vec7,
+                        val8 = in(vreg) result_vec8,
+                        addr = in(reg) output.as_mut_ptr().add(offset),
+                        options(nostack)
+                    );
+                } else {
+                    // Standard cached stores for smaller arrays
+                    vst1q_f32(output.as_mut_ptr().add(offset), result_vec1);
+                    vst1q_f32(output.as_mut_ptr().add(offset + 4), result_vec2);
+                    vst1q_f32(output.as_mut_ptr().add(offset + 8), result_vec3);
+                    vst1q_f32(output.as_mut_ptr().add(offset + 12), result_vec4);
+                    vst1q_f32(output.as_mut_ptr().add(offset + 16), result_vec5);
+                    vst1q_f32(output.as_mut_ptr().add(offset + 20), result_vec6);
+                    vst1q_f32(output.as_mut_ptr().add(offset + 24), result_vec7);
+                    vst1q_f32(output.as_mut_ptr().add(offset + 28), result_vec8);
+                }
                 
                 offset += 32;
             }
