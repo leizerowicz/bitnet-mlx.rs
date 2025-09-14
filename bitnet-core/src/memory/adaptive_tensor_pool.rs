@@ -159,12 +159,12 @@ impl AdaptiveTensorMemoryPool {
             AllocationStrategy::Optimized => AllocationStrategy::Optimized,
             AllocationStrategy::Adaptive => {
                 // Adaptive logic based on tensor characteristics
-                if size_bytes <= SMALL_TENSOR_THRESHOLD {
+                if is_model_weight {
+                    // Model weights benefit from optimized pool regardless of size
+                    AllocationStrategy::Optimized
+                } else if size_bytes <= SMALL_TENSOR_THRESHOLD {
                     // For small tensors, use standard pool to avoid overhead
                     AllocationStrategy::Standard
-                } else if is_model_weight {
-                    // Model weights benefit from optimized pool
-                    AllocationStrategy::Optimized
                 } else {
                     // For medium/large temporary tensors, check performance history
                     let (std_avg, opt_avg) = self.stats.get_average_times();

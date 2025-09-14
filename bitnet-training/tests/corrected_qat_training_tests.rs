@@ -75,14 +75,14 @@ mod basic_qat_training_tests {
     fn test_checkpoint_frequency() {
         let state = QATTrainingState::new();
 
-        // Should not checkpoint at step 0
+        // Should not checkpoint at epoch 0
         assert!(!state.should_checkpoint(10));
 
         let mut state = QATTrainingState::new();
-        state.update_training_metrics(1, 10, 0.01, 0.5, 32, 0.1);
+        state.update_training_metrics(10, 100, 0.01, 0.5, 32, 0.1);
 
-        assert!(state.should_checkpoint(10)); // At step 10, should checkpoint every 10
-        assert!(!state.should_checkpoint(15)); // At step 10, should NOT checkpoint every 15
+        assert!(state.should_checkpoint(10)); // At epoch 10, should checkpoint every 10
+        assert!(!state.should_checkpoint(15)); // At epoch 10, should NOT checkpoint every 15
     }
 }
 

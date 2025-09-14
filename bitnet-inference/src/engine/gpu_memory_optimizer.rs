@@ -63,9 +63,9 @@ impl MemoryStats {
 
     /// Update transfer bandwidth statistics
     pub fn update_bandwidth(&mut self, bytes_transferred: usize, duration_ms: f64) {
-        if duration_ms > 0.0 {
-            self.transfer_bandwidth = (bytes_transferred as f64) / (duration_ms / 1000.0);
-        }
+        // Ensure minimum duration to avoid division by zero and very high bandwidth values
+        let min_duration_ms = duration_ms.max(0.001); // At least 0.001ms (1 microsecond)
+        self.transfer_bandwidth = (bytes_transferred as f64) / (min_duration_ms / 1000.0);
     }
 
     /// Increment staging operations counter
@@ -502,16 +502,40 @@ impl GPUMemoryManager {
             DeviceBufferHandle::MLX(_) => {
                 // MLX unified memory operations are typically zero-copy
                 tokio::task::yield_now().await; // Minimal delay for unified memory
+                
+                // Update statistics for MLX operations
+                if let Ok(mut stats) = self.memory_statistics.lock() {
+                    stats.increment_staging_operations();
+                    let duration_ms = start_time.elapsed().as_millis() as f64;
+                    stats.update_bandwidth(data.len() * 4, duration_ms);
+                }
+                
                 Ok(())
             },
             DeviceBufferHandle::CPU(_) => {
                 // CPU buffer - direct memory copy
                 // In real implementation would copy data to buffer
+                
+                // Update statistics for CPU operations
+                if let Ok(mut stats) = self.memory_statistics.lock() {
+                    stats.increment_staging_operations();
+                    let duration_ms = start_time.elapsed().as_millis() as f64;
+                    stats.update_bandwidth(data.len() * 4, duration_ms);
+                }
+                
                 Ok(())
             },
             DeviceBufferHandle::Cpu(_) => {
                 // CPU buffer - direct memory copy (alternative capitalization)
                 // In real implementation would copy data to buffer
+                
+                // Update statistics for CPU operations  
+                if let Ok(mut stats) = self.memory_statistics.lock() {
+                    stats.increment_staging_operations();
+                    let duration_ms = start_time.elapsed().as_millis() as f64;
+                    stats.update_bandwidth(data.len() * 4, duration_ms);
+                }
+                
                 Ok(())
             }
         }
@@ -521,7 +545,7 @@ impl GPUMemoryManager {
     fn get_or_create_buffer(&mut self, size: usize, usage: BufferUsage) -> Result<InferenceBuffer> {
         let aligned_size = (size + self.get_alignment() - 1) & !(self.get_alignment() - 1);
         
-        match self.active_device {
+        let buffer = match self.active_device {
             #[cfg(feature = "metal")]
             Device::Metal(_) => {
                 let pool_name = if aligned_size > 256 * 1024 * 1024 { "large" } else { "default" };
@@ -529,7 +553,7 @@ impl GPUMemoryManager {
                 if let Some(pool) = self.metal_pools.get_mut(pool_name) {
                     let metal_buffer = pool.allocate_buffer(aligned_size)?;
                     
-                    Ok(InferenceBuffer {
+                    InferenceBuffer {
                         size: aligned_size,
                         alignment: self.get_alignment(),
                         device_buffer: DeviceBufferHandle::Metal(MetalBufferHandle {
@@ -538,23 +562,34 @@ impl GPUMemoryManager {
                             device_ptr: None, // Would be set by actual Metal implementation
                         }),
                         usage_pattern: usage,
-                    })
+                    }
                 } else {
-                    Err(InferenceError::ResourceError("Metal buffer pool not found".to_string()))
+                    return Err(InferenceError::ResourceError("Metal buffer pool not found".to_string()));
                 }
             },
             Device::Cpu => {
-                Ok(InferenceBuffer {
+                InferenceBuffer {
                     size: aligned_size,
                     alignment: 64, // CPU cache line alignment
                     device_buffer: DeviceBufferHandle::CPU(vec![0u8; aligned_size]),
                     usage_pattern: usage,
-                })
+                }
             },
             _ => {
-                Err(InferenceError::DeviceError("Unsupported device for buffer allocation".to_string()))
+                return Err(InferenceError::DeviceError("Unsupported device for buffer allocation".to_string()));
+            }
+        };
+
+        // Update memory statistics
+        if let Ok(mut stats) = self.memory_statistics.lock() {
+            stats.active_allocations += 1;
+            stats.total_allocated += aligned_size;
+            if stats.total_allocated > stats.peak_usage {
+                stats.peak_usage = stats.total_allocated;
             }
         }
+
+        Ok(buffer)
     }
 
     /// Get cached weight buffer for model weights

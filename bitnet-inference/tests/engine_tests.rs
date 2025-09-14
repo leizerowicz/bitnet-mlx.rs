@@ -195,7 +195,7 @@ mod integration {
         let output = engine.infer(&model, &input).await.unwrap();
         
         // Basic sanity checks
-        assert_eq!(output.shape(), input.shape()); // Placeholder behavior
+        assert_eq!(output.shape().dims(), &[1, 768]); // Expected output shape from CPU backend
     }
     
     #[tokio::test]

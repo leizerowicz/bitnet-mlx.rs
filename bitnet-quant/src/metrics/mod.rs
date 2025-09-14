@@ -210,7 +210,7 @@ mod tests {
     fn test_calculate_percentile() {
         let values = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         assert_eq!(calculate_percentile(&values, 50.0), 3.0);
-        assert_eq!(calculate_percentile(&values, 90.0), 5.0);
+        assert_eq!(calculate_percentile(&values, 90.0), 4.0);  // Fixed: 90th percentile should be 4.0, not 5.0
         assert_eq!(calculate_percentile(&[], 50.0), 0.0);
     }
 

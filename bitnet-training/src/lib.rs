@@ -33,11 +33,12 @@
 //!     variant: STEVariant::Standard,
 //!     bits: 1,
 //!     range: 1.0,
+//!     device: Some(device.clone()),
 //!     ..Default::default()
 //! };
 //!
 //! // Create Straight-Through Estimator
-//! let mut ste = StraightThroughEstimator::new(config, device.clone())?;
+//! let mut ste = StraightThroughEstimator::new(config)?;
 //!
 //! // Quantize tensor with straight-through gradients
 //! let input = Tensor::from_slice(&[0.8, -0.3, 0.1, -0.9], (4,), &device)?;

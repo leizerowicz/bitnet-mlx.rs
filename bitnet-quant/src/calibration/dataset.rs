@@ -4,7 +4,7 @@
 //! for loading data, streaming large datasets, and collecting activation statistics
 //! for quantization parameter optimization.
 
-use crate::calibration::config::CalibrationConfig;
+use crate::calibration::config::{CalibrationConfig, ValidationConfig};
 use crate::calibration::error::{CalibrationError, CalibrationResult};
 use crate::calibration::sampling::{RepresentativeSampler, SamplerFactory, SamplingMetadata};
 use crate::calibration::statistics::{LayerStatistics, StatisticsCollector, StatisticsUpdate};
@@ -600,7 +600,21 @@ mod tests {
 
     #[test]
     fn test_statistics_collection() -> CalibrationResult<()> {
-        let config = CalibrationConfigBuilder::new().max_samples(3).build()?;
+        let validation_config = ValidationConfig {
+            min_samples: 1,  // Set to 1 instead of default 100
+            max_samples: None,
+            min_batch_size: 1,
+            max_batch_size: None,
+            required_shapes: HashMap::new(),
+            allow_missing_layers: false,
+            strict_mode: false,
+        };
+        
+        let config = CalibrationConfigBuilder::new()
+            .batch_size(2)  // Set batch size smaller than max_samples
+            .max_samples(3)
+            .validation_config(validation_config)
+            .build()?;
         let mut dataset = CalibrationDataset::new(config)?;
 
         let tensors = create_test_tensors(5);
@@ -615,9 +629,20 @@ mod tests {
 
     #[test]
     fn test_dataset_iteration() -> CalibrationResult<()> {
+        let validation_config = ValidationConfig {
+            min_samples: 1,  // Set to 1 instead of default 100
+            max_samples: None,
+            min_batch_size: 1,
+            max_batch_size: None,
+            required_shapes: HashMap::new(),
+            allow_missing_layers: false,
+            strict_mode: false,
+        };
+        
         let config = CalibrationConfigBuilder::new()
             .batch_size(2)
             .max_samples(4)
+            .validation_config(validation_config)
             .build()?;
         let mut dataset = CalibrationDataset::new(config)?;
 

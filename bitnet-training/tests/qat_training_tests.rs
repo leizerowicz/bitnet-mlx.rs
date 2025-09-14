@@ -57,11 +57,12 @@ mod qat_training_basic {
     fn test_training_state() {
         let mut state = QATTrainingState::new();
 
-        // Test state updates
+        // Test state updates (need at least 5 losses for convergence check)
         state.record_loss(1.5);
         state.record_loss(1.0);
         state.record_loss(0.8);
         state.record_loss(0.7);
+        state.record_loss(0.6);
 
         // Test convergence check (method takes no arguments)
         assert!(state.is_converging());
@@ -144,7 +145,12 @@ mod integration_tests {
 
         // Training state
         let mut state = QATTrainingState::new();
+        // Record sufficient decreasing losses for convergence
         state.record_loss(1.0);
+        state.record_loss(0.9);
+        state.record_loss(0.8);
+        state.record_loss(0.7);
+        state.record_loss(0.6);
 
         // Test quantization
         let quantized = ste.forward_quantized(&weights).unwrap();
@@ -159,17 +165,19 @@ mod integration_tests {
     fn test_state_tracking_convergence() {
         let mut state = QATTrainingState::new();
 
-        // Record decreasing losses to simulate convergence
+        // Record decreasing losses to simulate convergence (need at least 5 entries)
         state.record_loss(2.0);
         state.record_loss(1.8);
         state.record_loss(1.6);
         state.record_loss(1.5);
+        state.record_loss(1.4);
 
         assert!(state.is_converging());
 
-        // Record non-converging pattern
+        // Record non-converging pattern (make it clearly non-converging)
         state.record_loss(2.0);
-        state.record_loss(1.5);
+        state.record_loss(2.5);
+        state.record_loss(3.0);
         assert!(!state.is_converging());
     }
 

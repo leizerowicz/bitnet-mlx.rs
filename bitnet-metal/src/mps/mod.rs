@@ -14,32 +14,32 @@
 //!
 //! ## Architecture
 //!
-//! ```
-//! MPS Integration
-//! ├── Framework Integration (mps_framework.rs)
-//! │   ├── MPS device management
-//! │   ├── Command buffer integration
-//! │   └── Error handling
-//! ├── Matrix Operations (matrix_ops.rs)
-//! │   ├── MPS-optimized GEMM
-//! │   ├── Quantized matrix operations
-//! │   └── Memory-efficient operations
-//! ├── Neural Network Layers (nn_layers.rs)
-//! │   ├── BitLinear layer implementation
-//! │   ├── Quantization layers
-//! │   └── Activation functions
-//! ├── Computer Vision (cv_acceleration.rs)
-//! │   ├── MPS image processing
-//! │   ├── Convolution operations
-//! │   └── Vision transformers
-//! ├── Apple Neural Engine (ane_integration.rs)
-//! │   ├── ANE device management
-//! │   ├── Model partitioning
-//! │   └── Power optimization
-//! └── Unified Memory (unified_memory.rs)
-//!     ├── Memory bandwidth optimization
-//!     ├── Cross-device sharing
-//!     └── Synchronization
+//! ```text
+//! MPS Integration:
+//! - Framework Integration (mps_framework.rs)
+//!   - MPS device management
+//!   - Command buffer integration
+//!   - Error handling
+//! - Matrix Operations (matrix_ops.rs)
+//!   - MPS-optimized GEMM
+//!   - Quantized matrix operations
+//!   - Memory-efficient operations
+//! - Neural Network Layers (nn_layers.rs)
+//!   - BitLinear layer implementation
+//!   - Quantization layers
+//!   - Activation functions
+//! - Computer Vision (cv_acceleration.rs)
+//!   - MPS image processing
+//!   - Convolution operations
+//!   - Vision transformers
+//! - Apple Neural Engine (ane_integration.rs)
+//!   - ANE device management
+//!   - Model partitioning
+//!   - Power optimization
+//! - Unified Memory (unified_memory.rs)
+//!   - Memory bandwidth optimization
+//!   - Cross-device sharing
+//!   - Synchronization
 //! ```
 
 pub mod mps_framework;

@@ -706,7 +706,14 @@ mod tests {
 
     #[test]
     fn test_power_iteration() {
-        setup_global_memory_pool();
+        use crate::tensor::memory_integration::set_global_memory_pool;
+        
+        // Initialize memory pool specifically for this test
+        let mut config = MemoryPoolConfig::default();
+        config.tracking_config = Some(TrackingConfig::detailed());
+        let pool = Arc::new(HybridMemoryPool::with_config(config).expect("Failed to create test memory pool"));
+        set_global_memory_pool(Arc::downgrade(&pool));
+        
         println!("Creating identity matrix...");
         let matrix = BitNetTensor::eye(3, BitNetDType::F32, None).unwrap();
         println!("Matrix created successfully: shape={:?}, dtype={:?}", matrix.shape().dims(), matrix.dtype());

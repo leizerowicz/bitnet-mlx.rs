@@ -121,7 +121,7 @@ impl QATTrainingState {
 
     /// Check if checkpointing is needed
     pub fn should_checkpoint(&self, checkpoint_frequency: usize) -> bool {
-        self.step > 0 && (self.step % checkpoint_frequency == 0)
+        self.epoch > 0 && (self.epoch % checkpoint_frequency == 0)
     }
 
     /// Get training summary
@@ -165,8 +165,10 @@ impl QATTrainingState {
         let recent_losses: Vec<f32> = self.loss_history.iter().rev().take(5).copied().collect();
         let mut decreasing_trend = 0;
 
+        // Check if each step is better (lower loss) than the previous
+        // Since recent_losses is reversed, recent_losses[0] is most recent
         for i in 1..recent_losses.len() {
-            if recent_losses[i] < recent_losses[i - 1] {
+            if recent_losses[i - 1] < recent_losses[i] {
                 decreasing_trend += 1;
             }
         }

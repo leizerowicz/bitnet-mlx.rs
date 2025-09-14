@@ -261,7 +261,7 @@ impl DynamicActivationQuantizer {
 
     /// Quantize to 8-bit integers
     fn quantize_int8(&self, activations: &Tensor, scale: f32) -> QuantizationResult<Tensor> {
-        let scaled = activations.div(&Tensor::new(scale, &self.device)?)?;
+        let scaled = activations.affine(1.0 / scale as f64, 0.0)?;
         let clamped = scaled.clamp(0.0, 255.0)?;
         let quantized = clamped.round()?.to_dtype(DType::U8)?;
         Ok(quantized)
@@ -273,12 +273,12 @@ impl DynamicActivationQuantizer {
         activations: &Tensor,
         scale: f32,
     ) -> QuantizationResult<Tensor> {
-        let scaled = activations.div(&Tensor::new(scale, &self.device)?)?;
+        let scaled = activations.affine(1.0 / scale as f64, 0.0)?;
 
         // Use a threshold-based approach for activations
         let threshold = 0.5;
-        let pos_mask = scaled.gt(&Tensor::new(threshold, &self.device)?)?;
-        let neg_mask = scaled.lt(&Tensor::new(-threshold, &self.device)?)?;
+        let pos_mask = scaled.gt(threshold)?;
+        let neg_mask = scaled.lt(-threshold)?;
 
         let pos_values = pos_mask.to_dtype(activations.dtype())?;
         let neg_values = neg_mask.to_dtype(activations.dtype())?.neg()?;
@@ -710,7 +710,7 @@ pub mod activation_utils {
 
     fn compute_attention_sparsity(attention: &Tensor) -> QuantizationResult<f32> {
         let threshold = 0.01; // 1% threshold for attention sparsity
-        let low_attention = attention.lt(&Tensor::new(threshold, attention.device())?)?;
+        let low_attention = attention.lt(threshold)?;
         let sparsity = low_attention
             .to_dtype(DType::F32)?
             .mean_all()?

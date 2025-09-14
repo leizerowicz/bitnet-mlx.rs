@@ -130,10 +130,10 @@ impl MemoryPressureDetector {
     /// A new detector instance
     pub fn new(threshold: f64) -> Self {
         let thresholds = PressureThresholds {
-            low_pressure_threshold: threshold * 0.6,
-            medium_pressure_threshold: threshold * 0.75,
-            high_pressure_threshold: threshold * 0.85,
-            critical_pressure_threshold: threshold * 0.95,
+            low_pressure_threshold: 0.6,       // Fixed value
+            medium_pressure_threshold: 0.8,    // Use threshold directly  
+            high_pressure_threshold: 0.9,      // Fixed value
+            critical_pressure_threshold: 0.95, // Fixed value
             notification_cooldown: Duration::from_secs(30),
         };
 

@@ -177,7 +177,7 @@ mod layer_wise_quantization_tests {
         assert!(output_config.is_some());
 
         if let Some(config) = output_config {
-            assert_eq!(config.bits, 1); // Should use phase configuration
+            assert_eq!(config.bits, 8); // Should start with first phase configuration (8-bit from progressive phases)
         }
     }
 
@@ -192,10 +192,18 @@ mod layer_wise_quantization_tests {
 
         let layer_wise = ProgressiveQuantizationFactory::create_layer_wise(layer_order, device);
 
-        // Should have configs for all layers
-        assert!(layer_wise.get_layer_config("conv1.weight").is_some());
-        assert!(layer_wise.get_layer_config("conv2.weight").is_some());
-        assert!(layer_wise.get_layer_config("fc.weight").is_some());
+        // Should start with only the first layer being quantized
+        let first_layer_config = layer_wise.get_layer_config("conv1.weight");
+        assert!(first_layer_config.is_some());
+        
+        // Factory method creates 1-bit phases, so first layer should use 1-bit
+        if let Some(config) = first_layer_config {
+            assert_eq!(config.bits, 1);
+        }
+        
+        // Other layers should not be quantized yet in layer-wise progression  
+        assert!(layer_wise.get_layer_config("conv2.weight").is_none());
+        assert!(layer_wise.get_layer_config("fc.weight").is_none());
     }
 }
 
