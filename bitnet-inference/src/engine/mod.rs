@@ -9,6 +9,7 @@ pub mod gpu_memory_optimizer;
 pub mod zero_copy_loader;
 pub mod dynamic_batching;
 pub mod parallel_processor;
+pub mod weight_conversion;
 
 // Week 3 Advanced GPU Optimization
 // pub mod advanced_gpu_backend;  // Disabled - needs Metal integration fixes
@@ -28,6 +29,7 @@ pub use gpu_memory_optimizer::{GPUMemoryManager, GPUAllocation, MemoryStats};
 pub use zero_copy_loader::{ZeroCopyModelLoader, MmapModel, ModelHeader, WeightLayout};
 pub use dynamic_batching::{DynamicBatchProcessor, MemoryMonitor, PerformanceTracker, DynamicBatchStats, MemoryStats as DynamicMemoryStats, PerformanceStats};
 pub use parallel_processor::{ParallelInferenceProcessor, InferenceTask, InferenceResult, ParallelConfig, ParallelProcessorStats, WorkerStats};
+pub use weight_conversion::{WeightConverter, WeightArrays, ConvertedWeights};
 
 // Week 3 Advanced GPU Optimization exports
 // pub use advanced_gpu_backend::{AdvancedGPUBackend, AdvancedGPUConfig, PerformanceStatistics, MultiGPUState, DeviceCapability, AsyncMemoryPipeline, PerformanceMonitor};  // Disabled - needs fixes

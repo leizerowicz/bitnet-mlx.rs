@@ -86,9 +86,11 @@ async fn demonstrate_advanced_caching() -> Result<()> {
                 ],
                 execution_order: vec![0, 1],
             },
-            weights: ModelWeights {
-                layer_weights,
-                total_size: 1024 * 1024,
+            weights: {
+                let mut weights = ModelWeights::new();
+                weights.layer_weights = layer_weights;
+                weights.total_size = 1024 * 1024;
+                weights
             },
         }
     };
@@ -146,7 +148,7 @@ async fn demonstrate_zero_copy_loading() -> Result<()> {
     println!("🗂️  Section 2: Zero-Copy Model Loading");
     println!("-------------------------------------");
 
-    let mut loader = ZeroCopyModelLoader::new();
+    let _loader = ZeroCopyModelLoader::new();
     println!("✓ Created zero-copy model loader (threshold: {} MB)", 
              64); // MMAP_THRESHOLD / (1024 * 1024)
 
@@ -156,7 +158,7 @@ async fn demonstrate_zero_copy_loading() -> Result<()> {
 
     // Test memory mapping vs in-memory loading
     let mut large_loader = ZeroCopyModelLoader::with_mmap_threshold(1024); // Very small threshold for testing
-    let small_loader = ZeroCopyModelLoader::with_mmap_threshold(1024 * 1024 * 100); // Large threshold
+    let _small_loader = ZeroCopyModelLoader::with_mmap_threshold(1024 * 1024 * 100); // Large threshold for comparison
 
     // This would use memory mapping (if file was large enough)
     match large_loader.load_model_zero_copy(temp_model.path()) {
@@ -350,9 +352,11 @@ fn create_fusion_test_model() -> bitnet_inference::engine::LoadedModel {
             ],
             execution_order: vec![0, 1, 2],
         },
-        weights: ModelWeights {
-            layer_weights,
-            total_size: 1280 * 1024, // Total size
+        weights: {
+            let mut weights = ModelWeights::new();
+            weights.layer_weights = layer_weights;
+            weights.total_size = 1280 * 1024; // Total size
+            weights
         },
     }
 }

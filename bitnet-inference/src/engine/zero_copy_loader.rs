@@ -297,10 +297,11 @@ impl ZeroCopyModelLoader {
             layer_weights.insert(layer_info.layer_id, layer_data);
         }
 
-        Ok(ModelWeights {
-            layer_weights,
-            total_size: header.weight_layout.total_size as usize,
-        })
+        let mut weights = ModelWeights::new();
+        weights.layer_weights = layer_weights;
+        weights.total_size = header.weight_layout.total_size as usize;
+
+        Ok(weights)
     }
 
     /// Analyze model layers for execution planning

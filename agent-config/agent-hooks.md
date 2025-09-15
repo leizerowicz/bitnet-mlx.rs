@@ -152,6 +152,42 @@ BitNet-Rust is currently in the **Commercial Readiness Phase Week 1** with robus
   - Validate performance characteristics maintenance
 ```
 
+#### Regression Prevention Hooks
+**Hook Point**: Before and after any significant changes during development
+**Purpose**: Maintain baseline quality and prevent regression during active development
+
+```markdown
+## REGRESSION_BASELINE_CAPTURE
+- **Trigger**: Before starting new feature development or significant changes
+- **Actions**:
+  - Capture current test success rate baseline (target: 99.17% - 952/960 tests)
+  - Record current performance baseline metrics (ARM64 NEON 1.37x-3.20x speedup)
+  - Document current Phase 2 completion status and capability baselines
+  - Establish change impact monitoring for upcoming modifications
+  - Initialize regression monitoring for active development cycle
+  - Notify regression_management_specialist.md of baseline establishment
+
+## REGRESSION_MONITORING_CHECK
+- **Trigger**: After any code changes, feature additions, or system modifications
+- **Actions**:
+  - Execute comprehensive test suite and compare against baseline (99.17% target)
+  - Run performance benchmarks and validate against established baselines
+  - Check for unexpected Phase status or capability regressions
+  - Analyze change impact on cross-crate integration and dependencies
+  - Validate that GGUF foundation capabilities remain intact (Tasks 2.1.1-2.1.15)
+  - Alert regression_management_specialist.md if any degradation detected
+
+## REGRESSION_ESCALATION
+- **Trigger**: Regression detection or baseline violation during development
+- **Actions**:
+  - Immediately notify regression_management_specialist.md for analysis
+  - Coordinate with debug.md for root cause investigation
+  - Engage performance_engineering_specialist.md if performance regression detected
+  - Document regression details and impact assessment
+  - Initiate recovery workflow and timeline for restoration
+  - Update development_phase_tracker.md with regression status
+```
+
 #### Truth Validation Hooks
 **Hook Point**: When agents make status or completion claims
 **Purpose**: Evidence-based verification and accuracy assurance

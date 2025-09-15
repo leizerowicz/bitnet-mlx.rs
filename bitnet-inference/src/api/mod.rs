@@ -123,9 +123,11 @@ impl InferenceEngine {
                     layers: vec![],
                     execution_order: vec![],
                 },
-                weights: crate::engine::model_loader::ModelWeights {
-                    layer_weights: std::collections::HashMap::new(),
-                    total_size: 0,
+                weights: {
+                    let mut weights = crate::engine::model_loader::ModelWeights::new();
+                    weights.layer_weights.insert(0, vec![0u8; 1024]); // Placeholder weights
+                    weights.total_size = 1024;
+                    weights
                 },
             })
         })?;

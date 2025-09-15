@@ -3,12 +3,14 @@
 //! This module provides functionality to:
 //! - Download models from HuggingFace Hub
 //! - Load SafeTensors format models
+//! - Load GGUF format models (including Microsoft BitNet b1.58 2B4T)
 //! - Cache models locally for efficient reuse
 //! - Convert models to BitNet format
 
 use crate::{Result, InferenceError};
 use crate::engine::{Model, ModelMetadata, LoadedModel};
 use crate::engine::model_loader::{ModelArchitecture, LayerDefinition, LayerType, LayerParameters, ModelWeights};
+use crate::gguf::GgufLoader;
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
@@ -146,11 +148,26 @@ impl HuggingFaceLoader {
             return Ok(None);
         }
 
-        // Check if all required files exist
+        // Check for GGUF files first (preferred for BitNet models)
+        let has_gguf = std::fs::read_dir(&model_dir)
+            .map(|entries| {
+                entries
+                    .filter_map(|entry| entry.ok())
+                    .any(|entry| {
+                        entry.path().extension()
+                            .and_then(|ext| ext.to_str())
+                            .map(|ext| ext == "gguf")
+                            .unwrap_or(false)
+                    })
+            })
+            .unwrap_or(false);
+
+        // Check for SafeTensors files as fallback
         let config_path = model_dir.join("config.json");
         let model_path = model_dir.join("model.safetensors");
+        let has_safetensors = config_path.exists() && model_path.exists();
 
-        if !config_path.exists() || !model_path.exists() {
+        if !has_gguf && !has_safetensors {
             return Ok(None);
         }
 
@@ -165,8 +182,39 @@ impl HuggingFaceLoader {
     async fn load_cached_model(&self, repo: &ModelRepo) -> Result<LoadedModel> {
         let model_dir = self.get_model_cache_dir(repo);
         
-        // Load model configuration
+        // Check for GGUF files first (preferred for BitNet models)
+        let gguf_files: Vec<_> = std::fs::read_dir(&model_dir)
+            .map_err(|e| InferenceError::model_load(format!("Failed to read model directory: {}", e)))?
+            .filter_map(|entry| {
+                let entry = entry.ok()?;
+                let path = entry.path();
+                if path.extension()?.to_str()? == "gguf" {
+                    Some(path)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        
+        // Load GGUF model if available
+        if !gguf_files.is_empty() {
+            let gguf_path = &gguf_files[0]; // Use first GGUF file found
+            tracing::info!("Loading GGUF model from: {:?}", gguf_path);
+            let loader = crate::gguf::GgufLoader::new();
+            return loader.load_model_from_path(gguf_path, None).await;
+        }
+        
+        // Fallback to SafeTensors loading
         let config_path = model_dir.join("config.json");
+        let model_path = model_dir.join("model.safetensors");
+        
+        if !config_path.exists() || !model_path.exists() {
+            return Err(InferenceError::model_load(
+                format!("No GGUF or SafeTensors model found in cache for {}", repo.repo_id())
+            ));
+        }
+        
+        // Load model configuration
         let config_content = fs::read_to_string(&config_path).await
             .map_err(|e| InferenceError::model_load(format!("Failed to read config: {}", e)))?;
         
@@ -174,7 +222,6 @@ impl HuggingFaceLoader {
             .map_err(|e| InferenceError::model_load(format!("Failed to parse config: {}", e)))?;
 
         // Load SafeTensors model
-        let model_path = model_dir.join("model.safetensors");
         let weights = self.load_safetensors(&model_path).await?;
 
         // Convert to BitNet format
@@ -190,16 +237,40 @@ impl HuggingFaceLoader {
 
     /// Download model files from HuggingFace Hub
     async fn download_model_files(&self, repo: &ModelRepo, model_dir: &Path) -> Result<()> {
-        let files_to_download = vec![
-            "config.json",
-            "model.safetensors",
-            "tokenizer.json",  // Optional
-            "tokenizer_config.json", // Optional
-        ];
+        // First, try to get the file list from the repo to detect GGUF files
+        let available_files = self.get_repo_files(repo).await.unwrap_or_default();
+        
+        // Prioritize GGUF files for BitNet models
+        let gguf_files: Vec<_> = available_files.iter()
+            .filter(|file| file.ends_with(".gguf"))
+            .cloned()
+            .collect();
+        
+        // Define files to download based on what's available
+        let mut files_to_download = Vec::new();
+        
+        if !gguf_files.is_empty() {
+            // Download GGUF files (preferred for BitNet)
+            files_to_download.extend(gguf_files);
+            // Add optional tokenizer files
+            files_to_download.extend(vec![
+                "tokenizer.json".to_string(),
+                "tokenizer_config.json".to_string(),
+                "config.json".to_string(), // Still useful for metadata
+            ]);
+        } else {
+            // Fallback to SafeTensors format
+            files_to_download.extend(vec![
+                "config.json".to_string(),
+                "model.safetensors".to_string(),
+                "tokenizer.json".to_string(),
+                "tokenizer_config.json".to_string(),
+            ]);
+        }
 
         for file_name in files_to_download {
-            let url = self.build_download_url(repo, file_name);
-            let file_path = model_dir.join(file_name);
+            let url = self.build_download_url(repo, &file_name);
+            let file_path = model_dir.join(&file_name);
 
             match self.download_file(&url, &file_path).await {
                 Ok(_) => {
@@ -207,7 +278,7 @@ impl HuggingFaceLoader {
                 }
                 Err(e) => {
                     // Some files are optional
-                    if file_name.starts_with("tokenizer") {
+                    if file_name.starts_with("tokenizer") || file_name == "config.json" {
                         tracing::warn!("Optional file {} not available: {}", file_name, e);
                     } else {
                         return Err(e);
@@ -217,6 +288,45 @@ impl HuggingFaceLoader {
         }
 
         Ok(())
+    }
+
+    /// Get list of files in a HuggingFace repository
+    async fn get_repo_files(&self, repo: &ModelRepo) -> Result<Vec<String>> {
+        let api_url = format!(
+            "https://huggingface.co/api/models/{}/tree/{}",
+            repo.repo_id(),
+            repo.revision.as_deref().unwrap_or("main")
+        );
+
+        let mut request = self.client.get(&api_url);
+        
+        // Add authentication header if token is available
+        if let Some(token) = &self.config.auth_token {
+            request = request.header("Authorization", format!("Bearer {}", token));
+        }
+
+        let response = request.send().await
+            .map_err(|e| InferenceError::model_load(format!("Failed to get repo files: {}", e)))?;
+
+        if !response.status().is_success() {
+            return Err(InferenceError::model_load(
+                format!("Failed to get repo files: HTTP {}", response.status())
+            ));
+        }
+
+        let files_info: Vec<serde_json::Value> = response.json().await
+            .map_err(|e| InferenceError::model_load(format!("Failed to parse repo files response: {}", e)))?;
+
+        let files: Vec<String> = files_info
+            .into_iter()
+            .filter_map(|file| {
+                file.get("path")
+                    .and_then(|path| path.as_str())
+                    .map(|s| s.to_string())
+            })
+            .collect();
+
+        Ok(files)
     }
 
     /// Download a single file from HuggingFace Hub
@@ -267,10 +377,11 @@ impl HuggingFaceLoader {
             total_size += tensor_data.data().len();
         }
 
-        Ok(ModelWeights {
-            layer_weights,
-            total_size,
-        })
+        let mut weights = ModelWeights::new();
+        weights.layer_weights = layer_weights;
+        weights.total_size = total_size;
+        
+        Ok(weights)
     }
 
     /// Convert HuggingFace config to BitNet metadata

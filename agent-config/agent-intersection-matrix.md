@@ -119,6 +119,7 @@ This document provides a comprehensive matrix of how all agents in the BitNet-Ru
 - `error_handling_specialist.md` - **Edge Case Partnership** (error scenarios → test coverage)
 - `debug.md` - **Issue Reproduction Partnership** (bug reproduction → test improvement)
 - `truth_validator.md` - **Validation Partnership** (test coverage → quality validation)
+- `regression_management_specialist.md` - **Regression Prevention Partnership** (test coverage → baseline protection)
 
 **Secondary Intersections:**
 - `code.md` - Implementation testing and coverage validation
@@ -132,11 +133,31 @@ This document provides a comprehensive matrix of how all agents in the BitNet-Ru
 - Bug reproduction and regression testing
 - Quality assurance and coverage analysis
 
+#### **`regression_management_specialist.md` - Regression Prevention Specialist**
+**Primary Intersections:**
+- `test_utilities_specialist.md` - **Baseline Protection Partnership** (test success rate monitoring → regression detection)
+- `performance_engineering_specialist.md` - **Performance Baseline Partnership** (performance monitoring → regression prevention)
+- `debug.md` - **Change Impact Partnership** (regression investigation → root cause resolution)
+
+**Secondary Intersections:**
+- `code.md` - Change impact analysis and regression risk assessment
+- `truth_validator.md` - Regression validation and quality gate enforcement
+- `development_phase_tracker.md` - Phase progress protection and milestone validation
+- `error_handling_specialist.md` - Error pattern regression monitoring
+
+**Collaboration Triggers:**
+- Test success rate drops requiring immediate attention
+- Performance regressions during development cycles
+- Change impact analysis for significant modifications
+- Quality baseline enforcement during feature development
+- Phase transition validation and progress protection
+
 #### **`truth_validator.md` - Quality Assurance Specialist**
 **Primary Intersections:**
 - ALL AGENTS - **Universal Quality Gate** (final validation for all work)
 - `test_utilities_specialist.md` - **Validation Partnership** (test coverage validation)
 - `development_phase_tracker.md` - **Status Validation Partnership** (progress accuracy)
+- `regression_management_specialist.md` - **Quality Baseline Partnership** (regression detection → comprehensive validation)
 
 **Secondary Intersections:**
 - `architect.md` - Design validation and architectural correctness

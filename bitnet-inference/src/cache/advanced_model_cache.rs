@@ -212,9 +212,10 @@ impl CachedModel {
                 layers: Vec::new(), // Would need to reconstruct from execution plan
                 execution_order: Vec::new(),
             },
-            weights: crate::engine::model_loader::ModelWeights {
-                layer_weights: HashMap::new(), // Would need to reconstruct from optimized weights
-                total_size: serializable.optimized_weights.len(),
+            weights: {
+                let mut weights = crate::engine::model_loader::ModelWeights::new();
+                weights.total_size = serializable.optimized_weights.len();
+                weights
             },
         };
 
@@ -737,9 +738,11 @@ mod tests {
                 }],
                 execution_order: vec![0],
             },
-            weights: ModelWeights {
-                layer_weights,
-                total_size: weights_size,
+            weights: {
+                let mut weights = ModelWeights::new();
+                weights.layer_weights = layer_weights;
+                weights.total_size = weights_size;
+                weights
             },
         }
     }

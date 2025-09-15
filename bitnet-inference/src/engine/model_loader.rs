@@ -1,9 +1,11 @@
 //! Model loading and serialization infrastructure.
 
 use crate::{Result, InferenceError};
+use crate::engine::weight_conversion::{WeightConverter, ConvertedWeights};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Metadata describing a BitNet model.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -134,13 +136,212 @@ pub enum LayerParameters {
     },
 }
 
-/// Container for model weight data.
+/// Parameter type within a layer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub enum ParameterType {
+    /// Main layer weights (e.g., linear transformation weights)
+    Weight,
+    /// Bias parameters
+    Bias,
+    /// Layer normalization scale parameters
+    LayerNormScale,
+    /// Attention query weights
+    AttentionQuery,
+    /// Attention key weights  
+    AttentionKey,
+    /// Attention value weights
+    AttentionValue,
+    /// Attention output projection weights
+    AttentionOutput,
+    /// Feed-forward gate weights (for gated activations)
+    FeedForwardGate,
+    /// Feed-forward up projection weights
+    FeedForwardUp,
+    /// Feed-forward down projection weights
+    FeedForwardDown,
+    /// Embedding weights
+    EmbeddingWeight,
+    /// Output projection weights
+    OutputWeight,
+}
+
+/// Parameter data with metadata.
+#[derive(Debug, Clone)]
+pub struct ParameterData {
+    /// Raw parameter data
+    pub data: Vec<u8>,
+    /// Parameter shape
+    pub shape: Vec<usize>,
+    /// Data type information
+    pub dtype: ParameterDataType,
+    /// Original tensor name from model file
+    pub tensor_name: String,
+}
+
+/// Data type of parameter.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ParameterDataType {
+    /// 32-bit float
+    F32,
+    /// 16-bit float
+    F16,
+    /// 8-bit integer
+    I8,
+    /// BitNet 1.58-bit ternary weights
+    BitnetB158,
+    /// Quantized formats
+    Quantized(String),
+}
+
+/// Container for model weight data organized by layer and parameter type.
 #[derive(Debug, Clone)]
 pub struct ModelWeights {
-    /// Raw weight data organized by layer
+    /// Weights organized by layer ID and parameter type
+    pub organized_weights: HashMap<usize, HashMap<ParameterType, ParameterData>>,
+    /// Raw weight data organized by tensor index (for backward compatibility)
     pub layer_weights: HashMap<usize, Vec<u8>>,
     /// Total size in bytes
     pub total_size: usize,
+    /// Layer index mapping from tensor names to layer IDs
+    pub layer_mapping: HashMap<String, usize>,
+    /// Weight converter for lazy conversion (shared)
+    weight_converter: Option<Arc<WeightConverter>>,
+}
+
+impl ModelWeights {
+    /// Create new ModelWeights with empty organization
+    pub fn new() -> Self {
+        Self {
+            organized_weights: HashMap::new(),
+            layer_weights: HashMap::new(),
+            total_size: 0,
+            layer_mapping: HashMap::new(),
+            weight_converter: None,
+        }
+    }
+
+    /// Create new ModelWeights with weight converter
+    pub fn with_converter(converter: Arc<WeightConverter>) -> Self {
+        Self {
+            organized_weights: HashMap::new(),
+            layer_weights: HashMap::new(),
+            total_size: 0,
+            layer_mapping: HashMap::new(),
+            weight_converter: Some(converter),
+        }
+    }
+
+    /// Set the weight converter
+    pub fn set_converter(&mut self, converter: Arc<WeightConverter>) {
+        self.weight_converter = Some(converter);
+    }
+
+    /// Get parameter data for a specific layer and parameter type
+    pub fn get_parameter(&self, layer_id: usize, param_type: ParameterType) -> Option<&ParameterData> {
+        self.organized_weights
+            .get(&layer_id)?
+            .get(&param_type)
+    }
+
+    /// Get all parameters for a specific layer
+    pub fn get_layer_parameters(&self, layer_id: usize) -> Option<&HashMap<ParameterType, ParameterData>> {
+        self.organized_weights.get(&layer_id)
+    }
+
+    /// Add parameter data to the organized structure
+    pub fn add_parameter(&mut self, layer_id: usize, param_type: ParameterType, data: ParameterData) {
+        self.organized_weights
+            .entry(layer_id)
+            .or_insert_with(HashMap::new)
+            .insert(param_type, data);
+    }
+
+    /// Check if a layer has a specific parameter type
+    pub fn has_parameter(&self, layer_id: usize, param_type: ParameterType) -> bool {
+        self.organized_weights
+            .get(&layer_id)
+            .map(|params| params.contains_key(&param_type))
+            .unwrap_or(false)
+    }
+
+    /// Get all layer IDs that have been loaded
+    pub fn get_layer_ids(&self) -> Vec<usize> {
+        let mut ids: Vec<usize> = self.organized_weights.keys().cloned().collect();
+        ids.sort();
+        ids
+    }
+
+    /// Get parameter count for a specific layer
+    pub fn get_layer_parameter_count(&self, layer_id: usize) -> usize {
+        self.organized_weights
+            .get(&layer_id)
+            .map(|params| params.len())
+            .unwrap_or(0)
+    }
+
+    /// Get total parameter count across all layers
+    pub fn get_total_parameter_count(&self) -> usize {
+        self.organized_weights
+            .values()
+            .map(|params| params.len())
+            .sum()
+    }
+
+    /// Map tensor name to layer ID
+    pub fn map_tensor_to_layer(&mut self, tensor_name: String, layer_id: usize) {
+        self.layer_mapping.insert(tensor_name, layer_id);
+    }
+
+    /// Get layer ID from tensor name
+    pub fn get_layer_id_from_tensor(&self, tensor_name: &str) -> Option<usize> {
+        self.layer_mapping.get(tensor_name).copied()
+    }
+
+    /// Convert parameter to typed weight arrays
+    pub fn convert_parameter(&self, layer_id: usize, param_type: ParameterType) -> Result<ConvertedWeights> {
+        let param_data = self.get_parameter(layer_id, param_type)
+            .ok_or_else(|| InferenceError::model_load(
+                format!("Parameter not found: layer {}, type {:?}", layer_id, param_type)
+            ))?;
+
+        let converter = self.weight_converter.as_ref()
+            .ok_or_else(|| InferenceError::model_load(
+                "Weight converter not available".to_string()
+            ))?;
+
+        converter.convert_parameter(param_data)
+    }
+
+    /// Convert all parameters for a layer
+    pub fn convert_layer_parameters(&self, layer_id: usize) -> Result<HashMap<ParameterType, ConvertedWeights>> {
+        let layer_params = self.get_layer_parameters(layer_id)
+            .ok_or_else(|| InferenceError::model_load(
+                format!("Layer {} not found", layer_id)
+            ))?;
+
+        let converter = self.weight_converter.as_ref()
+            .ok_or_else(|| InferenceError::model_load(
+                "Weight converter not available".to_string()
+            ))?;
+
+        let mut converted = HashMap::new();
+        for (param_type, param_data) in layer_params {
+            let converted_weights = converter.convert_parameter(param_data)?;
+            converted.insert(*param_type, converted_weights);
+        }
+
+        Ok(converted)
+    }
+
+    /// Check if weight converter is available
+    pub fn has_converter(&self) -> bool {
+        self.weight_converter.is_some()
+    }
+
+    /// Get weight converter cache statistics
+    pub fn converter_stats(&self) -> Option<(usize, usize, usize)> {
+        self.weight_converter.as_ref().map(|c| c.cache_stats())
+    }
 }
 
 /// High-performance model loader with caching and validation.
@@ -240,13 +441,11 @@ impl ModelLoader {
         let weights_data = std::fs::read(&weights_path)?;
         
         // For now, store as a single blob - will be structured later
-        let mut layer_weights = HashMap::new();
-        layer_weights.insert(0, weights_data.clone());
+        let mut weights = ModelWeights::new();
+        weights.layer_weights.insert(0, weights_data.clone());
+        weights.total_size = weights_data.len();
 
-        Ok(ModelWeights {
-            layer_weights,
-            total_size: weights_data.len(),
-        })
+        Ok(weights)
     }
 
     /// Create a default architecture when no architecture file exists.

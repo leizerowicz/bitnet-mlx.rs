@@ -41,11 +41,13 @@ pub mod optimization;
 pub mod profiling;
 pub mod error;
 pub mod huggingface;
+pub mod gguf;
 
 // Re-export the main API components
 pub use api::{InferenceEngine, EngineConfig, InferenceStream, StreamingConfig};
 pub use error::{InferenceError, Result};
 pub use huggingface::{HuggingFaceLoader, ModelRepo, HuggingFaceConfig, CacheStats};
+pub use gguf::{GgufLoader, GgufHeader, GgufTensorInfo, GgufValueType, GgufTensorType};
 
 // Re-export commonly used types
 pub use engine::{InferenceContext, OptimizationLevel, InferenceBackend};
