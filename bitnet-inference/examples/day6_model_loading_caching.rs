@@ -92,6 +92,7 @@ async fn demonstrate_advanced_caching() -> Result<()> {
                 weights.total_size = 1024 * 1024;
                 weights
             },
+            bitnet_config: None,
         }
     };
 
@@ -358,6 +359,7 @@ fn create_fusion_test_model() -> bitnet_inference::engine::LoadedModel {
             weights.total_size = 1280 * 1024; // Total size
             weights
         },
+        bitnet_config: None,
     }
 }
 

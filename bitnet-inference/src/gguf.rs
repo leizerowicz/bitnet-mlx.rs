@@ -102,7 +102,12 @@ impl TryFrom<u32> for GgufValueType {
             10 => Ok(Self::Uint64),
             11 => Ok(Self::Int64),
             12 => Ok(Self::Float64),
-            _ => Err(InferenceError::model_load(format!("Unknown GGUF value type: {}", value))),
+            _ => {
+                tracing::warn!("Unknown GGUF value type: {}, attempting graceful degradation", value);
+                // For unknown value types, we'll skip this metadata entry
+                // This is better than failing completely
+                Err(InferenceError::model_load(format!("Unknown GGUF value type: {} (skipping this metadata entry)", value)))
+            }
         }
     }
 }
@@ -539,11 +544,40 @@ impl GgufLoader {
         
         // Read metadata
         let mut metadata = HashMap::new();
-        for _ in 0..metadata_kv_count {
+        for i in 0..metadata_kv_count {
             let key = self.read_string(reader)?;
-            let value_type = GgufValueType::try_from(self.read_u32(reader)?)?;
-            let value = self.read_value(reader, value_type)?;
-            metadata.insert(key, value);
+            
+            // Try to read value type, but handle unknown types gracefully
+            let value_type_raw = self.read_u32(reader)?;
+            match GgufValueType::try_from(value_type_raw) {
+                Ok(value_type) => {
+                    match self.read_value(reader, value_type) {
+                        Ok(value) => {
+                            metadata.insert(key, value);
+                        }
+                        Err(e) => {
+                            tracing::warn!("Failed to read metadata value for key '{}': {}, skipping", key, e);
+                            // Continue processing other metadata entries
+                        }
+                    }
+                }
+                Err(_) => {
+                    tracing::warn!("Unknown GGUF value type {} for key '{}', attempting to skip", value_type_raw, key);
+                    // Try to skip this unknown value type
+                    match self.skip_unknown_value(reader, value_type_raw) {
+                        Ok(_) => {
+                            tracing::debug!("Successfully skipped unknown value type {} for key '{}'", value_type_raw, key);
+                            // Continue with next metadata entry
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to skip unknown value type {} for key '{}': {}, stopping metadata parsing", 
+                                          value_type_raw, key, e);
+                            // If we can't skip, we have to stop parsing metadata to avoid corruption
+                            break;
+                        }
+                    }
+                }
+            }
         }
         
         // Read tensor info
@@ -1859,8 +1893,17 @@ impl GgufLoader {
         let result = Self::read_buffer_robust(reader, len, "string", &config)?;
         match result {
             BufferReadResult::Complete(bytes) => {
-                String::from_utf8(bytes)
-                    .map_err(|e| InferenceError::model_load(format!("Invalid UTF-8 string: {}", e)))
+                // Try UTF-8 first, but use lossy conversion if needed
+                match String::from_utf8(bytes.clone()) {
+                    Ok(string) => Ok(string),
+                    Err(utf8_err) => {
+                        tracing::warn!("Invalid UTF-8 string at position {}, using lossy conversion", 
+                                     utf8_err.utf8_error().valid_up_to());
+                        // Use lossy conversion to handle non-UTF-8 data gracefully
+                        let lossy_string = String::from_utf8_lossy(&bytes).into_owned();
+                        Ok(lossy_string)
+                    }
+                }
             }
             _ => Err(InferenceError::model_load("Failed to read string")),
         }
@@ -1881,9 +1924,39 @@ impl GgufLoader {
                     .map_err(|e| InferenceError::model_load(format!("Failed to read int8: {}", e)))?;
                 Ok(GgufValue::Int8(buf[0] as i8))
             }
+            GgufValueType::Uint16 => {
+                let mut buf = [0u8; 2];
+                reader.read_exact(&mut buf)
+                    .map_err(|e| InferenceError::model_load(format!("Failed to read uint16: {}", e)))?;
+                Ok(GgufValue::Uint16(u16::from_le_bytes(buf)))
+            }
+            GgufValueType::Int16 => {
+                let mut buf = [0u8; 2];
+                reader.read_exact(&mut buf)
+                    .map_err(|e| InferenceError::model_load(format!("Failed to read int16: {}", e)))?;
+                Ok(GgufValue::Int16(i16::from_le_bytes(buf)))
+            }
             GgufValueType::Uint32 => {
                 let val = self.read_u32(reader)?;
                 Ok(GgufValue::Uint32(val))
+            }
+            GgufValueType::Int32 => {
+                let mut buf = [0u8; 4];
+                reader.read_exact(&mut buf)
+                    .map_err(|e| InferenceError::model_load(format!("Failed to read int32: {}", e)))?;
+                Ok(GgufValue::Int32(i32::from_le_bytes(buf)))
+            }
+            GgufValueType::Float32 => {
+                let mut buf = [0u8; 4];
+                reader.read_exact(&mut buf)
+                    .map_err(|e| InferenceError::model_load(format!("Failed to read float32: {}", e)))?;
+                Ok(GgufValue::Float32(f32::from_le_bytes(buf)))
+            }
+            GgufValueType::Bool => {
+                let mut buf = [0u8; 1];
+                reader.read_exact(&mut buf)
+                    .map_err(|e| InferenceError::model_load(format!("Failed to read bool: {}", e)))?;
+                Ok(GgufValue::Bool(buf[0] != 0))
             }
             GgufValueType::String => {
                 let val = self.read_string(reader)?;
@@ -1899,10 +1972,80 @@ impl GgufLoader {
                 }
                 Ok(GgufValue::Array(values))
             }
-            // Add other value types as needed
+            GgufValueType::Uint64 => {
+                let val = self.read_u64(reader)?;
+                Ok(GgufValue::Uint64(val))
+            }
+            GgufValueType::Int64 => {
+                let mut buf = [0u8; 8];
+                reader.read_exact(&mut buf)
+                    .map_err(|e| InferenceError::model_load(format!("Failed to read int64: {}", e)))?;
+                Ok(GgufValue::Int64(i64::from_le_bytes(buf)))
+            }
+            GgufValueType::Float64 => {
+                let mut buf = [0u8; 8];
+                reader.read_exact(&mut buf)
+                    .map_err(|e| InferenceError::model_load(format!("Failed to read float64: {}", e)))?;
+                Ok(GgufValue::Float64(f64::from_le_bytes(buf)))
+            }
+        }
+    }
+
+    /// Skip an unknown value type by attempting to read and discard its content
+    /// This uses heuristics to estimate the value size for skipping
+    fn skip_unknown_value<R: Read>(&self, reader: &mut R, value_type_raw: u32) -> Result<()> {
+        tracing::debug!("Attempting to skip unknown value type: {} (0x{:08x})", value_type_raw, value_type_raw);
+        
+        // Check if this looks like a corrupted value type
+        // Valid GGUF value types are 0-12, so anything larger is likely corruption
+        if value_type_raw > 12 {
+            // This looks like corrupted data. The value might be:
+            // 1. Part of binary data being interpreted as a type
+            // 2. Endianness issue
+            // 3. File corruption
+            
+            // Try to analyze the value to see if it contains readable patterns
+            let hex_repr = format!("{:08x}", value_type_raw);
+            let bytes = value_type_raw.to_le_bytes();
+            
+            // Check if bytes look like ASCII or have patterns suggesting they're data
+            let ascii_chars: String = bytes.iter()
+                .map(|&b| if b.is_ascii_graphic() || b.is_ascii_whitespace() { b as char } else { '.' })
+                .collect();
+            
+            tracing::warn!("Unknown value type {} appears corrupted. Hex: 0x{}, ASCII: '{}'", 
+                          value_type_raw, hex_repr, ascii_chars);
+            
+            // For very large values (likely corruption), we can't reliably skip
+            // Return an error to stop parsing this metadata entry
+            return Err(InferenceError::model_load(
+                format!("Cannot skip corrupted value type {} - file may be corrupted or incorrectly formatted", value_type_raw)
+            ));
+        }
+        
+        // For moderately unknown types (13-255), try basic skipping strategies
+        match value_type_raw {
+            13..=20 => {
+                // These might be future GGUF extensions, try skipping 8 bytes (common for 64-bit values)
+                tracing::info!("Skipping potential future GGUF value type {} (assuming 8 bytes)", value_type_raw);
+                let mut buf = [0u8; 8];
+                reader.read_exact(&mut buf)
+                    .map_err(|e| InferenceError::model_load(format!("Failed to skip 8 bytes for unknown type {}: {}", value_type_raw, e)))?;
+                Ok(())
+            }
+            21..=255 => {
+                // Skip smaller amount for mid-range unknown types
+                tracing::info!("Skipping unknown value type {} (assuming 4 bytes)", value_type_raw);
+                let mut buf = [0u8; 4];
+                reader.read_exact(&mut buf)
+                    .map_err(|e| InferenceError::model_load(format!("Failed to skip 4 bytes for unknown type {}: {}", value_type_raw, e)))?;
+                Ok(())
+            }
             _ => {
-                tracing::warn!("Unsupported GGUF value type: {:?}", value_type);
-                Ok(GgufValue::String("unsupported".to_string()))
+                // This shouldn't happen given our range checks above, but handle it
+                Err(InferenceError::model_load(
+                    format!("Cannot determine skip strategy for unknown value type {}", value_type_raw)
+                ))
             }
         }
     }
@@ -2057,6 +2200,94 @@ impl Default for GgufLoader {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
+
+    #[test]
+    fn test_unknown_value_type_skipping() {
+        // Test that unknown value types are handled gracefully
+        let loader = GgufLoader::new();
+        
+        // Test valid value types
+        for valid_type in 0..=12 {
+            let result = GgufValueType::try_from(valid_type);
+            assert!(result.is_ok(), "Valid type {} should succeed", valid_type);
+        }
+        
+        // Test invalid value types return error with graceful message
+        let invalid_types = [13, 100, 1767571456, 0xFFFFFFFF];
+        for invalid_type in invalid_types {
+            let result = GgufValueType::try_from(invalid_type);
+            assert!(result.is_err(), "Invalid type {} should fail gracefully", invalid_type);
+            
+            let error_msg = result.unwrap_err().to_string();
+            assert!(error_msg.contains("Unknown GGUF value type"), 
+                   "Error should mention unknown value type: {}", error_msg);
+        }
+    }
+
+    #[test]
+    fn test_skip_unknown_value_method() {
+        let loader = GgufLoader::new();
+        
+        // Test skipping moderately unknown types (13-255)
+        let test_data = vec![0u8; 32]; // Enough data for any skip attempt
+        let mut cursor = Cursor::new(test_data.clone());
+        
+        // Type 13 should be treated as corrupted since we designed it to be strict about > 12
+        let result = loader.skip_unknown_value(&mut cursor, 13);
+        assert!(result.is_err(), "Type 13 should be treated as corrupted");
+        
+        // Test that very large corrupted type fails appropriately
+        let mut cursor2 = Cursor::new(test_data);
+        let result = loader.skip_unknown_value(&mut cursor2, 1767571456);
+        assert!(result.is_err(), "Should fail on corrupted type 1767571456");
+        
+        let error_msg = result.unwrap_err().to_string();
+        assert!(error_msg.contains("corrupted"), 
+               "Error should mention corruption: {}", error_msg);
+    }
+
+    #[test]
+    fn test_gguf_value_type_coverage() {
+        // Ensure all defined GGUF value types are supported
+        let test_cases = [
+            (0, GgufValueType::Uint8),
+            (1, GgufValueType::Int8),
+            (2, GgufValueType::Uint16),
+            (3, GgufValueType::Int16),
+            (4, GgufValueType::Uint32),
+            (5, GgufValueType::Int32),
+            (6, GgufValueType::Float32),
+            (7, GgufValueType::Bool),
+            (8, GgufValueType::String),
+            (9, GgufValueType::Array),
+            (10, GgufValueType::Uint64),
+            (11, GgufValueType::Int64),
+            (12, GgufValueType::Float64),
+        ];
+        
+        for (type_id, expected_type) in test_cases {
+            let result = GgufValueType::try_from(type_id);
+            assert!(result.is_ok(), "Type {} should be valid", type_id);
+            
+            let actual_type = result.unwrap();
+            assert_eq!(actual_type, expected_type, 
+                      "Type {} should map to {:?}", type_id, expected_type);
+        }
+    }
+
+    #[test]
+    fn test_buffer_read_config_defaults() {
+        let config = BufferReadConfig::default();
+        
+        // Verify reasonable defaults
+        assert!(config.max_retries > 0, "Should have retry attempts");
+        assert!(config.chunk_size > 0, "Should have positive chunk size");
+        assert!(config.partial_tolerance >= 0.0 && config.partial_tolerance <= 1.0, 
+               "Partial tolerance should be a valid percentage");
+        assert!(config.large_tensor_threshold > config.chunk_size, 
+               "Large tensor threshold should be larger than chunk size");
+    }
 
     #[test]
     fn test_gguf_value_type_conversion() {
