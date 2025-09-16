@@ -78,6 +78,8 @@ pub struct LoadedModel {
     pub architecture: ModelArchitecture,
     /// Loaded weights data
     pub weights: ModelWeights,
+    /// BitNet-specific configuration (when available)
+    pub bitnet_config: Option<crate::bitnet_config::BitNetModelConfig>,
 }
 
 /// Architecture definition for a loaded model.
@@ -391,6 +393,7 @@ impl ModelLoader {
             metadata,
             architecture,
             weights,
+            bitnet_config: None, // Default to None for non-GGUF models
         })
     }
 

@@ -54,6 +54,7 @@ rayon = "1.7"
 tracing = "0.1"
 rand = "0.8"
 num_cpus = "1.0"
+glob = "0.3"
 
 [profile.dev]
 lto = false

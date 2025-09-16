@@ -217,6 +217,7 @@ impl CachedModel {
                 weights.total_size = serializable.optimized_weights.len();
                 weights
             },
+            bitnet_config: None, // Cached models don't preserve BitNet config
         };
 
         Ok(Self {
@@ -744,6 +745,7 @@ mod tests {
                 weights.total_size = weights_size;
                 weights
             },
+            bitnet_config: None, // Test models don't have BitNet config
         }
     }
 

@@ -268,6 +268,7 @@ impl ZeroCopyModelLoader {
             metadata: header.metadata,
             architecture: header.architecture,
             weights,
+            bitnet_config: None, // Zero-copy models don't have BitNet config
         })
     }
 

@@ -6,12 +6,25 @@
 use crate::{Result, InferenceError};
 use crate::engine::{ModelMetadata, LoadedModel};
 use crate::engine::model_loader::{ModelArchitecture, LayerDefinition, LayerType, LayerParameters, ModelWeights, ParameterType, ParameterData, ParameterDataType};
+use crate::bitnet_config::{BitNetModelConfig, BasicModelInfo, LayerConfig, AttentionConfig, 
+                          NormalizationConfig, BitLinearConfig, TokenizerConfig, RopeConfig, GgufKeys};
 use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom, ErrorKind};
 use std::path::Path;
 use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use bitnet_core::memory::HybridMemoryPool;
+
+/// Model variant detection for targeted parsing strategies
+#[derive(Debug, Clone, PartialEq)]
+enum ModelVariant {
+    /// Microsoft BitNet models with specific key patterns
+    MicrosoftBitNet,
+    /// Standard LLaMA-based models
+    StandardLlama,
+    /// Unknown or generic model format
+    Unknown,
+}
 
 /// GGUF file magic number (first 4 bytes)
 const GGUF_MAGIC: [u8; 4] = [0x47, 0x47, 0x55, 0x46]; // "GGUF"
@@ -257,14 +270,127 @@ impl GgufLoader {
             self.load_tensors(&mut reader, &header).await?
         };
 
-        // Create model metadata
+        // Create model metadata and BitNet configuration
         let metadata = self.extract_metadata(&header)?;
+        let bitnet_config = self.extract_bitnet_config(&header).ok(); // Store config if successful
         
         Ok(LoadedModel {
             architecture,
             weights,
             metadata,
+            bitnet_config,
         })
+    }
+
+    /// Extract BitNet model configuration from GGUF file
+    pub async fn extract_model_config<P: AsRef<Path>>(&self, path: P) -> Result<BitNetModelConfig> {
+        let path = path.as_ref();
+        
+        tracing::info!("Extracting BitNet model configuration from: {}", path.display());
+        
+        // Open file
+        let mut file = std::fs::File::open(path)
+            .map_err(|e| InferenceError::model_load(format!("Failed to open GGUF file: {}", e)))?;
+        
+        // Validate file integrity
+        self.validate_file_integrity(&mut file)?;
+        
+        // Parse GGUF header (only need metadata)
+        let header = self.parse_header(&mut file)?;
+        
+        tracing::info!("GGUF header parsed for config extraction: {} tensors, version {}", 
+                      header.tensor_count, header.version);
+        
+        // Extract BitNet configuration
+        let config = self.extract_bitnet_config(&header)?;
+        
+        tracing::info!("Successfully extracted BitNet configuration: {} layers, {} attention heads", 
+                      config.layer_config.n_layers, config.attention_config.n_heads);
+        
+        Ok(config)
+    }
+
+    /// Debug method: Analyze raw metadata keys in a GGUF file (for task 2.1.20)
+    pub async fn analyze_metadata_keys<P: AsRef<Path>>(&self, path: P) -> Result<HashMap<String, String>> {
+        let path = path.as_ref();
+        
+        tracing::info!("🔍 Analyzing raw metadata keys in: {}", path.display());
+        
+        // Open file
+        let mut file = std::fs::File::open(path)
+            .map_err(|e| InferenceError::model_load(format!("Failed to open GGUF file: {}", e)))?;
+        
+        // Validate file integrity
+        self.validate_file_integrity(&mut file)?;
+        
+        // Parse GGUF header (only need metadata)
+        let header = self.parse_header(&mut file)?;
+        
+        tracing::info!("GGUF header parsed: {} tensors, {} metadata keys", 
+                      header.tensor_count, header.metadata.len());
+        
+        // Extract and analyze all metadata keys
+        let mut key_analysis = HashMap::new();
+        
+        println!("\n🔑 Raw GGUF Metadata Keys Found:");
+        for (key, value) in &header.metadata {
+            let value_type = match value {
+                GgufValue::Uint8(_) => "uint8",
+                GgufValue::Int8(_) => "int8", 
+                GgufValue::Uint16(_) => "uint16",
+                GgufValue::Int16(_) => "int16",
+                GgufValue::Uint32(_) => "uint32",
+                GgufValue::Int32(_) => "int32",
+                GgufValue::Float32(_) => "float32",
+                GgufValue::Bool(_) => "bool",
+                GgufValue::String(_) => "string",
+                GgufValue::Array(_) => "array",
+                GgufValue::Uint64(_) => "uint64",
+                GgufValue::Int64(_) => "int64",
+                GgufValue::Float64(_) => "float64",
+            };
+            
+            println!("  {} -> {} ({})", key, value_type, 
+                    if key.len() > 50 { format!("{}...", &key[..47]) } else { key.clone() });
+            
+            key_analysis.insert(key.clone(), value_type.to_string());
+        }
+        
+        println!("\n📊 Key Analysis Summary:");
+        println!("  Total keys found: {}", key_analysis.len());
+        
+        // Check for our expected keys
+        use crate::bitnet_config::GgufKeys;
+        let expected_keys = [
+            (GgufKeys::GENERAL_ARCHITECTURE, "Architecture"),
+            (GgufKeys::GENERAL_NAME, "Name"),
+            (GgufKeys::LAYER_COUNT, "Layer Count"),
+            (GgufKeys::HIDDEN_SIZE, "Hidden Size"),
+            (GgufKeys::ATTENTION_HEAD_COUNT, "Attention Heads"),
+            (GgufKeys::CONTEXT_LENGTH, "Context Length"),
+            (GgufKeys::BITNET_VERSION, "BitNet Version"),
+            (GgufKeys::BITNET_WEIGHT_BITS, "Weight Bits"),
+        ];
+        
+        println!("\n🎯 Expected Key Mapping:");
+        for (expected_key, description) in &expected_keys {
+            if header.metadata.contains_key(*expected_key) {
+                println!("  ✅ {} -> FOUND: {}", description, expected_key);
+            } else {
+                println!("  ❌ {} -> MISSING: {}", description, expected_key);
+                
+                // Look for similar keys
+                let similar_keys: Vec<_> = header.metadata.keys()
+                    .filter(|k| k.to_lowercase().contains(&expected_key.split('.').last().unwrap_or("").to_lowercase()))
+                    .collect();
+                
+                if !similar_keys.is_empty() {
+                    println!("     🔍 Similar keys found: {:?}", similar_keys);
+                }
+            }
+        }
+        
+        Ok(key_analysis)
     }
 
     /// Load a model from GGUF file path with HuggingFace integration
@@ -296,13 +422,15 @@ impl GgufLoader {
             self.load_tensors(&mut file, &header).await?
         };
 
-        // Create model metadata
+        // Create model metadata and BitNet configuration
         let metadata = self.extract_metadata(&header)?;
+        let bitnet_config = self.extract_bitnet_config(&header).ok(); // Store config if successful
         
         Ok(LoadedModel {
             architecture,
             weights,
             metadata,
+            bitnet_config,
         })
     }
 
@@ -1002,31 +1130,699 @@ impl GgufLoader {
     
     /// Extract model metadata from GGUF header
     fn extract_metadata(&self, header: &GgufHeader) -> Result<ModelMetadata> {
-        // Extract key model parameters from metadata
-        let model_name = header.metadata.get("general.name")
-            .and_then(|v| match v {
-                GgufValue::String(s) => Some(s.clone()),
-                _ => None,
-            })
-            .unwrap_or_else(|| "bitnet-model".to_string());
+        // Extract comprehensive BitNet model configuration from GGUF metadata
+        let bitnet_config = self.extract_bitnet_config(header)?;
         
-        let architecture = header.metadata.get("general.architecture")
-            .and_then(|v| match v {
-                GgufValue::String(s) => Some(s.clone()),
-                _ => None,
-            })
-            .unwrap_or_else(|| "bitnet-b1.58".to_string());
-        
+        // Convert BitNet config to ModelMetadata for compatibility
         Ok(ModelMetadata {
-            name: model_name,
-            version: "1.0".to_string(),
-            architecture,
-            parameter_count: header.tensor_count as usize,
-            quantization_bits: 2, // BitNet 1.58 uses ~2 bits
-            input_shape: vec![1, 512], // Default shape, will be extracted from metadata
-            output_shape: vec![1, 128256], // Default vocab size for LLaMA-based models
-            extra: HashMap::new(), // Additional metadata can be added here
+            name: bitnet_config.basic_info.name.clone(),
+            version: bitnet_config.basic_info.version.clone(),
+            architecture: bitnet_config.basic_info.architecture.clone(),
+            parameter_count: bitnet_config.basic_info.parameter_count,
+            quantization_bits: bitnet_config.bitlinear_config.weight_bits,
+            input_shape: vec![1, bitnet_config.basic_info.context_length],
+            output_shape: vec![1, bitnet_config.tokenizer_config.vocab_size],
+            extra: bitnet_config.extra_metadata,
         })
+    }
+
+    /// Extract comprehensive BitNet model configuration from GGUF metadata
+    fn extract_bitnet_config(&self, header: &GgufHeader) -> Result<BitNetModelConfig> {
+        let mut config = BitNetModelConfig::new();
+        
+        // Detect model variant for specific parsing strategies
+        let model_variant = self.detect_model_variant(header);
+        tracing::debug!("Detected model variant: {:?}", model_variant);
+        
+        // Apply model-specific parsing strategies
+        match model_variant {
+            ModelVariant::MicrosoftBitNet => {
+                self.extract_microsoft_bitnet_config(&mut config, header)?;
+            },
+            ModelVariant::StandardLlama => {
+                self.extract_standard_llama_config(&mut config, header)?;
+            },
+            ModelVariant::Unknown => {
+                // Use generic extraction with all fallbacks
+                self.extract_generic_config(&mut config, header)?;
+            },
+        }
+        
+        // Validate the extracted configuration
+        config.validate()?;
+        
+        tracing::info!("Extracted BitNet model configuration: {} layers, {} heads, hidden_size {}", 
+                      config.layer_config.n_layers, 
+                      config.attention_config.n_heads, 
+                      config.layer_config.hidden_size);
+        
+        Ok(config)
+    }
+
+    /// Detect the specific model variant for targeted parsing
+    fn detect_model_variant(&self, header: &GgufHeader) -> ModelVariant {
+        // Check for Microsoft BitNet specific indicators
+        if header.metadata.contains_key("general.name") {
+            if let Some(GgufValue::String(name)) = header.metadata.get("general.name") {
+                if name.to_lowercase().contains("bitnet") || name.to_lowercase().contains("microsoft") {
+                    return ModelVariant::MicrosoftBitNet;
+                }
+            }
+        }
+        
+        // Check for standard LLaMA indicators
+        if header.metadata.contains_key("general.architecture") {
+            if let Some(GgufValue::String(arch)) = header.metadata.get("general.architecture") {
+                if arch.to_lowercase().contains("llama") {
+                    return ModelVariant::StandardLlama;
+                }
+            }
+        }
+        
+        // Check for LLaMA-specific keys
+        if header.metadata.contains_key("llama.block_count") || header.metadata.contains_key("llama.embedding_length") {
+            return ModelVariant::StandardLlama;
+        }
+        
+        ModelVariant::Unknown
+    }
+
+    /// Extract configuration for Microsoft BitNet models
+    fn extract_microsoft_bitnet_config(&self, config: &mut BitNetModelConfig, header: &GgufHeader) -> Result<()> {
+        // Microsoft BitNet models may use different key patterns
+        self.extract_basic_info_microsoft(&mut config.basic_info, header)?;
+        self.extract_layer_config_microsoft(&mut config.layer_config, header)?;
+        self.extract_attention_config_microsoft(&mut config.attention_config, header)?;
+        self.extract_normalization_config(&mut config.normalization_config, header)?;
+        self.extract_bitlinear_config(&mut config.bitlinear_config, header)?;
+        self.extract_tokenizer_config(&mut config.tokenizer_config, header)?;
+        self.extract_extra_metadata(&mut config.extra_metadata, header)?;
+        
+        Ok(())
+    }
+
+    /// Extract configuration for standard LLaMA-based models
+    fn extract_standard_llama_config(&self, config: &mut BitNetModelConfig, header: &GgufHeader) -> Result<()> {
+        // Use LLaMA-specific key patterns
+        self.extract_basic_info_llama(&mut config.basic_info, header)?;
+        self.extract_layer_config_llama(&mut config.layer_config, header)?;
+        self.extract_attention_config_llama(&mut config.attention_config, header)?;
+        self.extract_normalization_config(&mut config.normalization_config, header)?;
+        self.extract_bitlinear_config(&mut config.bitlinear_config, header)?;
+        self.extract_tokenizer_config(&mut config.tokenizer_config, header)?;
+        self.extract_extra_metadata(&mut config.extra_metadata, header)?;
+        
+        Ok(())
+    }
+
+    /// Extract configuration using generic approach with all fallbacks
+    fn extract_generic_config(&self, config: &mut BitNetModelConfig, header: &GgufHeader) -> Result<()> {
+        // Use the existing extraction methods which now have fallback support
+        self.extract_basic_info(&mut config.basic_info, header)?;
+        self.extract_layer_config(&mut config.layer_config, header)?;
+        self.extract_attention_config(&mut config.attention_config, header)?;
+        self.extract_normalization_config(&mut config.normalization_config, header)?;
+        self.extract_bitlinear_config(&mut config.bitlinear_config, header)?;
+        self.extract_tokenizer_config(&mut config.tokenizer_config, header)?;
+        self.extract_extra_metadata(&mut config.extra_metadata, header)?;
+        
+        Ok(())
+    }
+
+    /// Extract basic info for Microsoft BitNet models
+    fn extract_basic_info_microsoft(&self, basic_info: &mut BasicModelInfo, header: &GgufHeader) -> Result<()> {
+        // Microsoft models may use different naming patterns
+        if let Some(name) = self.get_string_value_with_fallbacks(
+            header, 
+            "general.name",
+            &["model.name", "name", "microsoft.model.name", "bitnet.name"]
+        ) {
+            basic_info.name = name;
+        }
+        
+        if let Some(arch) = self.get_string_value_with_fallbacks(
+            header, 
+            "general.architecture", 
+            &["architecture", "microsoft.architecture", "bitnet.architecture"]
+        ) {
+            basic_info.architecture = arch;
+        }
+        
+        // Context length may be in Microsoft-specific locations
+        if let Some(context_len) = self.get_u64_value_with_fallbacks(
+            header, 
+            "bitnet.context_length",
+            &["context_length", "microsoft.context_length", "max_position_embeddings"]
+        ) {
+            basic_info.context_length = context_len as usize;
+        }
+        
+        basic_info.parameter_count = header.tensor_count as usize;
+        Ok(())
+    }
+
+    /// Extract layer config for Microsoft BitNet models
+    fn extract_layer_config_microsoft(&self, layer_config: &mut LayerConfig, header: &GgufHeader) -> Result<()> {
+        if let Some(n_layers) = self.get_u32_value_with_fallbacks(
+            header, 
+            "bitnet.block_count",
+            &["microsoft.block_count", "n_layers", "num_layers", "block_count"]
+        ) {
+            layer_config.n_layers = n_layers as usize;
+        }
+        
+        if let Some(hidden_size) = self.get_u32_value_with_fallbacks(
+            header, 
+            "bitnet.embedding_length",
+            &["microsoft.embedding_length", "hidden_size", "d_model", "embedding_length"]
+        ) {
+            layer_config.hidden_size = hidden_size as usize;
+            layer_config.model_dim = hidden_size as usize;
+        }
+        
+        if let Some(intermediate_size) = self.get_u32_value_with_fallbacks(
+            header, 
+            "bitnet.feed_forward_length",
+            &["microsoft.feed_forward_length", "intermediate_size", "ffn_dim"]
+        ) {
+            layer_config.intermediate_size = intermediate_size as usize;
+        } else {
+            layer_config.intermediate_size = layer_config.hidden_size * 4;
+        }
+        
+        Ok(())
+    }
+
+    /// Extract attention config for Microsoft BitNet models  
+    fn extract_attention_config_microsoft(&self, attention_config: &mut AttentionConfig, header: &GgufHeader) -> Result<()> {
+        if let Some(n_heads) = self.get_u32_value_with_fallbacks(
+            header, 
+            "bitnet.attention.head_count",
+            &["microsoft.attention.head_count", "n_heads", "num_attention_heads"]
+        ) {
+            attention_config.n_heads = n_heads as usize;
+        }
+        
+        if let Some(n_kv_heads) = self.get_u32_value_with_fallbacks(
+            header, 
+            "bitnet.attention.head_count_kv",
+            &["microsoft.attention.head_count_kv", "n_kv_heads", "num_key_value_heads"]
+        ) {
+            attention_config.n_kv_heads = Some(n_kv_heads as usize);
+        }
+        
+        self.extract_rope_config(&mut attention_config.rope_config, header)?;
+        
+        if let Some(context_len) = self.get_u64_value_with_fallbacks(
+            header, 
+            "bitnet.context_length",
+            &["microsoft.context_length", "context_length", "max_position_embeddings"]
+        ) {
+            attention_config.max_seq_len = context_len as usize;
+        }
+        
+        Ok(())
+    }
+
+    /// Extract basic info for standard LLaMA models
+    fn extract_basic_info_llama(&self, basic_info: &mut BasicModelInfo, header: &GgufHeader) -> Result<()> {
+        // LLaMA uses standard general.* keys but may have llama.* specific ones
+        if let Some(name) = self.get_string_value_with_fallbacks(
+            header, 
+            "general.name",
+            &["llama.name", "name", "model.name"]
+        ) {
+            basic_info.name = name;
+        }
+        
+        if let Some(arch) = self.get_string_value_with_fallbacks(
+            header, 
+            "general.architecture",
+            &["llama.architecture", "architecture"]
+        ) {
+            basic_info.architecture = arch;
+        }
+        
+        if let Some(context_len) = self.get_u64_value_with_fallbacks(
+            header, 
+            "llama.context_length",
+            &["context_length", "max_position_embeddings", "n_ctx"]
+        ) {
+            basic_info.context_length = context_len as usize;
+        }
+        
+        basic_info.parameter_count = header.tensor_count as usize;
+        Ok(())
+    }
+
+    /// Extract layer config for standard LLaMA models
+    fn extract_layer_config_llama(&self, layer_config: &mut LayerConfig, header: &GgufHeader) -> Result<()> {
+        if let Some(n_layers) = self.get_u32_value_with_fallbacks(
+            header, 
+            "llama.block_count",
+            &["n_layers", "num_layers", "block_count"]
+        ) {
+            layer_config.n_layers = n_layers as usize;
+        }
+        
+        if let Some(hidden_size) = self.get_u32_value_with_fallbacks(
+            header, 
+            "llama.embedding_length",
+            &["hidden_size", "d_model", "embedding_length", "n_embd"]
+        ) {
+            layer_config.hidden_size = hidden_size as usize;
+            layer_config.model_dim = hidden_size as usize;
+        }
+        
+        if let Some(intermediate_size) = self.get_u32_value_with_fallbacks(
+            header, 
+            "llama.feed_forward_length",
+            &["intermediate_size", "ffn_dim", "d_ff"]
+        ) {
+            layer_config.intermediate_size = intermediate_size as usize;
+        } else {
+            layer_config.intermediate_size = layer_config.hidden_size * 4;
+        }
+        
+        Ok(())
+    }
+
+    /// Extract attention config for standard LLaMA models
+    fn extract_attention_config_llama(&self, attention_config: &mut AttentionConfig, header: &GgufHeader) -> Result<()> {
+        if let Some(n_heads) = self.get_u32_value_with_fallbacks(
+            header, 
+            "llama.attention.head_count",
+            &["n_heads", "num_attention_heads", "attention.head_count"]
+        ) {
+            attention_config.n_heads = n_heads as usize;
+        }
+        
+        if let Some(n_kv_heads) = self.get_u32_value_with_fallbacks(
+            header, 
+            "llama.attention.head_count_kv",
+            &["n_kv_heads", "num_key_value_heads", "attention.head_count_kv"]
+        ) {
+            attention_config.n_kv_heads = Some(n_kv_heads as usize);
+        }
+        
+        self.extract_rope_config(&mut attention_config.rope_config, header)?;
+        
+        if let Some(context_len) = self.get_u64_value_with_fallbacks(
+            header, 
+            "llama.context_length",
+            &["context_length", "max_position_embeddings", "n_ctx"]
+        ) {
+            attention_config.max_seq_len = context_len as usize;
+        }
+        
+        Ok(())
+    }
+
+    /// Extract basic model information from GGUF metadata
+    fn extract_basic_info(&self, basic_info: &mut BasicModelInfo, header: &GgufHeader) -> Result<()> {
+        // Extract model name with fallbacks
+        if let Some(name) = self.get_string_value_with_fallbacks(
+            header, 
+            GgufKeys::GENERAL_NAME,
+            &["model.name", "name", "general.model", "model_name"]
+        ) {
+            basic_info.name = name;
+        }
+        
+        // Extract architecture with fallbacks
+        if let Some(arch) = self.get_string_value_with_fallbacks(
+            header, 
+            GgufKeys::GENERAL_ARCHITECTURE,
+            &["architecture", "model.architecture", "arch", "model_type"]
+        ) {
+            basic_info.architecture = arch;
+        }
+        
+        // Extract version with fallbacks
+        if let Some(version) = self.get_string_value_with_fallbacks(
+            header, 
+            GgufKeys::GENERAL_VERSION,
+            &["version", "model.version", "model_version"]
+        ) {
+            basic_info.version = version;
+        }
+        
+        // Estimate parameter count from tensor count (will be refined later)
+        basic_info.parameter_count = header.tensor_count as usize;
+        
+        // Extract context length with fallbacks
+        if let Some(context_len) = self.get_u64_value_with_fallbacks(
+            header, 
+            GgufKeys::CONTEXT_LENGTH,
+            &["context_length", "max_position_embeddings", "n_ctx", "seq_len"]
+        ) {
+            basic_info.context_length = context_len as usize;
+        }
+        
+        Ok(())
+    }
+
+    /// Extract layer configuration from GGUF metadata
+    fn extract_layer_config(&self, layer_config: &mut LayerConfig, header: &GgufHeader) -> Result<()> {
+        // Extract number of layers with fallbacks
+        if let Some(n_layers) = self.get_u32_value_with_fallbacks(
+            header, 
+            GgufKeys::LAYER_COUNT,
+            &["n_layers", "num_layers", "block_count", "num_hidden_layers", "n_layer"]
+        ) {
+            layer_config.n_layers = n_layers as usize;
+        }
+        
+        // Extract hidden size with fallbacks
+        if let Some(hidden_size) = self.get_u32_value_with_fallbacks(
+            header, 
+            GgufKeys::HIDDEN_SIZE,
+            &["hidden_size", "d_model", "embedding_length", "n_embd", "dim"]
+        ) {
+            layer_config.hidden_size = hidden_size as usize;
+            layer_config.model_dim = hidden_size as usize;
+        }
+        
+        // Extract intermediate size (feed forward dimension) with fallbacks
+        if let Some(intermediate_size) = self.get_u32_value_with_fallbacks(
+            header, 
+            GgufKeys::INTERMEDIATE_SIZE,
+            &["intermediate_size", "feed_forward_length", "ffn_dim", "d_ff", "n_inner"]
+        ) {
+            layer_config.intermediate_size = intermediate_size as usize;
+        } else {
+            // If not specified, use common default: 4 * hidden_size
+            layer_config.intermediate_size = layer_config.hidden_size * 4;
+        }
+        
+        Ok(())
+    }
+
+    /// Extract attention configuration from GGUF metadata
+    fn extract_attention_config(&self, attention_config: &mut AttentionConfig, header: &GgufHeader) -> Result<()> {
+        // Extract number of attention heads with fallbacks
+        if let Some(n_heads) = self.get_u32_value_with_fallbacks(
+            header, 
+            GgufKeys::ATTENTION_HEAD_COUNT,
+            &["n_heads", "num_attention_heads", "attention.head_count", "n_head", "num_heads"]
+        ) {
+            attention_config.n_heads = n_heads as usize;
+        }
+        
+        // Extract number of key-value heads (for grouped-query attention) with fallbacks
+        if let Some(n_kv_heads) = self.get_u32_value_with_fallbacks(
+            header, 
+            GgufKeys::ATTENTION_HEAD_COUNT_KV,
+            &["n_kv_heads", "num_key_value_heads", "attention.head_count_kv", "n_head_kv"]
+        ) {
+            attention_config.n_kv_heads = Some(n_kv_heads as usize);
+        }
+        
+        // Calculate head dimension (will be validated later)
+        // This is just an initial calculation, will be refined when we have hidden_size
+        
+        // Extract RoPE configuration
+        self.extract_rope_config(&mut attention_config.rope_config, header)?;
+        
+        // Extract maximum sequence length (use context length as fallback) with fallbacks
+        if let Some(context_len) = self.get_u64_value_with_fallbacks(
+            header, 
+            GgufKeys::CONTEXT_LENGTH,
+            &["context_length", "max_position_embeddings", "n_ctx", "seq_len"]
+        ) {
+            attention_config.max_seq_len = context_len as usize;
+        }
+        
+        Ok(())
+    }
+
+    /// Extract RoPE configuration from GGUF metadata
+    fn extract_rope_config(&self, rope_config: &mut RopeConfig, header: &GgufHeader) -> Result<()> {
+        // Extract RoPE dimension count with fallbacks
+        if let Some(rope_dim) = self.get_u32_value_with_fallbacks(
+            header, 
+            GgufKeys::ROPE_DIMENSION_COUNT,
+            &["rope_dim", "rope.dimension_count", "rotary_dim"]
+        ) {
+            rope_config.rope_dim = rope_dim as usize;
+        }
+        
+        // Extract RoPE frequency base with fallbacks
+        if let Some(freq_base) = self.get_f32_value_with_fallbacks(
+            header, 
+            GgufKeys::ROPE_FREQ_BASE,
+            &["rope_freq_base", "rope.freq_base", "rotary_freq", "rope_theta"]
+        ) {
+            rope_config.rope_freq_base = freq_base;
+        }
+        
+        // Extract RoPE scaling factor with fallbacks
+        if let Some(scaling_factor) = self.get_f32_value_with_fallbacks(
+            header, 
+            GgufKeys::ROPE_SCALING_FACTOR,
+            &["rope_scaling_factor", "rope.scaling.factor", "rope_scale"]
+        ) {
+            rope_config.rope_scaling = Some(scaling_factor);
+        }
+        
+        Ok(())
+    }
+
+    /// Extract normalization configuration from GGUF metadata
+    fn extract_normalization_config(&self, norm_config: &mut NormalizationConfig, header: &GgufHeader) -> Result<()> {
+        // Extract RMSNorm epsilon with fallbacks
+        if let Some(eps) = self.get_f32_value_with_fallbacks(
+            header, 
+            GgufKeys::ATTENTION_LAYER_NORM_RMS_EPS,
+            &["layer_norm_epsilon", "rms_norm_eps", "norm_eps", "eps"]
+        ) {
+            norm_config.rms_norm_eps = eps;
+        }
+        
+        // BitNet models typically don't use bias in normalization layers
+        norm_config.use_bias = false;
+        
+        Ok(())
+    }
+
+    /// Extract BitLinear configuration from GGUF metadata
+    fn extract_bitlinear_config(&self, bitlinear_config: &mut BitLinearConfig, header: &GgufHeader) -> Result<()> {
+        // Extract weight quantization bits with fallbacks
+        if let Some(weight_bits) = self.get_u32_value_with_fallbacks(
+            header, 
+            GgufKeys::BITNET_WEIGHT_BITS,
+            &["weight_bits", "quantization.weight_bits", "w_bits", "bits"]
+        ) {
+            bitlinear_config.weight_bits = weight_bits as u8;
+        }
+        
+        // Extract activation quantization bits with fallbacks
+        if let Some(activation_bits) = self.get_u32_value_with_fallbacks(
+            header, 
+            GgufKeys::BITNET_ACTIVATION_BITS,
+            &["activation_bits", "quantization.activation_bits", "a_bits", "act_bits"]
+        ) {
+            bitlinear_config.activation_bits = activation_bits as u8;
+        }
+        
+        // Extract BitNet version for scheme identification with fallbacks
+        if let Some(version) = self.get_string_value_with_fallbacks(
+            header, 
+            GgufKeys::BITNET_VERSION,
+            &["quantization.version", "model.quantization", "quant_version"]
+        ) {
+            bitlinear_config.quantization_scheme = version;
+        }
+        
+        // Set default scaling behavior for BitNet 1.58
+        bitlinear_config.use_weight_scaling = true;
+        bitlinear_config.use_activation_scaling = true;
+        
+        Ok(())
+    }
+
+    /// Extract tokenizer configuration from GGUF metadata
+    fn extract_tokenizer_config(&self, tokenizer_config: &mut TokenizerConfig, header: &GgufHeader) -> Result<()> {
+        // Extract tokenizer model type with fallbacks
+        if let Some(tokenizer_type) = self.get_string_value_with_fallbacks(
+            header, 
+            GgufKeys::TOKENIZER_GGML_MODEL,
+            &["tokenizer.model", "tokenizer_type", "tokenizer.ggml.model", "model_type"]
+        ) {
+            tokenizer_config.tokenizer_type = tokenizer_type;
+        }
+        
+        // Extract vocabulary size from tokenizer tokens array with fallbacks
+        let token_keys = [
+            GgufKeys::TOKENIZER_GGML_TOKENS,
+            "tokenizer.tokens",
+            "tokenizer.ggml.tokens",
+            "vocab"
+        ];
+        
+        for token_key in &token_keys {
+            if let Some(GgufValue::Array(tokens)) = header.metadata.get(*token_key) {
+                tokenizer_config.vocab_size = tokens.len();
+                if *token_key != GgufKeys::TOKENIZER_GGML_TOKENS {
+                    tracing::debug!("Found tokenizer tokens using fallback key '{}'", token_key);
+                }
+                break;
+            }
+        }
+        
+        // Extract special token IDs with fallbacks
+        if let Some(bos_id) = self.get_u32_value_with_fallbacks(
+            header, 
+            GgufKeys::TOKENIZER_GGML_BOS_TOKEN_ID,
+            &["tokenizer.bos_token_id", "bos_token_id", "tokenizer.ggml.bos_token_id"]
+        ) {
+            tokenizer_config.bos_token_id = Some(bos_id);
+        }
+        
+        if let Some(eos_id) = self.get_u32_value_with_fallbacks(
+            header, 
+            GgufKeys::TOKENIZER_GGML_EOS_TOKEN_ID,
+            &["tokenizer.eos_token_id", "eos_token_id", "tokenizer.ggml.eos_token_id"]
+        ) {
+            tokenizer_config.eos_token_id = Some(eos_id);
+        }
+        
+        if let Some(pad_id) = self.get_u32_value_with_fallbacks(
+            header, 
+            GgufKeys::TOKENIZER_GGML_PAD_TOKEN_ID,
+            &["tokenizer.pad_token_id", "pad_token_id", "tokenizer.ggml.pad_token_id"]
+        ) {
+            tokenizer_config.pad_token_id = Some(pad_id);
+        }
+        
+        Ok(())
+    }
+
+    /// Extract additional metadata not covered by specific configurations
+    fn extract_extra_metadata(&self, extra: &mut HashMap<String, String>, header: &GgufHeader) -> Result<()> {
+        // Store all metadata as strings for debugging and future use
+        for (key, value) in &header.metadata {
+            if !key.starts_with("general.") && !key.starts_with("bitnet.") && !key.starts_with("tokenizer.") {
+                // Store other metadata that might be useful
+                let value_str = match value {
+                    GgufValue::String(s) => s.clone(),
+                    GgufValue::Uint32(n) => n.to_string(),
+                    GgufValue::Float32(f) => f.to_string(),
+                    GgufValue::Bool(b) => b.to_string(),
+                    _ => format!("{:?}", value),
+                };
+                extra.insert(key.clone(), value_str);
+            }
+        }
+        
+        Ok(())
+    }
+
+    /// Helper function to get string value from metadata
+    fn get_string_value(&self, header: &GgufHeader, key: &str) -> Option<String> {
+        header.metadata.get(key).and_then(|v| match v {
+            GgufValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+    }
+
+    /// Helper function to get string value with fallback keys for Microsoft model compatibility
+    fn get_string_value_with_fallbacks(&self, header: &GgufHeader, primary_key: &str, fallback_keys: &[&str]) -> Option<String> {
+        // Try primary key first
+        if let Some(value) = self.get_string_value(header, primary_key) {
+            return Some(value);
+        }
+        
+        // Try fallback keys
+        for fallback_key in fallback_keys {
+            if let Some(value) = self.get_string_value(header, fallback_key) {
+                tracing::debug!("Found metadata using fallback key '{}' instead of '{}'", fallback_key, primary_key);
+                return Some(value);
+            }
+        }
+        
+        None
+    }
+
+    /// Helper function to get u32 value from metadata
+    fn get_u32_value(&self, header: &GgufHeader, key: &str) -> Option<u32> {
+        header.metadata.get(key).and_then(|v| match v {
+            GgufValue::Uint32(n) => Some(*n),
+            GgufValue::Uint64(n) => Some(*n as u32),
+            _ => None,
+        })
+    }
+
+    /// Helper function to get u32 value with fallback keys for Microsoft model compatibility
+    fn get_u32_value_with_fallbacks(&self, header: &GgufHeader, primary_key: &str, fallback_keys: &[&str]) -> Option<u32> {
+        // Try primary key first
+        if let Some(value) = self.get_u32_value(header, primary_key) {
+            return Some(value);
+        }
+        
+        // Try fallback keys
+        for fallback_key in fallback_keys {
+            if let Some(value) = self.get_u32_value(header, fallback_key) {
+                tracing::debug!("Found metadata using fallback key '{}' instead of '{}'", fallback_key, primary_key);
+                return Some(value);
+            }
+        }
+        
+        None
+    }
+
+    /// Helper function to get u64 value from metadata
+    fn get_u64_value(&self, header: &GgufHeader, key: &str) -> Option<u64> {
+        header.metadata.get(key).and_then(|v| match v {
+            GgufValue::Uint64(n) => Some(*n),
+            GgufValue::Uint32(n) => Some(*n as u64),
+            _ => None,
+        })
+    }
+
+    /// Helper function to get u64 value with fallback keys for Microsoft model compatibility
+    fn get_u64_value_with_fallbacks(&self, header: &GgufHeader, primary_key: &str, fallback_keys: &[&str]) -> Option<u64> {
+        // Try primary key first
+        if let Some(value) = self.get_u64_value(header, primary_key) {
+            return Some(value);
+        }
+        
+        // Try fallback keys
+        for fallback_key in fallback_keys {
+            if let Some(value) = self.get_u64_value(header, fallback_key) {
+                tracing::debug!("Found metadata using fallback key '{}' instead of '{}'", fallback_key, primary_key);
+                return Some(value);
+            }
+        }
+        
+        None
+    }
+
+    /// Helper function to get f32 value from metadata
+    fn get_f32_value(&self, header: &GgufHeader, key: &str) -> Option<f32> {
+        header.metadata.get(key).and_then(|v| match v {
+            GgufValue::Float32(n) => Some(*n),
+            GgufValue::Float64(n) => Some(*n as f32),
+            _ => None,
+        })
+    }
+
+    /// Helper function to get f32 value with fallback keys for Microsoft model compatibility
+    fn get_f32_value_with_fallbacks(&self, header: &GgufHeader, primary_key: &str, fallback_keys: &[&str]) -> Option<f32> {
+        // Try primary key first
+        if let Some(value) = self.get_f32_value(header, primary_key) {
+            return Some(value);
+        }
+        
+        // Try fallback keys
+        for fallback_key in fallback_keys {
+            if let Some(value) = self.get_f32_value(header, fallback_key) {
+                tracing::debug!("Found metadata using fallback key '{}' instead of '{}'", fallback_key, primary_key);
+                return Some(value);
+            }
+        }
+        
+        None
     }
 
     /// Read a 32-bit unsigned integer

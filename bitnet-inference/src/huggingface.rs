@@ -232,6 +232,7 @@ impl HuggingFaceLoader {
             metadata,
             architecture,
             weights,
+            bitnet_config: None, // SafeTensors models don't have BitNet config
         })
     }
 

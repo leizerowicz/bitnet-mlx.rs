@@ -129,6 +129,7 @@ impl InferenceEngine {
                     weights.total_size = 1024;
                     weights
                 },
+                bitnet_config: None, // Placeholder model doesn't have BitNet config
             })
         })?;
 

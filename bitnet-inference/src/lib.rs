@@ -42,12 +42,15 @@ pub mod profiling;
 pub mod error;
 pub mod huggingface;
 pub mod gguf;
+pub mod bitnet_config;
 
 // Re-export the main API components
 pub use api::{InferenceEngine, EngineConfig, InferenceStream, StreamingConfig};
 pub use error::{InferenceError, Result};
 pub use huggingface::{HuggingFaceLoader, ModelRepo, HuggingFaceConfig, CacheStats};
 pub use gguf::{GgufLoader, GgufHeader, GgufTensorInfo, GgufValueType, GgufTensorType};
+pub use bitnet_config::{BitNetModelConfig, BasicModelInfo, LayerConfig, AttentionConfig, 
+                        NormalizationConfig, BitLinearConfig, TokenizerConfig, RopeConfig, GgufKeys};
 
 // Re-export commonly used types
 pub use engine::{InferenceContext, OptimizationLevel, InferenceBackend};
