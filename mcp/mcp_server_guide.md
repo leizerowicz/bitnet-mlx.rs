@@ -2,7 +2,13 @@
 
 ## Overview
 
-This MCP server implements swarm intelligence and hive mind patterns specifically for coordinating multi-agent development workflows. It integrates with existing agent configuration systems to provide intelligent task routing, collective knowledge management, and dynamic coordination strategies.
+This MCP server implements swarm intelligence and hive mind patterns specifically for coordinating multi-agent development workflows. It integrates with existing agent configuration systems to provide intelligent task routing, collective knowledge management, and dynamic coordination strategies with persistent memory.
+
+**Enhanced Features Inspired by Claude-Flow:**
+- **Queen-Led Coordination**: Hierarchical swarm with orchestrator as master coordinator
+- **Persistent Memory System**: SQLite-based cross-session memory for collective intelligence
+- **Hive-Mind Knowledge Base**: Shared learning and pattern recognition across all agents
+- **Agent Configuration Auto-Update**: Automatic detection and integration of agent config changes
 
 ## Architecture
 
@@ -13,28 +19,141 @@ This MCP server implements swarm intelligence and hive mind patterns specificall
 └─────────────────┘                     └──────────────────────┘
                                                  │
                                                  ▼
-                                        ┌──────────────────────┐
-                                        │   Agent Config       │
-                                        │   Directory          │
-                                        │   (orchestrator.md,  │
-                                        │   specialist.md,     │
-                                        │   etc.)              │
-                                        └──────────────────────┘
+                              ┌─────────────────────────────────┐
+                              │     🐝 Swarm Coordination       │
+                              │  👑 Orchestrator (Queen Agent)  │
+                              │  🏗️ Specialists (Worker Agents) │
+                              └─────────────────────────────────┘
+                                                 │
+                                                 ▼
+                              ┌─────────────────────────────────┐
+                              │      💾 Hive-Mind Memory        │
+                              │   (SQLite Persistent Storage)   │
+                              │  • Agent States & Capabilities  │
+                              │  • Task Assignment History      │
+                              │  • Coordination Patterns        │
+                              │  • Collective Knowledge         │
+                              └─────────────────────────────────┘
+                                                 │
+                                                 ▼
+                              ┌─────────────────────────────────┐
+                              │     Agent Config Directory      │
+                              │   (Auto-Updated & Monitored)    │
+                              │  • orchestrator.md             │
+                              │  • specialist agents           │
+                              │  • intersection patterns       │
+                              └─────────────────────────────────┘
 ```
 
 ## Core Components
 
-### 1. Swarm Intelligence Engine
-Implements collective decision-making for optimal agent assignment and task coordination.
+### 1. 🐝 Swarm Intelligence Engine
+Implements collective decision-making for optimal agent assignment and task coordination using queen-led hierarchical patterns:
+- **Queen Agent (Orchestrator)**: Central coordination and strategic decision-making
+- **Worker Agents (Specialists)**: Specialized capabilities and collaborative execution
+- **Swarm Consensus**: Democratic decision-making for complex multi-agent tasks
 
-### 2. Hive Mind Knowledge Base
-Maintains collective memory and pattern recognition across all agent interactions.
+### 2. 💾 Hive Mind Knowledge Base
+Maintains collective memory and pattern recognition across all agent interactions with persistent SQLite storage:
+- **Cross-Session Memory**: Persistent knowledge that survives restarts
+- **Pattern Learning**: Recognition of successful coordination patterns
+- **Collective Intelligence**: Shared insights and optimizations across all agents
 
-### 3. Agent Configuration Parser
-Reads and understands existing agent markdown configurations to build coordination matrix.
+### 3. 🔄 Agent Configuration Auto-Management
+Reads, monitors, and automatically updates agent configurations:
+- **Real-time Config Monitoring**: Detect changes to agent config files
+- **Dynamic Agent Registration**: Automatically register new agent capabilities
+- **Intersection Matrix Updates**: Maintain up-to-date collaboration patterns
 
-### 4. Dynamic Coordination System
-Real-time adaptation of coordination strategies based on task complexity and agent availability.
+### 4. 🎯 Dynamic Coordination System
+Real-time adaptation of coordination strategies based on task complexity and agent availability:
+- **Intelligent Task Routing**: AI-powered assignment based on agent capabilities
+- **Load Balancing**: Distribute work across available agents optimally
+- **Fault Tolerance**: Automatic recovery and reassignment on agent failures
+
+## 💾 Enhanced Memory System - Persistent Hive-Mind Intelligence
+
+**SQLite-Based Persistent Memory Architecture (Inspired by Claude-Flow):**
+
+The memory system maintains persistent state across sessions, enabling the swarm to learn and improve over time.
+
+### Core Memory Tables
+
+```sql
+-- Agent registry and current capabilities
+CREATE TABLE agents (
+    id INTEGER PRIMARY KEY,
+    name TEXT UNIQUE,
+    type TEXT,
+    capabilities JSON,
+    status TEXT,
+    created_at TIMESTAMP,
+    last_active TIMESTAMP
+);
+
+-- Task assignment history for learning optimal patterns
+CREATE TABLE task_assignments (
+    id INTEGER PRIMARY KEY,
+    task_description TEXT,
+    assigned_agents JSON,
+    success_rate REAL,
+    completion_time INTEGER,
+    outcome JSON,
+    assigned_at TIMESTAMP
+);
+
+-- Successful coordination patterns
+CREATE TABLE coordination_patterns (
+    id INTEGER PRIMARY KEY,
+    pattern_name TEXT,
+    agent_combination JSON,
+    task_types JSON,
+    success_rate REAL,
+    usage_count INTEGER,
+    learned_at TIMESTAMP
+);
+
+-- Collective knowledge base with namespaces
+CREATE TABLE hive_knowledge (
+    id INTEGER PRIMARY KEY,
+    namespace TEXT,
+    key TEXT,
+    value JSON,
+    source_agent TEXT,
+    confidence REAL,
+    created_at TIMESTAMP,
+    access_count INTEGER
+);
+
+-- Agent configuration change history
+CREATE TABLE config_changes (
+    id INTEGER PRIMARY KEY,
+    agent_name TEXT,
+    change_type TEXT,
+    old_config JSON,
+    new_config JSON,
+    changed_at TIMESTAMP
+);
+```
+
+### Memory Management Tools
+
+The memory system provides these MCP tools for managing persistent intelligence:
+
+- **memory_store**: Store knowledge with namespace organization
+- **memory_query**: Query collective knowledge with pattern matching
+- **memory_learn**: Learn from successful coordination patterns
+- **memory_recall**: Recall similar past situations for guidance
+- **memory_optimize**: Optimize memory storage and access patterns
+
+### Cross-Session Intelligence
+
+The hive-mind memory enables:
+
+- **Pattern Recognition**: Learn optimal agent combinations for different task types
+- **Performance Learning**: Remember which approaches work best for specific scenarios
+- **Agent Evolution**: Track how agent capabilities change over time
+- **Collective Wisdom**: Build shared knowledge that improves coordination quality
 
 ## Implementation
 
@@ -64,7 +183,7 @@ swarm-mcp-server/
 └── README.md
 ```
 
-### Core Server Implementation
+### Enhanced Core Server Implementation
 
 ```python
 # src/server.py
@@ -76,25 +195,28 @@ from pathlib import Path
 from .swarm.intelligence import SwarmIntelligence
 from .swarm.hive_mind import HiveMind
 from .agents.ecosystem import AgentEcosystem
+from .memory.persistent_memory import PersistentMemory
 
 class SwarmMCPServer:
-    def __init__(self, agent_config_dir: str):
+    def __init__(self, agent_config_dir: str, memory_db_path: str = "swarm_memory.db"):
         self.server = Server("swarm-coordination-server")
         self.agent_config_dir = Path(agent_config_dir)
         
-        # Initialize swarm components
-        self.ecosystem = AgentEcosystem(self.agent_config_dir)
-        self.swarm = SwarmIntelligence()
-        self.hive_mind = HiveMind()
+        # Initialize enhanced swarm components with persistent memory
+        self.memory = PersistentMemory(memory_db_path)
+        self.ecosystem = AgentEcosystem(self.agent_config_dir, self.memory)
+        self.swarm = SwarmIntelligence(self.memory)
+        self.hive_mind = HiveMind(self.memory)
         
-        # Load agent configurations
+        # Load agent configurations and initialize swarm
         self.agents = self.ecosystem.load_all_agents()
         self._initialize_swarm()
+        self._start_config_monitoring()
         
         self.setup_handlers()
     
     def _initialize_swarm(self):
-        """Initialize swarm intelligence with loaded agents"""
+        """Initialize swarm intelligence with loaded agents and memory"""
         for agent_name, config in self.agents.items():
             self.swarm.register_agent(
                 name=agent_name,
@@ -102,6 +224,13 @@ class SwarmMCPServer:
                 expertise_areas=config['expertise_areas'],
                 collaboration_patterns=config['intersections']
             )
+        
+        # Learn from historical patterns in memory
+        self.swarm.load_learned_patterns()
+    
+    def _start_config_monitoring(self):
+        """Start monitoring agent config directory for changes"""
+        self.ecosystem.start_file_watcher()
     
     def setup_handlers(self):
         @self.server.list_resources()
@@ -116,19 +245,19 @@ class SwarmMCPServer:
                 Resource(
                     uri="swarm://coordination-patterns",
                     name="Coordination Patterns Library", 
-                    description="Proven multi-agent coordination patterns and workflows",
+                    description="Proven multi-agent coordination patterns learned from experience",
                     mimeType="application/json"
                 ),
                 Resource(
-                    uri="swarm://collective-knowledge",
-                    name="Collective Knowledge Base",
-                    description="Hive mind knowledge aggregated from all agents",
+                    uri="swarm://hive-mind-memory",
+                    name="Hive Mind Collective Memory",
+                    description="Persistent collective knowledge and learned patterns",
                     mimeType="application/json"
                 ),
                 Resource(
                     uri="swarm://task-assignment-matrix",
-                    name="Task Assignment Matrix",
-                    description="Intelligent task routing recommendations based on swarm intelligence",
+                    name="Intelligent Task Assignment Matrix",
+                    description="AI-powered task routing based on learned success patterns",
                     mimeType="application/json"
                 ),
                 Resource(
@@ -181,9 +310,10 @@ class SwarmMCPServer:
         @self.server.list_tools()
         async def list_tools() -> ListToolsResult:
             return ListToolsResult(tools=[
+                # Core Swarm Intelligence Tools
                 Tool(
                     name="optimal_agent_assignment",
-                    description="Find optimal agent assignment using swarm intelligence",
+                    description="Find optimal agent assignment using swarm intelligence and learned patterns",
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -191,7 +321,8 @@ class SwarmMCPServer:
                             "requirements": {"type": "array", "items": {"type": "string"}},
                             "complexity": {"type": "string", "enum": ["simple", "medium", "high", "critical"]},
                             "urgency": {"type": "string", "enum": ["low", "normal", "high", "critical"]},
-                            "domain": {"type": "string"}
+                            "domain": {"type": "string"},
+                            "learn_from_outcome": {"type": "boolean", "default": True}
                         },
                         "required": ["task_description", "requirements"]
                     }
@@ -203,21 +334,54 @@ class SwarmMCPServer:
                         "type": "object", 
                         "properties": {
                             "query": {"type": "string"},
+                            "namespace": {"type": "string", "default": "general"},
                             "domain": {"type": "string"},
-                            "confidence_threshold": {"type": "number", "minimum": 0, "maximum": 1}
+                            "confidence_threshold": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.7}
                         },
                         "required": ["query"]
                     }
                 ),
+                # Enhanced Memory Tools
+                Tool(
+                    name="memory_store",
+                    description="Store knowledge in the hive-mind memory system",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "namespace": {"type": "string", "default": "general"},
+                            "key": {"type": "string"},
+                            "value": {"type": "object"},
+                            "source_agent": {"type": "string"},
+                            "confidence": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.8}
+                        },
+                        "required": ["key", "value", "source_agent"]
+                    }
+                ),
+                Tool(
+                    name="memory_learn_pattern",
+                    description="Learn from successful coordination patterns for future use",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "pattern_name": {"type": "string"},
+                            "agent_combination": {"type": "array", "items": {"type": "string"}},
+                            "task_types": {"type": "array", "items": {"type": "string"}},
+                            "success_outcome": {"type": "object"},
+                            "context": {"type": "object"}
+                        },
+                        "required": ["pattern_name", "agent_combination", "task_types", "success_outcome"]
+                    }
+                ),
                 Tool(
                     name="coordination_strategy",
-                    description="Get coordination strategy for multi-agent collaboration",
+                    description="Get AI-powered coordination strategy based on learned patterns",
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "task_type": {"type": "string"},
                             "involved_agents": {"type": "array", "items": {"type": "string"}},
-                            "constraints": {"type": "array", "items": {"type": "string"}}
+                            "constraints": {"type": "array", "items": {"type": "string"}},
+                            "use_learned_patterns": {"type": "boolean", "default": True}
                         },
                         "required": ["task_type"]
                     }

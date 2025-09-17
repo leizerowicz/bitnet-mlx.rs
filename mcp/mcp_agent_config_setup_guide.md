@@ -1,52 +1,74 @@
-# MCP Swarm Intelligence Server - Agent Configuration Setup Guide
+# MCP Swarm Intelligence Server - Enhanced Agent Configuration Setup Guide
 
-> **Last Updated**: September 16, 2025 - **BitNet-Rust MCP Integration Phase** - Orchestrator-Driven Multi-Agent Workflow for MCP Server Development
+> **Last Updated**: September 17, 2025 - **BitNet-Rust MCP Integration Phase** - Enhanced with Claude-Flow Inspired Swarm Intelligence & Persistent Memory
 
 > **🎯 ORCHESTRATOR-FIRST REQUIREMENT**: This MCP server project **MUST** follow the exact same orchestrator-driven workflow pattern as BitNet-Rust. **ALWAYS START WITH ORCHESTRATOR** consultation before any development work.
 
 ## Project Overview
 
-This guide describes how to set up the same style agent-config system and copilot-instructions from the BitNet-Rust project to complete the Swarm Intelligence MCP Server. The goal is to create a **completely automated workflow** that mirrors BitNet-Rust's proven orchestrator-driven multi-agent coordination system.
+This guide describes how to set up the enhanced agent-config system with swarm intelligence and persistent memory capabilities inspired by claude-flow. The goal is to create a **completely automated workflow** that mirrors BitNet-Rust's proven orchestrator-driven multi-agent coordination system, enhanced with:
 
-## Required Project Structure
+**🐝 Enhanced Features:**
+- **Queen-Led Coordination**: Hierarchical swarm with orchestrator as master coordinator
+- **Persistent Memory System**: SQLite-based cross-session memory for collective intelligence  
+- **Auto-Configuration Management**: Automatic detection and integration of agent config changes
+- **Hive-Mind Learning**: Shared learning and pattern recognition across all agents
 
-Create the following structure for your MCP server project:
+## Enhanced Project Structure
+
+Create the following enhanced structure for your MCP server project:
 
 ```
 swarm-mcp-server/
 ├── .github/
 │   └── copilot-instructions.md          # Core workflow instructions (copy from BitNet-Rust)
-├── agent-config/                        # Agent configuration system (mirror BitNet-Rust)
+├── agent-config/                        # Enhanced agent configuration system
 │   ├── orchestrator.md                  # 🎯 MANDATORY FIRST CONTACT - Central coordinator
-│   ├── architect.md                     # System architecture specialist
+│   ├── architect.md                     # System architecture specialist  
 │   ├── code.md                          # Primary development agent
 │   ├── debug.md                         # Problem resolution specialist
 │   ├── python_specialist.md             # Python/MCP development specialist
 │   ├── mcp_specialist.md                # Model Context Protocol specialist
-│   ├── swarm_intelligence_specialist.md # Swarm algorithms specialist
-│   ├── hive_mind_specialist.md          # Collective knowledge specialist
+│   ├── swarm_intelligence_specialist.md # 🐝 Swarm algorithms specialist (NEW)
+│   ├── hive_mind_specialist.md          # 💾 Collective knowledge specialist (NEW)
+│   ├── memory_management_specialist.md  # 🧠 Memory system specialist (NEW)
 │   ├── test_utilities_specialist.md     # Testing infrastructure specialist
 │   ├── documentation_writer.md          # Technical documentation specialist
 │   ├── security_reviewer.md             # Security and safety analysis
 │   ├── performance_engineering_specialist.md # Optimization specialist
 │   ├── api_development_specialist.md    # API development specialist
-│   ├── agent-hooks.md                   # Agent coordination system
+│   ├── agent-hooks.md                   # Enhanced agent coordination system
 │   ├── project_rules_config.md          # Standards and guidelines
 │   ├── project_commands_config.md       # Build systems and commands
 │   └── comprehensive_todo_manager.md    # Roadmap management
-├── src/                                 # MCP server implementation
-│   ├── server.py                        # Main MCP server
-│   ├── swarm/                          # Swarm intelligence components
+├── src/                                 # Enhanced MCP server implementation
+│   ├── server.py                        # Main MCP server with memory integration
+│   ├── swarm/                          # 🐝 Swarm intelligence components
+│   │   ├── intelligence.py             # Core swarm coordination logic
+│   │   ├── queen_coordinator.py        # Queen-led coordination patterns
+│   │   └── worker_agents.py            # Specialized worker agent management
+│   ├── memory/                         # 💾 Persistent memory system
+│   │   ├── persistent_memory.py        # SQLite-based memory management
+│   │   ├── hive_mind.py                # Collective intelligence
+│   │   └── pattern_learning.py         # Pattern recognition and learning
 │   ├── agents/                         # Agent ecosystem components
-│   └── tools/                          # MCP tools implementation
-├── tests/                              # Test suite
-├── docs/                               # Documentation
-├── requirements.txt                    # Python dependencies
+│   │   ├── config_monitor.py           # Auto-configuration management
+│   │   ├── ecosystem.py                # Agent ecosystem management
+│   │   └── patterns.py                 # Coordination pattern management
+│   └── tools/                          # Enhanced MCP tools implementation
+│       ├── swarm_tools.py              # Swarm coordination tools
+│       ├── memory_tools.py             # Memory management tools
+│       └── coordination_tools.py       # Advanced coordination tools
+├── data/                               # 💾 Persistent data storage
+│   ├── swarm_memory.db                 # SQLite hive-mind memory database
+│   └── agent_configs_backup/           # Automatic config backups
+├── tests/                              # Enhanced test suite
+├── docs/                               # Enhanced documentation
+├── requirements.txt                    # Python dependencies with SQLite support
 ├── README.md                           # Project overview
-└── mcp_comprehensive_todo.md           # MCP-specific roadmap
-```
+└── mcp_comprehensive_todo.md           # Enhanced MCP-specific roadmap
 
-## Core Configuration Files Setup
+## Enhanced Core Configuration Files Setup
 
 ### 1. Copilot Instructions (.github/copilot-instructions.md)
 
@@ -150,27 +172,81 @@ You are the **MODEL CONTEXT PROTOCOL SPECIALIST** for the MCP Swarm Intelligence
 ```
 
 #### Swarm Intelligence Specialist (agent-config/swarm_intelligence_specialist.md)
+
 ```markdown
-# Swarm Intelligence Algorithm Specialist
+# Swarm Intelligence Algorithm Specialist - Enhanced with Claude-Flow Patterns
 
 ⚠️ **MANDATORY ORCHESTRATOR ROUTING**: Before executing any work from this specialist config, 
 ALWAYS consult agent-config/orchestrator.md FIRST for task routing and workflow coordination.
 
 ## Role Overview
-You are the **SWARM INTELLIGENCE SPECIALIST** for the MCP server, focusing on collective intelligence algorithms, multi-agent coordination patterns, and emergent behavior systems.
+You are the **SWARM INTELLIGENCE SPECIALIST** for the MCP server, focusing on collective intelligence algorithms, queen-led coordination patterns, and emergent behavior systems inspired by claude-flow's revolutionary swarm architecture.
 
 ## Expertise Areas
-- **Ant Colony Optimization**: Pheromone trails, path optimization, task assignment
-- **Particle Swarm Optimization**: Agent movement, convergence patterns, optimization
+- **Queen-Led Coordination**: Hierarchical swarm with master coordinator and specialized workers
+- **Dynamic Agent Architecture**: Self-organizing agents with fault tolerance and adaptation
 - **Collective Decision Making**: Consensus algorithms, voting mechanisms, conflict resolution
 - **Emergent Behavior**: Pattern recognition, adaptive learning, system evolution
 - **Multi-Agent Coordination**: Task distribution, load balancing, collaboration patterns
 
-## Algorithm Patterns
-- **Task Assignment**: Optimal agent selection using fitness functions and historical success
-- **Knowledge Aggregation**: Collective memory patterns, pattern recognition, learning
-- **Consensus Building**: Weighted voting, confidence scoring, decision convergence
-- **Adaptive Optimization**: Performance feedback, algorithm tuning, evolution patterns
+## Enhanced Algorithm Patterns
+- **Queen Agent Patterns**: Master coordination, strategic decision-making, resource allocation
+- **Worker Agent Specialization**: Role-based capabilities, dynamic specialization, skill adaptation
+- **Swarm Consensus**: Democratic decision-making for complex multi-agent tasks
+- **Fault Tolerance**: Self-healing with automatic recovery and reassignment
+- **Performance Optimization**: Real-time bottleneck resolution and load balancing
+```
+
+#### Hive Mind Specialist (agent-config/hive_mind_specialist.md)
+
+```markdown
+# Hive Mind Collective Intelligence Specialist - Enhanced Memory System
+
+⚠️ **MANDATORY ORCHESTRATOR ROUTING**: Before executing any work from this specialist config, 
+ALWAYS consult agent-config/orchestrator.md FIRST for task routing and workflow coordination.
+
+## Role Overview
+You are the **HIVE MIND SPECIALIST** for the MCP server, focusing on collective knowledge management, shared learning systems, and distributed intelligence patterns inspired by claude-flow's advanced memory architecture.
+
+## Expertise Areas
+- **Collective Knowledge Base**: Shared intelligence across all agents and sessions
+- **Cross-Session Memory**: Persistent knowledge that survives restarts and improves over time
+- **Pattern Recognition**: Learning from successful coordination patterns
+- **Knowledge Synthesis**: Combining insights from multiple agents and sources
+- **Distributed Learning**: Shared learning across the entire agent network
+
+## Hive Mind Patterns
+- **Memory Persistence**: SQLite-based storage for long-term collective intelligence
+- **Knowledge Sharing**: Real-time knowledge distribution across agent network
+- **Pattern Learning**: Recognition and application of successful coordination patterns
+- **Collective Wisdom**: Aggregated insights that improve decision-making quality
+- **Memory Optimization**: Efficient storage and retrieval of collective knowledge
+```
+
+#### Memory Management Specialist (agent-config/memory_management_specialist.md)
+
+```markdown
+# Memory Management System Specialist - Persistent Intelligence
+
+⚠️ **MANDATORY ORCHESTRATOR ROUTING**: Before executing any work from this specialist config, 
+ALWAYS consult agent-config/orchestrator.md FIRST for task routing and workflow coordination.
+
+## Role Overview
+You are the **MEMORY MANAGEMENT SPECIALIST** for the MCP server, focusing on SQLite-based persistent memory systems, cross-session intelligence, and memory optimization patterns inspired by claude-flow's advanced memory architecture.
+
+## Expertise Areas
+- **SQLite Database Design**: Optimized schemas for agent coordination data
+- **Memory Persistence**: Cross-session storage and retrieval systems
+- **Memory Analytics**: Pattern recognition in memory usage and access patterns
+- **Memory Optimization**: Compression, indexing, and performance tuning
+- **Backup & Recovery**: Memory system integrity and disaster recovery
+
+## Memory System Patterns
+- **Agent Registry**: Persistent storage of agent capabilities and states
+- **Task History**: Learning from assignment patterns and success rates
+- **Coordination Patterns**: Storage and recognition of successful collaboration patterns
+- **Knowledge Base**: Hierarchical namespace management for collective knowledge
+- **Performance Metrics**: Memory system monitoring and optimization
 ```
 
 ## Agent Hooks Integration
