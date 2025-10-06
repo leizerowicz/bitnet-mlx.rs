@@ -1,52 +1,86 @@
-# BitNet-Rust Agent Hooks System
+# BitNet-Rust Agent Hooks System - Docker BitNet Swarm Intelligence
 
-> **Last Updated**: September 1, 2025 - **Commercial Readiness Phase Week 1** - Agent Lifecycle Management and Workflow Automation
+> **Last Updated**: October 6, 2025 - **Docker BitNet Swarm Intelligence Phase** - Enhanced lifecycle management for containerized intelligence systems with perfect technical foundation (100% test success rate)
 
 ## Role Overview
-The Agent Hooks system provides lifecycle management, event-driven automation, and enhanced coordination for the BitNet-Rust agent configuration system. It defines execution points where custom logic, validation, monitoring, and coordination activities can be automatically triggered during agent workflows and task execution.
+The Agent Hooks system provides lifecycle management, event-driven automation, and enhanced coordination for the **Docker BitNet Swarm Intelligence** framework. It defines execution points where custom logic, validation, monitoring, and coordination activities can be automatically triggered during **🐝 Swarm (diverging collaborative)** and **🧠 Hive Mind (unified collective)** intelligence operations within Docker container environments.
 
 ## Project Context
-BitNet-Rust is currently in the **Commercial Readiness Phase Week 1** with robust technical foundation complete and active market deployment preparation. The agent hooks system enhances the existing orchestrator-driven workflow with automated coordination, quality gates, and seamless inter-agent communication.
+BitNet-Rust has achieved perfect technical foundation with 100% test success rate and is implementing **Docker BitNet Swarm Intelligence** container systems with dual intelligence modes for VS Code extension integration. The agent hooks system enhances containerized workflows with automated coordination, quality gates, and seamless intelligence system management.
 
-**Current Status**: ✅ **COMMERCIAL READINESS PHASE - WEEK 1** - Workflow Automation and Agent Coordination Enhancement (September 1, 2025)
-- **Technical Foundation**: All 7 crates production-ready with 95.4% test success rate requiring final optimization
-- **Agent Coordination**: 25+ specialist agents with established routing matrix requiring automated workflow management
-- **Commercial Phase**: SaaS platform development and customer acquisition needing streamlined development workflows
-- **Quality Assurance**: Production-grade development requiring automated quality gates and validation hooks
+**Current Status**: 🎯 **DOCKER BITNET SWARM INTELLIGENCE PHASE** - Containerized Intelligence Lifecycle Management (October 6, 2025)
+- **Foundation Complete**: 100% test success rate (1,169/1,169 tests) with perfect stability ✅
+- **Performance Achieved**: ARM64 NEON optimization achieving 1.37x-3.20x speedup (Microsoft parity complete)
+- **Agent Coordination**: 25+ specialist agents with Docker container integration and intelligence mode management
+- **Current Priority**: Docker container lifecycle hooks for swarm/hive mind intelligence systems
+- **Integration Focus**: VS Code extension integration with automated agent coordination
 
-## Core Hook Categories
+## 🎯 Docker BitNet Swarm Intelligence Hook Categories
 
-### 1. Task Lifecycle Hooks
+### 1. Container Intelligence Lifecycle Hooks
 
-#### Pre-Task Execution Hooks
-**Hook Point**: Before any agent begins task execution
-**Purpose**: Setup, validation, and preparation activities
+#### Intelligence System Initialization Hooks
+**Hook Point**: Container startup and intelligence system initialization
+**Purpose**: Setup containerized agent discovery, intelligence mode detection, and system preparation
 
 ```markdown
-## PRE_TASK_SETUP
-- **Trigger**: Agent assignment confirmation from orchestrator
+## CONTAINER_INTELLIGENCE_STARTUP
+- **Trigger**: Docker container initialization begins
 - **Actions**:
-  - Validate agent capability and availability
-  - Check task dependencies and prerequisites
-  - Initialize workspace and context
-  - Verify required tools and resources
-  - Setup monitoring and logging context
-  - Notify relevant supporting agents
+  - Initialize containerized orchestrator service
+  - Discover available agent configurations in container
+  - Setup intelligence mode detection system
+  - Initialize swarm and hive mind infrastructure
+  - Validate model loading (microsoft/bitnet-b1.58-2B-4T-gguf)
+  - Setup Universal /api endpoint and MCP server
+  - Initialize inter-agent communication channels
 
-## PRE_TASK_VALIDATION
-- **Trigger**: After setup completion, before implementation begins
+## AGENT_DISCOVERY_AND_REGISTRATION
+- **Trigger**: After container startup, before request handling
 - **Actions**:
-  - Validate task specification completeness
-  - Verify acceptance criteria clarity
-  - Check for conflicting concurrent tasks
-  - Validate resource availability and capacity
-  - Confirm integration with existing systems
-  - Security and compliance pre-checks
+  - Auto-discover all available agent configs in container
+  - Register agent capabilities and intersection patterns
+  - Initialize agent coordination matrices
+  - Setup dynamic agent loading system
+  - Validate agent hooks integration for all discovered agents
+  - Configure agent communication protocols
 ```
 
-#### Post-Task Execution Hooks
-**Hook Point**: After agent completes primary task implementation
-**Purpose**: Cleanup, validation, and handoff activities
+#### Intelligence Mode Selection Hooks  
+**Hook Point**: Task analysis and intelligence mode selection
+**Purpose**: Automatic detection and selection between 🐝 Swarm and 🧠 Hive Mind modes
+
+```markdown
+## INTELLIGENCE_MODE_DETECTION
+- **Trigger**: Universal /api request received, before task routing
+- **Actions**:
+  - Analyze task characteristics and requirements
+  - Evaluate collaboration patterns needed
+  - Assess task complexity and coordination needs
+  - Determine optimal intelligence mode (swarm vs hive mind)
+  - Setup mode-specific infrastructure
+  - Configure agent coordination patterns
+
+## SWARM_INTELLIGENCE_INITIALIZATION
+- **Trigger**: Swarm mode selected for diverging collaborative tasks
+- **Actions**:
+  - Initialize independent agent networks
+  - Setup consensus building mechanisms
+  - Configure conflict resolution systems
+  - Initialize collaborative memory spaces
+  - Setup divergent thinking frameworks
+  - Configure agent autonomy parameters
+
+## HIVE_MIND_INTELLIGENCE_INITIALIZATION  
+- **Trigger**: Hive mind mode selected for unified collective tasks
+- **Actions**:
+  - Initialize unified agent collective
+  - Setup shared thought space and mental models
+  - Configure synchronized decision-making systems
+  - Initialize collective memory systems
+  - Setup unified execution frameworks
+  - Configure perfect agent synchronization
+```
 
 ```markdown
 ## POST_TASK_VALIDATION
@@ -831,3 +865,168 @@ The enhanced agent-hooks system ensures that epic completion automatically trigg
 **Reference Implementation**: Story 2.2 Production Operations completion (September 2, 2025) - See automation example above for detailed execution pattern.
 
 This automated workflow ensures comprehensive project documentation maintenance and stakeholder communication for all future story completions in the BitNet-Rust commercial readiness phase.
+
+---
+
+## 🎯 Docker BitNet Swarm Intelligence Specific Hooks
+
+### 2. Intelligence System Execution Hooks
+
+#### Swarm Intelligence Coordination Hooks
+**Hook Point**: During 🐝 Swarm mode execution for diverging collaborative tasks
+**Purpose**: Manage independent agent coordination and consensus building
+
+```markdown
+## SWARM_DIVERGENT_EXECUTION_START
+- **Trigger**: Swarm mode agents begin independent task execution
+- **Actions**:
+  - Initialize independent agent workspaces
+  - Setup autonomous decision-making frameworks
+  - Configure individual agent monitoring and tracking
+  - Initialize consensus building preparation
+  - Setup conflict detection and mediation systems
+  - Monitor agent divergence and progress independently
+
+## SWARM_CONSENSUS_BUILDING
+- **Trigger**: Independent agent work completion, before result synthesis
+- **Actions**:
+  - Collect all independent agent results and decisions
+  - Analyze decision convergence and divergence patterns
+  - Initiate consensus building protocols
+  - Mediate conflicts and disagreements between agents
+  - Facilitate collaborative decision making
+  - Validate consensus quality and completeness
+
+## SWARM_CONFLICT_RESOLUTION
+- **Trigger**: Significant disagreements detected between agents
+- **Actions**:
+  - Identify conflict sources and agent position differences
+  - Initiate mediation and negotiation protocols
+  - Provide additional context and evidence to agents
+  - Facilitate compromise and resolution discussions
+  - Document resolution process and final agreements
+  - Update agent coordination patterns based on learnings
+```
+
+#### Hive Mind Intelligence Coordination Hooks
+**Hook Point**: During 🧠 Hive Mind mode execution for unified collective tasks
+**Purpose**: Manage synchronized agent execution and collective processing
+
+```markdown
+## HIVE_MIND_SYNCHRONIZATION_START
+- **Trigger**: Hive mind mode agents begin unified task execution
+- **Actions**:
+  - Synchronize all agent mental models and understanding
+  - Establish shared thought space and collective memory
+  - Configure unified decision-making frameworks
+  - Initialize collective processing protocols
+  - Setup perfect agent state synchronization
+  - Monitor collective coherence and alignment
+
+## HIVE_MIND_COLLECTIVE_PROCESSING
+- **Trigger**: During unified task execution
+- **Actions**:
+  - Maintain perfect agent synchronization
+  - Monitor collective processing efficiency
+  - Detect and correct synchronization drift
+  - Optimize collective resource utilization
+  - Validate unified understanding maintenance
+  - Ensure collective goal alignment
+
+## HIVE_MIND_UNIFIED_COMPLETION
+- **Trigger**: Collective task execution completion
+- **Actions**:
+  - Validate unified result consistency
+  - Verify all agents reached identical conclusions
+  - Document collective decision rationale
+  - Archive shared mental model state
+  - Release collective resources efficiently
+  - Prepare unified handoff documentation
+```
+
+### 3. Container Integration Hooks
+
+#### VS Code Extension Integration Hooks
+**Hook Point**: VS Code extension requests and real-time interactions
+**Purpose**: Seamless integration with development environment
+
+```markdown
+## VSCODE_REQUEST_RECEIVED
+- **Trigger**: Universal /api endpoint receives VS Code extension request
+- **Actions**:
+  - Parse and analyze natural language request intent
+  - Determine optimal intelligence mode for the request
+  - Initialize appropriate agent coordination
+  - Setup real-time response monitoring
+  - Configure VS Code integration context
+  - Initialize performance tracking for response time
+
+## VSCODE_REALTIME_FEEDBACK
+- **Trigger**: During active VS Code integration sessions
+- **Actions**:
+  - Provide live progress updates to extension
+  - Stream partial results for immediate feedback
+  - Maintain session context and continuity
+  - Handle interruption and cancellation gracefully
+  - Update user interface with system status
+  - Optimize response time and user experience
+
+## MCP_TOOL_DISCOVERY_UPDATE
+- **Trigger**: Agent capabilities change or new agents discovered
+- **Actions**:
+  - Update MCP server tool registry
+  - Refresh VS Code extension tool availability
+  - Synchronize agent capabilities with MCP interface
+  - Update tool documentation and help systems
+  - Notify extension of new capabilities
+  - Optimize tool selection and usage patterns
+```
+
+#### Container Performance and Resource Hooks
+**Hook Point**: Container resource management and performance optimization
+**Purpose**: Efficient resource utilization and performance monitoring
+
+```markdown
+## CONTAINER_RESOURCE_OPTIMIZATION
+- **Trigger**: High resource utilization or performance degradation detected
+- **Actions**:
+  - Analyze current resource usage patterns
+  - Optimize memory allocation and CPU utilization
+  - Balance between swarm and hive mind resource needs
+  - Implement intelligent agent load balancing
+  - Optimize model loading and caching efficiency
+  - Monitor and maintain ARM64 NEON performance
+
+## CONTAINER_HEALTH_MONITORING
+- **Trigger**: Continuous monitoring during container operation
+- **Actions**:
+  - Monitor all intelligence system health metrics
+  - Track API endpoint response times and availability
+  - Validate agent coordination performance
+  - Monitor model inference performance and accuracy
+  - Track memory usage and prevent leaks
+  - Ensure container stability and reliability
+
+## CONTAINER_GRACEFUL_SHUTDOWN
+- **Trigger**: Container shutdown initiated
+- **Actions**:
+  - Complete all in-progress intelligence operations
+  - Save agent state and coordination context
+  - Archive session data and performance metrics
+  - Release all allocated resources cleanly
+  - Persist learning and optimization data
+  - Prepare for fast restart and state recovery
+```
+
+### Enhanced Integration with Docker BitNet Swarm Intelligence
+
+The Docker BitNet Swarm Intelligence hooks system provides comprehensive lifecycle management that ensures:
+
+1. **Automatic Intelligence Mode Selection**: Hooks automatically analyze tasks and select optimal intelligence mode
+2. **Seamless Agent Coordination**: Both swarm and hive mind systems integrate perfectly with existing agent workflows
+3. **VS Code Integration Excellence**: Real-time, responsive integration with development environment
+4. **Container Performance Optimization**: Maintain ARM64 NEON performance and efficient resource utilization
+5. **Quality Assurance Automation**: All intelligence system operations include automated validation and monitoring
+6. **Scalable Architecture**: Hooks support both small development tasks and large enterprise-scale operations
+
+**Mission Statement**: Provide comprehensive lifecycle management and workflow automation for Docker BitNet Swarm Intelligence systems that enhances agent coordination, enables automatic intelligence mode selection, optimizes performance, and delivers seamless VS Code extension integration while maintaining the highest quality standards and operational excellence.

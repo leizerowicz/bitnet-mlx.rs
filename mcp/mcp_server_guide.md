@@ -1381,7 +1381,7 @@ CMD ["python", "src/server.py"]
 ### Docker Compose
 
 ```yaml
-# docker-compose.yml
+# bitnet-docker/bitnet-swarm-intelligence/docker-compose.yml
 version: '3.8'
 
 services:

@@ -8,7 +8,9 @@ members = [
     "bitnet-inference",
     "bitnet-training",
     "bitnet-cli",
-    "bitnet-benchmarks"
+    "bitnet-benchmarks",
+    "bitnet-intelligence",
+    "bitnet-docker/agent-config-framework"
 ]
 
 [workspace.package]

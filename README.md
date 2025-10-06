@@ -121,6 +121,10 @@ bitnet-rust/
 ├── bitnet-cuda/           # CUDA GPU acceleration
 ├── bitnet-benchmarks/     # Performance testing (stable)
 ├── bitnet-cli/            # Command-line tools (stable)
+├── bitnet-docker/         # 🐳 Docker containers for production deployment
+│   ├── agent-config-framework/    # Agent orchestration and configuration system
+│   ├── bitnet-swarm-intelligence/ # Complete BitNet Swarm Intelligence container
+│   └── shared/            # Shared Docker resources and templates
 └── docs/                  # Documentation
 ```
 

@@ -48,46 +48,201 @@ The orchestrator serves as the central command that knows when and how to use th
 ## Project Context
 BitNet-Rust has achieved solid foundation stability and is actively implementing practical inference capabilities following the ROAD_TO_INFERENCE.md roadmap.
 
-**Current Status**: 🎯 **PHASE 2 INFERENCE IMPLEMENTATION** - GGUF Model Loading & Inference Engine (September 15, 2025)
+**Current Status**: 🎯 **DOCKER BITNET SWARM INTELLIGENCE IMPLEMENTATION** - Swarms & Hive Minds Container (October 6, 2025)
 
-**PRIMARY WORKFLOW**: **ROAD_TO_INFERENCE.md** - CPU inference capability for Microsoft BitNet b1.58 2B4T model
-**Technical Foundation**: 99.17% test success rate (952/960 tests) - Strong foundation with minor non-blocking issues
+**PRIMARY WORKFLOW**: **DOCKER_BITNET_SWARM_TODO.md** - Production-ready Docker container with dual intelligence modes
+**Technical Foundation**: 100% test success rate (1,169/1,169 tests) - Perfect foundation achieved
 **Performance Status**: ARM64 NEON optimization achieving 1.37x-3.20x speedup (100% Microsoft parity targets ACHIEVED)
-**Current Priority**: ROAD_TO_INFERENCE.md Phase 2 inference engine implementation (Tasks 2.1.16-2.1.19)
+**Current Priority**: Docker BitNet Swarm container with 🐝 Swarm Intelligence (diverging collaborative) and 🧠 Hive Mind Intelligence (unified collective) modes
 
-**ROAD_TO_INFERENCE.md Progress Summary**:
-- **Phase 1 (Week 1-2)**: CPU Performance Recovery - ✅ **COMPLETED**
-  - ✅ Epic 1.1: ARM64 NEON optimization achieved 1.37x-3.20x speedup (100% Microsoft parity targets)
-  - ✅ Task 1.0.5: Device migration tests fixed (99.17% test success rate achieved)
-  - ✅ All foundation tasks completed with strong validation
-- **Phase 2 (Week 2-3)**: Inference Foundation - 🎯 **ACTIVE IMPLEMENTATION**
-  - ✅ Epic 2.1: GGUF model loading - **MAJOR PROGRESS** (Tasks 2.1.1-2.1.15 COMPLETED)
-  - 🎯 **Current Tasks**: 2.1.16 Layer Config Extraction, 2.1.17 Inference Integration, 2.1.18 Forward Pass, 2.1.19 Model Execution
-  - 🎯 Epic 2.2: Core inference engine enhancement with ternary operations (READY TO START)
-- **Phase 3 (Week 3-4)**: Text Generation Implementation - ⏳ **PLANNED**
-- **Phase 4 (Week 4-5)**: CLI Interface & UX - ⏳ **PLANNED**
-- **Phase 5 (Week 5-6)**: Integration & Validation - ⏳ **PLANNED**
+## 🎯 DOCKER BITNET SWARM INTELLIGENCE FRAMEWORK
 
-**Current Week Focus (ROAD_TO_INFERENCE.md Phase 2 Active Implementation)**:
-- 🎯 **MAJOR ACHIEVEMENT**: GGUF model loading foundation complete (Tasks 2.1.1-2.1.15 done)
-- 🎯 **CURRENT PRIORITY**: Complete inference engine integration (Tasks 2.1.16-2.1.19)
-- 🎯 **READY NEXT**: Begin ternary weight operations and transformer layer implementation
-- 🎯 **FOUNDATION STATUS**: Strong 99.17% test success rate maintained during implementation
+**🐝 SWARMS vs 🧠 HIVE MINDS - Orchestrator-Managed Intelligence Modes**
 
-## Current Phase: ROAD_TO_INFERENCE Phase 2 - Inference Implementation (January 2025)
+The orchestrator now manages **two distinct intelligence operating modes** for optimal task execution:
 
-**PRIMARY WORKFLOW**: **ROAD_TO_INFERENCE.md** - CPU-based inference for Microsoft BitNet b1.58 2B4T model
+### 🐝 **SWARM INTELLIGENCE MODE** - Diverging Collaborative Intelligence
+**When to Use**: Tasks requiring **diverse perspectives**, **independent decision-making**, and **collaborative consensus building**
 
-**✅ PHASE 1 CPU PERFORMANCE RECOVERY (COMPLETED)**:
+**Orchestrator Coordination**:
+- **Independent Agent Spawning**: Create autonomous agents that can make domain-specific decisions
+- **Divergent Task Distribution**: Assign different approaches/perspectives to different agents
+- **Consensus Building Management**: Coordinate agent collaboration to build unified solutions
+- **Conflict Resolution**: Manage disagreements between agents and facilitate resolution
+- **Emergent Intelligence**: Enable solutions to emerge from agent interactions and negotiations
 
-- ✅ **Epic 1.1 ARM64 NEON**: Perfect success - 1.37x-3.20x speedup achieved (100% Microsoft parity targets)  
-- ✅ **Foundation Stability**: 100% test success rate (1,169/1,169 tests) providing perfect base
-- ✅ **Memory Management**: Advanced HybridMemoryPool with fragmentation prevention complete
-- ✅ **Performance Validation**: All Microsoft parity targets achieved with continuous benchmarking
+**Use Cases for Swarm Mode**:
+- **Multi-Language Development**: Rust backend + TypeScript frontend + Docker deployment (each agent works independently, then integrates)
+- **Architecture Design**: Multiple agents explore different patterns, then collaborate on final design
+- **Problem Analysis**: Different agents analyze aspects (performance, security, maintainability), then synthesize
+- **Code Review**: Multiple specialized reviewers provide assessments, then build consensus
 
-**🎯 PHASE 2 INFERENCE FOUNDATION (CURRENT PRIORITY)**:
+### 🧠 **HIVE MIND INTELLIGENCE MODE** - Unified Collective Intelligence  
+**When to Use**: Tasks requiring **coordinated execution**, **unified thinking**, and **large-scale synchronized processing**
 
-- **Week 2-3**: Epic 2.1 - GGUF model loading for `microsoft/bitnet-b1.58-2B-4T-gguf` (READY TO START)
+**Orchestrator Coordination**:
+- **Unified Agent Synchronization**: Create perfectly aligned agents sharing identical mental models
+- **Collective Processing Management**: Apply massive parallel processing to single complex tasks
+- **Synchronized Decision-Making**: All agents use identical decision frameworks and criteria
+- **Unified Execution**: Coordinate agents with shared goals and methodologies
+- **Amplified Intelligence**: Focus combined processing power on singular complex objectives
+
+**Use Cases for Hive Mind Mode**:
+- **Large Codebase Refactoring**: All agents work with unified strategy across entire system
+- **Complex Algorithm Implementation**: Massive parallel implementation of neural network architectures
+- **System-Wide Optimization**: Coordinated optimization with unified performance targets
+- **Enterprise Integration**: Large-scale integration with unified architectural principles
+
+## 🐳 DOCKER CONTAINER INTELLIGENCE INFRASTRUCTURE
+
+**Production-Ready Docker Container with Dual Intelligence Systems**
+
+### Container Architecture & Integration
+**Primary Container Services**:
+- **Containerized Orchestrator**: Run orchestrator.md as primary container service managing all intelligence modes
+- **Agent Service Discovery**: Auto-discover and load available agent configurations in container environment
+- **Dynamic Intelligence Loading**: Load and activate swarm or hive mind systems based on task requirements
+- **Inter-Agent Communication**: Efficient communication channels between agents within container
+- **Container-Aware Agent Hooks**: Extended agent hooks for containerized lifecycle management
+
+### Universal API Endpoint - Revolutionary Simplification
+**Single Entry Point**: `/api` handles ALL operations through intelligent request analysis
+
+**Universal Request Format**:
+```json
+{
+  "prompt": "Natural language description of what you want",
+  "content": "Optional code/data to analyze or work with",
+  "context": "Optional additional context"
+}
+```
+
+**Intelligent Orchestrator Routing**: The orchestrator automatically:
+- **Detects intent** from natural language prompts (generation, analysis, scaffolding, optimization, monitoring)
+- **Selects intelligence mode** (swarm for diverging collaborative tasks, hive mind for unified execution)
+- **Routes to appropriate agents** using intersection matrix and coordination patterns
+- **Coordinates multi-agent workflows** for complex tasks
+- **Returns comprehensive results** with full context and system status
+
+**Universal Response Format**: Single response structure that adapts to any operation:
+```json
+{
+  "operation_type": "What the system determined you wanted",
+  "intelligence_mode": "swarm|hive_mind - which mode was used",
+  "agents_involved": ["List of agents that participated"],
+  "result": "The generated/analyzed/optimized content",
+  "system_snapshot": "Current system health and capabilities"
+}
+```
+
+### MCP Server Integration with Agent Config System
+**Agent-Aware MCP Integration**: Embed agent config system into MCP tools with orchestrator-driven coordination
+
+**Enhanced MCP Configuration**:
+```json
+{
+  "mcpServers": {
+    "bitnet-swarm": {
+      "command": "docker",
+      "args": ["exec", "bitnet-swarm-container", "bitnet-mcp-server"],
+      "capabilities": [
+        "agent-coordination",
+        "swarm-intelligence", 
+        "hive-mind-intelligence",
+        "dynamic-mode-switching",
+        "code-generation",
+        "project-scaffolding",
+        "performance-optimization"
+      ]
+    }
+  }
+}
+```
+
+**Agent-Driven MCP Tool Architecture**:
+- **Dynamic Agent Tool Discovery**: Expose agent capabilities as MCP tools
+- **Orchestrator-Driven Tool Selection**: Use orchestrator routing for MCP tool selection
+- **Multi-Agent MCP Coordination**: Coordinate multiple agents through MCP interface
+- **Agent Hooks MCP Integration**: Integrate agent lifecycle hooks with MCP operations
+
+## 🎯 DOCKER BITNET SWARM ROADMAP - Current Implementation Phases
+
+**PRIMARY WORKFLOW**: **DOCKER_BITNET_SWARM_TODO.md** - Production-ready Docker container with dual intelligence modes
+
+### 📋 **PHASE 0.5: DYNAMIC INTELLIGENCE SYSTEMS - SWARMS & HIVE MINDS** (Pre-Phase 1)
+**Priority**: FOUNDATION | **Timeline**: 3-4 days | **Owner**: ML Research + Performance Engineering
+
+#### **Epic 0.5: Memory-Efficient Intelligence Systems with Agent-Trained Networks**
+- **Task 0.5.1**: Swarm vs Hive Mind Neural Architecture System
+  - 🐝 **Swarm Intelligence Architecture**: Neural networks for independent decision-making and collaborative consensus
+  - 🧠 **Hive Mind Architecture**: Neural networks for unified thinking and synchronized execution
+  - **Intelligence Mode Detection**: Automatically determine task requirements (swarm vs hive mind)
+  - **Agent Config Data Extraction**: Parse agent configs to extract training data
+- **Task 0.5.2**: Intelligence System Lifecycle Management
+  - **Swarm Network Spawning**: Create independent networks with autonomous decision-making
+  - **Hive Mind Network Synchronization**: Create unified networks with collective thought processes
+  - **Dynamic Mode Switching**: Switch between intelligence modes during task execution
+- **Task 0.5.3**: Intelligence Mode Selection & Dynamic Switching
+  - **Automatic mode selection** with >90% accuracy
+  - **Dynamic mode switching** without disruption
+  - **Hybrid intelligence coordination** for complex multi-phase tasks
+
+### 📋 **PHASE 0: AGENT CONFIG FRAMEWORK INTEGRATION** (Pre-Phase 1)
+**Priority**: FOUNDATION | **Timeline**: 2-3 days | **Owner**: Architecture + Orchestrator
+
+#### **Epic 0.1: Agent Config System Framework for Docker Integration**
+- **Task 0.1.1**: Agent Config Framework Generator System
+  - **Agent Config Template System**: Standardized templates for new agent configs
+  - **Orchestrator Routing Validation**: Ensure all agents include mandatory orchestrator routing
+  - **Docker-Aware Agent Configs**: Extend agent configs for containerized deployment
+- **Task 0.1.2**: Docker-Native Agent Orchestration System
+  - **Containerized Orchestrator**: Run orchestrator.md as primary container service
+  - **Agent Service Discovery**: Auto-discover available agent configs in container
+  - **Dynamic Agent Loading**: Load and activate agents based on container configuration
+- **Task 0.1.3**: Agent Config Validation & Quality Framework
+  - **Config Consistency Validation**: Ensure all agent configs follow standards
+  - **Docker Compatibility Testing**: Validate agent configs work in container
+
+### 📋 **PHASE 1: DOCKER CONTAINER FOUNDATION** (Week 1-2)
+**Priority**: CRITICAL | **Timeline**: 3-4 days | **Owner**: DevOps + Architecture
+
+#### **Epic 1.1: Docker Infrastructure Setup**
+- **Task 1.1.1**: Multi-Stage Docker Build System
+  - **Multi-Architecture**: Support ARM64 (Apple Silicon) and AMD64 (Intel/AMD)
+  - **Model Cache Stage**: Pre-download microsoft/bitnet-b1.58-2B-4T-gguf model
+  - **Runtime Optimization**: Minimal runtime with <2GB total image size
+- **Task 1.1.2**: HTTP API Server for VS Code Integration with Agent Config System
+  - **Universal API Endpoint**: Single `/api` endpoint handling ALL operations
+  - **Agent-Driven Code Generation**: Route code requests through orchestrator
+  - **Dynamic Agent Coordination**: Use intersection matrix for multi-agent collaboration
+- **Task 1.1.3**: MCP Server Integration with Agent Config System
+  - **Agent-Aware MCP Integration**: Embed agent config system into MCP tools
+  - **Dynamic Agent Tool Discovery**: Expose agent capabilities as MCP tools
+  - **Multi-Agent MCP Coordination**: Coordinate multiple agents through MCP interface
+
+### 📋 **PHASE 2: COMPLETE REMAINING ROAD_TO_INFERENCE TASKS** (Week 2-3)
+**Priority**: HIGH | **Timeline**: 1 week | **Owner**: Inference Engine + Performance Engineering
+
+#### **Epic 2.1: Code Generation & Analysis Implementation**
+- **Task 2.1.1**: Code Tokenization & Processing (Adapted from ROAD_TO_INFERENCE Phase 3)
+  - **Code-Aware Tokenizer**: Implement tokenizer optimized for code analysis
+  - **Multi-Language Support**: Rust, TypeScript, Python, YAML, Dockerfile
+- **Task 2.1.2**: Forward Pass & Code Generation (Adapted from ROAD_TO_INFERENCE Phase 3)
+  - **Forward Pass**: Complete BitNet 1.58-bit forward propagation for code
+  - **Code Generation**: Generate Rust/TypeScript/Docker code snippets
+- **Task 2.1.3**: Code Analysis & Quality Assurance (NEW: Code-Specific)
+  - **Syntax Validation**: Real-time syntax checking for generated code
+  - **Best Practices**: Apply language-specific best practices
+- **Task 2.1.4**: CLI Interface & Development Experience (Adapted from ROAD_TO_INFERENCE Phase 4)
+  - **BitNet Code CLI**: Command-line interface for code generation
+  - **Agent Commands**: `bitnet agents spawn|coordinate|status`
+
+**Current Infrastructure Status**:
+- ✅ **Foundation Complete**: 100% test success rate (1,169/1,169 tests)
+- ✅ **Performance Achieved**: ARM64 NEON 1.37x-3.20x speedup (Microsoft parity)
+- ✅ **Model Loading Ready**: GGUF format + microsoft/bitnet-b1.58-2B-4T support
+- ✅ **Memory Management**: HybridMemoryPool + fragmentation prevention
+- 🎯 **Current Focus**: Docker container with swarm/hive mind intelligence systems
 - **Week 2-3**: Epic 2.2 - Core inference engine enhancement (ternary operations, transformer layers) (READY TO START)  
 - **Week 3-4**: Epic 3.1 - Tokenization & text processing (LLaMA 3 tokenizer)
 - **Week 3-4**: Epic 3.2 - Generation engine (autoregressive generation, KV cache)

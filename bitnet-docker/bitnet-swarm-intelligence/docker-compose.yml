@@ -1,0 +1,193 @@
+# Docker Compose Configuration for BitNet Docker Swarm Intelligence
+version: '3.8'
+
+services:
+  # Main BitNet Swarm Intelligence Container
+  bitnet-swarm:
+    build:
+      context: ../../
+      dockerfile: bitnet-docker/bitnet-swarm-intelligence/Dockerfile
+      platforms:
+        - linux/arm64
+        - linux/amd64
+    image: bitnet-swarm-intelligence:latest
+    container_name: bitnet-swarm
+    ports:
+      - "8080:8080"  # HTTP API
+      - "8081:8081"  # MCP Server
+    volumes:
+      # Mount agent configurations (read-only)
+      - ../../agent-config:/app/agent-config:ro
+      # Mount model cache (read-write for downloads)
+      - ../../models:/app/models
+      # Mount logs directory
+      - ../../logs:/app/logs
+    environment:
+      - RUST_LOG=info
+      - BITNET_MODEL_PATH=/app/models
+      - BITNET_AGENT_CONFIG_PATH=/app/agent-config
+      - BITNET_LOG_PATH=/app/logs
+      # Intelligence mode configuration
+      - BITNET_DEFAULT_MODE=swarm
+      - BITNET_AUTO_MODE_SELECTION=true
+      - BITNET_MODE_SWITCH_THRESHOLD=0.7
+      # Resource limits
+      - BITNET_MAX_AGENTS=20
+      - BITNET_SWARM_LIMIT=10
+      - BITNET_HIVE_MIND_LIMIT=20
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # Resource limits for production deployment
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    networks:
+      - bitnet-network
+
+  # Optional: Agent Config Framework Development Container
+  # Uncomment this service for development and testing
+  # agent-config-dev:
+  #   build:
+  #     context: ../agent-config-framework
+  #     dockerfile: Dockerfile.dev
+  #   image: bitnet-agent-config:dev
+  #   container_name: bitnet-agent-config-dev
+  #   volumes:
+  #     - ./agent-config:/app/agent-config
+  #     - ../agent-config-framework:/app/framework
+  #   working_dir: /app/framework
+  #   command: ["sleep", "infinity"]  # Keep container running for development
+  #   networks:
+  #     - bitnet-network
+
+  # Optional: Model Download Service
+  # Uncomment this service to handle model downloads separately
+  # model-downloader:
+  #   image: bitnet-swarm-intelligence:latest
+  #   container_name: bitnet-model-downloader
+  #   volumes:
+  #     - ./models:/app/models
+  #   command: ["/app/bin/bitnet-cli", "model", "download", "microsoft/bitnet-b1.58-2B-4T-gguf"]
+  #   restart: "no"
+  #   networks:
+  #     - bitnet-network
+
+  # Optional: Monitoring and Logging
+  # Uncomment for production monitoring
+  # bitnet-monitor:
+  #   image: prom/prometheus:latest
+  #   container_name: bitnet-prometheus
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+  #   command:
+  #     - '--config.file=/etc/prometheus/prometheus.yml'
+  #     - '--storage.tsdb.path=/prometheus'
+  #     - '--web.console.libraries=/etc/prometheus/console_libraries'
+  #     - '--web.console.templates=/etc/prometheus/consoles'
+  #     - '--web.enable-lifecycle'
+  #   networks:
+  #     - bitnet-network
+  #   depends_on:
+  #     - bitnet-swarm
+
+networks:
+  bitnet-network:
+    driver: bridge
+    name: bitnet-network
+
+volumes:
+  # Named volumes for persistent data
+  bitnet-models:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./models
+      
+  bitnet-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs
+
+# ==============================================================================
+# Usage Instructions
+# ==============================================================================
+#
+# 1. Start the complete BitNet Swarm Intelligence system:
+#    docker-compose up -d
+#
+# 2. View logs:
+#    docker-compose logs -f bitnet-swarm
+#
+# 3. Check health:
+#    curl http://localhost:8080/health
+#
+# 4. Test universal API:
+#    curl -X POST http://localhost:8080/api \
+#      -H "Content-Type: application/json" \
+#      -d '{"prompt": "generate a Rust function for BitNet inference"}'
+#
+# 5. Discover agents:
+#    curl http://localhost:8080/agents/discover
+#
+# 6. Scale the service:
+#    docker-compose up -d --scale bitnet-swarm=3
+#
+# 7. Stop the system:
+#    docker-compose down
+#
+# 8. Rebuild and restart:
+#    docker-compose up -d --build
+#
+# 9. View agent config framework status:
+#    docker-compose exec bitnet-swarm /app/bin/agent-config-cli status --verbose
+#
+# 10. Generate new agent configs:
+#     docker-compose exec bitnet-swarm /app/bin/agent-config-cli generate --interactive
+#
+# ==============================================================================
+# Production Deployment Notes
+# ==============================================================================
+#
+# For production deployment, consider:
+#
+# 1. **Security**:
+#    - Use secrets management for sensitive configuration
+#    - Run containers with non-root users (already configured)
+#    - Set up proper network isolation
+#
+# 2. **Scaling**:
+#    - Use Docker Swarm mode or Kubernetes for orchestration
+#    - Configure load balancing for multiple instances
+#    - Monitor resource usage and auto-scale based on demand
+#
+# 3. **Persistence**:
+#    - Use external volumes for model storage
+#    - Configure log rotation and retention
+#    - Set up regular backups of agent configurations
+#
+# 4. **Monitoring**:
+#    - Enable Prometheus metrics collection
+#    - Set up Grafana dashboards for visualization
+#    - Configure alerting for system health issues
+#
+# 5. **Updates**:
+#    - Use rolling updates to minimize downtime
+#    - Test updates in staging environment first
+#    - Maintain compatibility between agent configs and container versions
+#
+# ==============================================================================

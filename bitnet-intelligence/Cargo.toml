@@ -1,0 +1,85 @@
+[package]
+name = "bitnet-intelligence"
+version = "0.1.0"
+edition = "2021"
+description = "BitNet Intelligence Architecture - Swarm vs Hive Mind Neural Networks"
+authors = ["BitNet-Rust Team"]
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# Core BitNet dependencies
+bitnet-core = { path = "../bitnet-core" }
+bitnet-inference = { path = "../bitnet-inference" }
+bitnet-quant = { path = "../bitnet-quant" }
+
+# Neural network and ML frameworks (commented out to avoid heavy dependencies)
+# tch = { version = "0.13", optional = true }
+# candle-core = { version = "0.3", optional = true }
+# candle-nn = { version = "0.3", optional = true }
+
+# Async and concurrency
+tokio = { version = "1.0", features = ["full"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# Serialization and data handling
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bincode = "1.3"
+
+# Agent configuration parsing
+toml = "0.8"
+yaml-rust = "0.4"
+
+# Memory management and performance
+memmap2 = "0.9"
+rayon = "1.7"
+
+# Consensus and coordination algorithms (commented out)
+# consensus = { version = "0.1", optional = true }
+
+# Error handling and logging
+anyhow = "1.0"
+thiserror = "1.0"
+log = "0.4"
+env_logger = "0.10"
+
+# Time and UUID handling
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.11.0", features = ["serde", "v4", "rng"] }
+
+# Mathematical operations (simplified)
+# ndarray = "0.15"  # Commented out - using simple Vec<f32> instead
+# nalgebra = "0.32"  # Commented out - using simple Vec<f32> instead
+
+# Configuration and CLI
+clap = { version = "4.0", features = ["derive"] }
+config = "0.13"
+
+[dev-dependencies]
+tempfile = "3.0"
+criterion = "0.5"
+
+[features]
+default = []
+# pytorch = ["tch"]  # Commented out heavy dependencies
+# candle = ["candle-core", "candle-nn"]
+# consensus-algorithms = ["consensus"]
+gpu-acceleration = []
+metal-backend = []
+
+[[example]]
+name = "swarm_intelligence_demo"
+path = "examples/swarm_demo.rs"
+
+[[example]]
+name = "hive_mind_demo"
+path = "examples/hive_mind_demo.rs"
+
+[[example]]
+name = "agent_config_training"
+path = "examples/agent_training.rs"
+
+# [[bench]]
+# name = "intelligence_benchmarks"
+# harness = false

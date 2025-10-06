@@ -1,0 +1,122 @@
+# Agent Config Framework Configuration
+
+# Framework Settings
+[framework]
+name = "BitNet Agent Config Framework"
+version = "1.0.0"
+author = "BitNet-Rust Team"
+
+# Directory Configuration
+[directories]
+agent_config_dir = "../agent-config"
+template_dir = "templates"
+output_dir = "../agent-config"
+logs_dir = "logs"
+
+# Validation Settings
+[validation]
+enable_orchestrator_routing_check = true
+enable_docker_integration_check = true
+enable_intelligence_modes_check = true
+enable_agent_hooks_check = true
+require_intersection_matrix = true
+require_quality_standards = true
+
+# Template Settings
+[templates]
+default_template = "specialist-agent-template.md"
+orchestrator_template = "orchestrator-routing-template.md"
+docker_template = "docker-integration-template.md"
+intersection_template = "intersection-pattern-template.md"
+
+# Agent Generation Defaults
+[agent_defaults]
+agent_type = "Specialist"
+container_role = "Secondary"
+cpu_requirement = "Medium"
+memory_requirement = "Medium"
+gpu_required = false
+swarm_capable = true
+hive_mind_capable = true
+
+# Docker Integration
+[docker]
+default_container_name = "bitnet-swarm"
+default_image_name = "bitnet-swarm-intelligence"
+base_port = 8080
+mcp_port = 8081
+health_check_interval = 30
+max_startup_wait = 300
+
+# Intelligence Mode Configuration
+[intelligence_modes]
+default_mode = "swarm"
+auto_mode_selection = true
+mode_switch_threshold = 0.7
+swarm_agent_limit = 10
+hive_mind_agent_limit = 20
+consensus_threshold = 0.7
+synchronization_threshold = 0.95
+
+# Resource Limits
+[resource_limits]
+default_cpu_limit = "2.0"
+default_memory_limit = "4G"
+high_performance_cpu_limit = "4.0"
+high_performance_memory_limit = "8G"
+
+# Logging Configuration
+[logging]
+level = "info"
+enable_file_logging = true
+enable_console_logging = true
+log_format = "json"
+
+# Quality Standards
+[quality_standards]
+min_test_coverage = 80
+require_documentation = true
+require_examples = true
+enforce_rust_best_practices = true
+require_error_handling = true
+
+# Project Integration
+[project_integration]
+comprehensive_todo_file = "../COMPREHENSIVE_TODO.md"
+road_to_inference_file = "../ROAD_TO_INFERENCE.md"
+docker_bitnet_swarm_file = "../DOCKER_BITNET_SWARM_TODO.md"
+orchestrator_file = "../agent-config/orchestrator.md"
+hooks_file = "../agent-config/agent-hooks.md"
+
+# CLI Configuration
+[cli]
+default_interactive = false
+default_verbose = false
+enable_auto_fix = true
+enable_monitoring = true
+max_concurrent_operations = 4
+
+# Container Orchestration
+[orchestration]
+enable_auto_discovery = true
+enable_health_monitoring = true
+enable_auto_scaling = false
+enable_load_balancing = false
+retry_attempts = 3
+retry_delay = 5
+
+# Agent Intersection Patterns
+[intersection_patterns]
+auto_update_enabled = true
+generate_visualization = false
+validate_consistency = true
+update_frequency = "on_change"
+
+# Framework Features
+[features]
+enable_docker_integration = true
+enable_agent_hooks = true
+enable_intelligence_modes = true
+enable_automatic_validation = true
+enable_intersection_updates = true
+enable_container_orchestration = true
