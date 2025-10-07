@@ -55,6 +55,8 @@ pub use bitnet_config::{BitNetModelConfig, BasicModelInfo, LayerConfig, Attentio
 // Re-export commonly used types
 pub use engine::{InferenceContext, OptimizationLevel, InferenceBackend};
 pub use engine::{DynamicBatchProcessor, ParallelInferenceProcessor, ParallelConfig, MemoryMonitor, PerformanceTracker, DynamicBatchStats};
+pub use engine::{LayerFactory, LayerFactoryBuilder};
+pub use engine::{InferenceIntegration, ExecutableModel, LayerOperation, ModelInfo};
 pub use cache::{ModelCache, CacheConfig, AdvancedModelCache, CachedModel, ExecutionPlan};
 pub use profiling::{MemoryProfiler, MemoryProfile, MemoryAnalysis};
 

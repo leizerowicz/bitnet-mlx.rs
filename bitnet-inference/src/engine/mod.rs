@@ -10,6 +10,12 @@ pub mod zero_copy_loader;
 pub mod dynamic_batching;
 pub mod parallel_processor;
 pub mod weight_conversion;
+pub mod layer_factory;
+pub mod inference_integration;
+pub mod architecture_mapping;
+pub mod ternary_operations;
+pub mod transformer_layers;
+pub mod forward_pass_pipeline;
 
 // Week 3 Advanced GPU Optimization
 // pub mod advanced_gpu_backend;  // Disabled - needs Metal integration fixes
@@ -28,8 +34,21 @@ pub use device_selector::{DeviceSelector, SelectionStrategy, DeviceCapabilities}
 pub use gpu_memory_optimizer::{GPUMemoryManager, GPUAllocation, MemoryStats};
 pub use zero_copy_loader::{ZeroCopyModelLoader, MmapModel, ModelHeader, WeightLayout};
 pub use dynamic_batching::{DynamicBatchProcessor, MemoryMonitor, PerformanceTracker, DynamicBatchStats, MemoryStats as DynamicMemoryStats, PerformanceStats};
+pub use layer_factory::{LayerFactory, LayerFactoryBuilder};
+pub use inference_integration::{InferenceIntegration, ExecutableModel, LayerOperation, ModelInfo};
 pub use parallel_processor::{ParallelInferenceProcessor, InferenceTask, InferenceResult, ParallelConfig, ParallelProcessorStats, WorkerStats};
 pub use weight_conversion::{WeightConverter, WeightArrays, ConvertedWeights};
+pub use architecture_mapping::{ArchitectureMapper, LayerPattern, ExecutionGraphBuilder};
+pub use ternary_operations::{TernaryProcessor, TernaryConfig, TernaryStats};
+pub use transformer_layers::{
+    TransformerConfig, TransformerStats, BitLinearLayer, RoPEEmbedding, 
+    ReLUSquaredActivation, SubLNNormalization, MultiHeadAttention, 
+    FeedForwardNetwork, TransformerBlock
+};
+pub use forward_pass_pipeline::{
+    ForwardPassPipeline, ForwardPassConfig, ForwardPassStats,
+    BenchmarkResults, ValidationResults
+};
 
 // Week 3 Advanced GPU Optimization exports
 // pub use advanced_gpu_backend::{AdvancedGPUBackend, AdvancedGPUConfig, PerformanceStatistics, MultiGPUState, DeviceCapability, AsyncMemoryPipeline, PerformanceMonitor};  // Disabled - needs fixes

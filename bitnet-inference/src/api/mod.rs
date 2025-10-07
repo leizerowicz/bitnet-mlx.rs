@@ -3,9 +3,15 @@
 pub mod simple;
 pub mod builder;
 pub mod streaming;
+pub mod generation;
 
 // Re-export streaming types for convenience
 pub use streaming::{InferenceStream, StreamingConfig};
+
+// Re-export generation types for convenience
+pub use generation::{
+    TextGenerator, TextGeneratorBuilder, GenerationConfig, GenerationResult, FinishReason
+};
 
 use crate::{Result, InferenceError};
 use crate::engine::{InferenceBackend, InferenceContext, OptimizationLevel, Model, CpuInferenceBackend, DeviceSelector, SelectionStrategy};
@@ -313,6 +319,53 @@ impl InferenceEngine {
     /// Clear the model cache.
     pub fn clear_cache(&self) {
         self.model_cache.clear();
+    }
+
+    /// Create a text generator for the given model
+    pub async fn create_text_generator(
+        self: &Arc<Self>,
+        model: Arc<Model>,
+        config: Option<GenerationConfig>,
+    ) -> Result<TextGenerator> {
+        // Extract tokenizer config from model (placeholder for now)
+        let tokenizer_config = crate::bitnet_config::TokenizerConfig {
+            vocab_size: 128256, // LLaMA 3 default
+            tokenizer_type: "llama3".to_string(),
+            bos_token_id: Some(1),
+            eos_token_id: Some(2),
+            pad_token_id: None,
+        };
+
+        let generation_config = config.unwrap_or_default();
+        
+        Ok(TextGenerator::new(
+            self.clone(),
+            model,
+            generation_config,
+            tokenizer_config,
+        ))
+    }
+
+    /// Quick text generation with default parameters
+    pub async fn generate_text(
+        self: &Arc<Self>,
+        model: Arc<Model>,
+        prompt: &str,
+    ) -> Result<String> {
+        let generator = self.create_text_generator(model, None).await?;
+        let result = generator.generate(prompt).await?;
+        Ok(result.text)
+    }
+
+    /// Generate text with custom configuration
+    pub async fn generate_text_with_config(
+        self: &Arc<Self>,
+        model: Arc<Model>,
+        prompt: &str,
+        config: GenerationConfig,
+    ) -> Result<GenerationResult> {
+        let generator = self.create_text_generator(model, Some(config)).await?;
+        generator.generate(prompt).await
     }
 
     /// Select the optimal device for the current system.

@@ -53,6 +53,21 @@ pub enum InferenceError {
 
     #[error("Concurrency error: {0}")]
     ConcurrencyError(String),
+
+    #[error("Inference execution error: {0}")]
+    InferenceExecutionError(String),
+
+    #[error("Text generation error: {message}")]
+    GenerationError { message: String },
+
+    #[error("Tokenization error: {message}")]
+    TokenizationError { message: String },
+
+    #[error("Tensor error: {message}")]
+    TensorError { message: String },
+
+    #[error("Configuration error: {message}")]
+    ConfigurationError { message: String },
 }
 
 impl InferenceError {
@@ -111,6 +126,31 @@ impl InferenceError {
     /// Create a new concurrency error.
     pub fn concurrency<S: Into<String>>(msg: S) -> Self {
         InferenceError::ConcurrencyError(msg.into())
+    }
+
+    /// Create a new inference execution error.
+    pub fn inference<S: Into<String>>(msg: S) -> Self {
+        InferenceError::InferenceExecutionError(msg.into())
+    }
+
+    /// Create a new generation error.
+    pub fn generation<S: Into<String>>(msg: S) -> Self {
+        InferenceError::GenerationError { message: msg.into() }
+    }
+
+    /// Create a new tokenization error.
+    pub fn tokenization<S: Into<String>>(msg: S) -> Self {
+        InferenceError::TokenizationError { message: msg.into() }
+    }
+
+    /// Create a new tensor error.
+    pub fn tensor<S: Into<String>>(msg: S) -> Self {
+        InferenceError::TensorError { message: msg.into() }
+    }
+
+    /// Create a new configuration error.
+    pub fn configuration<S: Into<String>>(msg: S) -> Self {
+        InferenceError::ConfigurationError { message: msg.into() }
     }
 
     /// Check if this error is recoverable.

@@ -848,10 +848,14 @@ impl GgufLoader {    Uint64(u64),
         let architecture = Self::build_architecture(&header)?;
         let weights = Self::load_weights_robust(&mut file, &header, &config)?;
         
+        // Extract BitNet configuration from GGUF metadata
+        let bitnet_config = Self::extract_bitnet_config(&header)?;
+        
         Ok(LoadedModel {
             metadata,
             architecture,
             weights,
+            bitnet_config: Some(bitnet_config),
         })
     }
     
@@ -887,10 +891,14 @@ impl GgufLoader {    Uint64(u64),
         let architecture = Self::build_architecture(&header)?;
         let weights = Self::load_weights_with_pool_robust(&mut file, &header, memory_pool, &config)?;
         
+        // Extract BitNet configuration from GGUF metadata
+        let bitnet_config = Self::extract_bitnet_config(&header)?;
+        
         Ok(LoadedModel {
             metadata,
             architecture,
             weights,
+            bitnet_config: Some(bitnet_config),
         })
     }
     
@@ -1012,6 +1020,124 @@ impl GgufLoader {    Uint64(u64),
             input_shape: vec![1, context_length],
             output_shape: vec![1, context_length, vocab_size],
             extra,
+        })
+    }
+    
+    /// Extract BitNet-specific configuration from GGUF header
+    fn extract_bitnet_config(header: &GgufHeader) -> Result<crate::bitnet_config::BitNetModelConfig> {
+        use crate::bitnet_config::*;
+        
+        // Extract basic model information
+        let name = header.metadata.get("general.name")
+            .and_then(|v| match v {
+                GgufValue::String(s) => Some(s.clone()),
+                _ => None,
+            })
+            .unwrap_or_else(|| "bitnet-b1.58".to_string());
+        
+        let architecture = header.metadata.get("general.architecture")
+            .and_then(|v| match v {
+                GgufValue::String(s) => Some(s.clone()),
+                _ => None,
+            })
+            .unwrap_or_else(|| "bitnet".to_string());
+            
+        // Extract layer configuration
+        let n_layers = header.metadata.get("llama.block_count")
+            .or_else(|| header.metadata.get("general.layer_count"))
+            .and_then(|v| match v {
+                GgufValue::Uint32(n) => Some(*n as usize),
+                GgufValue::Uint64(n) => Some(*n as usize),
+                _ => None,
+            })
+            .unwrap_or(32); // Default for BitNet b1.58 2B
+            
+        let hidden_size = header.metadata.get("llama.embedding_length")
+            .or_else(|| header.metadata.get("general.hidden_size"))
+            .and_then(|v| match v {
+                GgufValue::Uint32(n) => Some(*n as usize),
+                GgufValue::Uint64(n) => Some(*n as usize),
+                _ => None,
+            })
+            .unwrap_or(2048); // Default for BitNet b1.58 2B
+            
+        let intermediate_size = header.metadata.get("llama.feed_forward_length")
+            .or_else(|| header.metadata.get("general.intermediate_size"))
+            .and_then(|v| match v {
+                GgufValue::Uint32(n) => Some(*n as usize),
+                GgufValue::Uint64(n) => Some(*n as usize),
+                _ => None,
+            })
+            .unwrap_or(hidden_size * 4);
+            
+        let context_length = header.metadata.get("llama.context_length")
+            .or_else(|| header.metadata.get("general.context_length"))
+            .and_then(|v| match v {
+                GgufValue::Uint32(n) => Some(*n as usize),
+                GgufValue::Uint64(n) => Some(*n as usize),
+                _ => None,
+            })
+            .unwrap_or(4096);
+            
+        let vocab_size = header.metadata.get("llama.vocab_size")
+            .or_else(|| header.metadata.get("general.vocab_size"))
+            .and_then(|v| match v {
+                GgufValue::Uint32(n) => Some(*n as usize),
+                GgufValue::Uint64(n) => Some(*n as usize),
+                _ => None,
+            })
+            .unwrap_or(128256); // LLaMA 3 vocab size
+            
+        let parameter_count = header.tensors.iter()
+            .map(|tensor| tensor.dimensions.iter().product::<u64>() as usize)
+            .sum::<usize>();
+        
+        // Create BitNet configuration
+        Ok(BitNetModelConfig {
+            basic_info: BasicModelInfo {
+                name,
+                architecture,
+                version: "1.0".to_string(),
+                parameter_count,
+                context_length,
+            },
+            layer_config: LayerConfig {
+                n_layers,
+                hidden_size,
+                intermediate_size,
+                model_dim: hidden_size,
+            },
+            attention_config: AttentionConfig {
+                n_heads: 32, // Default for BitNet b1.58 2B
+                n_kv_heads: Some(32),
+                head_dim: hidden_size / 32,
+                max_position_embeddings: context_length,
+                rope_theta: 10000.0,
+                rope_scaling: None,
+            },
+            bitlinear_config: BitLinearConfig {
+                weight_bits: 2, // 1.58-bit quantization
+                activation_bits: 8,
+                group_size: None,
+                use_bias: false,
+            },
+            tokenizer_config: TokenizerConfig {
+                vocab_size,
+                pad_token_id: Some(0),
+                bos_token_id: Some(1),
+                eos_token_id: Some(2),
+                unk_token_id: Some(0),
+                tokenizer_type: "llama".to_string(),
+            },
+            normalization_config: NormalizationConfig {
+                rms_norm_eps: 1e-6,
+                layer_norm_eps: None,
+                use_rms_norm: true,
+            },
+            activation_config: ActivationConfig {
+                hidden_act: "silu".to_string(),
+                intermediate_act: Some("silu".to_string()),
+            },
         })
     }
     
