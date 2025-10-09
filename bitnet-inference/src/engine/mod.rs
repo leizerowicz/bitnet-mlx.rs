@@ -16,6 +16,7 @@ pub mod architecture_mapping;
 pub mod ternary_operations;
 pub mod transformer_layers;
 pub mod forward_pass_pipeline;
+pub mod sampling;
 
 // Week 3 Advanced GPU Optimization
 // pub mod advanced_gpu_backend;  // Disabled - needs Metal integration fixes
@@ -48,6 +49,10 @@ pub use transformer_layers::{
 pub use forward_pass_pipeline::{
     ForwardPassPipeline, ForwardPassConfig, ForwardPassStats,
     BenchmarkResults, ValidationResults
+};
+pub use sampling::{
+    TokenSampler, SamplingConfig, SamplingStats, SamplingPresets,
+    BatchSampler
 };
 
 // Week 3 Advanced GPU Optimization exports

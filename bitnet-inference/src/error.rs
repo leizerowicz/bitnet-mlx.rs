@@ -63,6 +63,9 @@ pub enum InferenceError {
     #[error("Tokenization error: {message}")]
     TokenizationError { message: String },
 
+    #[error("Tokenizer error: {0}")]
+    TokenizerError(String),
+
     #[error("Tensor error: {message}")]
     TensorError { message: String },
 

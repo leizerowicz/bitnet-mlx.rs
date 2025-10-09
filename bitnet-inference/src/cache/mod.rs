@@ -2,6 +2,7 @@
 
 pub mod enhanced_memory_pool;
 pub mod advanced_model_cache;
+pub mod kv_cache;
 
 pub use advanced_model_cache::{
     AdvancedModelCache, CachedModel, ExecutionPlan, LayerExecution, 
@@ -10,6 +11,11 @@ pub use advanced_model_cache::{
 };
 // Re-export the advanced cache as the primary ModelCache for compatibility
 pub use advanced_model_cache::AdvancedModelCache as ModelCache;
+
+pub use kv_cache::{
+    KVCacheConfig, KVCacheStats, LayerKVCache, MultiLayerKVCache,
+    GenerationState, GenerationConfig
+};
 
 use std::path::PathBuf;
 

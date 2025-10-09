@@ -1,9 +1,11 @@
 //! Forward Pass Pipeline Integration for BitNet
 //!
-//! Creates complete forward pass pipeline integrating ternary operations and transformer layers:
-//! - End-to-end inference flow
-//! - Layer sequencing
-//! - Memory management
+//! Creates complete forward pass pipeline integrating ternary operations, transformer layers,
+//! KV caching, and advanced sampling strategies for efficient autoregressive generation:
+//! - End-to-end inference flow with KV cache optimization
+//! - Autoregressive generation with EOS token detection
+//! - Advanced sampling strategies (temperature, top-k, top-p, deterministic)
+//! - Memory management and performance monitoring
 //! - Validation with real model execution
 
 use anyhow::{Result, Context};
@@ -13,6 +15,8 @@ use super::ternary_operations::{TernaryProcessor, TernaryConfig, TernaryStats};
 use super::transformer_layers::{
     TransformerConfig, TransformerBlock, TransformerStats, BitLinearLayer
 };
+use super::sampling::{TokenSampler, SamplingConfig, SamplingStats};
+use crate::cache::{GenerationState, GenerationConfig, MultiLayerKVCache, KVCacheConfig};
 
 /// Token embedding layer for converting token IDs to embeddings
 #[derive(Debug)]
@@ -88,19 +92,29 @@ pub struct ForwardPassConfig {
     pub device: Device,
     /// Transformer configuration
     pub transformer_config: TransformerConfig,
+    /// Generation configuration
+    pub generation_config: GenerationConfig,
+    /// Sampling configuration
+    pub sampling_config: SamplingConfig,
 }
 
 impl Default for ForwardPassConfig {
     fn default() -> Self {
         let transformer_config = TransformerConfig::default();
+        let device = transformer_config.device.clone();
         Self {
             num_layers: 12,
             vocab_size: 128256, // LLaMA 3 tokenizer vocab size
             hidden_size: transformer_config.hidden_size,
             num_heads: transformer_config.num_heads,
             max_seq_len: transformer_config.max_seq_len,
-            device: transformer_config.device.clone(),
+            device: device.clone(),
             transformer_config,
+            generation_config: GenerationConfig::default(),
+            sampling_config: SamplingConfig {
+                device: device.clone(),
+                ..Default::default()
+            },
         }
     }
 }
@@ -120,8 +134,14 @@ pub struct ForwardPassStats {
     pub ternary_stats: TernaryStats,
     /// Transformer layer statistics
     pub transformer_stats: TransformerStats,
+    /// Sampling statistics
+    pub sampling_stats: SamplingStats,
     /// Tokens per second
     pub tokens_per_second: f32,
+    /// Number of generation sequences completed
+    pub generation_sequences: u64,
+    /// Average generation length
+    pub avg_generation_length: f32,
 }
 
 /// Complete forward pass pipeline for BitNet inference
@@ -137,6 +157,8 @@ pub struct ForwardPassPipeline {
     lm_head: BitLinearLayer,
     /// Ternary processor for optimization
     ternary_processor: TernaryProcessor,
+    /// Token sampler for generation
+    token_sampler: TokenSampler,
     /// Pipeline statistics
     stats: ForwardPassStats,
     /// Device
@@ -175,12 +197,16 @@ impl ForwardPassPipeline {
         let ternary_processor = TernaryProcessor::new(config.transformer_config.ternary_config.clone())
             .context("Failed to create ternary processor")?;
         
+        // Create token sampler
+        let token_sampler = TokenSampler::new(config.sampling_config.clone());
+        
         Ok(Self {
             config,
             token_embedding,
             transformer_blocks,
             lm_head,
             ternary_processor,
+            token_sampler,
             stats: ForwardPassStats::default(),
             device,
         })
@@ -188,22 +214,35 @@ impl ForwardPassPipeline {
     
     /// Create a simplified pipeline for testing
     pub fn new_simple(hidden_size: usize, num_layers: usize, device: Device) -> Result<Self> {
+        // Ensure we have at least 1 head and head_dim divides hidden_size evenly
+        let num_heads = std::cmp::max(1, hidden_size / 64);
+        let head_dim = if num_heads == 1 && hidden_size < 64 {
+            hidden_size // For small hidden sizes, use entire hidden size as head dim
+        } else {
+            64
+        };
+        
         let config = ForwardPassConfig {
             num_layers,
             vocab_size: 1000, // Small vocab for testing
             hidden_size,
-            num_heads: hidden_size / 64, // 64 dims per head
+            num_heads,
             max_seq_len: 512,
             device: device.clone(),
             transformer_config: TransformerConfig {
                 hidden_size,
-                num_heads: hidden_size / 64,
-                head_dim: 64,
+                num_heads,
+                head_dim,
                 ffn_intermediate_size: hidden_size * 4,
                 max_seq_len: 512,
                 rms_norm_eps: 1e-5,
-                device,
+                device: device.clone(),
                 ternary_config: TernaryConfig::default(),
+            },
+            generation_config: GenerationConfig::default(),
+            sampling_config: SamplingConfig {
+                device: device.clone(),
+                ..Default::default()
             },
         };
         
@@ -268,42 +307,139 @@ impl ForwardPassPipeline {
         Ok(logits)
     }
     
-    /// Generate text continuation given input tokens
+    /// Generate text continuation given input tokens (IMPROVED VERSION with KV cache and sampling)
     pub fn generate(&mut self, input_ids: &Tensor, max_new_tokens: usize) -> Result<Tensor> {
-        let input_shape = input_ids.shape();
-        let batch_size = input_shape.dims()[0];
-        let seq_len = input_shape.dims()[1];
+        // Create generation state with KV cache
+        let mut generation_state = GenerationState::new(
+            input_ids.clone(),
+            self.config.generation_config.clone()
+        );
         
-        // Start with input tokens
-        let mut current_tokens = input_ids.clone();
+        let start_time = std::time::Instant::now();
+        let mut tokens_generated = 0;
         
-        for _ in 0..max_new_tokens {
-            // Forward pass
-            let logits = self.forward(&current_tokens)
+        // Autoregressive generation loop
+        while !generation_state.should_stop() && tokens_generated < max_new_tokens {
+            // Forward pass on current sequence
+            let logits = self.forward(&generation_state.tokens)
                 .context("Failed to compute logits for generation")?;
             
-            // Get the last token logits
-            let last_token_logits = logits.narrow(1, seq_len + current_tokens.dims()[1] - 1, 1)
+            // Get the last token logits for next token prediction
+            let seq_len = generation_state.tokens.shape().dims()[1];
+            let last_token_logits = logits.narrow(1, seq_len - 1, 1)
                 .context("Failed to extract last token logits")?;
             
-            // Apply temperature and get next token (simplified - just take argmax)
-            let next_token = self.sample_next_token(&last_token_logits)
+            // Sample next token using configured sampling strategy
+            let next_token = self.token_sampler.sample(&last_token_logits)
                 .context("Failed to sample next token")?;
             
-            // Append next token
-            current_tokens = Tensor::cat(&[current_tokens, next_token], 1)
-                .context("Failed to append next token")?;
+            // Add token to generation state (handles EOS detection)
+            generation_state.add_token(next_token)
+                .context("Failed to add token to generation state")?;
+            
+            tokens_generated += 1;
+            
+            // Check for early stopping conditions
+            if generation_state.should_stop() {
+                break;
+            }
         }
         
-        Ok(current_tokens)
+        // Update statistics
+        self.stats.generation_sequences += 1;
+        self.stats.tokens_processed += tokens_generated as u64;
+        let elapsed = start_time.elapsed();
+        self.stats.total_time_ns += elapsed.as_nanos() as u64;
+        
+        // Update average generation length
+        let total_generated = self.stats.generation_sequences as f32 * self.stats.avg_generation_length + tokens_generated as f32;
+        self.stats.avg_generation_length = total_generated / self.stats.generation_sequences as f32;
+        
+        // Copy sampling stats
+        self.stats.sampling_stats = self.token_sampler.stats().clone();
+        
+        Ok(generation_state.tokens)
     }
     
-    /// Sample next token from logits (simplified implementation)
-    fn sample_next_token(&self, logits: &Tensor) -> Result<Tensor> {
-        // For now, just return a dummy token (simplified implementation)
-        // In a real implementation, we would apply softmax and sample
-        Tensor::zeros(&[logits.dims()[0], 1], DType::I64, &*self.device)
-            .context("Failed to create dummy next token")
+    /// Generate text with custom generation configuration
+    pub fn generate_with_config(
+        &mut self, 
+        input_ids: &Tensor, 
+        generation_config: GenerationConfig,
+        sampling_config: Option<SamplingConfig>
+    ) -> Result<Tensor> {
+        // Temporarily update sampling config if provided
+        let original_sampling_config = if let Some(ref new_sampling_config) = sampling_config {
+            let original = self.token_sampler.config().clone();
+            self.token_sampler.update_config(new_sampling_config.clone());
+            Some(original)
+        } else {
+            None
+        };
+        
+        // Create generation state with custom config
+        let mut generation_state = GenerationState::new(input_ids.clone(), generation_config);
+        
+        let start_time = std::time::Instant::now();
+        let mut tokens_generated = 0;
+        let max_new_tokens = generation_state.config.max_new_tokens;
+        
+        // Autoregressive generation loop
+        while !generation_state.should_stop() && tokens_generated < max_new_tokens {
+            let logits = self.forward(&generation_state.tokens)
+                .context("Failed to compute logits for generation")?;
+            
+            let seq_len = generation_state.tokens.shape().dims()[1];
+            let last_token_logits = logits.narrow(1, seq_len - 1, 1)
+                .context("Failed to extract last token logits")?;
+            
+            let next_token = self.token_sampler.sample(&last_token_logits)
+                .context("Failed to sample next token")?;
+            
+            generation_state.add_token(next_token)
+                .context("Failed to add token to generation state")?;
+            
+            tokens_generated += 1;
+        }
+        
+        // Restore original sampling config if it was changed
+        if let Some(original_config) = original_sampling_config {
+            self.token_sampler.update_config(original_config);
+        }
+        
+        // Update statistics
+        self.stats.generation_sequences += 1;
+        self.stats.tokens_processed += tokens_generated as u64;
+        let elapsed = start_time.elapsed();
+        self.stats.total_time_ns += elapsed.as_nanos() as u64;
+        
+        let total_generated = self.stats.generation_sequences as f32 * self.stats.avg_generation_length + tokens_generated as f32;
+        self.stats.avg_generation_length = total_generated / self.stats.generation_sequences as f32;
+        
+        self.stats.sampling_stats = self.token_sampler.stats().clone();
+        
+        Ok(generation_state.tokens)
+    }
+    
+    
+    /// Update sampling configuration
+    pub fn update_sampling_config(&mut self, config: SamplingConfig) {
+        self.token_sampler.update_config(config);
+    }
+    
+    /// Update generation configuration
+    pub fn update_generation_config(&mut self, config: GenerationConfig) {
+        self.config.generation_config = config;
+    }
+    
+    /// Get current sampling configuration
+    pub fn sampling_config(&self) -> &SamplingConfig {
+        self.token_sampler.config()
+    }
+    
+    /// Get current generation configuration
+    pub fn generation_config(&self) -> &GenerationConfig {
+        &self.config.generation_config
     }
     
     /// Benchmark the pipeline performance
@@ -527,7 +663,7 @@ mod tests {
     }
 
     #[test]
-    fn test_generation_placeholder() {
+    fn test_generation_with_sampling() {
         let mut pipeline = ForwardPassPipeline::new_simple(32, 1, Device::Cpu).unwrap();
         let input_ids = Tensor::zeros(&[1, 3], DType::I64, &Device::Cpu).unwrap();
         
@@ -535,6 +671,12 @@ mod tests {
         let generated = pipeline.generate(&input_ids, 2).unwrap();
         
         // Should have original tokens plus new ones
-        assert_eq!(generated.shape().dims()[1], 5); // 3 original + 2 new
+        let generated_len = generated.shape().dims()[1];
+        assert!(generated_len >= 3); // At least original length
+        assert!(generated_len <= 5); // At most 3 original + 2 new
+        
+        // Check generation statistics
+        assert_eq!(pipeline.stats().generation_sequences, 1);
+        assert!(pipeline.stats().avg_generation_length >= 0.0);
     }
 }

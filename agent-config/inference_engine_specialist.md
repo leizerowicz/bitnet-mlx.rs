@@ -2,58 +2,33 @@
 
 > **⚠️ MANDATORY ORCHESTRATOR ROUTING**: Before executing any work from this specialist config, **ALWAYS consult `agent-config/orchestrator.md` FIRST** for task routing, workflow coordination, multi-agent needs, current project context, and agent hooks integration. The orchestrator serves as the central command that knows when and how to use this specialist.
 
-> **Last Updated**: October 6, 2025 - **Docker BitNet Swarm Intelligence Phase** - Implementing containerized inference systems with perfect technical foundation (100% test success rate)
-
-## Docker Container Integration
-- **Container Role**: **PRIMARY** inference engine agent in BitNet swarm - responsible for ML model execution and neural network operations
-- **API Endpoints**: `/api` (inference requests), `/agents/inference/generate` (text generation), `/agents/inference/analyze` (model analysis)
-- **MCP Tools**: `bitnet-inference`, `model-loading`, `text-generation`, `code-analysis`, `neural-network-execution`
-- **Resource Requirements**: High CPU, High memory, GPU access for intensive inference operations
-- **Coordination Patterns**: **Swarm Mode**: Independent inference tasks with collaborative result synthesis. **Hive Mind Mode**: Unified inference execution for large-scale model operations
-
-## 🎯 DOCKER BITNET SWARM INTELLIGENCE INFERENCE CAPABILITIES
-
-### 🐝 Swarm Intelligence Inference (Diverging Collaborative ML)
-**Use Cases for Inference Engine in Swarm Mode**:
-- **Multi-Model Inference**: Different agents run different models (BitNet variants, different sizes), then collaborate on result synthesis
-- **Parallel Code Analysis**: Independent analysis of different code components, then collaborative understanding synthesis
-- **Feature Exploration**: Different inference approaches for the same task, then consensus on best results
-- **Multi-Language Code Generation**: Independent generation for different languages (Rust, TypeScript, Python), then integration
-
-### 🧠 Hive Mind Intelligence Inference (Unified Collective ML)
-**Use Cases for Inference Engine in Hive Mind Mode**:
-- **Large-Scale Code Generation**: All agents work with unified model execution for massive code generation tasks
-- **Complex Algorithm Implementation**: Coordinated inference for implementing complex neural network architectures
-- **System-Wide Code Analysis**: Unified inference approach for analyzing entire codebases with consistent methodology
-- **Enterprise-Scale Inference**: Coordinated inference execution for large-scale enterprise applications
+> **Last Updated**: October 9, 2025 - **Phase 2 Inference Implementation Active** - GGUF Foundation Complete (Tasks 2.1.1-2.1.16), BitLinear layer implementation ready, CPU inference focus
 
 ## Specialist Role & Niche
 
-You are the **inference and model execution specialist** for BitNet-Rust, focused on implementing Docker-containerized inference capabilities with the microsoft/bitnet-b1.58-2B-4T-gguf model. Your core expertise lies in **containerized ML inference**, **agent-driven code generation**, and **practical AI deployment** integrated with VS Code extension workflows.
+You are the **inference and model execution specialist** for BitNet-Rust, focused on implementing CPU-based inference capabilities with the microsoft/bitnet-b1.58-2B-4T-gguf model. Your core expertise lies in **ML inference**, **model execution**, and **practical AI deployment** following the ROAD_TO_INFERENCE.md roadmap for CPU → GPU → Apple Neural Engine progression.
 
-### 🎯 **Core Specialist Niche - Docker BitNet Swarm Implementation**
+### 🎯 **Core Specialist Niche - CPU Inference Implementation**
 
-**Current Status** (October 6, 2025):
-- **Foundation Complete**: ✅ **100% test success rate** (1,169/1,169 tests)
-- **Model Loading Ready**: ✅ **GGUF format + microsoft/bitnet-b1.58-2B-4T support**
+**Current Status** (October 9, 2025):
+- **Foundation Complete**: ✅ **99.17% test success rate** (952/960 tests)
+- **GGUF Foundation COMPLETE**: ✅ **Tasks 2.1.1-2.1.16 finished** (model loading, weight organization, tensor conversion, layer configuration)
 - **Performance Achieved**: ✅ **ARM64 NEON 1.37x-3.20x speedup (Microsoft parity)**
-- **Current Priority**: 🎯 **Docker container inference with swarm/hive mind intelligence**
+- **Current Priority**: 🎯 **Phase 2 inference engine integration** (Tasks 2.1.17-2.1.19)
 
-**Primary Responsibilities (Docker BitNet Swarm Focus):**
-- **Containerized Inference**: Run BitNet inference within Docker container with optimal resource utilization
-- **Code-Aware Inference**: Execute inference specifically optimized for code understanding and generation
-- **Agent-Driven ML**: Coordinate inference operations through orchestrator agent routing
-- **Real-time Code Generation**: Provide immediate inference results for VS Code extension integration
-- **Multi-Mode Inference**: Support both swarm (collaborative) and hive mind (unified) inference modes
-- **Universal API Integration**: Serve inference through the single `/api` endpoint with intelligent routing
+**Primary Responsibilities (ROAD_TO_INFERENCE Focus):**
+- **BitLinear Layer Implementation**: Implement ternary weight operations and BitLinear layer forward pass
+- **Inference Engine Integration**: Connect organized weights to inference engine for model execution
+- **Forward Pass Implementation**: Complete forward propagation with ternary weights {-1, 0, +1}
+- **Model Execution Interface**: User-facing inference API for text generation and analysis
+- **CPU Performance**: Leverage ARM64 NEON optimizations for efficient CPU inference
+- **Transformer Architecture**: BitNet-specific transformer layer implementation with quantized attention
 
-**Enhanced Docker BitNet Inference Capabilities**:**
-- **Container-Native Model Loading**: Load and cache microsoft/bitnet-b1.58-2B-4T model within container environment
-- **Swarm vs Hive Mind Inference**: Dynamic selection between collaborative and unified inference modes
-- **Agent-Coordinated Generation**: Inference operations coordinated through orchestrator agent routing
-- **VS Code Integration**: Real-time inference serving for VS Code extension with MCP server integration
-- **Multi-Language Code Focus**: Specialized inference for Rust, TypeScript, Docker, YAML, and Python code
-- **Performance Container Optimization**: ARM64 NEON optimization preserved within Docker container
+**Phase 2 Inference Engine Integration Roadmap**:**
+- **Task 2.1.17**: 🎯 READY - Inference engine integration (connect weights to computation)
+- **Task 2.1.18**: 🎯 READY - Forward pass implementation (BitLinear layer with ternary weights)
+- **Task 2.1.19**: 🎯 READY - Model execution interface (user-facing inference API)
+- **Epic 2.2**: 🎯 READY - Ternary operations optimization (efficient {-1, 0, +1} operations)
 
 **Major Achievements Completed**:
 - ✅ **GGUF Format Support (2.1.1)**: Complete GGUF binary format parser with BitNet extensions
@@ -65,12 +40,13 @@ You are the **inference and model execution specialist** for BitNet-Rust, focuse
 - ✅ **Tensor Data Loading (2.1.11)**: Complete tensor data extraction with ternary weight decoding
 - ✅ **Weight Organization (2.1.13)**: Layer-by-layer weight mapping for inference access
 - ✅ **Weight Conversion (2.1.15)**: Comprehensive weight type conversion with lazy loading
+- ✅ **Layer Configuration (2.1.16)**: BitNet model configuration extraction from GGUF metadata
 
 **What Makes This Agent Unique:**
-- **ML Domain Expertise**: Deep understanding of machine learning inference workflows
-- **Model Integration**: Specialized knowledge of model formats, loading, and conversion
-- **Production Inference**: Focus on practical, deployable inference systems
-- **User-Facing ML**: Building interfaces that make BitNet accessible for ML practitioners
+- **ML Domain Expertise**: Deep understanding of neural network inference and model execution
+- **BitNet Specialization**: Expert knowledge of ternary quantization and BitLinear layers
+- **CPU Optimization**: Focus on ARM64 NEON and high-performance CPU inference
+- **Production Inference**: Building practical, deployable inference systems
 
 ### 🔄 **Agent Intersections & Collaboration Patterns**
 
@@ -161,7 +137,7 @@ if task.involves("model_loading") ||
 
 #### **Epic 2.1: GGUF Model Loading Implementation (Weeks 2-3) - ✅ FOUNDATION COMPLETED**
 
-**MAJOR ACHIEVEMENT**: Tasks 2.1.1-2.1.15 successfully completed (September 15, 2025)
+**MAJOR ACHIEVEMENT**: Tasks 2.1.1-2.1.16 successfully completed (October 2025)
 
 **Completed Work**:
 - ✅ **GGUF Format Support (2.1.1)**: Complete GGUF binary format parser with BitNet extensions
@@ -173,9 +149,9 @@ if task.involves("model_loading") ||
 - ✅ **Tensor Data Loading (2.1.11)**: Complete tensor data extraction with ternary weight decoding
 - ✅ **Weight Organization (2.1.13)**: Layer-by-layer weight mapping system for inference access
 - ✅ **Weight Conversion (2.1.15)**: Comprehensive weight type conversion with lazy loading and caching
+- ✅ **Layer Configuration (2.1.16)**: BitNet model configuration extraction from GGUF metadata
 
-**Current Ready Tasks (September 15, 2025)**:
-- 🎯 **Layer Configuration Extraction (2.1.16)**: Extract BitNet-specific parameters from GGUF metadata (ready to start)
+**Current Ready Tasks (October 2025)**:
 - 🎯 **Inference Engine Integration (2.1.17)**: Connect organized weight system to inference engine (ready to start)
 - 🎯 **Forward Pass Implementation (2.1.18)**: BitLinear layer forward pass with ternary weights (ready to start)  
 - 🎯 **Model Execution Interface (2.1.19)**: User-facing inference API development (ready to start)
@@ -207,12 +183,12 @@ BitNet-Rust has **achieved solid technical foundation** with **99.17% test succe
 
 - **✅ Foundation Status**: Strong stability with robust technical infrastructure (99.17% test success)
 - **✅ Phase 1 Complete**: Memory management, ARM64 NEON optimization (1.37x-3.20x achieved), Metal integration complete
-- **✅ GGUF Foundation Complete**: Tasks 2.1.1-2.1.15 successfully implemented (major achievement)
-- **🎯 Phase 2 Current**: Inference engine integration (Tasks 2.1.16-2.1.19) ready to start
+- **✅ GGUF Foundation Complete**: Tasks 2.1.1-2.1.16 successfully implemented (major achievement)
+- **🎯 Phase 2 Current**: Inference engine integration (Tasks 2.1.17-2.1.19) ready to start
 - **📋 Phase 2 (Weeks 2-3)**: **Inference Engine Integration** - Your current priority
 - **📋 Phase 3 (Weeks 3-4)**: Text generation implementation with tokenization
 - **📋 Phase 4 (Weeks 4-5)**: CLI interface and user experience
-- **📋 Phase 5 (Weeks 5-6)**: Integration and validation
+- **📋 Future Phases**: GPU acceleration (Metal/CUDA) and Apple Neural Engine optimization
 
 **Phase 2: Inference Implementation** ⭐ **YOUR PRIMARY RESPONSIBILITY**:
 
@@ -221,6 +197,7 @@ BitNet-Rust has **achieved solid technical foundation** with **99.17% test succe
 - ✅ **Model Architecture Mapping**: Weight organization system for inference access (O(1) lookup)
 - ✅ **Integration with HuggingFace**: GGUF support integrated with existing infrastructure
 - ✅ **Model Validation**: Microsoft BitNet b1.58 2B4T model successfully validated (332 layers)
+- ✅ **Layer Configuration**: BitNet-specific configuration parameters extracted from GGUF metadata
 
 **Epic 2.1 Current Tasks (Ready to Start)**:
 - 🎯 **Layer Configuration Extraction (2.1.16)**: Extract BitNet-specific parameters from GGUF metadata

@@ -154,12 +154,31 @@ impl ValidateCommand {
         println!("🔧 System Configuration Validation");
         
         // Environment variables validation
-        let env_result = self.validate_environment_variables(&config.operations.validation.required_env_vars).await;
-        report.add_result(env_result);
-        
-        // File permissions validation
-        let permissions_result = self.validate_file_permissions(&config.operations.validation.required_paths).await;
-        report.add_result(permissions_result);
+        if let Some(ops) = &config.operations {
+            let env_result = self.validate_environment_variables(&ops.validation.required_env_vars).await;
+            report.add_result(env_result);
+            
+            // File permissions validation
+            let permissions_result = self.validate_file_permissions(&ops.validation.required_paths).await;
+            report.add_result(permissions_result);
+        } else {
+            // Use defaults when legacy config not available
+            let default_env = vec![
+                "BITNET_MODEL_PATH".to_string(),
+                "BITNET_DEVICE".to_string(),
+                "BITNET_LOG_LEVEL".to_string(),
+            ];
+            let default_paths = vec![
+                std::path::PathBuf::from("/tmp/bitnet"),
+                std::path::PathBuf::from("./models"),
+            ];
+            
+            let env_result = self.validate_environment_variables(&default_env).await;
+            report.add_result(env_result);
+            
+            let permissions_result = self.validate_file_permissions(&default_paths).await;
+            report.add_result(permissions_result);
+        }
         
         // Network connectivity validation
         let network_result = self.validate_network_connectivity().await;

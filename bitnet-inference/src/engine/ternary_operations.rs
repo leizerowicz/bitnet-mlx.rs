@@ -119,7 +119,13 @@ impl TernaryProcessor {
 
         // Get input shape and data
         let shape = input.shape();
-        let input_data = input.to_vec1::<f32>()?;
+        let input_data = if shape.dims().len() == 1 {
+            input.to_vec1::<f32>()?
+        } else {
+            // Flatten multi-dimensional tensor
+            let flattened = input.flatten_all().context("Failed to flatten input tensor")?;
+            flattened.to_vec1::<f32>()?
+        };
         
         // Calculate absmax per token (last dimension)
         let batch_size = if shape.dims().len() >= 2 { shape.dims()[0] } else { 1 };
@@ -176,8 +182,18 @@ impl TernaryProcessor {
         use bitnet_core::cpu::kernels::Tl1Arm64Kernel;
         
         let kernel = Tl1Arm64Kernel::new();
-        let weights_data = weights.to_vec1::<f32>().context("Failed to get weights data")?;
-        let input_data = input.to_vec1::<f32>().context("Failed to get input data")?;
+        let weights_data = if weights.shape().dims().len() == 1 {
+            weights.to_vec1::<f32>().context("Failed to get weights data")?
+        } else {
+            let flattened = weights.flatten_all().context("Failed to flatten weights tensor")?;
+            flattened.to_vec1::<f32>().context("Failed to get weights data")?
+        };
+        let input_data = if input.shape().dims().len() == 1 {
+            input.to_vec1::<f32>().context("Failed to get input data")?
+        } else {
+            let flattened = input.flatten_all().context("Failed to flatten input tensor")?;
+            flattened.to_vec1::<f32>().context("Failed to get input data")?
+        };
 
         // Convert f32 weights to i8 ternary values for kernel
         let ternary_weights: Vec<i8> = weights_data.iter()
@@ -214,8 +230,18 @@ impl TernaryProcessor {
         use bitnet_core::cpu::kernels::Tl2X86_64Kernel;
         
         let kernel = Tl2X86_64Kernel::new();
-        let weights_data = weights.to_vec1::<f32>().context("Failed to get weights data")?;
-        let input_data = input.to_vec1::<f32>().context("Failed to get input data")?;
+        let weights_data = if weights.shape().dims().len() == 1 {
+            weights.to_vec1::<f32>().context("Failed to get weights data")?
+        } else {
+            let flattened = weights.flatten_all().context("Failed to flatten weights tensor")?;
+            flattened.to_vec1::<f32>().context("Failed to get weights data")?
+        };
+        let input_data = if input.shape().dims().len() == 1 {
+            input.to_vec1::<f32>().context("Failed to get input data")?
+        } else {
+            let flattened = input.flatten_all().context("Failed to flatten input tensor")?;
+            flattened.to_vec1::<f32>().context("Failed to get input data")?
+        };
 
         // Convert f32 weights to i8 ternary values for kernel
         let ternary_weights: Vec<i8> = weights_data.iter()
@@ -260,8 +286,18 @@ impl TernaryProcessor {
         input: &Tensor,
         output: &mut Tensor,
     ) -> Result<()> {
-        let weights_data = weights.to_vec1::<f32>().context("Failed to get weights data")?;
-        let input_data = input.to_vec1::<f32>().context("Failed to get input data")?;
+        let weights_data = if weights.shape().dims().len() == 1 {
+            weights.to_vec1::<f32>().context("Failed to get weights data")?
+        } else {
+            let flattened = weights.flatten_all().context("Failed to flatten weights tensor")?;
+            flattened.to_vec1::<f32>().context("Failed to get weights data")?
+        };
+        let input_data = if input.shape().dims().len() == 1 {
+            input.to_vec1::<f32>().context("Failed to get input data")?
+        } else {
+            let flattened = input.flatten_all().context("Failed to flatten input tensor")?;
+            flattened.to_vec1::<f32>().context("Failed to get input data")?
+        };
 
         let weights_shape = weights.shape();
         let input_shape = input.shape();

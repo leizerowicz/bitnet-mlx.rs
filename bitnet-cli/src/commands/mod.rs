@@ -7,11 +7,13 @@ pub mod convert;
 pub mod setup;
 pub mod validate;
 pub mod quickstart;
+pub mod config;
 
 pub use convert::ConvertCommand;
 pub use setup::SetupCommand;
 pub use validate::ValidateCommand;
 pub use quickstart::QuickStartCommand;
+pub use config::handle_config_command;
 
 use clap::Subcommand;
 

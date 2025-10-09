@@ -49,7 +49,7 @@ impl Default for BufferReadConfig {
     fn default() -> Self {
         Self {
             max_retries: MAX_BUFFER_READ_RETRIES,
-            partial_tolerance: 0.20, // 20% data loss acceptable for large tensors
+            partial_tolerance: 0.05, // 5% data loss acceptable for large tensors
             enable_streaming: true,
             chunk_size: 16 * 1024 * 1024, // 16MB chunks
             large_tensor_threshold: 100 * 1024 * 1024, // 100MB threshold

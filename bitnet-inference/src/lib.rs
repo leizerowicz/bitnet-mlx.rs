@@ -43,11 +43,15 @@ pub mod error;
 pub mod huggingface;
 pub mod gguf;
 pub mod bitnet_config;
+pub mod tokenizer;
+pub mod input_processing;
 
 // Re-export the main API components
 pub use api::{InferenceEngine, EngineConfig, InferenceStream, StreamingConfig};
 pub use error::{InferenceError, Result};
 pub use huggingface::{HuggingFaceLoader, ModelRepo, HuggingFaceConfig, CacheStats};
+pub use tokenizer::{LlamaTokenizer, ChatFormat, Message, Role, Dialog};
+pub use input_processing::{InputProcessor, InputProcessingConfig, ValidatedInput, InputBatch, TokenBuffer};
 pub use gguf::{GgufLoader, GgufHeader, GgufTensorInfo, GgufValueType, GgufTensorType};
 pub use bitnet_config::{BitNetModelConfig, BasicModelInfo, LayerConfig, AttentionConfig, 
                         NormalizationConfig, BitLinearConfig, TokenizerConfig, RopeConfig, GgufKeys};

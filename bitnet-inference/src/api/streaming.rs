@@ -339,7 +339,7 @@ pub mod sources {
                     .map(|_| rand::thread_rng().gen_range(-1.0..1.0))
                     .collect();
                 
-                match Tensor::from_slice(&data, &shape, &bitnet_core::Device::Cpu) {
+                match Tensor::from_slice(&data, &*shape, &bitnet_core::Device::Cpu) {
                     Ok(tensor) => Some((tensor, (shape, interval))),
                     Err(_) => None,
                 }
@@ -354,6 +354,7 @@ mod tests {
     use crate::api::InferenceEngine;
     use crate::engine::{Model, ModelArchitecture, QuantizationConfig};
     use bitnet_core::Tensor;
+    use tokio_stream::StreamExt;
 
     fn create_test_model() -> Arc<Model> {
         Arc::new(Model {

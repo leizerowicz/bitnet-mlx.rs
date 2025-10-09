@@ -18,6 +18,9 @@ pub enum CliError {
     
     #[error("Serialization error: {0}")]
     Serialization(String),
+    
+    #[error("Inference error: {0}")]
+    Inference(#[from] anyhow::Error),
 }
 
 impl CliError {
@@ -53,6 +56,14 @@ impl CliError {
                     format!("Serialization issue: {}", msg),
                 ]
             }
+            Self::Inference(err) => {
+                vec![
+                    "Check model file exists and is accessible".to_string(),
+                    "Verify model format is supported".to_string(),
+                    "Ensure sufficient system resources".to_string(),
+                    format!("Inference issue: {}", err),
+                ]
+            }
         }
     }
     
@@ -63,6 +74,7 @@ impl CliError {
             Self::CustomerTools(_) => true, // Customer tools errors are often retryable
             Self::Io(_) => false,
             Self::Serialization(_) => false,
+            Self::Inference(_) => true, // Inference errors might be retryable
         }
     }
 }

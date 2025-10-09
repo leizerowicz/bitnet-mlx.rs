@@ -18,9 +18,9 @@ path = "src/main.rs"
 [features]
 default = ["full"]
 # Enable all features (temporarily reduced due to dependency issues)
-full = ["conversion"]
-# Enable inference commands (temporarily disabled due to dependency issues)
-# inference = ["bitnet-inference/generation", "bitnet-inference/tokenizers"]
+full = ["conversion", "inference"]
+# Enable inference commands 
+inference = ["bitnet-inference/generation", "bitnet-inference/tokenizers"]
 # Enable training commands (temporarily disabled due to dependency issues)
 # training = ["bitnet-training/qat", "bitnet-training/peft"]
 # Enable model conversion
@@ -33,7 +33,7 @@ conversion = ["dep:safetensors"]
 [dependencies]
 bitnet-core = { path = "../bitnet-core", version = "1.0.0" }
 bitnet-quant = { path = "../bitnet-quant", version = "1.0.0" }
-# bitnet-inference = { path = "../bitnet-inference", version = "^1.0" }
+bitnet-inference = { path = "../bitnet-inference", version = "1.0.0" }
 # bitnet-training = { path = "../bitnet-training", version = "^1.0" }
 # bitnet-benchmarks = { path = "../bitnet-benchmarks", version = "^1.0", optional = true }
 
@@ -49,11 +49,14 @@ serde.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 
-# Customer tools dependencies  
+# Serialization and configuration
 serde_json = "1.0"
 serde_yaml = "0.9"
-chrono = { version = "0.4", features = ["serde"] }
+toml = "0.8"
+
+# Directories and utilities
 dirs = "5.0"
+chrono = { version = "0.4", features = ["serde"] }
 num_cpus = "1.0"
 env_logger = "0.10"
 

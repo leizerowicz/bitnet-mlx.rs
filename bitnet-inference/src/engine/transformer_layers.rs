@@ -117,25 +117,87 @@ impl BitLinearLayer {
     
     /// Forward pass through BitLinear layer
     pub fn forward(&mut self, input: &Tensor) -> Result<Tensor> {
-        // Create output tensor
-        let batch_size = input.shape().dims()[0];
-        let mut output = Tensor::zeros(
-            &[batch_size, self.out_features],
-            DType::F32,
-            &*self.device,
-        ).context("Failed to create output tensor")?;
+        let input_shape = input.shape();
+        let input_dims = input_shape.dims();
         
-        // Perform ternary matrix multiplication
-        self.ternary_processor.ternary_matmul(&self.weights, input, &mut output)
-            .context("Failed to perform ternary matrix multiplication")?;
-        
-        // Add bias if present
-        if let Some(bias) = &self.bias {
-            output = output.broadcast_add(bias)
-                .context("Failed to add bias")?;
+        // Handle different input shapes
+        match input_dims.len() {
+            2 => {
+                // 2D input: [batch_size, in_features]
+                let batch_size = input_dims[0];
+                if input_dims[1] != self.in_features {
+                    anyhow::bail!(
+                        "Input dimension mismatch: expected {}, got {}",
+                        self.in_features, input_dims[1]
+                    );
+                }
+                
+                let mut output = Tensor::zeros(
+                    &[batch_size, self.out_features],
+                    DType::F32,
+                    &*self.device,
+                ).context("Failed to create output tensor")?;
+                
+                // Perform ternary matrix multiplication
+                self.ternary_processor.ternary_matmul(&self.weights, input, &mut output)
+                    .context("Failed to perform ternary matrix multiplication")?;
+                
+                // Add bias if present
+                let final_output = if let Some(bias) = &self.bias {
+                    output.broadcast_add(bias)
+                        .context("Failed to add bias")?
+                } else {
+                    output
+                };
+                
+                Ok(final_output)
+            },
+            3 => {
+                // 3D input: [batch_size, seq_len, in_features]
+                let batch_size = input_dims[0];
+                let seq_len = input_dims[1];
+                if input_dims[2] != self.in_features {
+                    anyhow::bail!(
+                        "Input dimension mismatch: expected {}, got {}",
+                        self.in_features, input_dims[2]
+                    );
+                }
+                
+                // Reshape to 2D: [batch_size * seq_len, in_features]
+                let input_2d = input.reshape(&[batch_size * seq_len, self.in_features])
+                    .context("Failed to reshape input to 2D")?;
+                
+                let mut output_2d = Tensor::zeros(
+                    &[batch_size * seq_len, self.out_features],
+                    DType::F32,
+                    &*self.device,
+                ).context("Failed to create 2D output tensor")?;
+                
+                // Perform ternary matrix multiplication
+                self.ternary_processor.ternary_matmul(&self.weights, &input_2d, &mut output_2d)
+                    .context("Failed to perform ternary matrix multiplication")?;
+                
+                // Add bias if present
+                let output_2d_with_bias = if let Some(bias) = &self.bias {
+                    output_2d.broadcast_add(bias)
+                        .context("Failed to add bias")?
+                } else {
+                    output_2d
+                };
+                
+                // Reshape back to 3D: [batch_size, seq_len, out_features]
+                let output = output_2d_with_bias.reshape(&[batch_size, seq_len, self.out_features])
+                    .context("Failed to reshape output back to 3D")?;
+                
+                Ok(output)
+            },
+            _ => {
+                anyhow::bail!(
+                    "Unsupported input shape: {:?}. Expected 2D [batch_size, in_features] or 3D [batch_size, seq_len, in_features]",
+                    input_dims
+                );
+            }
         }
-        
-        Ok(output)
     }
 }
 
@@ -432,7 +494,14 @@ impl MultiHeadAttention {
         let k_dims = k.dims().len();
         let k_transposed = k.transpose(k_dims - 2, k_dims - 1)
             .context("Failed to transpose key")?;
-        let scores = q.matmul(&k_transposed)
+        
+        // Ensure tensors are contiguous for matrix multiplication
+        let q_contiguous = q.contiguous()
+            .context("Failed to make query tensor contiguous")?;
+        let k_contiguous = k_transposed.contiguous()
+            .context("Failed to make key tensor contiguous")?;
+        
+        let scores = q_contiguous.matmul(&k_contiguous)
             .context("Failed to compute attention scores")?;
         
         // Apply scaling
@@ -459,7 +528,11 @@ impl MultiHeadAttention {
             .context("Failed to normalize attention weights")?;
         
         // Apply attention to values
-        let attention_output = attention_weights.matmul(&v)
+        let attention_weights_contiguous = attention_weights.contiguous()
+            .context("Failed to make attention weights contiguous")?;
+        let v_contiguous = v.contiguous()
+            .context("Failed to make value tensor contiguous")?;
+        let attention_output = attention_weights_contiguous.matmul(&v_contiguous)
             .context("Failed to apply attention to values")?;
         
         // Reshape back

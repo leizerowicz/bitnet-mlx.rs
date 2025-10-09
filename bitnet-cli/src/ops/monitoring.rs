@@ -214,13 +214,21 @@ impl MonitorCommand {
         println!("🚨 Alert Configuration");
         println!("═══════════════════");
         
-        let thresholds = &config.operations.monitoring.alert_thresholds;
-        
-        println!("Alert thresholds configured:");
-        println!("  • CPU Usage: >{:.1}%", thresholds.cpu_percent);
-        println!("  • Memory Usage: >{:.1}%", thresholds.memory_percent);
-        println!("  • Latency: >{}ms", thresholds.latency_ms);
-        println!("  • Error Rate: >{:.1}%", thresholds.error_rate_percent);
+        if let Some(ops) = &config.operations {
+            let thresholds = &ops.monitoring.alert_thresholds;
+            
+            println!("Alert thresholds configured:");
+            println!("  • CPU Usage: >{:.1}%", thresholds.cpu_percent);
+            println!("  • Memory Usage: >{:.1}%", thresholds.memory_percent);
+            println!("  • Latency: >{}ms", thresholds.latency_ms);
+            println!("  • Error Rate: >{:.1}%", thresholds.error_rate_percent);
+        } else {
+            println!("Alert thresholds (defaults):");
+            println!("  • CPU Usage: >80.0%");
+            println!("  • Memory Usage: >85.0%");
+            println!("  • Latency: >1000ms");
+            println!("  • Error Rate: >5.0%");
+        }
         
         println!("✅ Alert configuration completed");
         Ok(())

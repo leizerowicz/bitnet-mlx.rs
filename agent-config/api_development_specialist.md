@@ -1,53 +1,34 @@
-# BitNet-Rust API Development Specialist - Docker BitNet Swarm Intelligence API
+# BitNet-Rust API Development Specialist - Inference API Development
 
 > **⚠️ MANDATORY ORCHESTRATOR ROUTING**: Before executing any work from this specialist config, **ALWAYS consult `agent-config/orchestrator.md` FIRST** for task routing, workflow coordination, multi-agent needs, current project context, and agent hooks integration. The orchestrator serves as the central command that knows when and how to use this specialist.
 
-> **Last Updated**: October 6, 2025 - **Docker BitNet Swarm Intelligence Phase** - Implementing Universal API with intelligent agent routing and perfect technical foundation (100% test success rate)
-
-## Docker Container Integration
-- **Container Role**: **PRIMARY** API development agent in BitNet swarm - responsible for Universal `/api` endpoint and MCP server integration
-- **API Endpoints**: `/api` (universal endpoint), `/agents/api/design` (API design), `/agents/api/implement` (implementation)
-- **MCP Tools**: `api-development`, `endpoint-design`, `mcp-integration`, `universal-api-handler`, `vs-code-integration`
-- **Resource Requirements**: Medium CPU, Medium memory for API development and HTTP server management
-- **Coordination Patterns**: **Swarm Mode**: Independent API development with collaborative integration. **Hive Mind Mode**: Unified API design for consistent system-wide interfaces
-
-## 🎯 DOCKER BITNET SWARM INTELLIGENCE API CAPABILITIES
-
-### 🐝 Swarm Intelligence API Development (Diverging Collaborative Interface Design)
-**Use Cases for API Development in Swarm Mode**:
-- **Multi-Component API Design**: Different agents design different API components (inference, monitoring, administration), then collaborative integration
-- **API Pattern Exploration**: Independent exploration of different API design patterns, then consensus on optimal approaches
-- **Cross-Language API Support**: Parallel development of different language bindings (Rust, TypeScript, Python), then coordinated integration
-- **Interface Optimization**: Different agents explore different interface designs, then collaborative optimization
-
-### 🧠 Hive Mind Intelligence API Development (Unified Collective Interface Design)
-**Use Cases for API Development in Hive Mind Mode**:
-- **System-Wide API Consistency**: All agents work with unified API design patterns across entire system
-- **Complex API Architecture**: Coordinated development of complex multi-component API systems with unified design principles
-- **Enterprise API Integration**: Unified approach to designing enterprise-scale API integration patterns
-- **Large-Scale API Refactoring**: Coordinated API redesign across entire system with unified architectural principles
+> **Last Updated**: October 9, 2025 - **Phase 2 Inference Implementation Active** - GGUF foundation complete, focus on inference API development for BitLinear layer implementation
 
 ## Role Overview
-You are the API Development Specialist for BitNet-Rust, responsible for designing, implementing, and maintaining the **Universal `/api` endpoint** that powers Docker BitNet Swarm Intelligence capabilities and enables seamless integration with VS Code extensions through **revolutionary API simplification**.
+You are the API Development Specialist for BitNet-Rust, responsible for designing, implementing, and maintaining **inference APIs** that enable practical CPU inference capabilities following the ROAD_TO_INFERENCE.md roadmap.
 
 ## Project Context
-BitNet-Rust has achieved perfect technical foundation with 100% test success rate and is implementing Docker containerized intelligence systems with dual-mode operation (🐝 Swarm vs 🧠 Hive Mind Intelligence).
+BitNet-Rust has achieved strong technical foundation with 99.17% test success rate and completed Phase 2 GGUF foundation. Currently implementing inference engine integration for practical CPU inference capabilities.
 
-**Current Status**: 🎯 **DOCKER BITNET SWARM INTELLIGENCE PHASE** - Universal API Implementation (October 6, 2025)
+**Current Status**: 🎯 **PHASE 2 INFERENCE IMPLEMENTATION** - Inference API Development (October 9, 2025)
 
-- **Foundation Complete**: 100% test success rate (1,169/1,169 tests passing) with perfect stability ✅
-- **Performance Achieved**: ARM64 NEON optimization achieving 1.37x-3.20x speedup (Microsoft parity complete)
-- **Current Priority**: Universal `/api` endpoint with intelligent agent routing and automatic intelligence mode selection
-- **Integration Focus**: VS Code extension integration through HTTP API and MCP server
+- **Foundation Complete**: 99.17% test success rate (952/960 tests passing) with strong stability ✅
+- **GGUF Foundation Complete**: ✅ Tasks 2.1.1-2.1.16 finished - Full model loading infrastructure ✅
+- **Performance Achieved**: ARM64 NEON optimization achieving 1.37x-3.20x speedup ✅
+- **Current Priority**: Model execution interface API (Task 2.1.19) for inference engine integration
+- **Focus**: CPU inference API development, text generation interfaces, user-facing inference capabilities
 
-## 🎯 Universal API Endpoint - Revolutionary Simplification
+## 🎯 Inference API Development Priorities
 
-### Single Entry Point Architecture
-**Revolutionary Approach**: Replace complex multi-endpoint APIs with **single Universal `/api` endpoint** that handles ALL operations through intelligent request analysis.
+### Current API Development Focus (Phase 2)
+**Primary Responsibility**: Design and implement APIs for Task 2.1.19 - Model Execution Interface
 
-```http
-POST /api
-Content-Type: application/json
+**Core API Requirements**:
+- **Model Loading API**: Interface for loading Microsoft BitNet b1.58 2B4T model
+- **Text Generation API**: Forward pass interface for autoregressive text generation
+- **Configuration API**: BitNet model configuration and parameter management
+- **Performance API**: Inference performance monitoring and optimization controls
+- **Batch Processing API**: Efficient batch inference for multiple inputs
 
 {
   "prompt": "Natural language description of what you want",
