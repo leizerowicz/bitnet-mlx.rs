@@ -12,7 +12,7 @@ keywords = ["bitnet", "inference", "neural-networks", "text-generation"]
 categories = ["science"]
 
 [features]
-default = ["std", "tokenizers", "metal", "simd", "batching", "streaming"]
+default = ["std", "tokenizers", "metal", "simd", "batching", "streaming", "generation"]
 std = []
 # Enable tokenization
 tokenizers = ["dep:tokenizers"]

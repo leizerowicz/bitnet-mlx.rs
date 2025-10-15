@@ -45,6 +45,7 @@ async fn main() -> Result<()> {
         do_sample: true,
         stop_tokens: vec![".", "!", "?"].iter().map(|s| s.to_string()).collect(),
         seed: Some(42),
+        ..Default::default()
     };
 
     let prompt2 = "BitNet quantization provides";
@@ -92,6 +93,7 @@ async fn main() -> Result<()> {
         do_sample: false,  // Greedy decoding
         stop_tokens: vec![],
         seed: None,
+        ..Default::default()
     };
 
     let prompt4 = "Neural networks are";
@@ -112,6 +114,7 @@ async fn main() -> Result<()> {
         do_sample: true,
         stop_tokens: vec![],
         seed: Some(123),
+        ..Default::default()
     };
 
     println!("High temperature - Prompt: \"{}\"", prompt4);

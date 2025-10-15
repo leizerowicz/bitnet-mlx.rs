@@ -27,10 +27,17 @@ impl From<InferenceConfig> for GenerationConfig {
             temperature: config.temperature,
             top_k: Some(config.top_k as usize),
             top_p: Some(config.top_p),
+            typical_p: Some(0.95),
             max_length: config.max_tokens as usize,
+            max_context_length: Some(4096),
             do_sample: true,
             stop_tokens: vec!["<|endoftext|>".to_string(), "</s>".to_string()],
             seed: None,
+            early_stopping: true,
+            repetition_penalty: Some(1.1),
+            length_penalty: Some(1.0),
+            use_lut_acceleration: true,
+            target_latency_ms: Some(50),
         }
     }
 }

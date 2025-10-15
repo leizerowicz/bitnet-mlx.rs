@@ -156,6 +156,31 @@ impl InferenceError {
         InferenceError::ConfigurationError { message: msg.into() }
     }
 
+    /// Create an input validation error.
+    pub fn input_validation<S: Into<String>>(msg: S) -> Self {
+        InferenceError::ConfigurationError { message: format!("Input validation: {}", msg.into()) }
+    }
+
+    /// Create an internal error.
+    pub fn internal<S: Into<String>>(msg: S) -> Self {
+        InferenceError::InferenceExecutionError(format!("Internal error: {}", msg.into()))
+    }
+
+    /// Create a tensor creation error.
+    pub fn tensor_creation<S: Into<String>>(msg: S) -> Self {
+        InferenceError::TensorError { message: format!("Tensor creation: {}", msg.into()) }
+    }
+
+    /// Create a tensor operation error.
+    pub fn tensor_operation<S: Into<String>>(msg: S) -> Self {
+        InferenceError::TensorError { message: format!("Tensor operation: {}", msg.into()) }
+    }
+
+    /// Create a sampling error.
+    pub fn sampling<S: Into<String>>(msg: S) -> Self {
+        InferenceError::GenerationError { message: format!("Sampling: {}", msg.into()) }
+    }
+
     /// Check if this error is recoverable.
     pub fn is_recoverable(&self) -> bool {
         match self {

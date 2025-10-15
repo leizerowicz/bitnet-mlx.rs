@@ -378,6 +378,48 @@ impl Model {
         let bits_per_param = self.quantization_config.weight_bits as usize;
         (self.parameter_count * bits_per_param) / 8
     }
+    
+    /// Create a mock model for testing purposes
+    pub fn new_mock_for_testing() -> Self {
+        Self {
+            name: "BitNet-Test".to_string(),
+            version: "1.0.0-test".to_string(),
+            input_dim: 768,
+            output_dim: 32000, // Typical vocab size
+            architecture: ModelArchitecture::BitLinear {
+                layers: vec![
+                    LayerConfig {
+                        id: 0,
+                        layer_type: LayerType::Embedding,
+                        input_shape: vec![1, 512],
+                        output_shape: vec![1, 512, 768],
+                        parameters: LayerParameters::Embedding {
+                            vocab_size: 32000,
+                            embedding_dim: 768,
+                        },
+                    },
+                    LayerConfig {
+                        id: 1,
+                        layer_type: LayerType::BitLinear,
+                        input_shape: vec![1, 512, 768],
+                        output_shape: vec![1, 512, 768],
+                        parameters: LayerParameters::BitLinear {
+                            weight_bits: 2,  // 1.58-bit quantization
+                            activation_bits: 8,
+                        },
+                    },
+                ],
+                attention_heads: Some(12),
+                hidden_dim: 768,
+            },
+            parameter_count: 2_000_000, // 2M parameters for testing
+            quantization_config: QuantizationConfig {
+                weight_bits: 2,
+                activation_bits: 8,
+                ..Default::default()
+            },
+        }
+    }
 
     /// Get input dimension for GPU memory allocation
     pub fn get_input_dim(&self) -> usize {

@@ -207,10 +207,32 @@ impl InferenceBackend for CpuInferenceBackend {
             .par_iter()
             .map(|tensor| {
                 // TODO: Execute actual inference pipeline
-                // For now, create a mock output with the expected output dimensions
-                // Create a tensor with the expected output shape [1, 768]
-                let output_data = vec![0.1f32; 768]; // Mock output with 768 dimensions
-                let output_tensor = Tensor::from_slice(&output_data, &[1, 768], tensor.device())?;
+                // For now, create a mock output with logits over vocabulary
+                // Return logits shape [batch_size, vocab_size] for language modeling
+                let input_shape = tensor.shape();
+                let batch_size = if input_shape.rank() == 1 { 1 } else { input_shape.dims()[0] };
+                let vocab_size = 32000; // Typical LLaMA vocabulary size
+                
+                // Create mock logits with realistic probability distribution
+                let output_data: Vec<f32> = (0..vocab_size)
+                    .map(|i| {
+                        // Create a realistic distribution with some high-probability tokens
+                        if i < 100 {
+                            // High probability for first 100 tokens (common tokens)
+                            5.0 + (i as f32 * 0.01) 
+                        } else if i < 1000 {
+                            // Medium probability for next 900 tokens
+                            2.0 + ((i - 100) as f32 * 0.001)
+                        } else {
+                            // Lower probability for remaining tokens
+                            -1.0 + (i as f32 * 0.0001)
+                        }
+                    })
+                    .cycle()
+                    .take(batch_size * vocab_size)
+                    .collect();
+                    
+                let output_tensor = Tensor::from_slice(&output_data, &[batch_size, vocab_size], tensor.device())?;
                 Ok(output_tensor)
             })
             .collect();

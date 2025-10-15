@@ -4,6 +4,9 @@ pub mod simple;
 pub mod builder;
 pub mod streaming;
 pub mod generation;
+pub mod model_execution;
+#[cfg(feature = "generation")]
+pub mod sampling;
 
 // Re-export streaming types for convenience
 pub use streaming::{InferenceStream, StreamingConfig};
@@ -12,6 +15,15 @@ pub use streaming::{InferenceStream, StreamingConfig};
 pub use generation::{
     TextGenerator, TextGeneratorBuilder, GenerationConfig, GenerationResult, FinishReason
 };
+
+// Re-export model execution interface (Task 2.1.19)
+pub use model_execution::{
+    BitNetModel, ModelExecutionConfig, MemoryOptimization, ModelMetrics, StreamToken
+};
+
+// Re-export sampling functionality
+#[cfg(feature = "generation")]
+pub use sampling::TokenSampler;
 
 use crate::{Result, InferenceError};
 use crate::engine::{InferenceBackend, InferenceContext, OptimizationLevel, Model, CpuInferenceBackend, DeviceSelector, SelectionStrategy};

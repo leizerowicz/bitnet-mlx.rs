@@ -45,9 +45,12 @@ pub mod gguf;
 pub mod bitnet_config;
 pub mod tokenizer;
 pub mod input_processing;
+pub mod reference_outputs;
+pub mod benchmark_datasets;
 
 // Re-export the main API components
 pub use api::{InferenceEngine, EngineConfig, InferenceStream, StreamingConfig};
+pub use api::{BitNetModel, ModelExecutionConfig, MemoryOptimization, ModelMetrics, StreamToken}; // Task 2.1.19
 pub use error::{InferenceError, Result};
 pub use huggingface::{HuggingFaceLoader, ModelRepo, HuggingFaceConfig, CacheStats};
 pub use tokenizer::{LlamaTokenizer, ChatFormat, Message, Role, Dialog};
@@ -55,6 +58,10 @@ pub use input_processing::{InputProcessor, InputProcessingConfig, ValidatedInput
 pub use gguf::{GgufLoader, GgufHeader, GgufTensorInfo, GgufValueType, GgufTensorType};
 pub use bitnet_config::{BitNetModelConfig, BasicModelInfo, LayerConfig, AttentionConfig, 
                         NormalizationConfig, BitLinearConfig, TokenizerConfig, RopeConfig, GgufKeys};
+pub use reference_outputs::{ReferenceOutput, ReferenceOutputCollector, ReferenceCollectionConfig, 
+                           CollectionMethod, ValidationResult};
+pub use benchmark_datasets::{BenchmarkDataset, BenchmarkIntegrator, BenchmarkConfig, BenchmarkResult, 
+                           BenchmarkExample, BenchmarkOutput, BenchmarkMetrics, GLUETask, SuperGLUETask};
 
 // Re-export commonly used types
 pub use engine::{InferenceContext, OptimizationLevel, InferenceBackend};

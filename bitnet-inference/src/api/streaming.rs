@@ -339,7 +339,7 @@ pub mod sources {
                     .map(|_| rand::thread_rng().gen_range(-1.0..1.0))
                     .collect();
                 
-                match Tensor::from_slice(&data, &*shape, &bitnet_core::Device::Cpu) {
+                match Tensor::from_slice(&data, shape.as_slice(), &bitnet_core::Device::Cpu) {
                     Ok(tensor) => Some((tensor, (shape, interval))),
                     Err(_) => None,
                 }

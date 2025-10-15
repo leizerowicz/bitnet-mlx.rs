@@ -1,0 +1,71 @@
+[package]
+name = "bitnet-examples"
+version = "0.1.0"
+edition = "2021"
+description = "Example applications demonstrating BitNet-Rust capabilities"
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "chat_app"
+path = "applications/chat_app.rs"
+
+[[bin]]
+name = "batch_processor"
+path = "applications/batch_processor.rs"
+
+[[bin]]
+name = "api_integration"
+path = "applications/api_integration.rs"
+
+[[bin]]
+name = "performance_benchmark"
+path = "applications/performance_benchmark.rs"
+
+[dependencies]
+# Core BitNet dependencies
+bitnet-inference = { path = "../bitnet-inference" }
+bitnet-core = { path = "../bitnet-core" }
+bitnet-benchmarks = { path = "../bitnet-benchmarks" }
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# CLI and user interface
+clap = { version = "4.0", features = ["derive"] }
+colored = "2.0"
+indicatif = "0.17"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# Date and time
+chrono = { version = "0.4", features = ["serde"] }
+
+# File and path utilities
+walkdir = "2.0"
+glob = "0.3"
+
+# HTTP client for API examples
+reqwest = { version = "0.11", features = ["json", "stream"] }
+
+# Performance measurement
+criterion = { version = "0.5", features = ["html_reports"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# System information
+sysinfo = "0.29"
+
+# Parallel processing
+rayon = "1.7"
+
+[dev-dependencies]
+tempfile = "3.0"
