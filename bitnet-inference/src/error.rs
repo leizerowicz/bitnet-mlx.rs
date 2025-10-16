@@ -71,6 +71,18 @@ pub enum InferenceError {
 
     #[error("Configuration error: {message}")]
     ConfigurationError { message: String },
+
+    #[error("Invalid input: {message}")]
+    InvalidInput { message: String },
+
+    #[error("Runtime error: {message}")]
+    RuntimeError { message: String },
+
+    #[error("Hardware acceleration error: {message}")]
+    HardwareAccelerationError { message: String },
+
+    #[error("Anyhow error: {0}")]
+    AnyhowError(#[from] anyhow::Error),
 }
 
 impl InferenceError {
@@ -181,12 +193,30 @@ impl InferenceError {
         InferenceError::GenerationError { message: format!("Sampling: {}", msg.into()) }
     }
 
+    /// Create an invalid input error.
+    pub fn invalid_input<S: Into<String>>(msg: S) -> Self {
+        InferenceError::InvalidInput { message: msg.into() }
+    }
+
+    /// Create a runtime error.
+    pub fn runtime_error<S: Into<String>>(msg: S) -> Self {
+        InferenceError::RuntimeError { message: msg.into() }
+    }
+
+    /// Create a hardware acceleration error.
+    pub fn hardware_acceleration_error<S: Into<String>>(msg: S) -> Self {
+        InferenceError::HardwareAccelerationError { message: msg.into() }
+    }
+
     /// Check if this error is recoverable.
     pub fn is_recoverable(&self) -> bool {
         match self {
             InferenceError::MemoryError(_) => true,
             InferenceError::CacheError(_) => true,
             InferenceError::BatchProcessingError(_) => true,
+            InferenceError::HardwareAccelerationError { .. } => true,
+            InferenceError::RuntimeError { .. } => false,
+            InferenceError::InvalidInput { .. } => false,
             _ => false,
         }
     }

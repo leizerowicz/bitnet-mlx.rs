@@ -4,6 +4,11 @@ pub mod simple;
 pub mod builder;
 pub mod streaming;
 pub mod generation;
+pub mod batch_generation;
+pub mod context_extension;
+pub mod quality_control;
+pub mod lut_acceleration;
+pub mod dynamic_batching;
 pub mod model_execution;
 #[cfg(feature = "generation")]
 pub mod sampling;
@@ -14,6 +19,38 @@ pub use streaming::{InferenceStream, StreamingConfig};
 // Re-export generation types for convenience
 pub use generation::{
     TextGenerator, TextGeneratorBuilder, GenerationConfig, GenerationResult, FinishReason
+};
+
+// Re-export batch generation types for convenience
+pub use batch_generation::{
+    BatchGenerator, BatchGenerationConfig, BatchGenerationInput, BatchGenerationResult,
+    BatchSize, BatchMemoryStrategy, BatchMemoryStats, BatchPerformanceMetrics
+};
+
+// Re-export context extension types for convenience
+pub use context_extension::{
+    LongContextManager, ContextExtensionConfig, SlidingStrategy, ContextPreservationConfig,
+    AttentionOptimizationConfig, ProcessedContext, ProcessingMetrics, AttentionPatternType
+};
+
+// Re-export quality control types for convenience
+pub use quality_control::{
+    QualityController, QualityControlConfig, RepetitionPenaltyConfig, LengthPenaltyConfig,
+    FrequencyPenaltyConfig, QualityControlResult, QualityMetrics, QualityAssessment
+};
+
+// Re-export LUT acceleration types for convenience
+pub use lut_acceleration::{
+    LutHardwareAccelerator, LutAccelerationConfig, KernelSelectionStrategy,
+    OptimizationLevel as LutOptimizationLevel, LutAccelerationResult, 
+    PerformanceMetric, BenchmarkResult, MicrosoftParityTargets
+};
+
+// Re-export dynamic batching types for convenience
+pub use dynamic_batching::{
+    DynamicBatchingSystem, DynamicBatchingConfig, ResourceMonitoringConfig, LoadBalancingConfig,
+    AdaptationStrategy, LoadBalancingStrategy, DynamicBatchResult, OptimizationRecommendation,
+    ResourceUtilization, PerformanceSnapshot, SystemMetrics
 };
 
 // Re-export model execution interface (Task 2.1.19)
