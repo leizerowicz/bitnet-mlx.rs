@@ -41,6 +41,7 @@
 pub mod bitlinear;
 pub mod calibration;
 pub mod metrics;
+pub mod mlx_bitnet_quantizer;
 pub mod quantization;
 pub mod simd;
 pub mod tensor_integration;
@@ -76,6 +77,10 @@ pub use quantization::activations::{
 pub use quantization::utils::{
     BitUtils, CalibrationUtils, MemorySavingsEstimate, QuantizationError, QuantizationUtils,
     ScalingFactor,
+};
+
+pub use mlx_bitnet_quantizer::{
+    MLXBitNetQuantizer, MLXBitLinearLayer, MLXArray, MLXDevice,
 };
 
 pub use quantization::corruption_detection::{

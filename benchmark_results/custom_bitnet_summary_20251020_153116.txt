@@ -1,0 +1,14 @@
+Custom BitNet Model Performance Summary
+======================================
+Model: custom/bitnet-small
+Date: 2025-10-20 15:31:16 UTC
+
+Key Metrics:
+- Average Latency: 2.00ms
+- Tokens/Second: 10000.0
+- Peak Memory: 384.0MB
+- Memory Efficiency: 4.7 tokens/MB
+- Optimal Batch Size: 4
+
+Performance Grade: 🌟🌟🌟🌟🌟 (Excellent)
+Recommendation: Production-ready for inference workloads

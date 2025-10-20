@@ -44,6 +44,14 @@ harness = false
 name = "gpu_performance"
 harness = false
 
+[[bench]]
+name = "custom_bitnet_performance"
+harness = false
+
+[[bin]]
+name = "custom_model_analyzer"
+path = "src/bin/custom_model_analyzer.rs"
+
 [features]
 default = ["std"]
 std = []

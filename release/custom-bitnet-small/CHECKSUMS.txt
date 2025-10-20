@@ -1,0 +1,11 @@
+# Custom BitNet Small Model Checksums
+# Generated: 2025-10-20 17:35:08 UTC
+# Model: custom-bitnet-small
+# Version: v1.0
+
+6f7e89fe925b473030a6955c6d90d5f639252e47a34f5e3d72d883960689eaf2  config/config.json
+6f7e89fe925b473030a6955c6d90d5f639252e47a34f5e3d72d883960689eaf2  config/custom-bitnet-small.json
+8eee7ba8c7b2f6c1308695b153a1f4a3ecaa992b4017ecd566c503519d00c180  models/custom-bitnet-small.gguf.placeholder
+20fe9bea2de4472cd1121379467dda263973c76101a932ffdf3e0b2650df30b5  README.md
+4bb72b934b87aa5e3c8b4e23a04cfcfee8a06f4a8a1728b2ca6638b6a5251f36  scripts/validate.sh
+94b51b01a236c661726fd95ae5711a68ebae02c1558b2ad06693f5bd852428f4  scripts/install.sh

@@ -1,0 +1,82 @@
+[
+  {
+    "text": "The quick brown fox jumps over the lazy dog.",
+    "category": "sample"
+  },
+  {
+    "text": "Machine learning is transforming artificial intelligence through advanced algorithms.",
+    "category": "ml"
+  },
+  {
+    "text": "BitNet models use 1.58-bit quantization for efficiency while maintaining performance.",
+    "category": "bitnet"
+  },
+  {
+    "text": "Rust programming language provides memory safety without garbage collection overhead.",
+    "category": "rust"
+  },
+  {
+    "text": "Neural networks require extensive training data to learn meaningful representations.",
+    "category": "ml"
+  },
+  {
+    "text": "Transformers are the foundation of modern language models like GPT and BERT.",
+    "category": "transformers"
+  },
+  {
+    "text": "Quantization reduces model size while maintaining performance through careful precision control.",
+    "category": "quantization"
+  },
+  {
+    "text": "Apple Silicon provides excellent acceleration for ML workloads using Neural Engine and GPU.",
+    "category": "hardware"
+  },
+  {
+    "text": "Inference optimization is crucial for production deployment and user experience.",
+    "category": "optimization"
+  },
+  {
+    "text": "Multi-head attention enables parallel processing of sequences with different representation subspaces.",
+    "category": "attention"
+  },
+  {
+    "text": "Gradient descent optimizes neural network parameters through iterative weight updates.",
+    "category": "training"
+  },
+  {
+    "text": "Backpropagation computes gradients for weight updates using the chain rule of calculus.",
+    "category": "training"
+  },
+  {
+    "text": "SIMD instructions accelerate matrix multiplication operations on modern CPUs.",
+    "category": "performance"
+  },
+  {
+    "text": "Memory allocation patterns affect training performance and can cause bottlenecks.",
+    "category": "performance"
+  },
+  {
+    "text": "Token embeddings convert text into vector representations that neural networks can process.",
+    "category": "embeddings"
+  },
+  {
+    "text": "Position encodings help models understand sequence order in transformer architectures.",
+    "category": "embeddings"
+  },
+  {
+    "text": "Layer normalization stabilizes training dynamics and improves convergence speed.",
+    "category": "normalization"
+  },
+  {
+    "text": "Residual connections prevent vanishing gradients in deep neural networks.",
+    "category": "architecture"
+  },
+  {
+    "text": "Weight initialization affects convergence speed and training stability significantly.",
+    "category": "initialization"
+  },
+  {
+    "text": "Learning rate scheduling improves training stability and final model performance.",
+    "category": "optimization"
+  }
+]

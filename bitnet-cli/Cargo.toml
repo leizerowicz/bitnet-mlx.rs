@@ -48,6 +48,8 @@ tokio = { version = "1.0", features = ["full"] }
 serde.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
+dirs = "5.0"
+tempfile = "3.0"
 
 # Serialization and configuration
 serde_json = "1.0"
@@ -55,7 +57,6 @@ serde_yaml = "0.9"
 toml = "0.8"
 
 # Directories and utilities
-dirs = "5.0"
 chrono = { version = "0.4", features = ["serde"] }
 num_cpus = "1.0"
 env_logger = "0.10"

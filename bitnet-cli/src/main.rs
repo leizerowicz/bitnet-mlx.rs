@@ -15,6 +15,7 @@ mod config;
 mod customer_tools;
 mod commands;
 mod inference;
+mod models;
 
 use ops::OpsCommand;
 
@@ -88,6 +89,29 @@ pub enum Commands {
 
 #[derive(Subcommand)]
 pub enum ModelCommand {
+    /// List available models (including custom models)
+    List {
+        /// Show only custom models
+        #[arg(long)]
+        custom_only: bool,
+        
+        /// Show detailed model information
+        #[arg(long)]
+        verbose: bool,
+    },
+    
+    /// Show detailed information about a specific model
+    Info {
+        /// Model name or ID
+        model: String,
+    },
+    
+    /// Verify model file integrity
+    Verify {
+        /// Model name or path
+        model: String,
+    },
+    
     /// Convert model formats [Coming Soon]
     Convert {
         /// Input model path
@@ -280,10 +304,26 @@ async fn main() {
         Commands::Setup(setup_cmd) => setup_cmd.execute().await.map_err(|e| e.into()),
         Commands::Validate(validate_cmd) => validate_cmd.execute().await.map_err(|e| e.into()),
         Commands::Quickstart(quickstart_cmd) => quickstart_cmd.execute().await.map_err(|e| e.into()),
-        Commands::Model(_) => {
-            eprintln!("Model operations are coming soon in the next release!");
-            eprintln!("Use 'bitnet convert' for model format conversion.");
-            Ok(())
+        Commands::Model(model_cmd) => {
+            use models::{list_custom_models, get_model_info, CustomModelRegistry};
+            
+            match model_cmd {
+                ModelCommand::List { custom_only, verbose } => {
+                    handle_model_list(*custom_only, *verbose).await.map_err(|e| e.into())
+                }
+                ModelCommand::Info { model } => {
+                    handle_model_info(model).await.map_err(|e| e.into())
+                }
+                ModelCommand::Verify { model } => {
+                    handle_model_verify(model).await.map_err(|e| e.into())
+                }
+                ModelCommand::Convert { input, output } => {
+                    eprintln!("Model conversion is coming soon in the next release!");
+                    eprintln!("Input: {}", input.display());
+                    eprintln!("Output: {}", output.display());
+                    Ok(())
+                }
+            }
         }
         Commands::Infer(infer_cmd) => {
             use inference::InferenceConfig;
@@ -351,4 +391,166 @@ async fn main() {
         
         process::exit(1);
     }
+}
+
+/// Handle model list command
+async fn handle_model_list(custom_only: bool, verbose: bool) -> anyhow::Result<()> {
+    println!("📋 Available BitNet Models");
+    println!();
+    
+    if custom_only || !custom_only {
+        // List custom models
+        match models::list_custom_models() {
+            Ok(custom_models) => {
+                if custom_models.is_empty() {
+                    println!("No custom models found.");
+                    println!("To add a custom model, place a .gguf file in:");
+                    println!("  - ./models/");
+                    println!("  - ./custom-models/");
+                    println!("  - ~/.bitnet/models/");
+                } else {
+                    println!("Custom Models:");
+                    for (model_id, model_info) in custom_models {
+                        println!("  🤖 {} ({})", model_id, model_info.parameters);
+                        if verbose {
+                            println!("     Name: {}", model_info.name);
+                            println!("     Architecture: {}", model_info.architecture);
+                            println!("     Description: {}", model_info.description);
+                            if let Some(path) = &model_info.local_path {
+                                println!("     Path: {}", path);
+                            }
+                            if let Some(config) = &model_info.config {
+                                println!("     Config: {} layers, {} hidden, {} vocab", 
+                                        config.num_layers, config.hidden_size, config.vocab_size);
+                            }
+                            println!();
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                println!("❌ Failed to load custom models: {}", e);
+            }
+        }
+    }
+    
+    if !custom_only {
+        println!();
+        println!("Built-in Models:");
+        println!("  🏭 microsoft/bitnet-b1.58-2B-4T-gguf (1.3B parameters)");
+        println!("     Standard BitNet 1.58-bit model for inference");
+        
+        if verbose {
+            println!("     Architecture: BitNet transformer");
+            println!("     Quantization: 1.58-bit ternary weights");
+            println!("     Source: HuggingFace Hub");
+            println!("     Usage: bitnet infer chat --model microsoft/bitnet-b1.58-2B-4T-gguf");
+        }
+    }
+    
+    println!();
+    println!("Usage:");
+    println!("  bitnet infer chat --model <model-id>");
+    println!("  bitnet model info <model-id>");
+    
+    Ok(())
+}
+
+/// Handle model info command
+async fn handle_model_info(model_id: &str) -> anyhow::Result<()> {
+    println!("📄 Model Information: {}", model_id);
+    println!();
+    
+    match models::get_model_info(model_id) {
+        Ok(model_info) => {
+            println!("Name: {}", model_info.name);
+            println!("Architecture: {}", model_info.architecture);
+            println!("Parameters: {}", model_info.parameters);
+            println!("Description: {}", model_info.description);
+            println!("Custom Model: {}", if model_info.is_custom { "Yes" } else { "No" });
+            
+            if let Some(path) = &model_info.local_path {
+                println!("Local Path: {}", path);
+                
+                // Check if file exists
+                if std::path::Path::new(path).exists() {
+                    let metadata = std::fs::metadata(path)?;
+                    let size_mb = metadata.len() as f64 / 1024.0 / 1024.0;
+                    println!("File Size: {:.1} MB", size_mb);
+                } else {
+                    println!("❌ File not found at specified path");
+                }
+            }
+            
+            if let Some(repo) = &model_info.huggingface_repo {
+                println!("HuggingFace Repo: {}", repo);
+            }
+            
+            if let Some(config) = &model_info.config {
+                println!();
+                println!("Model Configuration:");
+                println!("  Vocabulary Size: {}", config.vocab_size);
+                println!("  Hidden Size: {}", config.hidden_size);
+                println!("  Number of Layers: {}", config.num_layers);
+                println!("  Number of Heads: {}", config.num_heads);
+                println!("  Max Sequence Length: {}", config.max_seq_len);
+                println!("  Quantization: {}", config.quantization);
+            }
+        }
+        Err(e) => {
+            println!("❌ Model '{}' not found: {}", model_id, e);
+            println!();
+            println!("Use 'bitnet model list' to see available models.");
+            return Err(e);
+        }
+    }
+    
+    Ok(())
+}
+
+/// Handle model verify command
+async fn handle_model_verify(model_id: &str) -> anyhow::Result<()> {
+    println!("🔍 Verifying model: {}", model_id);
+    
+    match models::get_model_info(model_id) {
+        Ok(model_info) => {
+            if let Some(path) = &model_info.local_path {
+                match std::fs::metadata(path) {
+                    Ok(metadata) => {
+                        println!("✅ Model file found: {}", path);
+                        println!("   Size: {:.1} MB", metadata.len() as f64 / 1024.0 / 1024.0);
+                        
+                        // Try to load the model if it's custom
+                        if model_info.is_custom {
+                            println!("🔄 Testing model loading...");
+                            match models::load_custom_model(model_id) {
+                                Ok(_) => {
+                                    println!("✅ Model loads successfully");
+                                }
+                                Err(e) => {
+                                    println!("❌ Model loading failed: {}", e);
+                                    return Err(e);
+                                }
+                            }
+                        }
+                        
+                        println!("✅ Model verification passed");
+                    }
+                    Err(e) => {
+                        println!("❌ Cannot access model file: {}", e);
+                        return Err(e.into());
+                    }
+                }
+            } else {
+                println!("❌ Model has no local path (may be a remote model)");
+                anyhow::bail!("Cannot verify remote model");
+            }
+        }
+        Err(e) => {
+            println!("❌ Model '{}' not found: {}", model_id, e);
+            return Err(e);
+        }
+    }
+    
+    Ok(())
 }

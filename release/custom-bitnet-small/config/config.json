@@ -1,0 +1,38 @@
+{
+  "architectures": ["BitNetForCausalLM"],
+  "vocab_size": 128256,
+  "hidden_size": 1024,
+  "intermediate_size": 2816,
+  "num_layers": 16,
+  "num_heads": 16,
+  "num_key_value_heads": 16,
+  "max_seq_len": 4096,
+  "rope_theta": 10000.0,
+  "layer_norm_eps": 1e-5,
+  "use_cache": true,
+  "pad_token_id": 128001,
+  "bos_token_id": 128000,
+  "eos_token_id": 128001,
+  "use_mlx": true,
+  "enable_metal": true,
+  "target_device": "apple_silicon_m4",
+  "quantization_config": {
+    "weight_bits": 1.58,
+    "activation_bits": 8,
+    "method": "bitnet_b1_58",
+    "use_mlx": true,
+    "enable_metal_acceleration": true,
+    "target_device": "apple_silicon_m4"
+  },
+  "model_type": "custom_bitnet",
+  "torch_dtype": "float16",
+  "transformers_version": "4.35.0",
+  "custom_bitnet_config": {
+    "model_name": "custom-bitnet-small",
+    "description": "Custom BitNet 1.58-bit model with 16M parameters for clean inference",
+    "target_parameters": "16M",
+    "training_backend": "mlx",
+    "inference_backend": "bitnet_core",
+    "created_for": "replacing_corrupted_microsoft_model"
+  }
+}

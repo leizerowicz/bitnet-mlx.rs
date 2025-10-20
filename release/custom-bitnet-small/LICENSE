@@ -1,0 +1,16 @@
+Custom BitNet Small Model License
+
+This model distribution package is provided as part of the BitNet-Rust project.
+
+The model files, configuration, and scripts in this package are released under
+the same license terms as the BitNet-Rust project.
+
+For the full license terms, please refer to the BitNet-Rust repository:
+https://github.com/leizerowicz/bitnet-mlx.rs
+
+This custom model is provided "as is" without warranty of any kind, express or
+implied, including but not limited to the warranties of merchantability,
+fitness for a particular purpose, and non-infringement.
+
+Model Creation Date: 2025-10-20
+Package Version: v1.0

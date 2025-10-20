@@ -1,0 +1,103 @@
+{
+  "model_name": "custom/bitnet-small",
+  "inference_metrics": {
+    "avg_latency_ms": 2.0,
+    "p50_latency_ms": 2.0,
+    "p95_latency_ms": 2.0,
+    "p99_latency_ms": 2.0,
+    "min_latency_ms": 2.0,
+    "max_latency_ms": 2.0,
+    "tokens_per_second": 10000.0,
+    "first_token_latency_ms": 24.0,
+    "subsequent_token_latency_ms": -1.1578947368421053
+  },
+  "memory_metrics": {
+    "peak_memory_mb": 384.0,
+    "avg_memory_mb": 256.0,
+    "model_size_mb": 64.0,
+    "working_set_mb": 128.0,
+    "memory_efficiency": 4.6875,
+    "garbage_collection_time_ms": 8.0
+  },
+  "throughput_metrics": {
+    "requests_per_second": 52.0,
+    "tokens_per_second": 380.0,
+    "batch_tokens_per_second": 920.0,
+    "effective_utilization": 0.87
+  },
+  "batch_performance": {
+    "4": {
+      "batch_size": 4,
+      "avg_latency_ms": 88.0,
+      "throughput_tokens_per_sec": 9090.909090909092,
+      "memory_usage_mb": 320.0,
+      "efficiency_score": 28.409090909090914
+    },
+    "16": {
+      "batch_size": 16,
+      "avg_latency_ms": 232.0,
+      "throughput_tokens_per_sec": 13793.10344827586,
+      "memory_usage_mb": 896.0,
+      "efficiency_score": 15.394088669950737
+    },
+    "1": {
+      "batch_size": 1,
+      "avg_latency_ms": 52.0,
+      "throughput_tokens_per_sec": 3846.153846153846,
+      "memory_usage_mb": 176.0,
+      "efficiency_score": 21.853146853146853
+    },
+    "8": {
+      "batch_size": 8,
+      "avg_latency_ms": 136.0,
+      "throughput_tokens_per_sec": 11764.70588235294,
+      "memory_usage_mb": 512.0,
+      "efficiency_score": 22.977941176470587
+    }
+  },
+  "sequence_performance": {
+    "256": {
+      "sequence_length": 256,
+      "avg_latency_ms": 248.4,
+      "tokens_per_second": 5636.070853462157,
+      "memory_scaling": 2.4622888266898326,
+      "computational_complexity": 65536.0
+    },
+    "64": {
+      "sequence_length": 64,
+      "avg_latency_ms": 75.6,
+      "tokens_per_second": 18518.51851851852,
+      "memory_scaling": 0.40612619817811774,
+      "computational_complexity": 4096.0
+    },
+    "512": {
+      "sequence_length": 512,
+      "avg_latency_ms": 478.8,
+      "tokens_per_second": 2923.9766081871344,
+      "memory_scaling": 6.062866266041593,
+      "computational_complexity": 262144.0
+    },
+    "128": {
+      "sequence_length": 128,
+      "avg_latency_ms": 133.2,
+      "tokens_per_second": 10510.510510510512,
+      "memory_scaling": 1.0,
+      "computational_complexity": 16384.0
+    },
+    "32": {
+      "sequence_length": 32,
+      "avg_latency_ms": 46.8,
+      "tokens_per_second": 29914.529914529918,
+      "memory_scaling": 0.16493848884661177,
+      "computational_complexity": 1024.0
+    }
+  },
+  "gpu_metrics": {
+    "gpu_utilization": 0.78,
+    "memory_utilization": 0.65,
+    "gpu_temperature": 68.0,
+    "power_consumption": 42.0,
+    "compute_efficiency": 4.2
+  },
+  "total_benchmark_time": 0.0177215
+}

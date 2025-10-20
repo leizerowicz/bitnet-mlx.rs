@@ -1,0 +1,39 @@
+{
+  "package": {
+    "name": "custom-bitnet-small",
+    "version": "v1.0",
+    "created": "2025-10-20T17:35:08Z",
+    "size": " 52K",
+    "file_count":        7
+  },
+  "model": {
+    "name": "Custom BitNet Small",
+    "architecture": "BitNet",
+    "quantization": "1.58-bit",
+    "parameters": "16M",
+    "layers": 16,
+    "hidden_size": 1024,
+    "vocab_size": 128256,
+    "file": {"type": "placeholder", "size": null}
+  },
+  "compatibility": {
+    "bitnet_rust_version": "1.0+",
+    "rust_version": "1.70+",
+    "target_os": ["macOS", "Linux"],
+    "optimal_platform": "Apple Silicon M1/M2/M3/M4"
+  },
+  "contents": {
+    "readme": "README.md",
+    "config": "config/custom-bitnet-small.json",
+    "model": "models/custom-bitnet-small.gguf*",
+    "install_script": "scripts/install.sh",
+    "validate_script": "scripts/validate.sh",
+    "checksums": "CHECKSUMS.txt",
+    "package_info": "PACKAGE_INFO.json"
+  },
+  "usage": {
+    "install": "./scripts/install.sh",
+    "validate": "./scripts/validate.sh",
+    "inference": "bitnet infer chat --model custom/bitnet-small"
+  }
+}

@@ -47,6 +47,7 @@ pub mod tokenizer;
 pub mod input_processing;
 pub mod reference_outputs;
 pub mod benchmark_datasets;
+pub mod models;
 
 // Re-export the main API components
 pub use api::{InferenceEngine, EngineConfig, InferenceStream, StreamingConfig};
@@ -55,13 +56,14 @@ pub use error::{InferenceError, Result};
 pub use huggingface::{HuggingFaceLoader, ModelRepo, HuggingFaceConfig, CacheStats};
 pub use tokenizer::{LlamaTokenizer, ChatFormat, Message, Role, Dialog};
 pub use input_processing::{InputProcessor, InputProcessingConfig, ValidatedInput, InputBatch, TokenBuffer};
-pub use gguf::{GgufLoader, GgufHeader, GgufTensorInfo, GgufValueType, GgufTensorType};
+pub use gguf::{GgufLoader, GgufHeader, GgufTensorInfo, GgufValueType, GgufTensorType, GgufWriter, GgufMetadata};
 pub use bitnet_config::{BitNetModelConfig, BasicModelInfo, LayerConfig, AttentionConfig, 
                         NormalizationConfig, BitLinearConfig, TokenizerConfig, RopeConfig, GgufKeys};
 pub use reference_outputs::{ReferenceOutput, ReferenceOutputCollector, ReferenceCollectionConfig, 
                            CollectionMethod, ValidationResult};
 pub use benchmark_datasets::{BenchmarkDataset, BenchmarkIntegrator, BenchmarkConfig, BenchmarkResult, 
                            BenchmarkExample, BenchmarkOutput, BenchmarkMetrics, GLUETask, SuperGLUETask};
+pub use models::{CustomBitNetLoader, CustomBitNetInferenceModel, CustomBitNetInferenceConfig};
 
 // Re-export commonly used types
 pub use engine::{InferenceContext, OptimizationLevel, InferenceBackend};

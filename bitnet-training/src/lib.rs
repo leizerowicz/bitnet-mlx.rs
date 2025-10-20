@@ -1,55 +1,29 @@
-//! BitNet Training Library - Phase 3: Quantization-Aware Training
+//! BitNet Training Library - Phase 2: Training Infrastructure
 //!
-//! This crate provides comprehensive training utilities for BitNet models with
-//! quantization-aware training (QAT) support, straight-through estimators,
-//! custom autograd functions, and specialized optimizers.
+//! This crate provides training infrastructure for BitNet models with
+//! support for custom model training, tokenization, and dataset management.
 //!
 //! ## Key Features
 //!
-//! - **Straight-Through Estimator (STE)**: Multiple variants for quantization-aware training
-//! - **Custom Autograd**: Integration with candle-core's autograd system
+//! - **Custom BitNet Models**: Training infrastructure for 1.58-bit quantized models
+//! - **Tokenization**: Simple tokenization for training data
+//! - **Dataset Management**: Training dataset loading and batching
+//! - **Training Loop**: Basic training infrastructure with checkpointing
 
 // Allow dead code for work-in-progress training implementations
 #![allow(dead_code, unused_variables, unused_imports)]
-//! - **QAT Loss Functions**: Specialized loss functions for quantized training
-//! - **QAT Optimizers**: Quantization-aware Adam/AdamW optimizers
-//! - **Progressive Quantization**: Layer-wise and phase-based quantization scheduling
-//! - **Knowledge Distillation**: Teacher-student training for quantized models
-//!
-//! ## Quick Start
-//!
-//! ```rust,no_run
-//! use bitnet_training::qat::{
-//!     straight_through::{STEConfig, STEVariant, StraightThroughEstimator},
-//!     loss::QATLossFactory,
-//!     state_tracking::QATTrainingState,
-//! };
-//! use candle_core::{Tensor, Device, DType};
-//!
-//! let device = Device::Cpu;
-//!
-//! // Configure STE for binary quantization
-//! let config = STEConfig {
-//!     variant: STEVariant::Standard,
-//!     bits: 1,
-//!     range: 1.0,
-//!     device: Some(device.clone()),
-//!     ..Default::default()
-//! };
-//!
-//! // Create Straight-Through Estimator
-//! let mut ste = StraightThroughEstimator::new(config)?;
-//!
-//! // Quantize tensor with straight-through gradients
-//! let input = Tensor::from_slice(&[0.8, -0.3, 0.1, -0.9], (4,), &device)?;
-//! let quantized = ste.forward(&input)?;
-//!
-//! // Create QAT loss factory
-//! let loss_factory = QATLossFactory;
-//!
-//! // Initialize training state
-//! let training_state = QATTrainingState::new();
-//! # Ok::<(), candle_core::Error>(())
-//! ```
 
+// Core modules
+pub mod models;
+pub mod tokenization;
+pub mod dataset;
+pub mod training;
 pub mod qat;
+pub mod export;
+
+// Re-exports for convenience
+pub use models::{CustomBitNetModel, CustomBitNetConfig};
+pub use tokenization::{TrainingTokenizer, TokenizerConfig};
+pub use dataset::{TrainingDataset, DatasetConfig, TrainingExample};
+pub use training::{BitNetTrainer, TrainingConfig, TrainingStats};
+pub use export::{GgufExporter, GgufMetadata, ExportStats};

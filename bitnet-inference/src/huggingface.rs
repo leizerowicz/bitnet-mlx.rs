@@ -75,7 +75,7 @@ impl Default for HuggingFaceConfig {
             max_cache_size: 5 * 1024 * 1024 * 1024, // 5GB
             auth_token: std::env::var("HF_TOKEN").ok(),
             offline: false,
-            timeout_seconds: 300, // 5 minutes
+            timeout_seconds: 1800, // 30 minutes for large model downloads
         }
     }
 }
@@ -108,13 +108,19 @@ impl HuggingFaceLoader {
 
     /// Load a model from HuggingFace Hub
     pub async fn load_model(&self, repo: &ModelRepo) -> Result<LoadedModel> {
+        tracing::info!("🤖 Loading model: {}", repo.repo_id());
+        
         // 1. Check local cache first
+        tracing::info!("🔍 Checking local cache...");
         if let Some(cached_model) = self.check_cache(repo).await? {
+            tracing::info!("✅ Found model in cache, loading...");
             return Ok(cached_model);
         }
 
         // 2. Download model files if not in offline mode
         if !self.config.offline {
+            tracing::info!("📥 Model not in cache, downloading from HuggingFace...");
+            tracing::info!("⏰ This may take several minutes for large models...");
             self.download_model(repo).await?;
         } else {
             return Err(InferenceError::model_load(
@@ -123,6 +129,7 @@ impl HuggingFaceLoader {
         }
 
         // 3. Load the downloaded model
+        tracing::info!("🔄 Loading downloaded model...");
         self.load_cached_model(repo).await
     }
 
@@ -130,13 +137,17 @@ impl HuggingFaceLoader {
     pub async fn download_model(&self, repo: &ModelRepo) -> Result<PathBuf> {
         let model_dir = self.get_model_cache_dir(repo);
         
+        tracing::info!("📁 Cache directory: {:?}", model_dir);
+        
         // Create cache directory if it doesn't exist
         fs::create_dir_all(&model_dir).await
             .map_err(|e| InferenceError::model_load(format!("Failed to create cache directory: {}", e)))?;
 
         // Download model files
+        tracing::info!("🚀 Starting download process...");
         self.download_model_files(repo, &model_dir).await?;
 
+        tracing::info!("✅ Download completed successfully");
         Ok(model_dir)
     }
 
@@ -269,19 +280,25 @@ impl HuggingFaceLoader {
             ]);
         }
 
-        for file_name in files_to_download {
-            let url = self.build_download_url(repo, &file_name);
-            let file_path = model_dir.join(&file_name);
+        tracing::info!("📋 Files to download: {:?}", files_to_download);
+        let total_files = files_to_download.len();
+        
+        for (index, file_name) in files_to_download.iter().enumerate() {
+            tracing::info!("📥 Downloading file {}/{}: {}", index + 1, total_files, file_name);
+            
+            let url = self.build_download_url(repo, file_name);
+            let file_path = model_dir.join(file_name);
 
             match self.download_file(&url, &file_path).await {
                 Ok(_) => {
-                    tracing::info!("Downloaded {}", file_name);
+                    tracing::info!("✅ Downloaded {}", file_name);
                 }
                 Err(e) => {
                     // Some files are optional
                     if file_name.starts_with("tokenizer") || file_name == "config.json" {
-                        tracing::warn!("Optional file {} not available: {}", file_name, e);
+                        tracing::warn!("⚠️  Optional file {} not available: {}", file_name, e);
                     } else {
+                        tracing::error!("❌ Failed to download required file {}: {}", file_name, e);
                         return Err(e);
                     }
                 }
@@ -332,6 +349,22 @@ impl HuggingFaceLoader {
 
     /// Download a single file from HuggingFace Hub
     async fn download_file(&self, url: &str, file_path: &Path) -> Result<()> {
+        // Check if file already exists and is complete
+        if file_path.exists() {
+            if let Ok(metadata) = fs::metadata(file_path).await {
+                if metadata.len() > 0 {
+                    tracing::info!("File already exists and appears complete: {:?}", file_path);
+                    return Ok(());
+                }
+            }
+        }
+
+        // Create parent directory if it doesn't exist
+        if let Some(parent) = file_path.parent() {
+            fs::create_dir_all(parent).await
+                .map_err(|e| InferenceError::model_load(format!("Failed to create directory {:?}: {}", parent, e)))?;
+        }
+
         let mut request = self.client.get(url);
 
         // Add authentication header if token is available
@@ -339,8 +372,9 @@ impl HuggingFaceLoader {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
 
+        tracing::info!("🔗 Downloading: {}", url);
         let response = request.send().await
-            .map_err(|e| InferenceError::model_load(format!("Failed to download {}: {}", url, e)))?;
+            .map_err(|e| InferenceError::model_load(format!("Failed to initiate download {}: {}", url, e)))?;
 
         if !response.status().is_success() {
             return Err(InferenceError::model_load(
@@ -348,12 +382,34 @@ impl HuggingFaceLoader {
             ));
         }
 
-        let content = response.bytes().await
-            .map_err(|e| InferenceError::model_load(format!("Failed to read response: {}", e)))?;
+        // Get content length for progress tracking
+        let content_length = response.content_length();
+        if let Some(size) = content_length {
+            let size_mb = size as f64 / 1024.0 / 1024.0;
+            tracing::info!("📦 File size: {:.2} MB", size_mb);
+            
+            // For large files, provide more detailed progress info
+            if size_mb > 100.0 {
+                tracing::info!("⏳ Large file detected. Download may take several minutes...");
+            }
+        } else {
+            tracing::info!("📦 File size: Unknown (streaming download)");
+        }
 
+        tracing::info!("⬇️  Starting download...");
+        
+        // Read the response with better error handling
+        let content = response.bytes().await
+            .map_err(|e| {
+                tracing::error!("Download failed for {}: {}", url, e);
+                InferenceError::model_load(format!("Failed to read response: {}", e))
+            })?;
+
+        tracing::info!("💾 Writing {} bytes to: {:?}", content.len(), file_path);
         fs::write(file_path, content).await
             .map_err(|e| InferenceError::model_load(format!("Failed to write file: {}", e)))?;
 
+        tracing::info!("✅ Download completed: {}", file_path.file_name().unwrap_or_default().to_string_lossy());
         Ok(())
     }
 
