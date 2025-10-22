@@ -183,6 +183,10 @@ pub mod advanced_kernels;
 #[cfg(all(target_os = "macos", feature = "metal"))]
 pub mod advanced_mps_tests;
 
+// Apple Neural Engine (ANE) Integration - Step 6.1.1
+#[cfg(all(target_os = "macos", feature = "ane"))]
+pub mod ane;
+
 // Re-export Metal module for external use
 pub use metal::*;
 
@@ -193,6 +197,14 @@ pub use advanced_kernels::*;
 // Re-export Advanced MPS Tests for Task 4.1.2.3
 #[cfg(all(target_os = "macos", feature = "metal"))]
 pub use advanced_mps_tests::*;
+
+// Re-export ANE module for Apple Neural Engine acceleration - Step 6.1.1
+#[cfg(all(target_os = "macos", feature = "ane"))]
+pub use ane::{
+    ANEBitNetAccelerator, ANEPartitioningStrategy, ANEOperation, ANEError,
+    ANECoreMLConverter, ANEPerformanceMonitor, ANEUsageStats, GPUFallbackStats,
+    PowerConsumption, ANEPerformanceReport, Device,
+};
 
 // Re-export MPS module for external use (specific exports to avoid ambiguity)
 #[cfg(all(target_os = "macos", feature = "mps"))]
@@ -207,7 +219,7 @@ pub use mps::{
     
     // Advanced MPS Optimization features (Task 4.1.2.3)
     DynamicLoadBalancer, LoadBalancingStrategy, WorkloadCharacteristics, WorkloadType,
-    ModelPartitioner, ComputeUnit, PerformanceMetrics,
+    dynamic_load_balancing::ModelPartitioner, ComputeUnit, PerformanceMetrics,
     MLXIntegration, MLXDataType, MLXModel, MLXModelParameters, MLXPerformanceStats,
 };
 

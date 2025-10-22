@@ -45,6 +45,10 @@ name = "gpu_performance"
 harness = false
 
 [[bench]]
+name = "custom_bitnet_production"
+harness = false
+
+[[bench]]
 name = "custom_bitnet_performance"
 harness = false
 

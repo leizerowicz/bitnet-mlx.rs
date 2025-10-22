@@ -2,7 +2,9 @@
 // Builds on completed BitLinear implementation from Phase 2
 
 pub mod autograd;
+pub mod bitnet_specific;  // Phase 5.1.2: BitNet-Specific Training Features
 pub mod distillation;
+pub mod infrastructure;  // Phase 5.1.1: QAT Infrastructure for Custom Models
 pub mod loss;
 pub mod optimizer;
 pub mod progressive;
@@ -40,6 +42,19 @@ pub use progressive::{
 };
 
 pub use state_tracking::{CheckpointManager, QATStateTracker, QATTrainingState, TrainingMetrics};
+
+// Phase 5.1.1: QAT Infrastructure for Custom Models
+pub use infrastructure::{
+    QATTrainer, QATTrainingConfig, QATTrainingStats, QATTrainingState as InfrastructureTrainingState,
+    QuantizationSchedule, TemperatureSchedule, ScheduleType,
+};
+
+// Phase 5.1.2: BitNet-Specific Training Features
+pub use bitnet_specific::{
+    QATBitLinearLayer, 
+    KnowledgeDistillation as BitNetKnowledgeDistillation, 
+    ProgressiveQuantizationScheduler as BitNetProgressiveQuantizationScheduler,
+};
 
 use candle_core::{DType, Device};
 use std::collections::HashMap;

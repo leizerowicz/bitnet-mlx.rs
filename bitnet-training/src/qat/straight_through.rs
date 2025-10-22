@@ -2,10 +2,11 @@
 // Core component for Quantization-Aware Training in BitNet-Rust
 
 use candle_core::{DType, Device, Result, Tensor};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Straight-Through Estimator variants
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum STEVariant {
     /// Standard STE: forward quantize, backward identity
     Standard,
