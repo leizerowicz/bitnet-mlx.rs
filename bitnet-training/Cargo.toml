@@ -12,14 +12,14 @@ keywords = ["bitnet", "training", "fine-tuning", "machine-learning"]
 categories = ["science"]
 
 [features]
-default = ["std"]
+default = ["std", "distributed", "peft"]
 std = []
 # Enable quantization-aware training
 qat = ["bitnet-quant/qat"]
 # Enable distributed training
-distributed = ["dep:tokio"]
+distributed = []
 # Enable parameter-efficient fine-tuning
-peft = ["dep:rand"]
+peft = []
 # Enable dataset utilities
 datasets = ["dep:arrow"]
 # Enable Metal acceleration for training (temporarily disabled due to dependency issues)
@@ -42,13 +42,14 @@ candle-core.workspace = true
 candle-nn = "0.8"
 serde.workspace = true
 serde_json = "1.0"
+serde_yaml = "0.9"
 anyhow.workspace = true
 thiserror.workspace = true
 half = "2.3"
 
 # Training utilities
-rand = { version = "0.8", optional = true }
-tokio = { workspace = true, optional = true }
+rand = { version = "0.8" }
+tokio = { workspace = true, features = ["full"] }
 
 # MLX dependencies (for Apple Silicon acceleration)
 mlx-rs = { version = "0.25", optional = true }
@@ -58,10 +59,11 @@ arrow = { version = "53.0", optional = true }
 
 # Additional training utilities
 tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "chrono"] }
 clap = { version = "4.0", features = ["derive"] }
 env_logger = "0.10"
 uuid = { version = "1.0", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
 
 [[bin]]
 name = "training_demo"
@@ -70,6 +72,34 @@ path = "src/bin/training_demo.rs"
 [[bin]]
 name = "mlx_trainer"
 path = "src/bin/mlx_trainer.rs"
+
+[[bin]]
+name = "train_custom_bitnet"
+path = "src/bin/train_custom_bitnet.rs"
+
+[[bin]]
+name = "export_to_gguf"
+path = "src/bin/export_to_gguf.rs"
+
+[[bin]]
+name = "generate_synthetic_data"
+path = "src/bin/generate_synthetic_data.rs"
+
+[[bin]]
+name = "validate_dataset"
+path = "src/bin/validate_dataset.rs"
+
+[[bin]]
+name = "training_stats"
+path = "src/bin/training_stats.rs"
+
+[[bin]]
+name = "optimize_gguf"
+path = "src/bin/optimize_gguf.rs"
+
+[[bin]]
+name = "validate_gguf"
+path = "src/bin/validate_gguf.rs"
 
 [dev-dependencies]
 criterion.workspace = true

@@ -277,9 +277,9 @@ mod tests {
             enable_auto_updates: false,
         };
         
-        // This would fail without actual template files, but tests the structure
+        // Framework creation should succeed even without template files
         let result = AgentConfigFramework::with_config(config);
-        assert!(result.is_err()); // Expected to fail without templates
+        assert!(result.is_ok()); // Framework creation should succeed
     }
 
     #[test]

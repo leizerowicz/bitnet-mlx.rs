@@ -7,6 +7,10 @@ use tracing::{info, warn, debug};
 use crate::dataset::{TrainingDataset, TrainingBatch};
 use crate::models::CustomBitNetModel;
 
+// Export the advanced custom trainer
+pub mod custom_trainer;
+pub use custom_trainer::{CustomBitNetTrainer, TrainingState, TrainingCheckpoint};
+
 /// Training configuration for BitNet models
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingConfig {
@@ -216,7 +220,10 @@ impl BitNetTrainer {
         use candle_core::{Tensor, Device, DType};
         
         let device = Device::Cpu;
-        let input_data: Vec<f32> = batch.input_ids.iter().map(|&x| x as f32).collect();
+        
+        // Use U32 dtype for input_ids (token indices) instead of F32
+        // This ensures compatibility with embedding operations and index-select
+        let input_data: Vec<u32> = batch.input_ids.iter().map(|&x| x as u32).collect();
         
         Tensor::from_vec(
             input_data,

@@ -52,7 +52,7 @@ pub enum GgufTensorType {
     BitnetB158 = 100, // Custom type for BitNet ternary weights
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct GgufMetadata {
     pub name: String,
     pub architecture: String,

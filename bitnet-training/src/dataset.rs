@@ -117,6 +117,40 @@ impl TrainingDataset {
         Ok(Self::new(examples, config, tokenizer))
     }
     
+    /// Load dataset from file (automatically detects format)
+    pub fn from_file<P: AsRef<Path>>(
+        path: P, 
+        config: DatasetConfig
+    ) -> Result<Self> {
+        use crate::tokenization::TokenizerConfig;
+        
+        let tokenizer_config = TokenizerConfig::default();
+        let path = path.as_ref();
+        let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
+        
+        match extension {
+            "json" => {
+                let tokenizer = TrainingTokenizer::new(tokenizer_config)?;
+                Self::from_json_file(path, config, tokenizer)
+            },
+            "txt" | "text" => {
+                let tokenizer = TrainingTokenizer::new(tokenizer_config)?;
+                Self::from_text_file(path, config, tokenizer)
+            },
+            _ => {
+                // Try to parse as JSON first, then as text
+                let tokenizer1 = TrainingTokenizer::new(tokenizer_config.clone())?;
+                match Self::from_json_file(path, config.clone(), tokenizer1) {
+                    Ok(dataset) => Ok(dataset),
+                    Err(_) => {
+                        let tokenizer2 = TrainingTokenizer::new(tokenizer_config)?;
+                        Self::from_text_file(path, config, tokenizer2)
+                    }
+                }
+            }
+        }
+    }
+    
     /// Create synthetic dataset for testing
     pub fn create_synthetic(
         config: DatasetConfig,

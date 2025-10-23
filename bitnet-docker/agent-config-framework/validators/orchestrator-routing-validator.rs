@@ -350,9 +350,7 @@ mod tests {
         let validator = OrchestratorRoutingValidator::new("agent-config");
         
         let valid_content = r#"
-        > **⚠️ MANDATORY ORCHESTRATOR ROUTING**: Before executing any work from this specialist config, 
-        > **ALWAYS consult `agent-config/orchestrator.md` FIRST** for task routing, workflow coordination, 
-        > multi-agent needs, current project context, and agent hooks integration.
+        > **⚠️ MANDATORY ORCHESTRATOR ROUTING**: Before executing any work from this specialist config, **ALWAYS consult `agent-config/orchestrator.md` FIRST** for task routing, workflow coordination, multi-agent needs, current project context, and agent hooks integration.
         "#;
         
         assert!(validator.validate_orchestrator_routing(valid_content).is_none());

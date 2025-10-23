@@ -24,6 +24,7 @@ pub mod qat;
 pub mod export;
 pub mod lora;
 pub mod finetuning;
+pub mod config;
 
 // ANE integration module
 #[cfg(target_os = "macos")]

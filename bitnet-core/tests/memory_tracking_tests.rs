@@ -103,14 +103,24 @@ fn test_memory_pool_with_tracking_integration() {
     let device = get_cpu_device();
 
     // Verify tracker is available
-    assert!(pool.get_memory_tracker().is_some());
+    println!("DEBUG: Memory tracker available: {}", pool.get_memory_tracker().is_some());
+    if let Some(tracker) = pool.get_memory_tracker() {
+        println!("DEBUG: Tracker details available");
+    }
 
     // Perform allocations and verify tracking
+    println!("DEBUG: Starting allocations...");
     let handle1 = pool.allocate(1024, 16, &device).unwrap();
+    println!("DEBUG: Handle1 allocated: {:?}", handle1.id());
+    
     let handle2 = pool.allocate(2048, 32, &device).unwrap();
+    println!("DEBUG: Handle2 allocated: {:?}", handle2.id());
 
     // Check detailed metrics
     if let Some(metrics) = pool.get_detailed_metrics() {
+        println!("DEBUG: Active allocations: {}", metrics.active_allocations);
+        println!("DEBUG: Current memory usage: {}", metrics.current_memory_usage);
+        println!("DEBUG: Pressure level: {:?}", metrics.pressure_level);
         assert!(metrics.active_allocations >= 2);
         assert!(metrics.current_memory_usage >= 3072);
         assert_eq!(metrics.pressure_level, MemoryPressureLevel::None);

@@ -491,17 +491,18 @@ impl HybridMemoryPool {
         }
 
         // Track allocation if advanced tracking is enabled (outside critical section)
-        // Optimized for Task 1.4.1: prioritize optimized tracker to reduce overhead
-        let allocation_id = if let Some(ref tracker) = self.optimized_tracker {
-            // Use optimized tracker first for best performance
-            Some(tracker.track_allocation(&handle, size, device))
-        } else if let Some(ref tracker) = self.memory_tracker {
-            // Fallback to standard tracker only if optimized tracker not available
-            tracker.track_allocation(&handle, size, device);
-            None
+        // For compatibility: ensure both trackers are updated when available
+        let allocation_id = if let Some(ref optimized_tracker) = self.optimized_tracker {
+            // Use optimized tracker for performance
+            Some(optimized_tracker.track_allocation(&handle, size, device))
         } else {
             None
         };
+
+        // Always update standard tracker if available (for compatibility with get_detailed_metrics)
+        if let Some(ref tracker) = self.memory_tracker {
+            tracker.track_allocation(&handle, size, device);
+        }
 
         // Store allocation ID in handle metadata if available
         if let Some(_id) = allocation_id {
@@ -615,14 +616,15 @@ impl HybridMemoryPool {
         }
 
         // Track deallocation if advanced tracking is enabled (before moving handle)
-        // Optimized for Task 1.4.1: prioritize optimized tracker to reduce overhead
+        // For compatibility: ensure both trackers are updated when available
         if let Some(ref tracker) = self.optimized_tracker {
-            // Use optimized tracker first for best performance
-            // Create allocation ID from handle ID for tracking consistency
+            // Use optimized tracker for performance
             let allocation_id = tracking::AllocationId(handle_id);
             tracker.track_deallocation(allocation_id);
-        } else if let Some(ref tracker) = self.memory_tracker {
-            // Fallback to standard tracker only if optimized tracker not available
+        }
+
+        // Always update standard tracker if available (for compatibility with get_detailed_metrics)
+        if let Some(ref tracker) = self.memory_tracker {
             tracker.track_deallocation(&registered_handle);
         }
 

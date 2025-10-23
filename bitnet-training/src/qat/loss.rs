@@ -60,8 +60,16 @@ impl QuantizationAwareLoss {
         // Log softmax for numerical stability
         let log_probs = predictions.log()?; // Simple approximation
 
-        // Convert targets to one-hot if needed or use sparse cross-entropy
-        let loss = log_probs.neg()?.gather(targets, candle_core::D::Minus1)?;
+        // Ensure targets tensor has the correct dtype for gather operation
+        // Convert targets to U32 if needed (indices must be integers)
+        let targets = if targets.dtype() == candle_core::DType::F32 {
+            targets.to_dtype(candle_core::DType::U32)?
+        } else {
+            targets.clone()
+        };
+
+        // Use sparse cross-entropy with proper dtype handling
+        let loss = log_probs.neg()?.gather(&targets, candle_core::D::Minus1)?;
         loss.mean_all()
     }
 
